@@ -1,0 +1,419 @@
+﻿@using MicrohireAgentChat.Services
+@using Markdig
+@using System.Text.Json
+@model IEnumerable<DisplayMessage>
+
+@{
+    var mdPipeline = new MarkdownPipelineBuilder()
+        .UseAdvancedExtensions()
+        .UseSoftlineBreakAsHardlineBreak()
+        .Build();
+
+    const string G_START = "[[ISLA_GALLERY]]";
+    const string G_END = "[[/ISLA_GALLERY]]";
+}
+
+<!-- Anti-forgery token for AJAX posts -->
+<div style="display:none">
+    @Html.AntiForgeryToken()
+</div>
+
+@if (Model?.Any() != true)
+{
+    <div class="text-muted">No messages yet.</div>
+}
+else
+{
+    foreach (var m in Model)
+    {
+        var isAssistant = string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase);
+        var rowClass = isAssistant ? "message-recived" : "message-sent";
+
+        <div class="chat-message @rowClass" data-role="@m.Role">
+            <div class="chat-message-box">
+
+                @if (isAssistant)
+                {
+                    <div class="chat-message-avatar">
+                        <img src="~/images/avatar.png" alt="Isla" />
+                    </div>
+                }
+
+                <div class="chat-message-body">
+                    @{
+                        foreach (var rawPart in (m.Parts ?? new List<string>()))
+                        {
+                            var part = rawPart ?? string.Empty;
+
+                            // Ignore legacy <image:...> tokens
+                            if (part.StartsWith("<image:", StringComparison.OrdinalIgnoreCase))
+                                continue;
+
+                            // -------------------- GALLERY BLOCKS --------------------
+                            if (part.Contains(G_START, StringComparison.Ordinal) && part.Contains(G_END, StringComparison.Ordinal))
+                            {
+                                int pos = 0;
+                                while (true)
+                                {
+                                    var s = part.IndexOf(G_START, pos, StringComparison.Ordinal);
+                                    if (s < 0)
+                                    {
+                                        var tail = part.Substring(pos);
+                                        if (!string.IsNullOrWhiteSpace(tail))
+                                        {
+                                            var html = Markdown.ToHtml(tail, mdPipeline);
+                                            <div class="chat-text">@Html.Raw(html)</div>
+                                        }
+                                        break;
+                                    }
+
+                                    var before = part.Substring(pos, s - pos);
+                                    if (!string.IsNullOrWhiteSpace(before))
+                                    {
+                                        var html = Markdown.ToHtml(before, mdPipeline);
+                                        <div class="chat-text">@Html.Raw(html)</div>
+                                    }
+
+                                    var e = part.IndexOf(G_END, s + G_START.Length, StringComparison.Ordinal);
+                                    if (e < 0) { break; }
+
+                                    var json = part.Substring(s + G_START.Length, e - (s + G_START.Length)).Trim();
+
+                                    try
+                                    {
+                                        var gallery = JsonSerializer.Deserialize<IslaGallery>(json, new JsonSerializerOptions
+                                        {
+                                            PropertyNameCaseInsensitive = true
+                                        }) ?? new IslaGallery();
+
+                                        <div class="isla-gallery">
+                                            @if (!string.IsNullOrWhiteSpace(gallery.Room))
+                                            {
+                                                <div class="isla-gallery-title">@gallery.Room</div>
+                                            }
+                                            <div class="isla-gallery-grid">
+                                                @foreach (var it in gallery.Items ?? Enumerable.Empty<IslaGalleryItem>())
+                                                {
+                                                    <button class="isla-card" type="button"
+                                                            data-select='@Html.Raw(JsonSerializer.Serialize(it.Select ?? new { }))'>
+                                                        <img src="@it.Url" alt="@it.Label" loading="lazy" />
+                                                        <div class="isla-card-label">@it.Label</div>
+                                                    </button>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                    catch
+                                    {
+                                        <pre class="text-muted small">@json</pre>
+                                    }
+
+                                    pos = e + G_END.Length;
+                                }
+
+                                continue;
+                            }
+
+                            // --------------- INLINE UI (timepicker, multitime, etc.) ---------------
+                            var uiIdx = part.IndexOf("{\"ui\":", StringComparison.Ordinal);
+                            if (uiIdx >= 0)
+                            {
+                                var textBefore = part.Substring(0, uiIdx).TrimEnd();
+                                var jsonBlock = part.Substring(uiIdx).Trim();
+
+                                if (!string.IsNullOrWhiteSpace(textBefore))
+                                {
+                                    var html = Markdown.ToHtml(textBefore, mdPipeline);
+                                    <div class="chat-text">@Html.Raw(html)</div>
+                                }
+
+                                try
+                                {
+                                    using var uiDoc = JsonDocument.Parse(jsonBlock);
+                                    if (uiDoc.RootElement.TryGetProperty("ui", out var uiEl))
+                                    {
+                                        var type = (uiEl.TryGetProperty("type", out var t) ? t.GetString() : "") ?? "";
+                                        var typeLower = type.ToLowerInvariant();
+
+                                        // ---- single-interval timepicker ----
+                                        if (typeLower == "isla.timepicker" || typeLower == "timepicker")
+                                        {
+                                            var title = uiEl.TryGetProperty("label", out var l) ? l.GetString()
+                                                : uiEl.TryGetProperty("title", out var l2) ? l2.GetString()
+                                                : "Select a time";
+
+                                            var date = uiEl.TryGetProperty("date", out var d) ? d.GetString() : null;
+                                            var defStart = uiEl.TryGetProperty("defaultStart", out var ds) ? ds.GetString() : "09:00";
+                                            var defEnd = uiEl.TryGetProperty("defaultEnd", out var de) ? de.GetString() : "10:00";
+                                            var stepMinutes = uiEl.TryGetProperty("stepMinutes", out var sm) ? sm.GetInt32() : 30;
+
+                                            if (uiEl.TryGetProperty("options", out var opts) && opts.ValueKind == JsonValueKind.Array && opts.GetArrayLength() > 0)
+                                            {
+                                                <div class="isla-timechips">
+                                                    <div class="isla-timepicker-title">@title</div>
+                                                    <div class="isla-timechips-grid">
+                                                        @foreach (var o in opts.EnumerateArray())
+                                                        {
+                                                            var labelOpt = o.TryGetProperty("label", out var ol) ? ol.GetString() : null;
+                                                            var valueOpt = o.TryGetProperty("value", out var ov) ? ov.GetString() : labelOpt;
+                                                            if (!string.IsNullOrWhiteSpace(labelOpt) && !string.IsNullOrWhiteSpace(valueOpt))
+                                                            {
+                                                                <button class="isla-chip" type="button" data-text="@valueOpt">@labelOpt</button>
+                                                            }
+                                                        }
+                                                    </div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="isla-timepicker" data-step="@stepMinutes" data-date="@date">
+                                                    <div class="isla-timepicker-title">@title</div>
+                                                    <div class="isla-timepicker-row">
+                                                        <label>Start</label>
+                                                        <input class="tp-start" type="time" step="@(stepMinutes * 60)" value="@defStart" />
+                                                    </div>
+                                                    <div class="isla-timepicker-row">
+                                                        <label>End</label>
+                                                        <input class="tp-end" type="time" step="@(stepMinutes * 60)" value="@defEnd" />
+                                                    </div>
+                                                    <button class="btn-apply-time" type="button">@((uiEl.TryGetProperty("submitLabel", out var sl) ? sl.GetString() : null) ?? "Submit")</button>
+                                                </div>
+                                            }
+                                        }
+                                        // ---- multi-time picker (setup / rehearsal / pack up) ----
+                                        else if (typeLower == "multitime")
+                                        {
+                                            var title = uiEl.TryGetProperty("title", out var tTitle) ? tTitle.GetString() : "Select your schedule";
+                                            var stepMinutes = uiEl.TryGetProperty("stepMinutes", out var sm) ? sm.GetInt32() : 15;
+                                            var submit = uiEl.TryGetProperty("submitLabel", out var sLbl) ? sLbl.GetString() : "Submit";
+
+                                            var pickers = new List<(string name, string label, string value)>();
+                                            if (uiEl.TryGetProperty("pickers", out var pArr) && pArr.ValueKind == JsonValueKind.Array)
+                                            {
+                                                foreach (var p in pArr.EnumerateArray())
+                                                {
+                                                    var nm = p.TryGetProperty("name", out var pn) ? pn.GetString() : null;
+                                                    var lb = p.TryGetProperty("label", out var pl) ? pl.GetString() : nm;
+                                                    var dv = p.TryGetProperty("default", out var pd) ? pd.GetString() : "09:00";
+                                                    if (!string.IsNullOrWhiteSpace(nm))
+                                                        pickers.Add((nm!, lb ?? nm!, dv ?? "09:00"));
+                                                }
+                                            }
+
+                                            <div class="isla-multitime" data-step="@stepMinutes">
+                                                @if (!string.IsNullOrWhiteSpace(title))
+                                                {
+                                                    <div class="isla-timepicker-title">@title</div>
+                                                }
+                                                <div class="isla-multitime-grid">
+                                                    @foreach (var p in pickers)
+                                                    {
+                                                        <div class="isla-mt-item">
+                                                            <label>@p.label</label>
+                                                            <input type="time" class="mt-input" data-name="@p.name" step="@(stepMinutes * 60)" value="@p.value" />
+                                                        </div>
+                                                    }
+                                                </div>
+                                                <button type="button" class="btn-apply-multitime">@submit</button>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            // Unknown UI type -> keep as data blob
+                                            <script type="application/json" class="ui-json">@Html.Raw(jsonBlock)</script>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <script type="application/json" class="ui-json">@Html.Raw(jsonBlock)</script>
+                                    }
+                                }
+                                catch
+                                {
+                                    <script type="application/json" class="ui-json">@Html.Raw(jsonBlock)</script>
+                                }
+
+                                continue;
+                            }
+
+                            // Existing {"ui":...} without inline text
+                            if (IsUiJson(part))
+                            {
+                                <script type="application/json" class="ui-json">@Html.Raw(part)</script>
+                            }
+                            else
+                            {
+                                var html = Markdown.ToHtml(part, mdPipeline);
+                                <div class="chat-text">@Html.Raw(html)</div>
+                            }
+                        }
+                    }
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@functions {
+    bool IsUiJson(string s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return false;
+        s = s.Trim();
+        if (!s.StartsWith("{") || !s.EndsWith("}")) return false;
+        return s.Contains("\"ui\"");
+    }
+
+    // Shapes for galleries
+    public class IslaGallery { public string? Room { get; set; } public List<IslaGalleryItem>? Items { get; set; } }
+    public class IslaGalleryItem
+    {
+        public string? Kind { get; set; }   // "room" | "layout" | "cover"
+        public string? Label { get; set; }
+        public string? Url { get; set; }
+        public object? Select { get; set; } // { room: "..."} or { layout: "..." }
+    }
+}
+
+    <script>
+           (function () {
+      // --- read anti-forgery token ---
+      function getCsrf() {
+        const el = document.querySelector('input[name="__RequestVerificationToken"]');
+        return el ? el.value : '';
+      }
+
+      // --- tiny helpers for inline loading ---
+      function showBusy(btn) {
+        if (!btn) return;
+        btn.classList.add('isla-busy');
+        btn.disabled = true;
+        if (!btn.querySelector('.isla-spinner')) {
+          const sp = document.createElement('span');
+          sp.className = 'isla-spinner';
+          sp.setAttribute('aria-hidden', 'true');
+          btn.appendChild(sp);
+        }
+      }
+      function addThinkingUnder(el) {
+        if (!el) return;
+        const host = el.closest('.isla-timepicker, .isla-multitime, .isla-timechips, .isla-gallery') || el.parentElement;
+        if (!host || host.querySelector('.isla-thinking')) return;
+        const line = document.createElement('div');
+        line.className = 'isla-thinking';
+        line.textContent = 'Isla is thinking…';
+        host.appendChild(line);
+      }
+
+      // --- helper to post message back (partial refresh) ---
+      async function postChat(text, busyEl) {
+        try {
+          showBusy(busyEl);
+          addThinkingUnder(busyEl);
+
+          const token = getCsrf();
+          const resp = await fetch('/Chat/SendPartial', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+              'RequestVerificationToken': token
+            },
+            body: new URLSearchParams({ text })
+          });
+
+          const html = await resp.text();
+
+          // Replace transcript host
+          const host =
+            document.getElementById('messagesWrap') ||
+            document.querySelector('#messages, .messages, .chat-transcript') ||
+            null;
+
+          if (host) {
+            host.innerHTML = html;
+            host.scrollTop = host.scrollHeight;
+          } else {
+            // Fallback if container not found
+            document.body.innerHTML = html;
+          }
+        } catch (e) {
+          console.error('send failed', e);
+          alert('Something went wrong. Please try again.');
+        }
+      }
+
+      // ----- Gallery clicks -----
+      document.addEventListener('click', (ev) => {
+        const btn = ev.target.closest('.isla-card');
+        if (!btn) return;
+        const raw = btn.getAttribute('data-select') || '{}';
+        let obj = {};
+        try { obj = JSON.parse(raw); } catch {}
+        let text = '';
+        if (obj.room)   text = `Choose room: ${obj.room}`;
+        if (obj.layout) text = `Choose layout: ${obj.layout}`;
+        if (text) postChat(text, btn);
+      }, { passive: true });
+
+      // ----- Single range: chips -----
+      document.addEventListener('click', (ev) => {
+        const chip = ev.target.closest('.isla-chip');
+        if (!chip) return;
+        const val = chip.getAttribute('data-text');
+        if (val) postChat(`Choose time: ${val}`, chip);
+      }, { passive: true });
+
+      // ----- Single range: inputs (Use these times) -----
+      document.addEventListener('click', (ev) => {
+        const wrap = ev.target.closest('.isla-timepicker');
+        if (!wrap) return;
+        const btn = ev.target.closest('.btn-apply-time');
+        if (!btn) return;
+        const s = wrap.querySelector('.tp-start')?.value || '';
+        const e = wrap.querySelector('.tp-end')?.value || '';
+        if (!s || !e) return;
+        postChat(`Choose time: ${s}–${e}`, btn);
+      }, { passive: true });
+
+      // ----- Multi-time apply (Setup / Rehearsal / Start / End / Pack Up) -----
+      document.addEventListener('click', (ev) => {
+        const wrap = ev.target.closest('.isla-multitime');
+        if (!wrap) return;
+        const btn = ev.target.closest('.btn-apply-multitime');
+        if (!btn) return;
+
+        const inputs = wrap.querySelectorAll('.mt-input');
+        if (!inputs || inputs.length === 0) return;
+
+        const vals = {};
+        inputs.forEach(i => {
+          const name = (i.getAttribute('data-name') || '').trim().toLowerCase();
+          const val  = (i.value || '').trim();
+          if (name && val) vals[name] = val;
+        });
+
+        // normalise keys and keep a stable order
+        const setup     = vals['setup']     || '';
+        const rehearsal = vals['rehearsal'] || '';
+        const start     = vals['start']     || '';
+        const end       = vals['end']       || '';
+        const packup    = vals['packup']    || vals['pack_down'] || vals['packdown'] || '';
+
+        const parts = [];
+        if (setup)     parts.push(`setup=${setup}`);
+        if (rehearsal) parts.push(`rehearsal=${rehearsal}`);
+        if (start)     parts.push(`start=${start}`);
+        if (end)       parts.push(`end=${end}`);
+        if (packup)    parts.push(`packup=${packup}`);
+
+        if (parts.length) {
+          postChat(`Choose schedule: ${parts.join('; ')}`, btn);
+        }
+      }, { passive: true });
+
+    })();
+    </script>
+
+
+
+
+

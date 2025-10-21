@@ -1,0 +1,107 @@
+﻿@model MicrohireAgentChat.Controllers.InspectVm
+@{
+    ViewData["Title"] = "Chat Inspector";
+}
+
+<div class="container" style="max-width: 960px; margin: 24px auto;">
+    <h1 style="margin-bottom:16px;">Chat Inspector</h1>
+
+    <form method="get" asp-action="Inspect" asp-controller="ChatAdmin" style="display:flex; gap:10px; margin-bottom: 20px;">
+        <input type="text"
+               name="threadId"
+               value="@(Model?.ThreadId ?? "")"
+               placeholder="Paste Azure Agents threadId"
+               style="flex:1; padding:.7rem 1rem; border:1px solid #d8dbe0; border-radius:10px;" />
+        <button type="submit" class="btn btn-primary" style="padding:.7rem 1rem; border-radius:10px; background:#2563eb; color:#fff; border:0;">
+            Load
+        </button>
+    </form>
+
+    @if (!string.IsNullOrWhiteSpace(Model?.Error))
+    {
+        <div style="padding:12px; border:1px solid #fca5a5; background:#fee2e2; color:#7f1d1d; border-radius:10px; margin-bottom:16px;">
+            <strong>Error:</strong> @Model.Error
+        </div>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model?.ThreadId) && Model?.Details != null)
+    {
+        <div style="background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; margin-bottom:20px;">
+            <h3 style="margin-top:0;">Extracted Details</h3>
+            <table class="table" style="width:100%; border-collapse:collapse;">
+                <tbody>
+                    <tr><td style="padding:6px; border-bottom:1px solid #eee; width:240px;">Event Type</td><td style="padding:6px; border-bottom:1px solid #eee;">@Model.Details.EventType</td></tr>
+                    <tr><td style="padding:6px; border-bottom:1px solid #eee;">Venue</td><td style="padding:6px; border-bottom:1px solid #eee;">@Model.Details.Venue</td></tr>
+                    <tr><td style="padding:6px; border-bottom:1px solid #eee;">Westin Room</td><td style="padding:6px; border-bottom:1px solid #eee;">@Model.Details.WestinRoom</td></tr>
+                    <tr><td style="padding:6px; border-bottom:1px solid #eee;">Date</td><td style="padding:6px; border-bottom:1px solid #eee;">@Model.Details.DateIso</td></tr>
+                    <tr><td style="padding:6px; border-bottom:1px solid #eee;">Guest Count</td><td style="padding:6px; border-bottom:1px solid #eee;">@Model.Details.GuestCount</td></tr>
+                    <tr><td style="padding:6px; border-bottom:1px solid #eee;">Theme</td><td style="padding:6px; border-bottom:1px solid #eee;">@Model.Details.Theme</td></tr>
+                    <tr><td style="padding:6px; border-bottom:1px solid #eee;">Additional Speakers</td><td style="padding:6px; border-bottom:1px solid #eee;">@Model.Details.AdditionalSpeakers</td></tr>
+                    <tr><td style="padding:6px; border-bottom:1px solid #eee;">Presentation Files</td><td style="padding:6px; border-bottom:1px solid #eee;">@Model.Details.PresentationFiles</td></tr>
+                    <tr><td style="padding:6px; border-bottom:1px solid #eee;">Mic Choice</td><td style="padding:6px; border-bottom:1px solid #eee;">@Model.Details.MicChoice</td></tr>
+                    <tr><td style="padding:6px; border-bottom:1px solid #eee;">Setup</td><td style="padding:6px; border-bottom:1px solid #eee;">@Model.Details.SetupTime</td></tr>
+                    <tr><td style="padding:6px; border-bottom:1px solid #eee;">Rehearsal</td><td style="padding:6px; border-bottom:1px solid #eee;">@Model.Details.RehearsalTime</td></tr>
+                    <tr><td style="padding:6px; border-bottom:1px solid #eee;">Show Start</td><td style="padding:6px; border-bottom:1px solid #eee;">@Model.Details.ShowStartTime</td></tr>
+                    <tr><td style="padding:6px; border-bottom:1px solid #eee;">Show End</td><td style="padding:6px; border-bottom:1px solid #eee;">@Model.Details.ShowEndTime</td></tr>
+                    <tr><td style="padding:6px; border-bottom:1px solid #eee;">Pack Up</td><td style="padding:6px; border-bottom:1px solid #eee;">@Model.Details.PackUpTime</td></tr>
+                    <tr>
+                        <td style="padding:6px; border-bottom:1px solid #eee;">Itinerary Uploaded?</td>
+                        <td style="padding:6px; border-bottom:1px solid #eee;">
+                            @(Model.Details.HasItinerary == null ? "" : (Model.Details.HasItinerary.Value ? "Yes" : "No"))
+                                                    
+                    </td>
+                </tr>
+                <tr><td style="padding:6px;">Technician</td><td style="padding:6px;">@Model.Details.TechnicianChoice</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.Images?.Any() == true)
+        {
+            <div style="background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px; margin-bottom:20px;">
+                <h3 style="margin-top:0;">Latest Assistant Images</h3>
+                <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                    @foreach (var url in Model.Images)
+                    {
+                        <div style="width:240px; border-radius:10px; overflow:hidden; border:1px solid #eee;">
+                            <img src="@url" alt="image" style="width:100%; height:160px; object-fit:cover;" />
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        <div style="background:#fff; border:1px solid #e5e7eb; border-radius:12px; padding:16px;">
+            <h3 style="margin-top:0;">Full Transcript</h3>
+            <table class="table" style="width:100%; border-collapse:collapse;">
+                <thead>
+                    <tr style="text-align:left;">
+                        <th style="padding:6px; border-bottom:1px solid #ddd;">Time</th>
+                        <th style="padding:6px; border-bottom:1px solid #ddd;">Role</th>
+                        <th style="padding:6px; border-bottom:1px solid #ddd;">Text</th>
+                        <th style="padding:6px; border-bottom:1px solid #ddd;">UI JSON</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var m in Model.Items)
+                    {
+                        <tr>
+                            <td style="padding:6px; border-bottom:1px solid #f3f4f6; white-space:nowrap;">@m.At.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                            <td style="padding:6px; border-bottom:1px solid #f3f4f6;">@m.Role</td>
+                            <td style="padding:6px; border-bottom:1px solid #f3f4f6; white-space:pre-wrap;">@m.Text</td>
+                            <td style="padding:6px; border-bottom:1px solid #f3f4f6;">
+                                @if (!string.IsNullOrWhiteSpace(m.UiJson))
+                                {
+                                    <details>
+                                        <summary>show</summary>
+                                        <pre style="white-space:pre-wrap; font-size:12px; background:#f9fafb; padding:8px; border-radius:8px;">@m.UiJson</pre>
+                                    </details>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

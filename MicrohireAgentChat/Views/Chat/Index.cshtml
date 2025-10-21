@@ -1,0 +1,279 @@
+﻿@using MicrohireAgentChat.Services
+@model IEnumerable<DisplayMessage>
+
+@{
+    ViewData["Title"] = "Isla – Microhire";
+}
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
+
+<!-- Phosphor icons (bundle) -->
+@* <link rel="preconnect" href="https://unpkg.com" crossorigin />
+<link rel="stylesheet" href="https://unpkg.com/%40phosphor-icons/web@2.1.1/src/index.css" />
+ *@
+<!-- Your theme -->
+<link rel="stylesheet" href="~/css/style.css" />
+<link rel="stylesheet" href="~/css/style_fill.css" />
+<link rel="stylesheet" href="~/css/style_regular.css" />
+
+<!-- Tiny inline styles only for typing bubble (using @@keyframes to avoid Razor errors) -->
+<style>
+    .typing-bubble .chat-message-body { padding-right: 12px; }
+    .typing-ellipsis {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 22px;
+      line-height: 1;
+      padding: 10px 12px;
+      background: #f7f8fc;
+      border: 1px solid #e6e8ef;
+      border-radius: 12px;
+    }
+    .typing-ellipsis span {
+      display: inline-block;
+      width: .45em;
+      text-align: center;
+      opacity: .25;
+      animation: typing-pulse 1.1s ease-in-out infinite;
+    }
+    .typing-ellipsis span:nth-child(2) { animation-delay: .15s; }
+    .typing-ellipsis span:nth-child(3) { animation-delay: .30s; }
+    @@keyframes typing-pulse {
+      0%, 80%, 100% { transform: translateY(0); opacity: .25; }
+      40%           { transform: translateY(-4px); opacity: 1; }
+    }
+</style>
+
+<div class="chat-box-main">
+    <div class="chat-box-header">
+        <!-- adjust classes (first-step-active/second-step-active) as your flow progresses -->
+        <div class="chat-box-progress first-step-active"></div>
+        <div class="chat-box-progress-titles">
+            <span>Venue</span>
+            <span>Services</span>
+            <span>Review</span>
+            <span>Quote</span>
+        </div>
+    </div>
+
+    <div class="chat-box-body">
+        <div id="messagesWrap" class="chat-box-wrap">
+            @await Html.PartialAsync("_Messages", Model)
+        </div>
+
+        <div class="chat-box-type">
+            <form id="sendForm" asp-action="Send" method="post" class="w-100">
+                @Html.AntiForgeryToken()
+                <input id="textInput" name="text" type="text" placeholder="Type your message..." autocomplete="off" />
+            </form>
+
+            <button id="sendBtn" type="submit" form="sendForm" title="Send">
+                <i class="ph ph-caret-right"></i>
+            </button>
+
+            <form id="resetForm" asp-action="Reset" method="post" class="ms-2" style="display:none">
+                @Html.AntiForgeryToken()
+                <button class="btn btn-link" type="submit" title="New Thread">New Thread</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (() => {
+          const messagesWrap = document.getElementById('messagesWrap');
+          const sendForm     = document.getElementById('sendForm');
+          const resetForm    = document.getElementById('resetForm');
+          const input        = document.getElementById('textInput');
+          const sendBtn      = document.getElementById('sendBtn');
+
+          const sendToken  = sendForm.querySelector('input[name="__RequestVerificationToken"]').value;
+          const resetToken = resetForm.querySelector('input[name="__RequestVerificationToken"]').value;
+
+          function scrollToBottom() { messagesWrap.scrollTop = messagesWrap.scrollHeight; }
+
+          // ----- Typing bubble -----
+          function addTypingBubble() {
+            if (document.getElementById('typing-bubble')) return;
+            const wrap = document.createElement('div');
+            wrap.id = 'typing-bubble';
+            wrap.className = 'chat-message message-recived typing-bubble';
+            wrap.innerHTML = `
+              <div class="chat-message-box">
+                <div class="chat-message-avatar">
+                  <img src="${'@Url.Content("~/images/avatar.png")'}" alt="">
+                </div>
+                <div class="chat-message-body">
+                  <div class="typing-ellipsis" aria-label="Isla is typing">
+                    <span>.</span><span>.</span><span>.</span>
+                  </div>
+                </div>
+              </div>`;
+            messagesWrap.appendChild(wrap);
+            scrollToBottom();
+          }
+          function removeTypingBubble() { const t = document.getElementById('typing-bubble'); if (t) t.remove(); }
+
+          // ----- Hydrate agent UI JSON blocks (imageGallery, timePicker) -----
+          function hydrateUiBlocks(root) {
+            const nodes = (root || messagesWrap).querySelectorAll('script.ui-json[type="application/json"]');
+            nodes.forEach(node => {
+              let payload;
+              try { payload = JSON.parse(node.textContent.trim() || "{}"); } catch { return; }
+              const holder = document.createElement('div');
+
+              (payload.ui || []).forEach(item => {
+                // image gallery -> cards from your theme
+                if (item.type === 'imageGallery') {
+                  const wrap = document.createElement('div');
+                  wrap.className = 'message-card-wrap';
+                  const urls = (item.data && (item.data.items || [])) || [];
+                  urls.forEach(u => {
+                    const card = document.createElement('div');
+                    card.className = 'message-card-box';
+                    const img  = document.createElement('img');
+                    img.className = 'message-card-box-img';
+                    img.src = u; img.alt = 'option';
+
+                    const body = document.createElement('div');
+                    body.className = 'message-card-box-content';
+                    const h6 = document.createElement('h6'); h6.textContent = 'Tap to select';
+                    const p  = document.createElement('p');  p.textContent  = '';
+                    const btn = document.createElement('button'); btn.type = 'button'; btn.textContent = 'SELECT';
+                    btn.onclick = () => sendSelection('image', u);
+
+                    body.appendChild(h6); body.appendChild(p); body.appendChild(btn);
+                    card.appendChild(img); card.appendChild(body);
+                    wrap.appendChild(card);
+                  });
+                  holder.appendChild(wrap);
+                }
+
+                // time picker -> simple inputs inside cards
+                if (item.type === 'timePicker') {
+                  const wrap = document.createElement('div');
+                  wrap.className = 'message-card-wrap';
+                  const labels = (item.data && item.data.items) || [];
+                  const times = {};
+                  labels.forEach(label => {
+                    const card = document.createElement('div');
+                    card.className = 'message-card-box';
+                    const body = document.createElement('div');
+                    body.className = 'message-card-box-content';
+                    const h6 = document.createElement('h6'); h6.textContent = `${label} Time`;
+                    const inp = document.createElement('input'); inp.type = 'time';
+                    inp.onchange = () => { times[label] = inp.value; };
+                    const btn = document.createElement('button'); btn.type = 'button'; btn.textContent = 'SET';
+                    btn.onclick = () => { times[label] = inp.value; };
+                    body.appendChild(h6); body.appendChild(inp); body.appendChild(btn);
+                    card.appendChild(body);
+                    wrap.appendChild(card);
+                  });
+                  const done = document.createElement('button'); done.type = 'button'; done.textContent = 'Done';
+                  done.style.marginTop = '8px'; done.onclick = () => sendSelection('times', times);
+                  holder.appendChild(wrap);
+                  holder.appendChild(done);
+                }
+              });
+
+              node.insertAdjacentElement('afterend', holder);
+              node.remove(); // hide raw JSON
+            });
+          }
+
+          // Send a UI selection as a compact user message to keep the flow going
+          async function sendSelection(kind, value) {
+            const text = `[UI_SELECT] ${JSON.stringify({ kind, value })}`;
+            sendBtn.disabled = true;
+            addTypingBubble();
+
+            try {
+              const res = await fetch('@Url.Action("SendPartial", "Chat")', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                  'RequestVerificationToken': sendToken
+                },
+                body: new URLSearchParams({ text })
+              });
+              if (!res.ok) throw new Error('Request failed');
+              const html = await res.text();
+              messagesWrap.innerHTML = html;
+              hydrateUiBlocks(messagesWrap);
+              scrollToBottom();
+            } catch (err) {
+              console.error(err);
+              alert(err.message || 'Failed to send selection');
+            } finally {
+              removeTypingBubble();
+              sendBtn.disabled = false;
+              input.focus();
+            }
+          }
+          window.sendSelection = sendSelection; // expose for gallery buttons
+
+          // Initial hydrate + scroll (in case agent already returned UI blocks)
+          hydrateUiBlocks(messagesWrap);
+          scrollToBottom();
+
+          // ----- SEND -----
+          sendForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = (input.value || '').trim();
+            if (!text) return;
+
+            sendBtn.disabled = true;
+            addTypingBubble();
+
+            try {
+              const res = await fetch('@Url.Action("SendPartial", "Chat")', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                  'RequestVerificationToken': sendToken
+                },
+                body: new URLSearchParams({ text })
+              });
+              if (!res.ok) throw new Error('Request failed');
+              const html = await res.text();
+              messagesWrap.innerHTML = html;
+              input.value = '';
+              hydrateUiBlocks(messagesWrap);
+              scrollToBottom();
+            } catch (err) {
+              console.error(err);
+              alert(err.message || 'Failed to send');
+            } finally {
+              removeTypingBubble();
+              sendBtn.disabled = false;
+              input.focus();
+            }
+          });
+
+          // ----- RESET (New Thread) -----
+          resetForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            try {
+              const res = await fetch('@Url.Action("ResetPartial", "Chat")', {
+                method: 'POST',
+                headers: { 'RequestVerificationToken': resetToken }
+              });
+              if (!res.ok) throw new Error('Reset failed');
+              const html = await res.text();
+              messagesWrap.innerHTML = html;
+              hydrateUiBlocks(messagesWrap);
+              scrollToBottom();
+              input.focus();
+            } catch (err) {
+              console.error(err);
+              alert(err.message || 'Failed to reset');
+            }
+          });
+        })();
+    </script>
+}

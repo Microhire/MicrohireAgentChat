@@ -1,0 +1,263 @@
+﻿@using MicrohireAgentChat.Models
+@model AgentChatHistoryViewModel
+
+@{
+    ViewBag.Title = "Agent Chat History";
+    var hasData = !string.IsNullOrWhiteSpace(Model?.ThreadId) && Model!.Messages.Any();
+}
+
+<style>
+    .wrap {
+        max-width: 980px;
+        margin: 32px auto;
+        padding: 0 16px;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+    .card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 16px;
+    }
+
+    .title {
+        margin: 0 0 8px;
+        font-size: 18px;
+    }
+
+    .subtle {
+        color: #6b7280;
+        font-size: 13px;
+    }
+
+    .error {
+        background: #fef2f2;
+        color: #991b1b;
+        border: 1px solid #fecaca;
+        padding: 10px 12px;
+        border-radius: 8px;
+        margin: 12px 0;
+    }
+
+    /* Lookup form */
+    .lookup {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+        .lookup input {
+            flex: 1;
+            padding: 10px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+        }
+
+        .lookup button {
+            padding: 10px 16px;
+            border: 0;
+            border-radius: 8px;
+            background: #111827;
+            color: #fff;
+            cursor: pointer;
+        }
+
+            .lookup button:hover {
+                filter: brightness(0.95);
+            }
+
+    /* Chat box */
+    .chat {
+        height: 60vh;
+        overflow: auto;
+        background: #f9fafb;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 12px;
+    }
+
+    .row {
+        margin-bottom: 10px;
+    }
+
+    .role {
+        font-size: 12px;
+        color: #6b7280;
+        margin-bottom: 2px;
+    }
+
+    .msg {
+        max-width: 78%;
+        padding: 10px 12px;
+        border-radius: 14px;
+        line-height: 1.35;
+        white-space: pre-wrap;
+        display: inline-block;
+    }
+
+    .user .msg {
+        background: #dcfce7;
+        border: 1px solid #bbf7d0;
+        border-top-right-radius: 6px;
+        float: right;
+        clear: both;
+    }
+
+    .assistant .msg {
+        background: #f3f4f6;
+        border: 1px solid #e5e7eb;
+        border-top-left-radius: 6px;
+        float: left;
+        clear: both;
+    }
+
+    .ts {
+        font-size: 12px;
+        color: #9ca3af;
+        margin-left: 6px;
+    }
+</style>
+
+<div class="wrap">
+    <form class="lookup" method="get" action="/agentchat/history">
+        <input type="text" name="userKey" placeholder="Paste userKey" value="@Model?.UserKey" />
+        <button type="submit">Load</button>
+    </form>
+
+    @if (!string.IsNullOrWhiteSpace(Model?.Error))
+    {
+        <div class="error">@Model.Error</div>
+    }
+
+    <div class="grid">
+        <!-- Conversation -->
+        <div class="card">
+            <h3 class="title">Conversation</h3>
+            @if (hasData)
+            {
+                <div class="subtle">Thread: @Model!.ThreadId</div>
+                <div class="chat">
+                    @foreach (var msg in Model.Messages.OrderBy(x => x.Timestamp))
+                    {
+                        var isUser = string.Equals(msg.Role, "user", StringComparison.OrdinalIgnoreCase);
+                        <div class="row @(isUser ? "user" : "assistant")">
+                            <div class="role">
+                                @msg.Role <span class="ts">@msg.Timestamp.LocalDateTime</span>
+                            </div>
+                            <div class="msg">
+                                @foreach (var part in (msg.Parts ?? Enumerable.Empty<string>()))
+                                {
+                                    @part
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+                <div class="card">
+                    <h3 class="title">Quick Extract</h3>
+                    <table style="width:100%; border-collapse:collapse;">
+                        <tbody>
+                            <tr>
+                                <td style="width:40%; padding:6px 8px; border-bottom:1px solid #eee; color:#6b7280;">Event date</td>
+                                <td style="padding:6px 8px; border-bottom:1px solid #eee;">
+                                    @if (Model.EventDate is not null)
+                                    {
+                                        @Model.EventDateDisplay
+                                    }
+                                    else
+                                    {
+
+                                        <span class="subtle">—</span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(Model.EventDateMatchedText))
+                                    {
+                                        <div class="subtle">Matched: “@Model.EventDateMatchedText”</div>
+                                    }
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="width:40%; padding:6px 8px; color:#6b7280;">Venue</td>
+                                <td style="padding:6px 8px;">
+                                    @if (!string.IsNullOrWhiteSpace(Model.VenueName))
+                                    {
+                                        @Model.VenueName
+                                    }
+                                    else
+                                    {
+
+                                        <span class="subtle">—</span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(Model.VenueMatchedText))
+                                    {
+                                        <div class="subtle">Matched: “@Model.VenueMatchedText”</div>
+                                    }
+                                </td>
+                            </tr>
+                            <tr>
+                                <td style="width:40%; padding:6px 8px; border-bottom:1px solid #eee; color:#6b7280;">Event type</td>
+                                <td style="padding:6px 8px; border-bottom:1px solid #eee;">
+                                    @if (!string.IsNullOrWhiteSpace(Model.EventType))
+                                    {
+                                        <strong>@Model.EventType</strong>
+                                    }
+                                    else
+                                    {
+
+                                        <span class="subtle">—</span>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(Model.EventTypeMatchedText))
+                                    {
+                                        <div class="subtle">Matched: “@Model.EventTypeMatchedText”</div>
+                                    }
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="label">Name</td>
+                                <td>
+                                    @(!string.IsNullOrWhiteSpace(Model.ContactName) ? Model.ContactName : "—")
+                                    @if (!string.IsNullOrWhiteSpace(Model.ContactNameMatchedText))
+                                    {
+                                        <div class="subtle">Matched: “@Model.ContactNameMatchedText”</div>
+                                    }
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="label">Email</td>
+                                <td>
+                                    @(!string.IsNullOrWhiteSpace(Model.Email) ? Model.Email : "—")
+                                    @if (!string.IsNullOrWhiteSpace(Model.EmailMatchedText))
+                                    {
+                                        <div class="subtle">Matched: “@Model.EmailMatchedText”</div>
+                                    }
+                                </td>
+                            </tr>
+                            <tr>
+                                <td class="label">Phone</td>
+                                <td>
+                                    @(!string.IsNullOrWhiteSpace(Model.Phone) ? Model.Phone : "—")
+                                    @if (!string.IsNullOrWhiteSpace(Model.PhoneMatchedText))
+                                    {
+                                        <div class="subtle">Matched: “@Model.PhoneMatchedText”</div>
+                                    }
+                                </td>
+                            </tr>
+
+                        </tbody>
+                    </table>
+                </div>
+
+
+            }
+            else
+            {
+                <div class="subtle">No conversation loaded yet.</div>
+            }
+        </div>
+
+    </div>
+</div>

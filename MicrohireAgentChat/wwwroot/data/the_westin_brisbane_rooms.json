@@ -1,0 +1,305 @@
+[
+  {
+    "id": 201,
+    "name": "Westin Ballroom",
+    "slug": "westin-ballroom",
+    "level": "Level 2",
+    "cover": "/images/westin/westin-ballroom/cover.png",
+    "layouts": [
+      {
+        "type": "Theatre",
+        "capacity": 300,
+        "image": "/images/westin/westin-ballroom/layout-theatre.jpg"
+      },
+      {
+        "type": "Cabaret",
+        "capacity": 180,
+        "image": "/images/westin/westin-ballroom/layout-cabaret.jpg"
+      },
+      {
+        "type": "Banquet",
+        "capacity": 220,
+        "image": "/images/westin/westin-ballroom/layout-banquet.jpg"
+      },
+      {
+        "type": "Classroom",
+        "capacity": 160,
+        "image": "/images/westin/westin-ballroom/layout-classroom.jpg"
+      },
+      {
+        "type": "U-Shape",
+        "capacity": 0,
+        "image": "/images/westin/westin-ballroom/layout-u-shape.jpg"
+      },
+      {
+        "type": "Hollow Square",
+        "capacity": 0,
+        "image": "/images/westin/westin-ballroom/layout-hollow-square.jpg"
+      }
+    ]
+  },
+  {
+    "id": 202,
+    "name": "Thrive Boardroom",
+    "slug": "thrive-boardroom",
+    "level": "Level 1",
+    "cover": "/images/westin/thrive-boardroom/cover.png",
+    "layouts": [
+      {
+        "type": "Theatre",
+        "capacity": 0,
+        "image": "/images/westin/thrive-boardroom/layout-theatre.jpg"
+      },
+      {
+        "type": "Cabaret",
+        "capacity": 0,
+        "image": "/images/westin/thrive-boardroom/layout-cabaret.jpg"
+      },
+      {
+        "type": "Banquet",
+        "capacity": 0,
+        "image": "/images/westin/thrive-boardroom/layout-banquet.jpg"
+      },
+      {
+        "type": "Classroom",
+        "capacity": 0,
+        "image": "/images/westin/thrive-boardroom/layout-classroom.jpg"
+      },
+      {
+        "type": "Boardroom",
+        "capacity": 0,
+        "image": "/images/westin/thrive-boardroom/layout-boardroom.jpg"
+      },
+      {
+        "type": "U-Shape",
+        "capacity": 0,
+        "image": "/images/westin/thrive-boardroom/layout-u-shape.jpg"
+      },
+      {
+        "type": "Hollow Square",
+        "capacity": 0,
+        "image": "/images/westin/thrive-boardroom/layout-hollow-square.jpg"
+      }
+    ]
+  },
+  {
+    "id": 203,
+    "name": "Chairman�s Lounge",
+    "slug": "chairmans-lounge",
+    "level": "Level 2",
+    "cover": "/images/westin/chairmans-lounge/cover.png",
+    "layouts": [
+      {
+        "type": "Theatre",
+        "capacity": 0,
+        "image": "/images/westin/chairmans-lounge/layout-theatre.jpg"
+      },
+      {
+        "type": "Cabaret",
+        "capacity": 0,
+        "image": "/images/westin/chairmans-lounge/layout-cabaret.jpg"
+      },
+      {
+        "type": "Banquet",
+        "capacity": 0,
+        "image": "/images/westin/chairmans-lounge/layout-banquet.jpg"
+      },
+      {
+        "type": "Classroom",
+        "capacity": 0,
+        "image": "/images/westin/chairmans-lounge/layout-classroom.jpg"
+      },
+      {
+        "type": "Boardroom",
+        "capacity": 0,
+        "image": "/images/westin/chairmans-lounge/layout-boardroom.jpg"
+      },
+      {
+        "type": "U-Shape",
+        "capacity": 0,
+        "image": "/images/westin/chairmans-lounge/layout-u-shape.jpg"
+      },
+      {
+        "type": "Hollow Square",
+        "capacity": 0,
+        "image": "/images/westin/chairmans-lounge/layout-hollow-square.jpg"
+      }
+    ]
+  },
+  {
+    "id": 204,
+    "name": "Elevate",
+    "slug": "elevate",
+    "level": "Rooftop",
+    "cover": "/images/westin/Elevate/cover.png",
+    "layouts": [
+      {
+        "type": "Theatre",
+        "capacity": 0,
+        "image": "/images/westin/Elevate/layout-theatre.jpg"
+      },
+      {
+        "type": "Cabaret",
+        "capacity": 0,
+        "image": "/images/westin/Elevate/layout-cabaret.jpg"
+      },
+      {
+        "type": "Banquet",
+        "capacity": 0,
+        "image": "/images/westin/Elevate/layout-banquet.jpg"
+      },
+      {
+        "type": "Classroom",
+        "capacity": 0,
+        "image": "/images/westin/Elevate/layout-classroom.jpg"
+      },
+      {
+        "type": "Boardroom",
+        "capacity": 0,
+        "image": "/images/westin/Elevate/layout-boardroom.jpg"
+      },
+      {
+        "type": "U-Shape",
+        "capacity": 0,
+        "image": "/images/westin/Elevate/layout-u-shape.jpg"
+      },
+      {
+        "type": "Hollow Square",
+        "capacity": 0,
+        "image": "/images/westin/Elevate/layout-hollow-square.jpg"
+      }
+    ]
+  },
+  {
+    "id": 205,
+    "name": "Nautilus (Pool Bar)",
+    "slug": "nautilus",
+    "level": "Pool Level",
+    "cover": "/images/westin/nautilus/cover.png",
+    "layouts": [
+      {
+        "type": "Theatre",
+        "capacity": 0,
+        "image": "/images/westin/nautilus/layout-theatre.jpg"
+      },
+      {
+        "type": "Cabaret",
+        "capacity": 0,
+        "image": "/images/westin/nautilus/layout-cabaret.jpg"
+      },
+      {
+        "type": "Banquet",
+        "capacity": 0,
+        "image": "/images/westin/nautilus/layout-banquet.jpg"
+      },
+      {
+        "type": "Classroom",
+        "capacity": 0,
+        "image": "/images/westin/nautilus/layout-classroom.jpg"
+      },
+      {
+        "type": "Boardroom",
+        "capacity": 0,
+        "image": "/images/westin/nautilus/layout-boardroom.jpg"
+      },
+      {
+        "type": "U-Shape",
+        "capacity": 0,
+        "image": "/images/westin/nautilus/layout-u-shape.jpg"
+      },
+      {
+        "type": "Hollow Square",
+        "capacity": 0,
+        "image": "/images/westin/nautilus/layout-hollow-square.jpg"
+      }
+    ]
+  },
+  {
+    "id": 206,
+    "name": "Pre-function Area",
+    "slug": "pre-function-area",
+    "level": "Outside Ballroom",
+    "cover": "/images/westin/pre-function-area/cover.png",
+    "layouts": [
+      {
+        "type": "Theatre",
+        "capacity": 0,
+        "image": "/images/westin/pre-function-area/layout-theatre.jpg"
+      },
+      {
+        "type": "Cabaret",
+        "capacity": 0,
+        "image": "/images/westin/pre-function-area/layout-cabaret.jpg"
+      },
+      {
+        "type": "Banquet",
+        "capacity": 0,
+        "image": "/images/westin/pre-function-area/layout-banquet.jpg"
+      },
+      {
+        "type": "Classroom",
+        "capacity": 0,
+        "image": "/images/westin/pre-function-area/layout-classroom.jpg"
+      },
+      {
+        "type": "Boardroom",
+        "capacity": 0,
+        "image": "/images/westin/pre-function-area/layout-boardroom.jpg"
+      },
+      {
+        "type": "U-Shape",
+        "capacity": 0,
+        "image": "/images/westin/pre-function-area/layout-u-shape.jpg"
+      },
+      {
+        "type": "Hollow Square",
+        "capacity": 0,
+        "image": "/images/westin/pre-function-area/layout-hollow-square.jpg"
+      }
+    ]
+  },
+  {
+    "id": 207,
+    "name": "Settimo Private Dining & Wine Room",
+    "slug": "settimo-private-dining-wine-room",
+    "level": "Level 1",
+    "cover": "/images/westin/settimo-private-dining-wine-room/cover.png",
+    "layouts": [
+      {
+        "type": "Theatre",
+        "capacity": 0,
+        "image": "/images/westin/settimo-private-dining-wine-room/layout-theatre.jpg"
+      },
+      {
+        "type": "Cabaret",
+        "capacity": 0,
+        "image": "/images/westin/settimo-private-dining-wine-room/layout-cabaret.jpg"
+      },
+      {
+        "type": "Banquet",
+        "capacity": 0,
+        "image": "/images/westin/settimo-private-dining-wine-room/layout-banquet.jpg"
+      },
+      {
+        "type": "Classroom",
+        "capacity": 0,
+        "image": "/images/westin/settimo-private-dining-wine-room/layout-classroom.jpg"
+      },
+      {
+        "type": "Boardroom",
+        "capacity": 0,
+        "image": "/images/westin/settimo-private-dining-wine-room/layout-boardroom.jpg"
+      },
+      {
+        "type": "U-Shape",
+        "capacity": 0,
+        "image": "/images/westin/settimo-private-dining-wine-room/layout-u-shape.jpg"
+      },
+      {
+        "type": "Hollow Square",
+        "capacity": 0,
+        "image": "/images/westin/settimo-private-dining-wine-room/layout-hollow-square.jpg"
+      }
+    ]
+  }
+]

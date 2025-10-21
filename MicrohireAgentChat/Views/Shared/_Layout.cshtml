@@ -1,0 +1,268 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+          integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+          rel="stylesheet">
+    <link rel="stylesheet" href="~/css/style_fill.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Blinker:wght@100;200;300;400;600;700;800;900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
+          rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&display=swap"
+          rel="stylesheet">
+   
+    <link rel="stylesheet" href="~/css/style_regular.css" />
+    <link rel="stylesheet" href="~/css/style.css">
+    <title>Chat Box</title>
+</head>
+<body>
+    <header>
+        <div class="main-wrapper">
+            <section class="hero">
+                <nav class="navbar">
+                    <div>
+                        <div class="logo"><img src="./images/aHfZNBPMlVa1GSUumeOAfrclJp4azvJT.png" alt=""></div>
+                    </div>
+
+                    <div class="tablet-menu">
+                        <div class="desktop-menu">
+                            <a href="#">What we do</a>
+                            <a href="#">Insights and Inspiration</a>
+                            <a href="#">Venue Partners</a>
+                            <a href="#">Our Story</a>
+                            <a href="#">Join Our Team</a>
+
+                            <div class="text-1">
+                                Get a Quote
+                            </div>
+                        </div>
+
+
+
+                        <div class="menu-1">
+                            <div class="text-mobile">
+                                Get a Quote
+                            </div>
+                            <div class="mobile-menu" onclick="toggleMenu()">
+                                <i class="fa-solid fa-bars"></i>
+                            </div>
+
+                            <div>
+                                <div class="mobile-menu-link" id="mobileMenu">
+                                    <div class="menu-slide">
+                                        <a href="#">What we do</a>
+                                        <a href="#">Insights and Inspiration</a>
+                                        <a href="#">Venue Partners</a>
+                                        <a href="#">Our Story</a>
+                                        <a href="#">Join Our Team</a>
+                                    </div>
+
+                                    <div class="mobile-menu-1" onclick="toggleMenu()">
+                                        <i class="fa-solid fa-bars"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </nav>
+
+                <h1>Get a Quote</h1>
+            </section>
+        </div>
+    </header>
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+    <footer>
+        <div class="footer-container">
+
+            <div class="footer-left">
+                <div class="footer-col-wrapper">
+                    <div class="footer-col">
+                        <h3>Where To Find Us</h3>
+                        <ul>
+                            <li>
+                                <a href="tel:+611300347652">1300 347 652 <span class="line"></span></a>
+                            </li>
+                            <li>
+                                <a href="#">Locations <span class="line"></span></a>
+                            </li>
+                            <li>
+                                <a href="#">Make a Payment <span class="line"></span></a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="footer-col">
+                        <h3>What We Do</h3>
+                        <ul>
+                            <li>
+                                <a href="#">AV & Event Services <span class="line"></span></a>
+                            </li>
+                            <li>
+                                <a href="#">Exhibition Technology <span class="line"></span></a>
+                            </li>
+                            <li>
+                                <a href="#">Production IT Hire <span class="line"></span></a>
+                            </li>
+                            <li>
+                                <a href="#">Managed AV Services <span class="line"></span></a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="member-logo">
+                    <h5>Proud member of</h5>
+                    <div class="img-wrapper">
+                        <a href="#">
+                            <img src="./images/footer-member-img-1.png" alt="">
+                        </a>
+                    </div>
+                    <div class="img-wrapper">
+                        <a href="#">
+                            <img src="./images/footer-member-img-2.png" alt="">
+                        </a>
+                    </div>
+                    <div class="img-wrapper">
+                        <a href="#">
+                            <img src="./images/footer-member-img-3.png" alt="">
+                        </a>
+                    </div>
+                    <div class="img-wrapper">
+                        <a href="#">
+                            <img src="./images/footer-member-img-4.png" alt="">
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-right">
+                <div class="footer-col">
+                    <h3>Join Us Online</h3>
+
+                    <div class="social-page-instragrm">
+                        <div>
+                            <img src="./images/microhire_apac.webp" alt="">
+                        </div>
+                        <div>
+                            <h3>microhire_apac</h3>
+                            <p>
+                                Events That Inspire ✨️ <br>
+                                We are Australia’s leading provider of Audio Visual, Event Staging and IT
+                                solutions
+                                for
+                                close to 40 years. <br>
+                                📲 1300 667 095
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="footer-sub-images">
+                        <a href="#">
+                            <img src="./images/footer-sub-img-1.webp" alt="">
+                        </a>
+                        <a href="#">
+                            <img src="./images/footer-sub-img-2.webp" alt="">
+                        </a>
+                        <a href="#">
+                            <img src="./images/footer-sub-img-3.webp" alt="">
+                        </a>
+                    </div>
+
+                    <div class="buttton-wrapper">
+                        <a href="#">Load More</a>
+                        <a href="#"><i class="fab fa-instagram"></i>Follow on Instagram</a>
+                    </div>
+
+                    <!-- post-wrapper  -->
+                    <div class="post-wrapper">
+                        <div class="author-card">
+                            <div class="author-img">
+                                <img src="./images/author-img.jpg" alt="">
+                            </div>
+                            <div class="author-text">
+                                <p class="author-name">Microhire is at Mornington Peninsula.</p>
+                                <p class="post-time">1 month ago</p>
+                            </div>
+                        </div>
+                        <p class="post-description">
+                            ✨ Branding Meets Brilliance ✨
+                            <br><br>
+                            Microhire brought the magic with a mesmerising “light‑scape” at the Mornington
+                            Peninsula Thermal Springs. ✨️ Setting the tone for an immersive experience, our
+                            expert lighting designers washed the foyer and stairwell with stunning projection
+                            mapping and LED banners which featured seamless content across each unit.
+                            Ambient outdoor lighting, custom gobo projection, and a transparent touch-screen
+                            kiosk upon entry, brilliantly amplified our clients' brand. 🙌
+                            Another outstanding event proudly delivered for our valued clients✨️
+                            <br><br>
+                            <a href="#">#EventLighting</a>
+                            <a href="#">#Design</a>
+                            <a href="#">#Event</a>
+                            <a href="#">#Production</a>
+                            <a href="#">#ProjectionMapping</a>
+                            <a href="#">#EventsThatInspire</a>
+                            <a href="#">#Microhire</a>  ✨
+                        </p>
+                        <a href="#" class="see-more-dot">...</a>
+                        <a href="#" class="see-more">see more</a>
+                        <div class="media-link">
+                            <a href="#">
+                                <i class="fa-regular fa-image" style="color: #ffffff;"></i>
+                                Photo
+                            </a>
+                        </div>
+                        <div class="post-links">
+                            <a href="#">View on Facebook</a>
+                            <p>·</p>
+                            <a href="#">Share</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <h3>Follow us on social media</h3>
+                    <div class="social-icons">
+                        <a href="#"><i class="fab fa-x-twitter"></i></a>
+                        <a href="#"><i class="fab fa-facebook"></i></a>
+                        <a href="#"><i class="fab fa-linkedin"></i></a>
+                        <a href="#"><i class="fab fa-youtube"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                    </div>
+
+                    <h3>Subscribe To Stay Ahead</h3>
+                    <div class="subscribe">
+                        <input type="text" placeholder="Name">
+                        <input type="email" placeholder="Email">
+                        <button>Subscribe</button>
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+    </footer>
+    <script>
+        function toggleMenu() {
+            document.getElementById("mobileMenu").classList.toggle("active");
+        }
+    </script>
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
