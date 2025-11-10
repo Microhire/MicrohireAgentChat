@@ -37,12 +37,12 @@ public sealed class QuotesWebController : Controller
     // {
     //     try
     //     {
-    //         return View();
+    //         return View(quote);
     //     }
     //     catch (Exception ex)
     //     {
     //         ModelState.AddModelError(string.Empty, ex.Message);
-    //         return View();
+    //         return View(quote);
     //     }
     // }
 
@@ -53,8 +53,8 @@ public sealed class QuotesWebController : Controller
         //Cover
         try
         {
-            var yourStrategy = await ViewbagQuoteReport(id, type, null, 6, true);
-            return View();
+            var quote = await ViewbagQuoteReport(id, type, null, 6, true);
+            return View(quote);
         }
         catch
         {
@@ -70,8 +70,8 @@ public sealed class QuotesWebController : Controller
         //OVERVIEW
         try
         {
-            var yourStrategy = await ViewbagQuoteReport(id, type, null, 6, true);
-            return View();
+            var quote = await ViewbagQuoteReport(id, type, null, 6, true);
+            return View(quote);
         }
         catch
         {
@@ -86,8 +86,8 @@ public sealed class QuotesWebController : Controller
         // EQUIPMENT Place + Vision
         try
         {
-            var yourStrategy = await ViewbagQuoteReport(id, type, null, 6, true);
-            return View();
+            var quote = await ViewbagQuoteReport(id, type, null, 6, true);
+            return View(quote);
         }
         catch
         {
@@ -104,8 +104,8 @@ public sealed class QuotesWebController : Controller
         // EQUIPMENT DATA
         try
         {
-            var yourStrategy = await ViewbagQuoteReport(id, type, 6, null, true);
-            return View();
+            var quote = await ViewbagQuoteReport(id, type, 6, null, true);
+            return View(quote);
         }
         catch
         {
@@ -120,11 +120,11 @@ public sealed class QuotesWebController : Controller
         // EQUIPMENT AUDIO
         try
         {
-            var yourStrategy = await ViewbagQuoteReport(id, type, null, 0, false);
+            var quote = await ViewbagQuoteReport(id, type, null, 0, false);
 
             ViewBag.Id = id;
             ViewBag.Type = type ?? "Tax";
-            return View();
+            return View(quote);
         }
         catch
         {
@@ -139,11 +139,11 @@ public sealed class QuotesWebController : Controller
         // EQUIPMENT LIGHTING
         try
         {
-            var yourStrategy = await ViewbagQuoteReport(id, type, null, 0, false);
+            var quote = await ViewbagQuoteReport(id, type, null, 0, false);
 
             ViewBag.Id = id;
             ViewBag.Type = type ?? "Tax";
-            return View();
+            return View(quote);
         }
         catch
         {
@@ -158,11 +158,11 @@ public sealed class QuotesWebController : Controller
         // EQUIPMENT RECORDING
         try
         {
-            var yourStrategy = await ViewbagQuoteReport(id, type, null, 0, false);
+            var quote = await ViewbagQuoteReport(id, type, null, 0, false);
 
             ViewBag.Id = id;
             ViewBag.Type = type ?? "Tax";
-            return View();
+            return View(quote);
         }
         catch
         {
@@ -178,11 +178,11 @@ public sealed class QuotesWebController : Controller
 
         try
         {
-            var yourStrategy = await ViewbagQuoteReport(id, type, null, 0, false);
+            var quote = await ViewbagQuoteReport(id, type, null, 0, false);
 
             ViewBag.Id = id;
             ViewBag.Type = type ?? "Tax";
-            return View();
+            return View(quote);
         }
         catch
         {
@@ -198,11 +198,11 @@ public sealed class QuotesWebController : Controller
 
         try
         {
-            var yourStrategy = await ViewbagQuoteReport(id, type, null, 0, false);
+            var quote = await ViewbagQuoteReport(id, type, null, 0, false);
 
             ViewBag.Id = id;
             ViewBag.Type = type ?? "Tax";
-            return View();
+            return View(quote);
         }
         catch
         {
@@ -218,11 +218,11 @@ public sealed class QuotesWebController : Controller
 
         try
         {
-            var yourStrategy = await ViewbagQuoteReport(id, type, null, 0, false);
+            var quote = await ViewbagQuoteReport(id, type, null, 0, false);
 
             ViewBag.Id = id;
             ViewBag.Type = type ?? "Tax";
-            return View();
+            return View(quote);
         }
         catch
         {
@@ -238,11 +238,11 @@ public sealed class QuotesWebController : Controller
 
         try
         {
-            var yourStrategy = await ViewbagQuoteReport(id, type, null, 0, false);
+            var quote = await ViewbagQuoteReport(id, type, null, 0, false);
 
             ViewBag.Id = id;
             ViewBag.Type = type ?? "Tax";
-            return View();
+            return View(quote);
         }
         catch
         {
@@ -285,6 +285,7 @@ public sealed class QuotesWebController : Controller
             // ViewBag.ContactId = yourStrategy?.ContactId;
             ViewBag.Id = id;
             // ViewBag.Type = type;
+            ViewData["Name"] = quote.EventTitle;
             return quote;
         }
         catch
@@ -295,7 +296,7 @@ public sealed class QuotesWebController : Controller
     }
     public async Task<QuoteAllFields?> GetCompileDataAsync(int id)
     {
-        // var yourStrategy = await GetAsync(id);
+        // var quote = await GetAsync(id);
         // var yourStrategySegment = await GetSectionsAsync(yourStrategy?.id ?? id, 1, 100);
         // if (yourStrategy is not null && yourStrategySegment?.Items is not null)
         // {

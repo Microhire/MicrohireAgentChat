@@ -139,10 +139,9 @@
   padding-right: 3em;
 }
 .div-report-content {
-  /* margin: 50px; */
   box-shadow: 0px 2px 4px #0000003d;
   background: #fcfcfc;
-  border-radius: 51px 3px 3px 3px;
+  border-radius: 0px 59px 0px 0px;
   padding: 64px;
   min-height: 800px;
   display: block;
@@ -156,15 +155,24 @@
   font-family: "Lora";
   font-style: italic;
   padding: 0.5em;
+  display: flex;
+  align-items: center;
 }
+
 .report-pagination .btn-transparent {
   color: #000;
   font-family: "Poppins";
+  border: 0;
+  border-bottom: 2px solid;
+  border-color: transparent;
 }
 .report-pagination .btn-transparent.active {
   color: #e81e25 !important;
   border-color: #e81e25;
   font-weight: bold;
+  border: 0;
+  border-bottom: 2px solid;
+  border-radius: 0;
 }
 .div-disclaimer {
   margin: 3em 2em;
@@ -176,7 +184,6 @@
 
 .div-strategy-page-header {
   border-radius: 0px 30px 0px 0px;
-  display: inline-flex;
   width: 100%;
   overflow: hidden;
 }
@@ -193,8 +200,22 @@
   width: 400px;
 }
 .div-strategy-page-header-inside {
-  font-size: 4rem;
+  font-size: 36px;
   font-weight: bold;
+  text-transform: uppercase;
+  color: #9e1d20;
+}
+
+.div-strategy-page-header-inside2 {
+  font-size: 36px;
+  font-weight: bold;
+  text-transform: uppercase;
+  color: #e71e25;
+}
+hr.header-hr {
+  color: #e71e25;
+  opacity: 1;
+  height: 3px;
 }
 span.BigStrategyTitleDisplay.strategyTitleDisplay {
   border-bottom: 3px solid;
@@ -365,18 +386,17 @@ span.BigStrategyTitleDisplay.strategyTitleDisplay {
   top: 300px;
   right: 50px;
 }
-
 .div-acc-quotes-img-bg {
-  position: absolute;
+  bottom: 0;
+  position: relative;
   z-index: 0;
-  bottom: 300px;
+  left: 0;
 }
 .acc-quotes-img-bg {
   position: absolute;
   width: 400px;
-  height: 300px;
   padding: 8px;
-  top: 10px;
+  top: 500px;
   left: 10px;
 }
 .div-report-light-gray-desc {
@@ -416,4 +436,35 @@ span.BigStrategyTitleDisplay.strategyTitleDisplay {
   border-radius: 20px;
   color: #ffffff;
   font-family: "Lora";
+}
+.page1-top {
+  background: #9e1d20;
+  height: 750px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px;
+  color: #fff;
+}
+.page1-bottom {
+  background: #eee;
+  display: flex;
+  justify-content: space-between;
+  padding: 32px 16px;
+  color: #ff3262;
+}
+.img,
+.img-small {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+.object-contain {
+  object-fit: contain;
+}
+.quote-header {
+  text-transform: uppercase;
+  color: #9e1d20;
+  font-weight: bold;
 }

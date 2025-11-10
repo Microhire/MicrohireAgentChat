@@ -1,75 +1,64 @@
-@* @using InvestorPartner.Group.Ui.Constants
-@using InvestorPartner.Group.Ui.Helpers
-@using InvestorPartner.Group.Ui.Models
-@model YourStrategyTypeModel;
-
 @using Microsoft.AspNetCore.Authorization
 @inject IAuthorizationService AuthorizationService
 
 @{
     Layout = "_LayoutQuote";
-    ViewData["Title"] = $"{Model?.Type} Report";
+    ViewData["Title"] = $"Overview";
     ViewBag.Page = 2;
-
-    var strategy = ViewBag.Strategy as ContactClientStrategyModel;
-    var goal = ViewBag.Goal as ContactClientGoalModel;
-    
-    var familyText = "Single";
-    @if(!string.IsNullOrEmpty(strategy?.Person2Name)){
-        familyText = $"Couple";
-    }
-    
-    @if(strategy?.Dependents is not null && strategy.Dependents != 0){
-        familyText = $" with {strategy.Dependents} kids";
-    }else if(!string.IsNullOrEmpty(strategy?.Person2Name)){
-        familyText += $"with no kid";
-    }
 }
-@await Html.PartialAsync("YourStrategy/TvaHeader")
+<div class="m-2">
+    <p>@Model.ContactName</p>
+    <p>@Model.Location</p>
+    <br>
+    <p class="mb-4">@Model.Address</p>
 
-<div style="margin: 3em;margin-top: 4em;">
-<article class="letter-body" aria-label="letter">
-    <span class="strategyTitleDisplay h3 BigStrategyTitleDisplay">Tax Structures Explained</span>
-    <p class="mt-3">When it comes to property investment, the ownership structure you choose can have as much impact on your financial outcomes as the property itself. The right tax structure can provide significant advantages, while the wrong one can create unnecessary tax burdens, limit flexibility, or expose your assets to risk.</p>
-    <p>This section of the report outlines the most common structures available to property investors and highlights the benefits, limitations, and practical considerations of each. Our focus is on ensuring that your portfolio is supported by a framework that not only complies with tax regulations but also helps you achieve your long-term financial and lifestyle goals.</p>
-    <p>Trusts, companies, and hybrid structures can all be used to optimise the way your property investments are held. For example, discretionary (family) trusts may allow for effective income distribution to family members on lower marginal tax rates, while unit trusts may suit joint investment arrangements or larger portfolios. Company ownership can provide asset protection and a capped tax rate, but with less flexibility in accessing profits. Hybrid models can combine elements of these to provide a tailored balance of benefits.</p>
-    <p>The choice of structure will depend on your objectives. Some investors prioritise tax minimisation, while others value asset protection, succession planning, or the ability to reinvest profits with maximum efficiency. For families, intergenerational wealth transfer and estate planning may be key drivers. For business owners, separation of risk between trading and investment activities may be critical.</p>
-    <p>It is important to remember that structures are not static. The right structure today may evolve as your portfolio grows, your family circumstances change, or tax laws are amended. For this reason, a well-considered framework must be flexible enough to adapt, while also providing clarity and confidence from the outset.</p>
-    <p>The following diagrams illustrate the key structures most relevant to property investors. They are designed to show, at a glance, how income, expenses, and capital gains flow within each structure, as well as the compliance and tax implications you need to be aware of. These visuals will help clarify how different options may apply to your situation and provide a foundation for making informed decisions about the best structure for your portfolio.</p>
-    
-    <div class="spacer"></div>
-    <span class="strategyTitleDisplay h3 BigStrategyTitleDisplay">Our Recommended Structure for You</span>
-    <p class="mt-3">As part of your strategy sessions with us, we carefully take into consideration your current financial position, investment goals, and long-term wealth objectives. These are important factors to help us recommend the optimal structure for you. The structure we have chosen for you provides the right balance of tax efficiency, asset protection, and flexibility, while also allowing for income to be distributed in a way that minimises overall tax liability. Importantly, it positions you to reinvest earnings, safeguard assets against external risks, and plan for intergenerational wealth transfer. The following pages illustrate how this structure operates in practice and why it has been selected as the most suitable option for your circumstances.</p>
+    <p>Dear @Model.ContactName</p>
+    <br>
+    <p class="text-justify">Thank you. Curabitur et ullamcorper dolor. Nam lobortis neque sit amet nulla fringilla ullamcorper. In et semper augue. Aliquam varius purus vel vestibulum elementum. Vivamus a neque hendrerit, fermentum lectus non, ornare ante. Etiam non orci sit amet ipsum scelerisque cursus non vel nisl. Quisque at libero finibus, congue ex eget, dictum mauris. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Ut gravida augue elementum tortor lacinia consectetur. Nullam finibus vitae elit non cursus. Curabitur elementum dictum purus, et euismod nisl. Integer lobortis in tellus a sagittis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Pellentesque elementum metus vel tortor imperdiet, non varius sem rhoncus. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nullam at finibus mi.</p>
 
-    <div class="spacer"></div>
-    <h5 class="fw-bold pt-3">Background</h5>
-    @if(strategy?.Person1Age is not null && strategy.Person1Age != 0){
-        <p>Age: @strategy.Person1Age</p>
-    }
-    <p>Family: @familyText</p>
-    @if((strategy?.Person1Income is not null && strategy.Person1Income != 0) ||
-        (strategy?.Person2Income is not null && strategy.Person2Income != 0)
-    ){
-        <p>Annual Combined Income: @Html.FormatCurrency(strategy?.Person1Income+strategy?.Person2Income)</p>
-    }
-    @if((strategy?.AssetsRealEsateOther is not null && strategy?.AssetsRealEsateOther != 0)||
-        (strategy?.AssetsRealEstateMvIPG is not null && strategy?.AssetsRealEstateMvIPG != 0))
-    {
-    <p>Current Portfolio Value: @Html.FormatCurrency(strategy?.AssetsRealEstateMvIPG + strategy?.AssetsRealEsateOther)</p>
-    }
-    @if(strategy?.OutstandingDebt is not null && strategy.OutstandingDebt != 0){
-    <p>Current Debt: @Html.FormatCurrency(strategy.OutstandingDebt)</p>
-    }
+    <div class="mt-5">
+        <div class="row">
+            <div class="col-4 quote-header">Location</div>
+            <div class="col-8">@Model.Location</div>
 
-    <h5 class="fw-bold pt-3">Goals</h5>
-    @if(goal?.PassiveIncome is not null && goal.PassiveIncome != "0"){
-    <p>Passive Income Target: @Html.FormatCurrencyStr(goal?.PassiveIncome) p.a.</p>
-    }
-    @if(goal?.RetireYear is not null){
-    <p>Desired Retirement Age: @goal?.RetireYear</p>
-    }
-    @if(goal?.Milestone is not null && goal.Milestone != "0"){
-    <p>Net Wealth Target: @Html.FormatCurrencyStr(goal.Milestone)</p>
-    }
-</article>
-</div> *@
+            <div class="col-4 quote-header">Address</div>
+            <div class="col-8">@Model.Address</div>
+
+            <div class="col-4 quote-header">Room</div>
+            <div class="col-8">@Model.Room</div>
+
+            <div class="col-4 quote-header">Date</div>
+            <div class="col-8">@Model.DateRange</div>
+            <br>
+
+            <div class="col-4 quote-header">Event Account Manager</div>
+            <div class="col-8">@Model.AccountMgrName</div>
+
+            <div class="col-4 quote-header">Mobile Number</div>
+            <div class="col-8">@Model.AccountMgrMobile</div>
+
+            <div class="col-4 quote-header">Email</div>
+            <div class="col-8">@Model.AccountMgrEmail</div>
+            <br>
+            <p><i>Please confirm the following dates and times are accurate</i></p>
+            <br>
+
+            <div class="col-4 quote-header">Setup</div>
+            <div class="col-4">@Model.SetupDate</div>
+            <div class="col-4">@Model.SetupTime</div>
+
+            <div class="col-4 quote-header">Reheasal</div>
+            <div class="col-4">@Model.RehearsalDate</div>
+            <div class="col-4">@Model.RehearsalTime</div>
+
+            <div class="col-4 quote-header">Event Start</div>
+            <div class="col-4">@Model.EventStartDate</div>
+            <div class="col-4">@Model.EventStartTime</div>
+
+            <div class="col-4 quote-header">Event End</div>
+            <div class="col-4">@Model.EventEndDate</div>
+            <div class="col-4">@Model.EventEndTime</div>
+
+        </div>
+    </div>
+</div>

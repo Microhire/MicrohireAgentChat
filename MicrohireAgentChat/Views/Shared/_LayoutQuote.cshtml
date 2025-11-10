@@ -66,6 +66,20 @@
             <div class="div-report-pillar-bacground">
                 <div class="div-report-content div-column-between">
                     <div class="">
+                        @if (ViewData["HideHeader"] == null || (bool)ViewData["HideHeader"] == false){
+                            <div class="div-strategy-page-header">
+                                <span class="d-block div-strategy-page-header-inside">Overview</span>
+                                <div class="d-flex">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="55" height="55" role="img" aria-label="Play">
+                                        <title>Play</title>
+                                        <polygon points="6,4 18,12 6,20" fill="#E71E25"></polygon>
+                                    </svg>
+                                    <span class="div-strategy-page-header-inside2">@ViewData["Name"]</span>
+                                </div>
+                                <hr class="header-hr">
+                            </div>
+                        }
+
                         @RenderBody()
                     </div>
 
@@ -74,7 +88,7 @@
                             <!-- Previous button -->
                             @if (prevPage.HasValue)
                             {
-                                <a href="/QuoteWeb/Page@(prevPage)/@id" class="btn btn-rectangle mx-3 min-150px">Previous Page</a>
+                                <a href="/QuotesWeb/Page@(prevPage)/@id" class="btn btn-rectangle mx-3 min-150px">Previous Page</a>
                             }
                             else
                             {
@@ -84,7 +98,7 @@
                             <!-- Page buttons -->
                             @foreach (var p in validPages)
                             {
-                                <a href="/QuoteWeb/Page@(p)/@id"
+                                <a href="/QuotesWeb/Page@(p)/@id"
                                 class="btn btn-transparent @(p == currentPage ? "active" : "")">
                                     @p
                                 </a>
@@ -93,7 +107,7 @@
                             <!-- Next button -->
                             @if (nextPage.HasValue)
                             {
-                                <a href="/QuoteWeb/Page@(nextPage)/@id" class="btn btn-rectangle mx-3 min-150px">Next Page</a>
+                                <a href="/QuotesWeb/Page@(nextPage)/@id" class="btn btn-rectangle mx-3 min-150px">Next Page</a>
                             }
                             else
                             {

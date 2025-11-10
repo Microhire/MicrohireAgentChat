@@ -1,24 +1,27 @@
 @using Microsoft.AspNetCore.Authorization
 @inject IAuthorizationService AuthorizationService
-
+@model QuoteAllFields
 @{
     Layout = "_LayoutQuote";
-    ViewData["Title"] = $"{Model?.Type} Report";
+    ViewData["Title"] = $"Overview";
+    ViewData["HideHeader"] = true;
     ViewBag.Page = 1;
-}
-<div class="div-strategy-page-header">
-    <div class="div-strategy-page-header-left">
-      <div class="">
-        <span class="div-strategy-page-header-inside">TRUST & SMSF Strategy Report</span>
-        </div>
-        <div class="div-strategy-page-header-left-bottom">
-            <img src="/images/strategy-report-tax-subheader-line.png" class="img" alt="subheader tax">
-        </div>
-    </div>
-    <div class="div-strategy-page-header-right">
-        <img src="/images/strategy-report-tax-picture.png" class="img" alt="tax picture">
-    </div>
-</div>
 
+}
 <div class="m-5 mt-2">
+    <div class="page1-top">
+        <div class="logo" style="text-align: right;">
+            <img src="/images/aHfZNBPMlVa1GSUumeOAfrclJp4azvJT.png" class="img object-contain">
+        </div>
+        <h1>@ViewData["Name"]</h1>
+    </div>
+    <div class="page1-bottom">
+        <div>
+            <p>@Model.EventStartDate</p>
+            <p>@Model.Reference</p>
+        </div>
+        <div style="height: 50px;">
+            <img src="/images/aHfZNBPMlVa1GSUumeOAfrclJp4azvJT.png" class="img object-contain">
+        </div>
+    </div>
 </div>

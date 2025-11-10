@@ -1,111 +1,11 @@
-@* @using InvestorPartner.Group.Ui.Constants
-@using InvestorPartner.Group.Ui.Helpers
-@using InvestorPartner.Group.Ui.Models
-@model YourStrategyTypeModel;
-
 @using Microsoft.AspNetCore.Authorization
 @inject IAuthorizationService AuthorizationService
 
 @{
     Layout = "_LayoutQuote";
-    ViewData["Title"] = $"{Model?.Type} Report";
+    ViewData["Title"] = $"EQUIPMENT & SERVICES";
     ViewBag.Page = 3;
-    var yourStrategy = ViewBag.YourStrategy as List<ContactClientStrategySectionPost>;
 }
-@await Html.PartialAsync("YourStrategy/TvaHeader")
+<div class="m-5 mt-2">
 
-<div style="margin: 3em;margin-top: 4em;">
-@if (yourStrategy?.Any() == true)
-{
-    // Section 0
-    if (yourStrategy.Count > 0)
-    {
-        var sec = yourStrategy[0];
-        <div>
-            <span class="strategyTitleDisplay h3 BigStrategyTitleDisplay" data-id="@sec.Id">@sec.SectionName</span>
-
-            @if (sec.CheckBox == true){
-                <div class="spacer"></div>
-                <div>
-                    <h4 class="text-red" data-id="@sec.Id">@sec.SubHeading</h4>
-                </div>
-            }
-        </div>
-    }
-
-    // Section 1
-    if (yourStrategy.Count > 1)
-    {
-        var sec = yourStrategy[1];
-        if (sec.CheckBox == true){
-            <div class="spacer"></div>
-            <div>
-                <h4 class="text-red" data-id="@sec.Id">@sec.SubHeading</h4>
-                <div class="" style="height: 150px;">
-                    <img src="/images/tax-strategy-report-family.png" class="img object-contain" alt="image strategy">
-                </div>
-            </div>
-        }
-    }
-
-    // Section 2
-    if (yourStrategy.Count > 2)
-    {
-        var sec = yourStrategy[2];
-        if (sec.CheckBox == true){
-            <div class="spacer"></div>
-            <div>
-                <h4 class="text-red" data-id="@sec.Id">@sec.SubHeading</h4>
-                <div class="" style="height: 150px;">
-                    <img src="/images/tax-strategy-report-uts.png" class="img object-contain" alt="image strategy">
-                </div>
-            </div>
-        }
-    }
-    
-    // Section 3
-    if (yourStrategy.Count > 3)
-    {
-        var sec = yourStrategy[3];
-        if (sec.CheckBox == true){
-            <div class="spacer"></div>
-            <div>
-                <h4 class="text-red" data-id="@sec.Id">@sec.SubHeading</h4>
-                <div class="" style="height: 150px;">
-                    <img src="/images/tax-strategy-report-company-structure.png" class="img object-contain" alt="image strategy">
-                </div>
-            </div>
-        }
-    }
-
-    // Section 4
-    if (yourStrategy.Count > 4)
-    {
-        var sec = yourStrategy[4];
-        if (sec.CheckBox == true){
-            <div class="spacer"></div>
-            <div>
-                <h4 class="text-red" data-id="@sec.Id">@sec.SubHeading</h4>
-                <div class="" style="height: 150px;">
-                    <img src="/images/tax-strategy-report-smsf.png" class="img object-contain" alt="image strategy">
-                </div>
-            </div>
-        }
-    }
-    
-    // Section 5
-    if (yourStrategy.Count > 5)
-    {
-        var sec = yourStrategy[5];
-        if (sec.CheckBox == true){
-            <div class="spacer"></div>
-            <div>
-                <h4 class="text-red" data-id="@sec.Id">@sec.SubHeading</h4>
-                <div class="" style="height: 150px;">
-                    <img src="/images/tax-strategy-report-individual.png" class="img object-contain" alt="image strategy">
-                </div>
-            </div>
-        }
-    }
-}
-</div> *@
+</div>

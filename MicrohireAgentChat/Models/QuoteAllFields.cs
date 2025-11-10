@@ -6,7 +6,7 @@ public sealed record QuoteAllFields(
     string Client,                 // ARCSOPT
     string ContactName,            // Megan Suurenbroek
     string Email,                  // admin@arcsopt.org
-   string EventDate,
+    string EventDate,
     // Overview > header line under title (human-readable)
     string EventTitle,             // ARCSOPT MEETING (for section headings)
 
