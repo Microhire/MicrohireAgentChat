@@ -109,5 +109,6 @@ namespace MicrohireAgentChat.Models
         public int? TaxAuthority1 { get; set; }
         public int? TaxAuthority2 { get; set; }
         public string? EventType { get; set; } // you already had this; not in limited-save path
+        public DateTime? EntryDate { get; set; }     // “Rehearsal Date”
     }
 }

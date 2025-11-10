@@ -17,7 +17,7 @@ namespace MicrohireAgentChat.Models
         [Column("firstname")] public string? Firstname { get; set; }     // <=25
         [Column("surname")] public string? Surname { get; set; }       // <=35
         [Column("MidName")] public string? MidName { get; set; }
-
+        [Column("position")] public string? Position { get; set; }
         [Column("Email")] public string? Email { get; set; }         // <=80
         [Column("Cell")] public string? Cell { get; set; }          // <=16 (use for mobile)
         [Column("Phone1")] public string? Phone1 { get; set; }        // <=16

@@ -9,6 +9,7 @@ using MicrohireAgentChat.Data;
 using MicrohireAgentChat.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using System;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Net;
@@ -22,7 +23,7 @@ namespace MicrohireAgentChat.Services
     public sealed class AzureAgentChatService
     {
         private readonly string _assistantId = "asst_uwAJjoHGdHJz5pUS93cJbMAC";      // your Agent ID
-        private readonly string _vectorStoreId = "AgentVectorStore_15401";  
+        private readonly string _vectorStoreId = "AgentVectorStore_15401";
         private const string SessionKeyThreadId = "AgentThreadId";
         private const string SessionKeyGreeted = "IslaGreeted";
         private const string SessionKeyActiveRunId = "AgentActiveRunId";
@@ -49,7 +50,7 @@ namespace MicrohireAgentChat.Services
             BookingDbContext bookings,
             IHttpContextAccessor http,
             ILogger<AzureAgentChatService> logger, IWestinRoomCatalog roomCatalog, IBookingDraftStore? drafts, IWebHostEnvironment env)
-          //  ,AppDbContext appDb
+        //  ,AppDbContext appDb
         {
             _projectClient = projectClient;
             _agentId = options.Value.AgentId ?? throw new ArgumentNullException(nameof(options.Value.AgentId));
@@ -1474,7 +1475,8 @@ namespace MicrohireAgentChat.Services
             string? PhoneE164,
             string? NameMatched,
             string? EmailMatched,
-            string? PhoneMatched
+            string? PhoneMatched,
+            string? Position
         );
 
         private static (string? Name, string? Matched) FindNameNearEmailOrPhone(
@@ -1550,13 +1552,16 @@ namespace MicrohireAgentChat.Services
                             .Select(x => x.line).ToList();
             var all = user.Concat(asst).ToList();
 
+            // ---- parse from any embedded UI/JSON fields if present (existing helper) ----
             var (jsonName, jsonEmail, jsonPhone) = ParseIslaFields(all);
 
+            // ---- EMAIL ----
             var (email, emailMatch) = !string.IsNullOrWhiteSpace(jsonEmail)
                 ? (jsonEmail, jsonEmail)
                 : FindEmail(user);
             if (email is null) (email, emailMatch) = FindEmail(asst);
 
+            // ---- NAME ----
             var (name, nameMatch) = !string.IsNullOrWhiteSpace(jsonName)
                 ? (jsonName, jsonName)
                 : FindName(user);
@@ -1571,6 +1576,7 @@ namespace MicrohireAgentChat.Services
                 }
             }
 
+            // ---- PHONE ----
             string? phoneRaw = !string.IsNullOrWhiteSpace(jsonPhone) ? jsonPhone : null;
             string? phoneMatch = !string.IsNullOrWhiteSpace(jsonPhone) ? jsonPhone : null;
 
@@ -1581,6 +1587,7 @@ namespace MicrohireAgentChat.Services
             }
             var phoneE164 = NormalizePhoneAu(phoneRaw);
 
+            // Full convo (role + line) for short-reply name prompt detection
             var convo = lines.Select(x => (role: x.role, line: x.line)).ToList();
 
             if (string.IsNullOrWhiteSpace(jsonName))
@@ -1615,15 +1622,117 @@ namespace MicrohireAgentChat.Services
                 { name = null; nameMatch = null; }
             }
 
+            // ---- POSITION / ROLE / TITLE ----
+            // 1) From JSON-like lines if present: "position": "...", "role": "...", "title": "..."
+            string? position = FindPositionFromJsonLike(all);
+
+            // 2) From free text (prefer user lines, then assistant)
+            if (string.IsNullOrWhiteSpace(position))
+            {
+                (position, _) = FindPositionFromText(user);
+                if (string.IsNullOrWhiteSpace(position))
+                    (position, _) = FindPositionFromText(asst);
+            }
+
+            // Final tidy/cap
+            position = CleanPosition(position);
+
             return new ContactInfo(
                 Name: name,
                 Email: email,
                 PhoneE164: phoneE164,
                 NameMatched: nameMatch,
                 EmailMatched: emailMatch,
-                PhoneMatched: phoneMatch
+                PhoneMatched: phoneMatch,
+                Position: position
             );
+
+            // ---------------- helpers (local) ----------------
+
+            static string? CleanPosition(string? s)
+            {
+                if (string.IsNullOrWhiteSpace(s)) return null;
+                var t = s.Trim();
+
+                // stop at trailing org clause
+                // e.g. "Head of Events at Microhire" -> "Head of Events"
+                t = Regex.Replace(t, @"\s+(?:at|with)\s+.+$", "", RegexOptions.IgnoreCase).Trim();
+
+                // strip trailing punctuation
+                t = t.Trim().TrimEnd('.', ',', ';', ':').Trim();
+
+                // discard obviously bad captures
+                if (t.Length < 2 || t.Length > 80) return null;
+                if (Regex.IsMatch(t, @"\b(isla|microhire)\b", RegexOptions.IgnoreCase)) return null;
+
+                // Title-case but preserve obvious acronyms (CEO, CTO, VP)
+                string Titleish(string x)
+                {
+                    var ti = CultureInfo.CurrentCulture.TextInfo;
+                    var words = x.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                    for (int i = 0; i < words.Length; i++)
+                    {
+                        var w = words[i];
+                        if (w.Length <= 4 && w.ToUpperInvariant() == w) continue; // keep acronyms
+                        words[i] = ti.ToTitleCase(w.ToLowerInvariant());
+                    }
+                    return string.Join(' ', words);
+                }
+
+                return Titleish(t);
+            }
+
+            static string? FindPositionFromJsonLike(IEnumerable<string> lines)
+            {
+                // look for "position": "...", "role": "...", "title": "..."
+                foreach (var ln in lines)
+                {
+                    // quick reject if no colon
+                    if (!ln.Contains(":")) continue;
+
+                    var m = Regex.Match(ln,
+                        @"(?:""position""|""role""|""title"")\s*:\s*""(?<v>[^""]+)""",
+                        RegexOptions.IgnoreCase);
+                    if (m.Success) return m.Groups["v"].Value;
+                }
+                return null;
+            }
+
+            static (string? pos, string? matched) FindPositionFromText(IEnumerable<string> lines)
+            {
+                // Pattern A: "Position: X", "Role - X", "Title: X"
+                var reLabel = new Regex(
+                    @"(?:^|\b)(position|role|title)\s*[:\-]\s*(?<v>.+)$",
+                    RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+                // Pattern B: "My position is X", "I work as a/an X", "I'm the X at ..."
+                var rePhrase = new Regex(
+                    @"\b(?:my\s+position\s+is|i\s+work\s+as|i'?m\s+(?:a|an|the)|i\s+am\s+(?:a|an|the))\s+(?<v>.+)$",
+                    RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+                foreach (var ln in lines)
+                {
+                    var line = ln.Trim();
+                    if (line.Length == 0) continue;
+
+                    var m1 = reLabel.Match(line);
+                    if (m1.Success)
+                    {
+                        var v = m1.Groups["v"].Value.Trim();
+                        return (v, line);
+                    }
+
+                    var m2 = rePhrase.Match(line);
+                    if (m2.Success)
+                    {
+                        var v = m2.Groups["v"].Value.Trim();
+                        return (v, line);
+                    }
+                }
+                return (null, null);
+            }
         }
+
 
         private static (string? name, string? email, string? phone) ParseIslaFields(IEnumerable<string> lines)
         {
@@ -1973,16 +2082,25 @@ namespace MicrohireAgentChat.Services
 
         private async Task PostProcessAfterRunAsync(IEnumerable<DisplayMessage> messages, CancellationToken ct)
         {
-            // 1) Upsert contact (if we have all three)
+            // --- 1) Extract contact + org from the transcript ---
+            var ci = ExtractContactInfo(messages); // make sure this returns Position (string? Position)
+            var (orgName, orgAddr) = ExtractOrganisationFromTranscript(messages.ToList());
+
             decimal? contactId = null;
-            var ci = ExtractContactInfo(messages);
-            if (!string.IsNullOrWhiteSpace(ci.Name) &&
-                !string.IsNullOrWhiteSpace(ci.Email) &&
-                !string.IsNullOrWhiteSpace(ci.PhoneE164))
+
+            // --- 2) Upsert contact (name is minimum; email/phone/position are optional) ---
+            if (!string.IsNullOrWhiteSpace(ci.Name))
             {
                 try
                 {
-                    contactId = await UpsertContactByEmailAsync(_bookings, ci.Name!, ci.Email!, ci.PhoneE164!, ct);
+                    contactId = await UpsertContactByEmailAsync(
+                        _bookings,
+                        ci.Name!.Trim(),
+                        string.IsNullOrWhiteSpace(ci.Email) ? null : ci.Email!.Trim(),
+                        string.IsNullOrWhiteSpace(ci.PhoneE164) ? null : ci.PhoneE164!.Trim(),
+                        string.IsNullOrWhiteSpace(ci.Position) ? null : ci.Position!.Trim(), // NEW: position
+                        ct
+                    );
                 }
                 catch (Exception ex)
                 {
@@ -1990,7 +2108,58 @@ namespace MicrohireAgentChat.Services
                 }
             }
 
+            // --- 3) Resolve organisation (existing or create) and get Customer_code ---
+            string? customerCode = null;
+            decimal? orgId = null;
+
+            if (!string.IsNullOrWhiteSpace(orgName))
+            {
+                try
+                {
+                    var found = await FindOrganisationAsync(_bookings, orgName!, ct);
+                    if (found is not null)
+                    {
+                        orgId = found.Value.id;
+                        customerCode = found.Value.code;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "FindOrganisationAsync failed for '{Org}'.", orgName);
+                }
+            }
+
+            if (orgId is null && !string.IsNullOrWhiteSpace(orgName))
+            {
+                try
+                {
+                    orgId = await UpsertOrganisationAsync(_bookings, orgName!, orgAddr, ct);
+                    if (orgId is not null)
+                    {
+                        customerCode = await GetCustomerCodeByIdAsync(_bookings, orgId.Value, ct);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Organisation upsert failed for '{Org}'.", orgName);
+                }
+            }
+
+            // --- 4) Link contact <-> organisation (tblLinkCustContact) when both are known ---
+            if (contactId is not null && !string.IsNullOrWhiteSpace(customerCode))
+            {
+                try
+                {
+                    await LinkContactToOrganisationAsync(_bookings, customerCode!, contactId.Value, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "LinkContactToOrganisationAsync failed for code '{Code}', contact {ContactId}.", customerCode, contactId);
+                }
+            }
+
         }
+
         private static string StripZeroWidth(string s)
         {
             // Remove ZWSP/ZWJ/ZWNJ/BOM etc.
@@ -2325,11 +2494,12 @@ namespace MicrohireAgentChat.Services
         }
 
         public async Task<decimal?> UpsertContactByEmailAsync(
-            BookingDbContext db,
-            string? fullName,
-            string? email,
-            string? phoneE164,
-            CancellationToken ct)
+      BookingDbContext db,
+      string? fullName,
+      string? email,
+      string? phoneE164,
+      string? position,              // <-- NEW
+      CancellationToken ct)
         {
             try
             {
@@ -2370,7 +2540,7 @@ namespace MicrohireAgentChat.Services
                         .FirstOrDefaultAsync(c => c.Email != null && c.Email.ToLower() == e, ct);
                 }
 
-                // 2) If not found and we have a display name, try soft match by Contactname
+                // 2) If not found and we have a display name, try exact match on Contactname
                 if (existing == null && !string.IsNullOrWhiteSpace(display))
                 {
                     var dn = display.Trim().ToLower();
@@ -2378,23 +2548,26 @@ namespace MicrohireAgentChat.Services
                         .FirstOrDefaultAsync(c => c.Contactname != null && c.Contactname.ToLower() == dn, ct);
                 }
 
+                string? pos = Trunc(NormalizePosition(position), 50);
+
                 if (existing is null)
                 {
-                    // Create a provisional/new contact (email/phone may be null)
+                    // Create a provisional/new contact strictly from user-supplied fields
                     var row = new TblContact
                     {
                         Contactname = Trunc(display, 35),
                         Firstname = Trunc(first, 25),
                         MidName = Trunc(middle, 35),
                         Surname = Trunc(last, 35),
-                        Email = Trunc(email, 80),    // may be null
-                        Cell = Trunc(phoneE164, 16), // may be null
+                        Email = Trunc(email, 80),      // may be null
+                        Cell = Trunc(phoneE164, 16),  // may be null
                         Phone1 = null,
                         Active = "Y",
                         CreateDate = now,
                         LastContact = now,
                         LastAttempt = now,
-                        LastUpdate = now
+                        LastUpdate = now,
+                        Position = pos                    // <-- set on create
                     };
 
                     db.Contacts.Add(row);
@@ -2403,17 +2576,14 @@ namespace MicrohireAgentChat.Services
                 }
                 else
                 {
-                    // Update fields we’ve learned
+                    // Update only with new user-supplied values (do not overwrite with nulls)
                     if (!string.IsNullOrWhiteSpace(display)) existing.Contactname = Trunc(display, 35);
                     if (!string.IsNullOrWhiteSpace(first)) existing.Firstname = Trunc(first, 25);
                     if (!string.IsNullOrWhiteSpace(middle)) existing.MidName = Trunc(middle, 35);
                     if (!string.IsNullOrWhiteSpace(last)) existing.Surname = Trunc(last, 35);
-
-                    // Only set email if provided (or fill in an empty one)
-                    if (!string.IsNullOrWhiteSpace(email) && string.IsNullOrWhiteSpace(existing.Email))
-                        existing.Email = Trunc(email, 80);
-
+                    if (!string.IsNullOrWhiteSpace(email)) existing.Email = Trunc(email, 80);
                     if (!string.IsNullOrWhiteSpace(phoneE164)) existing.Cell = Trunc(phoneE164, 16);
+                    if (!string.IsNullOrWhiteSpace(pos)) existing.Position = pos; // <-- set on update if provided
 
                     existing.Active = existing.Active ?? "Y";
                     existing.LastContact = now;
@@ -2434,8 +2604,19 @@ namespace MicrohireAgentChat.Services
             }
 
             static string? Trunc(string? s, int len)
-                => string.IsNullOrEmpty(s) ? s : (s.Length <= len ? s : s.Substring(0, len));
+                => string.IsNullOrEmpty(s) ? s : (s.Length <= len ? s : s[..len]);
+
+            static string? NormalizePosition(string? p)
+            {
+                if (string.IsNullOrWhiteSpace(p)) return null;
+                p = Regex.Replace(p, @"\s+", " ").Trim();
+                // avoid obviously non-position strings
+                if (p.Length < 2) return null;
+                return p;
+            }
         }
+
+
 
         private static string? GuessNameFromEmail(string email)
         {
@@ -2815,6 +2996,273 @@ namespace MicrohireAgentChat.Services
             return null;
         }
 
+
+        public async Task<decimal?> TrySaveOrganisationAsync(
+            BookingDbContext db,
+            IEnumerable<DisplayMessage> messages,
+            CancellationToken ct)
+        {
+            if (messages == null) return null;
+
+            var (org, addr) = ExtractOrganisationFromTranscript(messages);
+            if (string.IsNullOrWhiteSpace(org) && string.IsNullOrWhiteSpace(addr))
+                return null;
+
+            // If only address is present, we still upsert using a placeholder org if needed.
+            // You can tighten this if you require org.
+            if (string.IsNullOrWhiteSpace(org))
+                org = "Unknown Organisation";
+
+            return await UpsertOrganisationAsync(db, org!, addr, ct);
+        }
+        private static string MakeCustomerCodeFromId(decimal id) => "C" + Convert.ToInt32(id);
+
+public async Task<decimal?> UpsertOrganisationAsync(
+    BookingDbContext db,
+    string organisation,
+    string? address,
+    CancellationToken ct)
+    {
+        if (db == null) return null;
+
+        var org = Normalize(organisation);
+        var addr = Normalize(address);
+
+        if (string.IsNullOrWhiteSpace(org) && string.IsNullOrWhiteSpace(addr))
+            return null;
+
+        try
+        {
+            await using var tx = await db.Database.BeginTransactionAsync(ct);
+
+            // try existing by name (case-insensitive)
+            var existing = await db.TblCusts
+                .AsTracking()
+                .FirstOrDefaultAsync(c =>
+                    c.OrganisationV6 != null &&
+                    c.OrganisationV6.ToLower() == org.ToLower(), ct);
+
+            if (existing is null)
+            {
+                // 1) Insert with a UNIQUE placeholder to satisfy the UNIQUE KEY
+                var row = new TblCust
+                {
+                    OrganisationV6 = Trunc(org, 120),
+                    Address_l1V6 = Trunc(addr, 200),
+                    Customer_code = MakeTempCustomerCode() // <— unique placeholder
+                };
+
+                await db.TblCusts.AddAsync(row, ct);
+                await db.SaveChangesAsync(ct); // ID is now generated
+
+                // 2) Replace placeholder with final ID-based code (C#####)
+                row.Customer_code = MakeCustomerCodeFromId(row.ID);
+                await db.SaveChangesAsync(ct);
+
+                await tx.CommitAsync(ct);
+                return row.ID;
+            }
+            else
+            {
+                if (!string.IsNullOrWhiteSpace(addr))
+                    existing.Address_l1V6 = Trunc(addr, 200);
+
+                if (string.IsNullOrWhiteSpace(existing.Customer_code))
+                    existing.Customer_code = MakeCustomerCodeFromId(existing.ID);
+
+                await db.SaveChangesAsync(ct);
+                await tx.CommitAsync(ct);
+                return existing.ID;
+            }
+        }
+        catch (DbUpdateException ex)
+        {
+            // bubble the exact SQL cause to logs/UI
+            var detail = ex.InnerException?.Message ?? ex.Message;
+            throw new InvalidOperationException($"Failed to save organisation record: {detail}", ex);
+        }
+
+        // ---- helpers ----
+        static string? Trunc(string? s, int len)
+            => string.IsNullOrWhiteSpace(s) ? s : (s!.Length <= len ? s : s[..len]);
+
+        static string Normalize(string? s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return string.Empty;
+            var t = Regex.Replace(s, @"\s+", " ").Trim();
+            return t.Trim(';', ':', '.', ',');
+        }
+
+        static string MakeCustomerCodeFromId(decimal id)
+        {
+            // e.g. ID=14415 → "C14415"
+            var n = (long)id;
+            return $"C{n:D5}";
+        }
+
+        static string MakeTempCustomerCode()
+        {
+            // ultra-low collision temporary value under 35 chars
+            // e.g. "C_TMP_638353004123456789_ab12"
+            var ticks = DateTime.UtcNow.Ticks;
+            var rand = Guid.NewGuid().ToString("N")[..4];
+            return $"C_TMP_{ticks}_{rand}";
+        }
+    }
+
+    public async Task<(decimal id, string code, string name)?> FindOrganisationAsync(
+    BookingDbContext db, string organisation, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(organisation)) return null;
+            var norm = organisation.Trim().ToLower();
+
+            var org = await db.TblCusts
+                .Where(c => c.OrganisationV6 != null && c.OrganisationV6.ToLower() == norm)
+                .Select(c => new { c.ID, c.Customer_code, c.OrganisationV6 })
+                .FirstOrDefaultAsync(ct);
+
+            if (org == null) return null;
+
+            var code = string.IsNullOrWhiteSpace(org.Customer_code) ? "C" + Convert.ToInt32(org.ID) : org.Customer_code!;
+            return (org.ID, code, org.OrganisationV6!);
+        }
+        public async Task<string?> GetCustomerCodeByIdAsync(BookingDbContext db, decimal orgId, CancellationToken ct)
+        {
+            var c = await db.TblCusts.Where(x => x.ID == orgId)
+                .Select(x => new { x.ID, x.Customer_code })
+                .FirstOrDefaultAsync(ct);
+            if (c == null) return null;
+            return string.IsNullOrWhiteSpace(c.Customer_code) ? "C" + Convert.ToInt32(c.ID) : c.Customer_code!;
+        }
+        public async Task LinkContactToOrganisationAsync(
+            BookingDbContext db, string customerCode, decimal contactId, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(customerCode) || contactId <= 0) return;
+
+            var exists = await db.Set<TblLinkCustContact>()
+                .AnyAsync(x => x.Customer_Code == customerCode && x.ContactID == contactId, ct);
+            if (exists) return;
+
+            db.Set<TblLinkCustContact>().Add(new TblLinkCustContact
+            {
+                Customer_Code = customerCode,
+                ContactID = contactId
+            });
+
+            await db.SaveChangesAsync(ct);
+        }
+
+        /// <summary>
+        /// Pulls organisation + address from the latest USER messages.
+        /// Handles variants like:
+        ///  - "Dhan Corp and address is 123 Fiesta St, Melbourne"
+        ///  - "Organisation: Dhan Corp, Address: 123 Fiesta St, Melbourne"
+        ///  - "Company is Dhan Corp; address 123 Fiesta St, Melbourne"
+        /// </summary>
+        public (string? Organisation, string? Address) ExtractOrganisationFromTranscript(IEnumerable<DisplayMessage> messages)
+        {
+            var list = messages?.ToList() ?? new();
+            if (list.Count == 0) return (null, null);
+
+            // scan newest-to-oldest ~12 USER turns
+            int seen = 0;
+            for (int i = list.Count - 1; i >= 0 && seen < 12; i--)
+            {
+                var m = list[i];
+                if (!string.Equals(m.Role, "user", StringComparison.OrdinalIgnoreCase)) continue;
+                seen++;
+
+                var text = string.Join("\n", m.Parts ?? Enumerable.Empty<string>()).Trim();
+                if (string.IsNullOrWhiteSpace(text)) continue;
+
+                text = Normalize(text);
+
+                var (org, addr) = TryParseOrgAddress(text);
+                if (!string.IsNullOrWhiteSpace(org) || !string.IsNullOrWhiteSpace(addr))
+                    return (Cap(org), CleanAddr(addr));
+            }
+            return (null, null);
+
+            // ---------- helpers ----------
+            static string Normalize(string s)
+            {
+                s = s.Replace('’', '\'').Replace('‘', '\'')
+                     .Replace('“', '"').Replace('”', '"')
+                     .Replace('–', '-').Replace('—', '-');
+                s = Regex.Replace(s, @"\s+", " ").Trim();
+                return s;
+            }
+
+            static (string? org, string? addr) TryParseOrgAddress(string t)
+            {
+                // 0) Very direct shape: "<org> and address is/at/: <addr>"
+                var re0 = new Regex(
+                    @"^(?<org>.+?)\s+(?:&|and)\s+address\s*(?:is|at|:)?\s*(?<addr>.+)$",
+                    RegexOptions.IgnoreCase);
+                var m0 = re0.Match(t);
+                if (m0.Success) return (m0.Groups["org"].Value, m0.Groups["addr"].Value);
+
+                // 1) "Organisation/Company is/:\s<org> , address is/:\s<addr>"
+                var re1 = new Regex(
+                    @"(?:organisation|organization|company|business)\s*(?:name)?\s*(?:is|:)?\s*(?<org>[^,;]+?)\s*[,;]\s*address\s*(?:is|:)?\s*(?<addr>.+)$",
+                    RegexOptions.IgnoreCase);
+                var m1 = re1.Match(t);
+                if (m1.Success) return (m1.Groups["org"].Value, m1.Groups["addr"].Value);
+
+                // 2) "<org> , address <addr>"
+                var re2 = new Regex(
+                    @"^(?<org>[^,;]+?)\s*[,;]\s*address\s*(?:is|:|at)?\s*(?<addr>.+)$",
+                    RegexOptions.IgnoreCase);
+                var m2 = re2.Match(t);
+                if (m2.Success) return (m2.Groups["org"].Value, m2.Groups["addr"].Value);
+
+                // 3) Loose fallback around the first "address"
+                var idx = t.IndexOf("address", StringComparison.OrdinalIgnoreCase);
+                if (idx > 0)
+                {
+                    var left = t[..idx].Trim().TrimEnd(',', ';', ':');
+                    var right = t[(idx + "address".Length)..]
+                                .Replace("is", "", StringComparison.OrdinalIgnoreCase)
+                                .Replace("at", "", StringComparison.OrdinalIgnoreCase)
+                                .Replace(":", "")
+                                .Trim();
+
+                    left = CleanupOrgLeft(left);
+
+                    if (!string.IsNullOrWhiteSpace(left) || !string.IsNullOrWhiteSpace(right))
+                        return (left, right);
+                }
+
+                return (null, null);
+            }
+
+            static string CleanupOrgLeft(string left)
+            {
+                // Strip common leading/trailing helper words from the organisation side.
+                left = Regex.Replace(left, @"^\s*(my|the)\s+", "", RegexOptions.IgnoreCase); // leading
+                left = Regex.Replace(left,
+                    @"\s+(?:and|,)?\s*(?:company|organisation|organization|name)?\s*$",
+                    "", RegexOptions.IgnoreCase); // trailing noise like "... and"
+                left = Regex.Replace(left, @"\s+\bis\b\s*$", "", RegexOptions.IgnoreCase); // trailing "is"
+                return left.Trim();
+            }
+
+            static string? Cap(string? s)
+            {
+                if (string.IsNullOrWhiteSpace(s)) return s;
+                var ti = System.Globalization.CultureInfo.CurrentCulture.TextInfo;
+                return ti.ToTitleCase(s.ToLowerInvariant());
+            }
+
+            static string? CleanAddr(string? s)
+            {
+                if (string.IsNullOrWhiteSpace(s)) return s;
+                // trim trailing sentence punctuation that users often add
+                return s.Trim().TrimEnd('.', '!', ';');
+            }
+        }
+
+
         static int? FirstInt(string s)
         {
             var m = Regex.Match(s ?? "", @"\d+");
@@ -2859,16 +3307,14 @@ namespace MicrohireAgentChat.Services
         }
 
         public async Task UpsertItemsFromSummaryAsync(
-      BookingDbContext db, ISession session,
-      IEnumerable<DisplayMessage> messages, IDictionary<string, string> facts, CancellationToken ct)
+     BookingDbContext db, ISession session,
+     IEnumerable<DisplayMessage> messages, IDictionary<string, string> facts, CancellationToken ct)
         {
             var lastAssistant = messages.LastOrDefault(m =>
                 string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase));
             if (lastAssistant == null) return;
 
             var raw = string.Join("\n", lastAssistant.Parts ?? Enumerable.Empty<string>());
-            //var facts = ParseSummaryFacts(raw);
-            //if (facts.Count == 0) return;
 
             // ---------- NORMALIZATION HELPERS ----------
             static string Norm(string s)
@@ -2880,13 +3326,11 @@ namespace MicrohireAgentChat.Services
                     if (char.IsLetterOrDigit(ch) || char.IsWhiteSpace(ch))
                         sb.Append(char.ToLowerInvariant(ch));
                 }
-                // collapse multiple spaces
                 return Regex.Replace(sb.ToString().Trim(), @"\s+", " ");
             }
 
             string? FindValue(params string[] labelHints)
             {
-                // try any of the hints against any key using normalized contains
                 var hints = labelHints.Select(Norm).ToArray();
                 foreach (var kv in facts)
                 {
@@ -2904,34 +3348,74 @@ namespace MicrohireAgentChat.Services
                 return (m.Success && int.TryParse(m.Groups[1].Value, out var n)) ? n : 0;
             }
 
-            int ParseCount(params string[] labelHints)
-                => ParseCountFromValue(FindValue(labelHints));
+            int ParseCount(params string[] labelHints) => ParseCountFromValue(FindValue(labelHints));
 
-            // ---------- COUNTS FROM SUMMARY (robust to ** and punctuation) ----------
-            var speakersCount = Math.Max(ParseCount("number of speakers", "speakers", "speaker"), 0);
-            var projectorsCount = Math.Max(ParseCount("number of projectors", "projectors", "projector"), 0);
-            var laptopsCount = Math.Max(ParseCount("laptops required for presenters",
-                                                      "laptop required for presenters",
-                                                      "laptops", "presenters", "presenters"), 0);
+            // Helper to pull a number from free text like "2 wireless microphones"
+            static int ExtractCount(string? text, string pattern, int fallbackIfKeywordOnly = 0)
+            {
+                if (string.IsNullOrWhiteSpace(text)) return 0;
+                var m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
+                if (m.Success && int.TryParse(m.Groups[1].Value, out var n)) return n;
 
-            // bail if no actionable items
-            var hasSpeakers = speakersCount > 0;
+                var keywordOnly = Regex.Replace(pattern, @"\(\?\:|\?i\)|\(\?:", "", RegexOptions.IgnoreCase);
+                keywordOnly = Regex.Replace(keywordOnly, @"\(\d\+\)", "", RegexOptions.IgnoreCase);
+                keywordOnly = Regex.Replace(keywordOnly, @"\(\?\:.*?\)", "", RegexOptions.IgnoreCase);
+                keywordOnly = Regex.Replace(keywordOnly, @"\(\d\+\)", "", RegexOptions.IgnoreCase);
+
+                return Regex.IsMatch(text, pattern.Replace("(\\d+)", ""), RegexOptions.IgnoreCase)
+                    ? fallbackIfKeywordOnly : 0;
+            }
+
+            // ---------- COUNTS FROM SUMMARY (labels) ----------
+            var speakersCountLabel = Math.Max(ParseCount("number of speakers", "speakers", "speaker"), 0);
+            var projectorsCountLabel = Math.Max(ParseCount("number of projectors", "projectors", "projector"), 0);
+
+            var laptopsFromExplicit = Math.Max(ParseCount("laptops required for presenters",
+                                                            "laptop required for presenters",
+                                                            "laptops", "laptop"), 0);
+            var laptopsFromPresenters = Math.Max(ParseCount("number of presenters", "presenters", "presenter"), 0);
+            var laptopsFromPresentns = Math.Max(ParseCount("number of presentations", "presentations", "presentation"), 0);
+            var laptopsCount = Math.Max(laptopsFromExplicit, Math.Max(laptopsFromPresenters, laptopsFromPresentns));
+
+            // ---------- COUNTS FROM Equipment line ----------
+            var equipmentText = FindValue("equipment", "audio visual", "audio-visual") ?? string.Empty;
+
+            // e.g., "2 wireless microphones (shared)"
+            var micsFromEquip = ExtractCount(equipmentText, @"\b(\d+)\s*(wireless\s+microphones?|mics?)\b");
+            // e.g., "projector" or "2 projectors"
+            var projectorsFromEquip = ExtractCount(equipmentText, @"\b(\d+)\s*(projectors?)\b", fallbackIfKeywordOnly: 1);
+            // e.g., "single speaker system" or "2 speakers"
+            var speakersFromEquip = ExtractCount(equipmentText, @"\b(\d+)\s*(speakers?)\b");
+            if (speakersFromEquip == 0 && Regex.IsMatch(equipmentText, @"\bsingle\s+speaker(\s+system)?\b", RegexOptions.IgnoreCase))
+                speakersFromEquip = 1;
+
+            // Merge label- and equipment-derived counts
+            var speakersCount = Math.Max(speakersCountLabel, speakersFromEquip);
+            var projectorsCount = Math.Max(projectorsCountLabel, projectorsFromEquip);
+
+            // Prefer explicit mic count (from Equipment) for the mic driver; otherwise map speakers→mics
+            var wirelessMicCount = Math.Max(speakersCount, micsFromEquip);
+
+            // bail only if we truly have nothing actionable
+            var hasSpeakers = wirelessMicCount > 0;
             var hasProjectors = projectorsCount > 0;
             var hasLaptops = laptopsCount > 0;
-            if (!hasSpeakers || !hasProjectors || !hasLaptops) return;
+            if (!hasSpeakers && !hasProjectors && !hasLaptops) return;
 
-            // Heuristic presentation flag (kept from your code)
+            // Heuristic presentation flag
             bool wantsPresentation =
                 hasLaptops || hasProjectors ||
-                (facts.TryGetValue("Equipment", out var eq) &&
-                    (eq.IndexOf("projector", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                     eq.IndexOf("laptop", StringComparison.OrdinalIgnoreCase) >= 0)) ||
-                (facts.TryGetValue("Presenters", out var pr) &&
-                    pr.IndexOf("laptop", StringComparison.OrdinalIgnoreCase) >= 0) ||
-                (facts.TryGetValue("Purpose", out var pu) &&
-                    pu.IndexOf("presentation", StringComparison.OrdinalIgnoreCase) >= 0);
+                (equipmentText.Length > 0 &&
+                    (equipmentText.IndexOf("projector", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                     equipmentText.IndexOf("laptop", StringComparison.OrdinalIgnoreCase) >= 0)) ||
+                (FindValue("goal", "purpose", "objective") is string pu &&
+                    pu.IndexOf("presentation", StringComparison.OrdinalIgnoreCase) >= 0) ||
+                (FindValue("presenters", "presentations",
+                           "number of presenters", "number of presentations") is string pr &&
+                    (pr.IndexOf("laptop", StringComparison.OrdinalIgnoreCase) >= 0 ||
+                     ParseCountFromValue(pr) > 0));
 
-            var roomText = FindValue("room")?.ToLowerInvariant() ?? string.Empty;
+            var roomText = (FindValue("room", "venue") ?? string.Empty).ToLowerInvariant();
 
             // ---------- rules ----------
             string rulesPath = (_env != null)
@@ -2956,7 +3440,7 @@ namespace MicrohireAgentChat.Services
             // ---------- drivers ----------
             var drivers = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
             {
-                ["wireless_mic_count"] = speakersCount,   // treat speakers as wireless mic count
+                ["wireless_mic_count"] = wirelessMicCount,
                 ["projector_count"] = projectorsCount,
                 ["laptop_count"] = laptopsCount
             };
@@ -3060,6 +3544,9 @@ namespace MicrohireAgentChat.Services
             double GetUnitRate(string codeNorm) => rates.TryGetValue(codeNorm, out var r1) ? r1 : 0d;
 
             // ---------- persist ----------
+            //var bookingNo = session.GetString("Draft:BookingNo"); // re-read for safety
+            if (string.IsNullOrWhiteSpace(bookingNo)) return;
+
             int NextSeqNo()
                 => (db.TblItemtrans.Where(t => t.BookingNoV32 == bookingNo)
                                    .Select(t => (int?)t.SeqNo).Max() ?? 0) + 1;
@@ -3131,6 +3618,8 @@ namespace MicrohireAgentChat.Services
 
             await db.SaveChangesAsync(ct);
         }
+
+
 
         private static bool TryParseTime(string text, out TimeSpan time)
         {
@@ -3238,7 +3727,7 @@ namespace MicrohireAgentChat.Services
             void AddCrew(string productCode, int task, int persons, double hours, double price)
             {
                 var (h, m) = Hm(hours);
-              //  var price = Math.Round(unitRate * persons * (h + m / 60.0), 2);
+                //  var price = Math.Round(unitRate * persons * (h + m / 60.0), 2);
 
                 db.TblCrews.Add(new TblCrew
                 {
@@ -3292,20 +3781,20 @@ namespace MicrohireAgentChat.Services
                     HourlyRateID = 0M
                 });
             }
-
-            // Always add SETUP and PACKDOWN
-            AddCrew("SETUP", 2, personsSetup, setupHours, 110);
-            AddCrew("PACKDOWN", 4, personsPack, packHours, 110);
-
-            // Optional rows
-            if (hasRehearsal)
-                AddCrew("REHEARSAL", 7, personsReh, rehHours, 110);
-
-            if (wantTech)
-                AddCrew("TECH",3, personsTech, eventHours, 110);
-
             try
             {
+                // Always add SETUP and PACKDOWN
+                AddCrew("SETUP", 2, personsSetup, setupHours, 110);
+                AddCrew("PACKDOWN", 4, personsPack, packHours, 110);
+
+                // Optional rows
+                if (hasRehearsal)
+                    AddCrew("REHEARSAL", 7, personsReh, rehHours, 110);
+
+                if (wantTech)
+                    AddCrew("TECH", 3, personsTech, eventHours, 110);
+
+
                 await db.SaveChangesAsync(ct);
             }
             catch (DbUpdateException ex)
@@ -3541,8 +4030,9 @@ namespace MicrohireAgentChat.Services
             decimal? contactId,
             CancellationToken ct)
         {
-            try {
-             
+            try
+            {
+
                 static int? ToHHmm(TimeSpan? t) => t == null ? (int?)null : (t.Value.Hours * 100 + t.Value.Minutes);
                 static TimeSpan? ParseTime(string? s)
                 {
@@ -3576,7 +4066,7 @@ namespace MicrohireAgentChat.Services
                 var attendees = ExtractAttendees(messages);
                 var evtType = ExtractEventType(messages) ?? "Meeting";
 
-               
+
                 if (date == null || startTs == null || endTs == null)
                     return null;
 
@@ -3602,10 +4092,10 @@ namespace MicrohireAgentChat.Services
                 if (contactId.HasValue) row.ContactID = (int?)contactId.Value;
 
                 // single-day
-                row.SDate = date;
+                row.SetDate = date;
                 row.ShowSDate = date;
                 row.ShowEdate = date;
-
+              
                 // HHmm integer columns
                 var hhmmStart = ToHHmm(startTs);
                 var hhmmEnd = ToHHmm(endTs);
@@ -3625,6 +4115,7 @@ namespace MicrohireAgentChat.Services
                 row.VenueID = 16;
                 row.contact_nameV6 = "Megan Suurenbroek";
                 row.BookingProgressStatus = 1;
+                row.EntryDate = DateTime.Now;
                 await db.SaveChangesAsync(ct);
                 return bookingNo;
             }

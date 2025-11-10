@@ -8,15 +8,25 @@
         .UseAdvancedExtensions()
         .UseSoftlineBreakAsHardlineBreak()
         .Build();
-
-    const string G_START = "[[ISLA_GALLERY]]";
-    const string G_END = "[[/ISLA_GALLERY]]";
 }
 
 <!-- Anti-forgery token for AJAX posts -->
 <div style="display:none">
     @Html.AntiForgeryToken()
 </div>
+
+<style>
+  /* minimal CTA styles (optional) */
+  .isla-cta{margin-top:.75rem}
+  .isla-cta-label{margin-bottom:.5rem;font-weight:600}
+  .isla-cta-buttons{display:flex;gap:.5rem}
+  .isla-cta-buttons .isla-quote-yes,.isla-cta-buttons .isla-quote-no{padding:.375rem .75rem;border-radius:.5rem;border:none;cursor:pointer}
+  .isla-cta-buttons .isla-quote-yes{background:#c62828;color:#fff}
+  .isla-cta-buttons .isla-quote-no{background:#eee;color:#333}
+  .isla-busy{opacity:.7;pointer-events:none}
+  .isla-spinner{display:inline-block;width:.9em;height:.9em;margin-left:.5em;border:.15em solid currentColor;border-right-color:transparent;border-radius:50%;animation:isla-spin .8s linear infinite}
+  .isla-thinking{margin-top:.25rem;font-size:.9rem;color:#888}
+</style>
 
 @if (Model?.Any() != true)
 {
@@ -29,9 +39,18 @@ else
         var isAssistant = string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase);
         var rowClass = isAssistant ? "message-recived" : "message-sent";
 
+        var _rawAll = string.Join("\n", (m.Parts ?? new List<string>()).Select(p => p ?? string.Empty));
+        var _rawAllLower = _rawAll.ToLowerInvariant();
+
+        bool _looksLikeSummaryAsk = IsFinalSummaryAskBubble(_rawAllLower);
+        bool _hasUiJson = _rawAllLower.Contains("\"ui\":")
+                          || _rawAllLower.Contains("[[isla_gallery]]")
+                          || _rawAllLower.Contains("{\"ui\":");
+        bool _looksLikePicker = _rawAllLower.Contains("timepicker")
+                                || _rawAllLower.Contains("multitime");
+
         <div class="chat-message @rowClass" data-role="@m.Role">
             <div class="chat-message-box">
-
                 @if (isAssistant)
                 {
                     <div class="chat-message-avatar">
@@ -49,36 +68,25 @@ else
                             if (part.StartsWith("<image:", StringComparison.OrdinalIgnoreCase))
                                 continue;
 
-                            // -------------------- GALLERY BLOCKS --------------------
-                            if (part.Contains(G_START, StringComparison.Ordinal) && part.Contains(G_END, StringComparison.Ordinal))
+                            // -------------------- GALLERY BLOCKS (case-insensitive) --------------------
+                            var galleryRe = new System.Text.RegularExpressions.Regex(
+                                @"\[\[ISLA_GALLERY\]\](.*?)\[\[\/ISLA_GALLERY\]\]",
+                                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.Singleline);
+
+                            if (galleryRe.IsMatch(part))
                             {
                                 int pos = 0;
-                                while (true)
+                                foreach (System.Text.RegularExpressions.Match gm in galleryRe.Matches(part))
                                 {
-                                    var s = part.IndexOf(G_START, pos, StringComparison.Ordinal);
-                                    if (s < 0)
-                                    {
-                                        var tail = part.Substring(pos);
-                                        if (!string.IsNullOrWhiteSpace(tail))
-                                        {
-                                            var html = Markdown.ToHtml(tail, mdPipeline);
-                                            <div class="chat-text">@Html.Raw(html)</div>
-                                        }
-                                        break;
-                                    }
-
-                                    var before = part.Substring(pos, s - pos);
+                                    // text before this gallery
+                                    var before = part.Substring(pos, gm.Index - pos);
                                     if (!string.IsNullOrWhiteSpace(before))
                                     {
-                                        var html = Markdown.ToHtml(before, mdPipeline);
-                                        <div class="chat-text">@Html.Raw(html)</div>
+                                        var htmlBefore = Markdown.ToHtml(before, mdPipeline);
+                                        <div class="chat-text">@Html.Raw(htmlBefore)</div>
                                     }
 
-                                    var e = part.IndexOf(G_END, s + G_START.Length, StringComparison.Ordinal);
-                                    if (e < 0) { break; }
-
-                                    var json = part.Substring(s + G_START.Length, e - (s + G_START.Length)).Trim();
-
+                                    var json = (gm.Groups[1].Value ?? string.Empty).Trim();
                                     try
                                     {
                                         var gallery = JsonSerializer.Deserialize<IslaGallery>(json, new JsonSerializerOptions
@@ -108,7 +116,18 @@ else
                                         <pre class="text-muted small">@json</pre>
                                     }
 
-                                    pos = e + G_END.Length;
+                                    pos = gm.Index + gm.Length;
+                                }
+
+                                // tail after last gallery
+                                if (pos < part.Length)
+                                {
+                                    var tail = part.Substring(pos);
+                                    if (!string.IsNullOrWhiteSpace(tail))
+                                    {
+                                        var htmlTail = Markdown.ToHtml(tail, mdPipeline);
+                                        <div class="chat-text">@Html.Raw(htmlTail)</div>
+                                    }
                                 }
 
                                 continue;
@@ -123,8 +142,8 @@ else
 
                                 if (!string.IsNullOrWhiteSpace(textBefore))
                                 {
-                                    var html = Markdown.ToHtml(textBefore, mdPipeline);
-                                    <div class="chat-text">@Html.Raw(html)</div>
+                                    var htmlTB = Markdown.ToHtml(textBefore, mdPipeline);
+                                    <div class="chat-text">@Html.Raw(htmlTB)</div>
                                 }
 
                                 try
@@ -247,6 +266,18 @@ else
                                 <div class="chat-text">@Html.Raw(html)</div>
                             }
                         }
+
+                        // ---------------- CTA: render only after an assistant summary ask ----------------
+                        if (isAssistant && _looksLikeSummaryAsk && !_hasUiJson && !_looksLikePicker)
+                        {
+                            <div class="isla-cta" data-quote-controls>
+                                <div class="isla-cta-label">Would you like me to create the quote now?</div>
+                                <div class="isla-cta-buttons">
+                                    <button type="button" class="isla-quote-yes">Yes, create quote</button>
+                                    <button type="button" class="isla-quote-no">No, not yet</button>
+                                </div>
+                            </div>
+                        }
                     }
                 </div>
             </div>
@@ -254,166 +285,142 @@ else
     }
 }
 
-@functions {
-    bool IsUiJson(string s)
-    {
+@functions{
+    bool IsUiJson(string s){
         if (string.IsNullOrWhiteSpace(s)) return false;
-        s = s.Trim();
-        if (!s.StartsWith("{") || !s.EndsWith("}")) return false;
+        s=s.Trim(); if(!s.StartsWith("{")||!s.EndsWith("}")) return false;
         return s.Contains("\"ui\"");
     }
 
-    // Shapes for galleries
-    public class IslaGallery { public string? Room { get; set; } public List<IslaGalleryItem>? Items { get; set; } }
-    public class IslaGalleryItem
-    {
-        public string? Kind { get; set; }   // "room" | "layout" | "cover"
-        public string? Label { get; set; }
-        public string? Url { get; set; }
-        public object? Select { get; set; } // { room: "..."} or { layout: "..." }
+    // Broader detector so CTA shows for more phrasing styles
+    bool IsFinalSummaryAskBubble(string rawLower){
+        if (string.IsNullOrWhiteSpace(rawLower)) return false;
+
+        bool hasSummaryLabels =
+            rawLower.Contains("date and time") ||
+            rawLower.Contains("room:") ||
+            rawLower.Contains("layout:") ||
+            rawLower.Contains("setup style") ||
+            rawLower.Contains("event type") ||
+            rawLower.Contains("equipment:") ||
+            rawLower.Contains("audio visual:") ||
+            rawLower.Contains("ceiling sound system") ||
+            rawLower.Contains("technical support") ||
+            rawLower.Contains("rehearsal") ||
+            rawLower.Contains("number of speakers") ||
+            rawLower.Contains("number of presenters") ||
+            rawLower.Contains("attendees") ||
+            rawLower.Contains("guests:") ||
+            rawLower.Contains("purpose") ||
+            rawLower.Contains("goal:");
+
+        if(!hasSummaryLabels) return false;
+
+        bool asksToConfirm =
+            rawLower.Contains("does this look correct") ||
+            rawLower.Contains("does everything look correct") ||
+            rawLower.Contains("can you confirm") ||
+            rawLower.Contains("please confirm") ||
+            rawLower.Contains("before i create your quote") ||
+            rawLower.Contains("before creating your quote") ||
+            rawLower.Contains("before i prepare your quote") ||
+            rawLower.Contains("ready for me to create the quote") ||
+            rawLower.Contains("should i create the quote") ||
+            rawLower.Contains("would you like me to create the quote");
+
+        return asksToConfirm;
     }
+
+    // Shapes for galleries
+    public class IslaGallery{ public string? Room{get;set;} public List<IslaGalleryItem>? Items{get;set;} }
+    public class IslaGalleryItem{ public string? Kind{get;set;} public string? Label{get;set;} public string? Url{get;set;} public object? Select{get;set;} }
 }
 
-    <script>
-           (function () {
-      // --- read anti-forgery token ---
-      function getCsrf() {
-        const el = document.querySelector('input[name="__RequestVerificationToken"]');
-        return el ? el.value : '';
-      }
+<script id="isla-chat-binder">
+(function(){
+  // prevent double-binding if this partial gets swapped repeatedly
+  if (window.__islaChatBound) return;
+  window.__islaChatBound = true;
 
-      // --- tiny helpers for inline loading ---
-      function showBusy(btn) {
-        if (!btn) return;
-        btn.classList.add('isla-busy');
-        btn.disabled = true;
-        if (!btn.querySelector('.isla-spinner')) {
-          const sp = document.createElement('span');
-          sp.className = 'isla-spinner';
-          sp.setAttribute('aria-hidden', 'true');
-          btn.appendChild(sp);
-        }
-      }
-      function addThinkingUnder(el) {
-        if (!el) return;
-        const host = el.closest('.isla-timepicker, .isla-multitime, .isla-timechips, .isla-gallery') || el.parentElement;
-        if (!host || host.querySelector('.isla-thinking')) return;
-        const line = document.createElement('div');
-        line.className = 'isla-thinking';
-        line.textContent = 'Isla is thinking…';
-        host.appendChild(line);
-      }
+  function getCsrf(){
+    const el=document.querySelector('input[name="__RequestVerificationToken"]');
+    return el?el.value:'';
+  }
+  function showBusy(btn){
+    if(!btn) return;
+    btn.classList.add('isla-busy'); btn.disabled=true;
+    if(!btn.querySelector('.isla-spinner')){
+      const sp=document.createElement('span');
+      sp.className='isla-spinner'; sp.setAttribute('aria-hidden','true'); btn.appendChild(sp);
+    }
+  }
+  function addThinkingUnder(el){
+    if(!el) return;
+    const host=el.closest('.isla-timepicker, .isla-multitime, .isla-timechips, .isla-gallery, .isla-cta')||el.parentElement;
+    if(!host || host.querySelector('.isla-thinking')) return;
+    const line=document.createElement('div'); line.className='isla-thinking'; line.textContent='Isla is thinking…'; host.appendChild(line);
+  }
+  async function postChat(text,busyEl){
+    try{
+      showBusy(busyEl); addThinkingUnder(busyEl);
+      const token=getCsrf();
+      const resp=await fetch('/Chat/SendPartial',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8',
+          'RequestVerificationToken': token
+        },
+        body:new URLSearchParams({ text })
+      });
+      const html=await resp.text();
+      const host=document.getElementById('messagesWrap')||
+                  document.querySelector('#messages, .messages, .chat-transcript')||null;
+      if(host){ host.innerHTML=html; host.scrollTop=host.scrollHeight; }
+      else{ document.body.innerHTML=html; }
+    }catch(e){ console.error('send failed',e); alert('Something went wrong. Please try again.'); }
+  }
 
-      // --- helper to post message back (partial refresh) ---
-      async function postChat(text, busyEl) {
-        try {
-          showBusy(busyEl);
-          addThinkingUnder(busyEl);
+  // Delegated handlers that survive DOM replacement
+  document.addEventListener('click',(ev)=>{
+    const btn=ev.target.closest('.isla-card'); if(!btn) return;
+    const raw=btn.getAttribute('data-select')||'{}'; let obj={}; try{obj=JSON.parse(raw);}catch{}
+    let text=''; if(obj.room) text=`Choose room: ${obj.room}`; if(obj.layout) text=`Choose layout: ${obj.layout}`;
+    if(text) postChat(text,btn);
+  },{passive:true});
 
-          const token = getCsrf();
-          const resp = await fetch('/Chat/SendPartial', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-              'RequestVerificationToken': token
-            },
-            body: new URLSearchParams({ text })
-          });
+  document.addEventListener('click',(ev)=>{
+    const chip=ev.target.closest('.isla-chip'); if(!chip) return;
+    const val=chip.getAttribute('data-text'); if(val) postChat(`Choose time: ${val}`,chip);
+  },{passive:true});
 
-          const html = await resp.text();
+  document.addEventListener('click',(ev)=>{
+    const wrap=ev.target.closest('.isla-timepicker'); if(!wrap) return;
+    const btn=ev.target.closest('.btn-apply-time'); if(!btn) return;
+    const s=wrap.querySelector('.tp-start')?.value||''; const e=wrap.querySelector('.tp-end')?.value||'';
+    if(!s||!e) return; postChat(`Choose time: ${s}–${e}`,btn);
+  },{passive:false}); // need cancelability for buttons
 
-          // Replace transcript host
-          const host =
-            document.getElementById('messagesWrap') ||
-            document.querySelector('#messages, .messages, .chat-transcript') ||
-            null;
+  document.addEventListener('click',(ev)=>{
+    const wrap=ev.target.closest('.isla-multitime'); if(!wrap) return;
+    const btn=ev.target.closest('.btn-apply-multitime'); if(!btn) return;
+    const inputs=wrap.querySelectorAll('.mt-input'); if(!inputs||inputs.length===0) return;
+    const vals={}; inputs.forEach(i=>{ const n=(i.getAttribute('data-name')||'').trim().toLowerCase(); const v=(i.value||'').trim(); if(n&&v) vals[n]=v; });
+    const setup=vals['setup']||'', rehearsal=vals['rehearsal']||'', start=vals['start']||'', end=vals['end']||'';
+    const packup=vals['packup']||vals['pack_down']||vals['packdown']||'';
+    const parts=[]; if(setup)parts.push(`setup=${setup}`); if(rehearsal)parts.push(`rehearsal=${rehearsal}`);
+    if(start)parts.push(`start=${start}`); if(end)parts.push(`end=${end}`); if(packup)parts.push(`packup=${packup}`);
+    if(parts.length) postChat(`Choose schedule: ${parts.join('; ')}`,btn);
+  },{passive:false});
 
-          if (host) {
-            host.innerHTML = html;
-            host.scrollTop = host.scrollHeight;
-          } else {
-            // Fallback if container not found
-            document.body.innerHTML = html;
-          }
-        } catch (e) {
-          console.error('send failed', e);
-          alert('Something went wrong. Please try again.');
-        }
-      }
+  document.addEventListener('click',(ev)=>{
+    const yes=ev.target.closest('.isla-quote-yes'); if(!yes) return;
+    ev.preventDefault(); ev.stopPropagation(); postChat('yes create quote', yes);
+  },{passive:false});
 
-      // ----- Gallery clicks -----
-      document.addEventListener('click', (ev) => {
-        const btn = ev.target.closest('.isla-card');
-        if (!btn) return;
-        const raw = btn.getAttribute('data-select') || '{}';
-        let obj = {};
-        try { obj = JSON.parse(raw); } catch {}
-        let text = '';
-        if (obj.room)   text = `Choose room: ${obj.room}`;
-        if (obj.layout) text = `Choose layout: ${obj.layout}`;
-        if (text) postChat(text, btn);
-      }, { passive: true });
-
-      // ----- Single range: chips -----
-      document.addEventListener('click', (ev) => {
-        const chip = ev.target.closest('.isla-chip');
-        if (!chip) return;
-        const val = chip.getAttribute('data-text');
-        if (val) postChat(`Choose time: ${val}`, chip);
-      }, { passive: true });
-
-      // ----- Single range: inputs (Use these times) -----
-      document.addEventListener('click', (ev) => {
-        const wrap = ev.target.closest('.isla-timepicker');
-        if (!wrap) return;
-        const btn = ev.target.closest('.btn-apply-time');
-        if (!btn) return;
-        const s = wrap.querySelector('.tp-start')?.value || '';
-        const e = wrap.querySelector('.tp-end')?.value || '';
-        if (!s || !e) return;
-        postChat(`Choose time: ${s}–${e}`, btn);
-      }, { passive: true });
-
-      // ----- Multi-time apply (Setup / Rehearsal / Start / End / Pack Up) -----
-      document.addEventListener('click', (ev) => {
-        const wrap = ev.target.closest('.isla-multitime');
-        if (!wrap) return;
-        const btn = ev.target.closest('.btn-apply-multitime');
-        if (!btn) return;
-
-        const inputs = wrap.querySelectorAll('.mt-input');
-        if (!inputs || inputs.length === 0) return;
-
-        const vals = {};
-        inputs.forEach(i => {
-          const name = (i.getAttribute('data-name') || '').trim().toLowerCase();
-          const val  = (i.value || '').trim();
-          if (name && val) vals[name] = val;
-        });
-
-        // normalise keys and keep a stable order
-        const setup     = vals['setup']     || '';
-        const rehearsal = vals['rehearsal'] || '';
-        const start     = vals['start']     || '';
-        const end       = vals['end']       || '';
-        const packup    = vals['packup']    || vals['pack_down'] || vals['packdown'] || '';
-
-        const parts = [];
-        if (setup)     parts.push(`setup=${setup}`);
-        if (rehearsal) parts.push(`rehearsal=${rehearsal}`);
-        if (start)     parts.push(`start=${start}`);
-        if (end)       parts.push(`end=${end}`);
-        if (packup)    parts.push(`packup=${packup}`);
-
-        if (parts.length) {
-          postChat(`Choose schedule: ${parts.join('; ')}`, btn);
-        }
-      }, { passive: true });
-
-    })();
-    </script>
-
-
-
-
+  document.addEventListener('click',(ev)=>{
+    const no=ev.target.closest('.isla-quote-no'); if(!no) return;
+    ev.preventDefault(); ev.stopPropagation(); postChat('no, not yet', no);
+  },{passive:false});
+})();
+</script>
 
