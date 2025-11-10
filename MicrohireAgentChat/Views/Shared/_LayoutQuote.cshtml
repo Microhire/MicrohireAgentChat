@@ -1,0 +1,115 @@
+﻿@{
+    int currentPage = ViewBag.Page ?? 1;
+    var id = ViewBag.Id;
+
+    var allPages = Enumerable.Range(1, 10).ToList();
+
+    var skipped = ViewBag.SkippedPages as List<int> ?? new List<int>();
+
+    var validPages = allPages.Except(skipped).ToList();
+
+    int currentIndex = validPages.IndexOf(currentPage);
+
+    int? prevPage = currentIndex > 0 ? validPages[currentIndex - 1] : (int?)null;
+    int? nextPage = currentIndex < validPages.Count - 1 ? validPages[currentIndex + 1] : (int?)null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css"
+          integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+          rel="stylesheet">
+    <link rel="stylesheet" href="~/css/style_fill.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Blinker:wght@100;200;300;400;600;700;800;900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap"
+          rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&display=swap"
+          rel="stylesheet">
+
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+    
+    <link rel="stylesheet" href="~/css/style_regular.css" />
+    <link rel="stylesheet" href="~/css/style.css">
+    <link rel="stylesheet" href="~/css/quote.css" asp-append-version="true"  >
+    <title>@ViewData["Title"]</title>
+</head>
+<body class="mb-0">
+    <main id="quotelayout" class="view-only">
+        <div class="div-acc-quotes-gray-bg"><div class="acc-quotes-gray-bg"></div></div>
+        <div class="div-acc-quotes-img-bg"><div class="acc-quotes-img-bg"><img src="/images/bg-quote-acc.png" class="img"></div></div>
+        <div class="div-report-pillar">
+            <div class="div-report-pillar-inside mb-3">
+                @* <a href="@backBtn" class="btn btn-rectangle btn-transparent ">
+                    <span class="d-flex align-items-center">
+                        <span class="material-icons text-white f-16">arrow_back_ios</span>
+                        <span class="" style="text-transform: uppercase;border-bottom: 1px solid;">Back to strategy</span>
+                    </span>
+                </a> *@
+                <button class="btn btn-rectangle btn-icon btn-strategy-reporty-download download-quote">
+                    <span class="material-icons ">download</span> Download Quote
+                </button>
+            </div>
+            <div class="div-report-pillar-bacground">
+                <div class="div-report-content div-column-between">
+                    <div class="">
+                        @RenderBody()
+                    </div>
+
+                    <div class="all-center gap-5 m-5 mb-0 report-pagination">
+                        <div class="pagination d-flex justify-content-center align-items-center">
+                            <!-- Previous button -->
+                            @if (prevPage.HasValue)
+                            {
+                                <a href="/QuoteWeb/Page@(prevPage)/@id" class="btn btn-rectangle mx-3 min-150px">Previous Page</a>
+                            }
+                            else
+                            {
+                                <div class="mx-3 min-150px"></div>
+                            }
+
+                            <!-- Page buttons -->
+                            @foreach (var p in validPages)
+                            {
+                                <a href="/QuoteWeb/Page@(p)/@id"
+                                class="btn btn-transparent @(p == currentPage ? "active" : "")">
+                                    @p
+                                </a>
+                            }
+
+                            <!-- Next button -->
+                            @if (nextPage.HasValue)
+                            {
+                                <a href="/QuoteWeb/Page@(nextPage)/@id" class="btn btn-rectangle mx-3 min-150px">Next Page</a>
+                            }
+                            else
+                            {
+                                <div class="mx-3 min-150px"></div>
+                            }
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

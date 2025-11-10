@@ -1,0 +1,24 @@
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService AuthorizationService
+
+@{
+    Layout = "_LayoutQuote";
+    ViewData["Title"] = $"{Model?.Type} Report";
+    ViewBag.Page = 1;
+}
+<div class="div-strategy-page-header">
+    <div class="div-strategy-page-header-left">
+      <div class="">
+        <span class="div-strategy-page-header-inside">TRUST & SMSF Strategy Report</span>
+        </div>
+        <div class="div-strategy-page-header-left-bottom">
+            <img src="/images/strategy-report-tax-subheader-line.png" class="img" alt="subheader tax">
+        </div>
+    </div>
+    <div class="div-strategy-page-header-right">
+        <img src="/images/strategy-report-tax-picture.png" class="img" alt="tax picture">
+    </div>
+</div>
+
+<div class="m-5 mt-2">
+</div>

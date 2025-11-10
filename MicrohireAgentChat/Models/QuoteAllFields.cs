@@ -53,6 +53,16 @@ public sealed record QuoteAllFields(
     List<LaborRow> LabourRows,     // Description, Task, Qty, Start, Finish, Hrs, Total
     string LabourTotal,            // $385.00
 
+    // ------- ADDED
+    List<EquipmentRow> LightingRows,
+    string LightingTotal,
+    List<EquipmentRow> RecordingRows,
+    string RecordingTotal,
+    List<EquipmentRow> DrapeRows,
+    string DrapeTotal,
+    // ------- END ADDED
+
+
     // Page 4: Budget Summary totals
     string RentalTotal,            // $1,203.52
     string ServiceCharge,          // $120.35

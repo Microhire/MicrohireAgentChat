@@ -1,0 +1,56 @@
+@* @using InvestorPartner.Group.Ui.Constants
+@using InvestorPartner.Group.Ui.Helpers
+@using InvestorPartner.Group.Ui.Models
+@model YourStrategyTypeModel;
+
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService AuthorizationService
+
+@{
+    Layout = "_LayoutQuote";
+    ViewData["Title"] = $"{Model?.Type} Report";
+    ViewBag.Page = 4;
+}
+@await Html.PartialAsync("YourStrategy/TvaHeader")
+
+<div style="margin: 3em;margin-top: 4em;">
+    <div id="formYourStrategy">
+        @if (Model?.Sections is not null)
+        {
+            for (int i = 0; i < Model!.Sections.Count; i++)
+            {
+                if(Model.Sections[i].CheckBox == true){
+                    <div>
+                        <input hidden asp-for="Sections[@i].Id" type="text" class="form-control strategyTitleInput" style="display:none;" />
+                        <input hidden asp-for="Sections[@i].ContactClientStrategyTypeId" style="display:none;" />
+
+                        <div class="d-flex align-items-center">
+                            <span class="strategyTitleDisplay h3 BigStrategyTitleDisplay" data-id="@Model.Sections[i].Id">@Model.Sections[i].SectionName</span>
+                        </div>
+                        @if(!string.IsNullOrEmpty(Model.Sections[i].SubHeading)){
+                            <div class="spacer"></div>
+                            <div class="d-flex align-items-center">
+                                <h4 class="text-red" data-id="@Model.Sections[i].Id">@Model.Sections[i].SubHeading</h4>
+                            </div>
+                        }
+                        @if(!string.IsNullOrEmpty(Model.Sections[i].Content)){
+                            <div class="spacer"></div>
+                            <div>
+                                <span class="strategyDescDisplay" data-id="@Model.Sections[i].Id">@Html.Raw(Model.Sections[i].Content) </span>
+                            </div>
+                        }
+                        <div>
+                            @if(Model.Sections[@i].Uploaded is not null && Model?.Sections[@i]?.Uploaded?.Count>0){
+                                @await Html.PartialAsync("StrategyForm/DisplayYourStrategyImages", Model.Sections[@i].Uploaded)
+                            }
+                        </div>
+                        <div class="spacer"></div>
+                        <hr style="border: dashed;">
+                        <div class="spacer"></div>
+                    </div>
+                }
+
+            }
+        }
+    </div>
+</div> *@
