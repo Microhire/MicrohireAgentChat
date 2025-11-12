@@ -468,3 +468,15 @@ span.BigStrategyTitleDisplay.strategyTitleDisplay {
   color: #9e1d20;
   font-weight: bold;
 }
+
+.table.td-no-border td:not(.header) {
+  border-bottom: 0;
+}
+.italic {
+  font-style: italic;
+}
+
+.table th {
+  color: #9e1d20;
+  border-bottom: 2px solid;
+}

@@ -260,32 +260,31 @@ public sealed class QuotesWebController : Controller
                 // Page1  - Cover
                 // Page2  - OVERVIEW
                 // Page3  -  EQUIPMENT Place + Vision
-                // Page4  -  EQUIPMENT DATA
-                // Page5  -  EQUIPMENT AUDIO
-                // Page6  -  EQUIPMENT LIGHTING
-                // Page7  -  EQUIPMENT RECORDING
-                // Page8  -  EQUIPMENT DRAPE		
-                // Page9  -  TECHNICAL SERVICES		
-                // Page10  -  BUDGET SUMMARY		
-                // Page11  -  Contract		
+                // Page4  -  EQUIPMENT AUDIO
+                // Page5  -  EQUIPMENT LIGHTING
+                // Page6  -  EQUIPMENT RECORDING
+                // Page7  -  EQUIPMENT DRAPE		
+                // Page8  -  TECHNICAL SERVICES		
+                // Page9  -  BUDGET SUMMARY		
+                // Page10  -  Contract		
                 
                 var skippedPages = new List<int>();
 
-                if (quote.VisionRows is null) skippedPages.Add(3);
+                // if (quote.VisionRows is null) skippedPages.Add(3);
                 if (quote.AudioRows is null) skippedPages.Add(4);
-                if (quote.LabourRows is null) skippedPages.Add(5);
-                if (quote.LightingRows is null) skippedPages.Add(6);
-                if (quote.RecordingRows is null) skippedPages.Add(7);
-                if (quote.DrapeRows is null) skippedPages.Add(8);
+                if (quote.LightingRows is null) skippedPages.Add(5);
+                if (quote.RecordingRows is null) skippedPages.Add(6);
+                if (quote.DrapeRows is null) skippedPages.Add(7);
+                if (quote.LabourRows is null) skippedPages.Add(8);
 
                 ViewBag.SkippedPages = skippedPages;
             }
 
             // ViewBag.YourStrategy = yourStrategy?.Sections;
             // ViewBag.ContactId = yourStrategy?.ContactId;
-            ViewBag.Id = id;
+            ViewBag.Id = quote?.Reference;
             // ViewBag.Type = type;
-            ViewData["Name"] = quote.EventTitle;
+            ViewData["Name"] = quote?.EventTitle;
             return quote;
         }
         catch
@@ -405,15 +404,15 @@ public sealed class QuotesWebController : Controller
             ConfirmTermsUrl: "https://www.microhire.com.au/terms-conditions/",
 
 
-            LightingRows: new List<EquipmentRow> {
-            },
-            LightingTotal: "$619.10",
-            RecordingRows: new List<EquipmentRow> {
-            },
-            RecordingTotal: "$619.10",
-            DrapeRows: new List<EquipmentRow> {
-            },
-            DrapeTotal: "$619.10"
+            // LightingRows: null,
+            LightingRows:  new List<EquipmentRow> (),
+            LightingTotal: "$0",
+            // RecordingRows: null,
+            RecordingRows:  new List<EquipmentRow> (),
+            RecordingTotal: "$0",
+            // DrapeRows: null,
+            DrapeRows:  new List<EquipmentRow> (),
+            DrapeTotal: "$0"
         );
         return fields;
     }

@@ -12,6 +12,8 @@
 
     int? prevPage = currentIndex > 0 ? validPages[currentIndex - 1] : (int?)null;
     int? nextPage = currentIndex < validPages.Count - 1 ? validPages[currentIndex + 1] : (int?)null;
+    var labelPage =1;
+
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -100,8 +102,9 @@
                             {
                                 <a href="/QuotesWeb/Page@(p)/@id"
                                 class="btn btn-transparent @(p == currentPage ? "active" : "")">
-                                    @p
+                                    @labelPage
                                 </a>
+                                labelPage++;
                             }
 
                             <!-- Next button -->

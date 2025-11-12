@@ -1,0 +1,39 @@
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService AuthorizationService
+@model QuoteAllFields
+
+@{
+    Layout = "_LayoutQuote";
+    ViewData["Title"] = $"BUDGET SUMMARY";
+    ViewBag.Page = 2;
+}
+<div class="m-2">
+
+    <br>
+    <p class="text-justify">The team at Microhire look forward to working with you to make every aspect of your event a success. To ensure that
+        your event receives the best possible equipment and technical personnel, please confirm that all details are correct
+        including dates, timing and quantities. Note that our pricing is valid until WED 7 MAY 2025 and our resources are
+        subject to availability at the time of booking.
+    </p>
+    <p class="text-justify">
+        Please confirm your acceptance of the proposal and its inclusions by returning a signed copy of the Confirmation of
+        Services page, so we can proceed with your requirements.
+    </p>
+    <p class="text-justify">
+        However, if you wish to discuss any additions or updates regarding our proposal, please do not hesitate to contact me
+        on the details below.
+    </p>
+    <p class="text-justify">
+        We look forward to working with you on a seamless and successful event</p>
+    
+    <div class="mt-5">
+        @* Nishal Kumar Event Staging Manager
+        Microhire | Westin Brisbane
+        Microhire  111 Mary St, Brisbane City QLD 4000
+        M
+        T
+        E
+        +61 04 84814633
+        nishal.kumar@microhire.com.au *@
+    </div>
+</div>

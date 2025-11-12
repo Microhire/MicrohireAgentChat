@@ -1,5 +1,6 @@
 @using Microsoft.AspNetCore.Authorization
 @inject IAuthorizationService AuthorizationService
+@model QuoteAllFields
 
 @{
     Layout = "_LayoutQuote";
@@ -14,7 +15,12 @@
 
     <p>Dear @Model.ContactName</p>
     <br>
-    <p class="text-justify">Thank you. Curabitur et ullamcorper dolor. Nam lobortis neque sit amet nulla fringilla ullamcorper. In et semper augue. Aliquam varius purus vel vestibulum elementum. Vivamus a neque hendrerit, fermentum lectus non, ornare ante. Etiam non orci sit amet ipsum scelerisque cursus non vel nisl. Quisque at libero finibus, congue ex eget, dictum mauris. Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Ut gravida augue elementum tortor lacinia consectetur. Nullam finibus vitae elit non cursus. Curabitur elementum dictum purus, et euismod nisl. Integer lobortis in tellus a sagittis. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Pellentesque elementum metus vel tortor imperdiet, non varius sem rhoncus. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Nullam at finibus mi.</p>
+    <p class="text-justify">Thank you for the opportunity to present our audio-visual production services for your upcoming event at @Model.Location. 
+    We are pleased to provide our proposal in the following pages, based on the information we have received
+    and our recommendations for a seamless and successful event. Our team are committed to achieving your event
+    objectives and welcome the opportunity to discuss your requirements and any budget parameters in further detail. If
+    you have any questions or need further information, please do not hesitate to contact me on the details below. Thank
+    you again and we look forward to speaking to you soon.</p>
 
     <div class="mt-5">
         <div class="row">

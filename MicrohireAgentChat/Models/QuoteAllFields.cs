@@ -42,23 +42,23 @@ public sealed record QuoteAllFields(
     string RoomNoteTotal,          // $0.00
 
     // Vision section (support detailed rows + groups/subheads)
-    List<EquipmentRow> VisionRows, // include group titles as rows with null qty/price
+    List<EquipmentRow>? VisionRows, // include group titles as rows with null qty/price
     string VisionTotal,            // $619.10
 
     // Audio section
-    List<EquipmentRow> AudioRows,
+    List<EquipmentRow>? AudioRows,
     string AudioTotal,             // $584.42
 
     // Page 3: Technical Services
-    List<LaborRow> LabourRows,     // Description, Task, Qty, Start, Finish, Hrs, Total
+    List<LaborRow>? LabourRows,     // Description, Task, Qty, Start, Finish, Hrs, Total
     string LabourTotal,            // $385.00
 
     // ------- ADDED
-    List<EquipmentRow> LightingRows,
+    List<EquipmentRow>? LightingRows,
     string LightingTotal,
-    List<EquipmentRow> RecordingRows,
+    List<EquipmentRow>? RecordingRows,
     string RecordingTotal,
-    List<EquipmentRow> DrapeRows,
+    List<EquipmentRow>? DrapeRows,
     string DrapeTotal,
     // ------- END ADDED
 

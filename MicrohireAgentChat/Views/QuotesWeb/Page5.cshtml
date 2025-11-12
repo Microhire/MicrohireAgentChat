@@ -6,7 +6,7 @@
 @{
     Layout = "_LayoutQuote";
     ViewData["Title"] = $"EQUIPMENT & SERVICES";
-    ViewBag.Page = 4;
+    ViewBag.Page = 5;
 }
 <div class="m-5 mt-2">
     <table class="table td-no-border">
@@ -19,10 +19,10 @@
         </thead>
         <tbody>
             <tr>
-                <td class="fw-bold" colspan="3">Audio</td>
+                <td class="fw-bold" colspan="3">Lighting</td>
             </tr>
-            @if(Model.AudioRows != null)
-            foreach (var data in Model.AudioRows)
+            @if(Model.LightingRows != null)
+            foreach (var data in Model.LightingRows)
             {
                 <tr>
                     <td class="italic">@data.Description</td>
@@ -30,8 +30,8 @@
                 </tr>
             }
             <tr>
-                <td class="fw-bold" colspan="2">Audio Total</td>
-                <td class="fw-bold">@(Model.AudioTotal)</td>
+                <td class="fw-bold" colspan="2">Lighting Total</td>
+                <td class="fw-bold">@(Model.LightingTotal)</td>
             </tr>
         </tbody>
     </table>
