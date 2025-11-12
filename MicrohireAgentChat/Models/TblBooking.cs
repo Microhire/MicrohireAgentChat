@@ -40,7 +40,7 @@ namespace MicrohireAgentChat.Models
         public double? hire_price { get; set; }    // “Equipment Cost”
         public double? labour { get; set; }        // “Labor Cost”
         public double? sundry_total { get; set; }  // “Service Charge” (added)
-
+        public double? Tax2 { get; set; }
         // Booking meta (limited set)
         public byte booking_type_v32 { get; set; }     // “Booking Type” (tinyint in your schema)
         public byte? BookingProgressStatus { get; set; }// “Booking Status” (tinyint in your schema)

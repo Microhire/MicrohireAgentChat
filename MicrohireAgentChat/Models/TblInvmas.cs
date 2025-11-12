@@ -12,5 +12,6 @@ namespace MicrohireAgentChat.Models
         public string? category { get; set; }
         public string? descriptionv6 { get; set; }
         public string? PrintedDesc { get; set; }
+        public string? groupFld { get; set; }
     }
 }

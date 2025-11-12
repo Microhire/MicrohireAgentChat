@@ -1873,11 +1873,11 @@ namespace MicrohireAgentChat.Services
 
         // REPLACE the record with this version so we can carry id/booking_no too.
         public sealed record ParsedBookingLimited(
-            double? PriceQuoted,         // price_quoted
-            double? HirePrice,           // hire_price
+            decimal? PriceQuoted,         // price_quoted
+            decimal? HirePrice,           // hire_price
             string? BookingTypeV32,      // booking_type_v32
-            double? Labour,              // labour
-            double? SundryTotal,         // insurance_v5 (service charge)
+            decimal? Labour,              // labour
+            decimal? SundryTotal,         // insurance_v5 (service charge)
             string? ContactNameV6,       // contact_nameV6
             string? ShowStartTimeHHmm,   // showStartTime (HHmm)
             string? ShowEndTimeHHmm,     // ShowEndTime (HHmm)
@@ -1917,14 +1917,14 @@ namespace MicrohireAgentChat.Services
             var m = ExtractExpectedFields(messages); // your existing extractor
 
             // Map + normalize (same helpers you already have)
-            static double? Money(string? s)
+            static decimal? Money(string? s)
             {
                 if (string.IsNullOrWhiteSpace(s)) return null;
                 var v = s.Replace("AUD", "", StringComparison.OrdinalIgnoreCase)
                          .Replace("$", "")
                          .Replace(",", "")
                          .Trim();
-                return double.TryParse(v, NumberStyles.Any, CultureInfo.InvariantCulture, out var d) ? d : (double?)null;
+                return decimal.TryParse(v, NumberStyles.Any, CultureInfo.InvariantCulture, out var d) ? d : (decimal?)null;
             }
 
             static DateTime? D(string? s)
@@ -1987,14 +1987,14 @@ namespace MicrohireAgentChat.Services
         // Map a parsed JSON blob -> ParsedBookingLimited
         private ParsedBookingLimited MapBookingBlobToParsed(Dictionary<string, string> blob)
         {
-            static double? Money(string? s)
+            static decimal? Money(string? s)
             {
                 if (string.IsNullOrWhiteSpace(s)) return null;
                 var v = s.Replace("AUD", "", StringComparison.OrdinalIgnoreCase)
                          .Replace("$", "")
                          .Replace(",", "")
                          .Trim();
-                return double.TryParse(v, NumberStyles.Any, CultureInfo.InvariantCulture, out var d) ? d : (double?)null;
+                return decimal.TryParse(v, NumberStyles.Any, CultureInfo.InvariantCulture, out var d) ? d : (decimal?)null;
             }
             static DateTime? D(string? s)
             {
@@ -2492,14 +2492,13 @@ namespace MicrohireAgentChat.Services
 
             return (null, null);
         }
-
         public async Task<decimal?> UpsertContactByEmailAsync(
-      BookingDbContext db,
-      string? fullName,
-      string? email,
-      string? phoneE164,
-      string? position,              // <-- NEW
-      CancellationToken ct)
+       BookingDbContext db,
+       string? fullName,
+       string? email,
+       string? phoneE164,
+       string? position,
+       CancellationToken ct)
         {
             try
             {
@@ -2512,62 +2511,145 @@ namespace MicrohireAgentChat.Services
 #endif
                     return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
                 }
-
                 var now = NowAest();
 
-                // Split the display name
+                // ---------- helpers (never used inside EF predicates) ----------
+                static string? Trunc(string? s, int len)
+                    => string.IsNullOrEmpty(s) ? s : (s.Length <= len ? s : s[..len]);
+
+                static bool LooksLikeAssistantName(string? s)
+                {
+                    if (string.IsNullOrWhiteSpace(s)) return false;
+                    var t = s.Trim().ToLowerInvariant();
+                    return t.Equals("isla")
+                        || t.Equals("isla from microhire")
+                        || (t.Contains("isla") && t.Contains("microhire"));
+                }
+
+                static string NameKey(string? s)
+                {
+                    if (string.IsNullOrWhiteSpace(s)) return string.Empty;
+                    // keep letters, collapse whitespace, to lower
+                    var raw = s.Trim().ToLowerInvariant();
+                    raw = Regex.Replace(raw, @"\s+", " ");
+                    var sb = new System.Text.StringBuilder(raw.Length);
+                    foreach (var ch in raw)
+                    {
+                        if ((ch >= 'a' && ch <= 'z') || ch == ' ') sb.Append(ch);
+                    }
+                    return Regex.Replace(sb.ToString(), @"\s+", " ").Trim();
+                }
+
+                static string? NormalizePosition(string? p)
+                {
+                    if (string.IsNullOrWhiteSpace(p)) return null;
+                    p = Regex.Replace(p, @"\s+", " ").Trim();
+                    return p.Length < 2 ? null : p;
+                }
+
                 (string? first, string? middle, string? last, string? display) SplitName(string? name)
                 {
                     if (string.IsNullOrWhiteSpace(name))
                         return (null, null, null, null);
 
+                    static string Cap(string s) =>
+                        CultureInfo.CurrentCulture.TextInfo.ToTitleCase(s.ToLowerInvariant());
+
                     var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     if (parts.Length == 1) return (Cap(parts[0]), null, null, Cap(parts[0]));
                     if (parts.Length == 2) return (Cap(parts[0]), null, Cap(parts[1]), Cap(name));
                     return (Cap(parts[0]), Cap(string.Join(' ', parts.Skip(1).Take(parts.Length - 2))), Cap(parts[^1]), Cap(name));
-
-                    static string Cap(string s) => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(s.ToLowerInvariant());
                 }
+                // ----------------------------------------------------------------
 
-                var (first, middle, last, display) = SplitName(fullName);
+                var (first, middle, last, displayRaw) = SplitName(fullName);
 
-                // 1) Try find by email if provided
+                // never use a bot-looking name for lookup/create
+                string? display = LooksLikeAssistantName(displayRaw) ? null : displayRaw;
+                var displayKey = NameKey(display);
+
                 TblContact? existing = null;
+
+                // 1) by EMAIL (SQL-translatable)
                 if (!string.IsNullOrWhiteSpace(email))
                 {
-                    var e = email.Trim().ToLower();
+                    var e = email.Trim().ToLowerInvariant();
                     existing = await db.Contacts
                         .FirstOrDefaultAsync(c => c.Email != null && c.Email.ToLower() == e, ct);
+
+                    // If matched row was accidentally named like the bot, rename it
+                    if (existing != null && LooksLikeAssistantName(existing.Contactname) && !string.IsNullOrWhiteSpace(display))
+                    {
+                        existing.Contactname = Trunc(display, 35);
+                    }
                 }
 
-                // 2) If not found and we have a display name, try exact match on Contactname
+                // 2) by PHONE (SQL-translatable) — catches earlier name-only records saved with a phone
+                if (existing == null && !string.IsNullOrWhiteSpace(phoneE164))
+                {
+                    var ph = phoneE164.Trim();
+                    existing = await db.Contacts.FirstOrDefaultAsync(c => c.Cell == ph, ct);
+                    if (existing != null && LooksLikeAssistantName(existing.Contactname))
+                        existing = null;
+                }
+
+                // 3) by NAME (robust): fetch likely candidates via LIKE, then compare in-memory via NameKey
                 if (existing == null && !string.IsNullOrWhiteSpace(display))
                 {
-                    var dn = display.Trim().ToLower();
-                    existing = await db.Contacts
-                        .FirstOrDefaultAsync(c => c.Contactname != null && c.Contactname.ToLower() == dn, ct);
+                    // pull a tiny candidate set using LIKEs EF can translate
+                    var firstWord = display.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? display;
+                    var lastWord = display.Split(' ', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? display;
+
+                    var candidates = await db.Contacts
+                        .Where(c => c.Contactname != null
+                                    && EF.Functions.Like(c.Contactname, $"%{firstWord}%")
+                                    && EF.Functions.Like(c.Contactname, $"%{lastWord}%"))
+                        .Take(10)
+                        .ToListAsync(ct);
+
+                    existing = candidates
+                        .Where(c => !LooksLikeAssistantName(c.Contactname))
+                        .FirstOrDefault(c => NameKey(c.Contactname) == displayKey);
                 }
 
                 string? pos = Trunc(NormalizePosition(position), 50);
 
                 if (existing is null)
                 {
-                    // Create a provisional/new contact strictly from user-supplied fields
+                    // final guard: if we still don't have a human display name, don't create
+                    if (string.IsNullOrWhiteSpace(display))
+                        return null;
+
+                    // one last in-memory de-dupe scan on name to avoid races
+                    var recent = await db.Contacts
+                        .Where(c => c.Contactname != null
+                                    && EF.Functions.Like(c.Contactname, $"%{display}%"))
+                        .Take(10)
+                        .ToListAsync(ct);
+
+                    var byKey = recent.FirstOrDefault(c => NameKey(c.Contactname) == displayKey && !LooksLikeAssistantName(c.Contactname));
+                    if (byKey != null)
+                        existing = byKey;
+                }
+
+                if (existing is null)
+                {
+                    // create
                     var row = new TblContact
                     {
                         Contactname = Trunc(display, 35),
                         Firstname = Trunc(first, 25),
                         MidName = Trunc(middle, 35),
                         Surname = Trunc(last, 35),
-                        Email = Trunc(email, 80),      // may be null
-                        Cell = Trunc(phoneE164, 16),  // may be null
+                        Email = Trunc(email, 80),
+                        Cell = Trunc(phoneE164, 16),
                         Phone1 = null,
                         Active = "Y",
                         CreateDate = now,
                         LastContact = now,
                         LastAttempt = now,
                         LastUpdate = now,
-                        Position = pos                    // <-- set on create
+                        Position = pos
                     };
 
                     db.Contacts.Add(row);
@@ -2576,14 +2658,14 @@ namespace MicrohireAgentChat.Services
                 }
                 else
                 {
-                    // Update only with new user-supplied values (do not overwrite with nulls)
+                    // update only with new values
                     if (!string.IsNullOrWhiteSpace(display)) existing.Contactname = Trunc(display, 35);
                     if (!string.IsNullOrWhiteSpace(first)) existing.Firstname = Trunc(first, 25);
                     if (!string.IsNullOrWhiteSpace(middle)) existing.MidName = Trunc(middle, 35);
                     if (!string.IsNullOrWhiteSpace(last)) existing.Surname = Trunc(last, 35);
                     if (!string.IsNullOrWhiteSpace(email)) existing.Email = Trunc(email, 80);
                     if (!string.IsNullOrWhiteSpace(phoneE164)) existing.Cell = Trunc(phoneE164, 16);
-                    if (!string.IsNullOrWhiteSpace(pos)) existing.Position = pos; // <-- set on update if provided
+                    if (!string.IsNullOrWhiteSpace(pos)) existing.Position = pos;
 
                     existing.Active = existing.Active ?? "Y";
                     existing.LastContact = now;
@@ -2599,24 +2681,20 @@ namespace MicrohireAgentChat.Services
             {
                 Exception root = ex;
                 while (root.InnerException != null) root = root.InnerException;
-                var msg = $"tblContact upsert failed: {root.Message}";
-                throw new InvalidOperationException(msg, ex);
-            }
-
-            static string? Trunc(string? s, int len)
-                => string.IsNullOrEmpty(s) ? s : (s.Length <= len ? s : s[..len]);
-
-            static string? NormalizePosition(string? p)
-            {
-                if (string.IsNullOrWhiteSpace(p)) return null;
-                p = Regex.Replace(p, @"\s+", " ").Trim();
-                // avoid obviously non-position strings
-                if (p.Length < 2) return null;
-                return p;
+                throw new InvalidOperationException($"tblContact upsert failed: {root.Message}", ex);
             }
         }
 
+        static bool LooksLikeAssistantName(string? s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return false;
+            var t = s.Trim().ToLowerInvariant();
+            if (t.Contains("isla") && t.Contains("microhire")) return true;
+            if (t.Equals("isla")) return true;
+            if (t.StartsWith("my name is ")) return true;   // safety
+            return false;
 
+        }
 
         private static string? GuessNameFromEmail(string email)
         {
@@ -2718,6 +2796,89 @@ namespace MicrohireAgentChat.Services
             public TimeSpan? Start { get; set; }
             public TimeSpan? End { get; set; }
             public TimeSpan? PackUp { get; set; }
+        }
+
+
+        public async Task SaveConversationToBookNoteAsync(
+            BookingDbContext db,
+            string bookingNo,
+            string userText,
+            string assistantText,
+            CancellationToken ct,
+            decimal? operatorId = null)
+        {
+            // Get next line number for this booking
+            var maxLine = await db.TblBooknotes
+                .Where(n => n.BookingNo == bookingNo)
+                .Select(n => (int?)n.LineNo)
+                .MaxAsync(ct) ?? 0;
+
+            var rowUser = new TblBooknote
+            {
+                BookingNo = bookingNo,
+                LineNo = (byte)(maxLine + 1),
+                TextLine = userText,
+                NoteType = 0,            // 1 = user
+                OperatorId = operatorId
+            };
+
+            var rowAi = new TblBooknote
+            {
+                BookingNo = bookingNo,
+                LineNo = (byte)(maxLine + 2),
+                TextLine = assistantText,
+                NoteType = 0,            // 2 = assistant
+                OperatorId = operatorId
+            };
+
+            db.TblBooknotes.Add(rowUser);
+            db.TblBooknotes.Add(rowAi);
+            await db.SaveChangesAsync(ct);
+        }
+        private static string JoinParts(DisplayMessage m) =>
+    string.Join("\n", m.Parts ?? Enumerable.Empty<string>()).Trim();
+
+        private static byte NoteTypeFor(string role) =>
+            string.Equals(role, "user", StringComparison.OrdinalIgnoreCase) ? (byte)1 : (byte)2;
+
+        /*
+         * Rebuilds tblbooknote for the given booking:
+         * - deletes existing rows for that booking
+         * - writes one row per message in order (user=1, assistant=2)
+         */
+        public async Task SaveFullTranscriptToBooknoteAsync(
+            BookingDbContext db,
+            string bookingNo,
+            IEnumerable<DisplayMessage> messages,
+            CancellationToken ct,
+            decimal? operatorId = null)
+        {
+            // 0) Remove previous notes for this booking
+            var toDelete = db.TblBooknotes.Where(n => n.BookingNo == bookingNo);
+            db.TblBooknotes.RemoveRange(toDelete);
+            await db.SaveChangesAsync(ct);
+
+            // 1) Insert one row per message
+            byte line = 1;
+            foreach (var m in messages)
+            {
+                var text = JoinParts(m);
+                if (string.IsNullOrWhiteSpace(text)) continue;
+
+                var row = new TblBooknote
+                {
+                    BookingNo = bookingNo,
+                    LineNo = line,                    // tinyint: up to 255; for very long chats consider widening in DB
+                    TextLine = text,
+                    NoteType = NoteTypeFor(m.Role),
+                    OperatorId = operatorId
+                };
+
+                db.TblBooknotes.Add(row);
+                line = (byte)Math.Min(255, line + 1);
+            }
+
+            await db.SaveChangesAsync(ct);
         }
 
         private static bool TryCaptureScheduleSelection(string text, out ChosenSchedule schedule)
@@ -3193,44 +3354,67 @@ public async Task<decimal?> UpsertOrganisationAsync(
                 return s;
             }
 
+            // Normalizes and extracts "<org>, address: <addr>" from a free text line.
             static (string? org, string? addr) TryParseOrgAddress(string t)
             {
+                if (string.IsNullOrWhiteSpace(t)) return (null, null);
+
+                // --- normalize text & common typos ---
+                t = t.Replace('’', '\'').Replace('“', '"').Replace('”', '"');
+                t = Regex.Replace(t, @"\s+", " ").Trim();
+                // address typos
+                t = Regex.Replace(t, @"\b(adress|addess|addres|addrss)\b", "address", RegexOptions.IgnoreCase);
+                // optional punctuation normalization
+                t = t.Replace(" ,", ",").Replace(" ;", ";");
+
+                // --- helpers ---
+                static string Clean(string s) => s.Trim().Trim(',', ';', ':');
+                static string CleanupOrgLeft(string s)
+                {
+                    s = Clean(s);
+                    // Drop leading labels if user wrote "Organization / Company / Name :"
+                    s = Regex.Replace(s, @"^(organisation|organization|company|business|name)\s*(name)?\s*$",
+                                      "", RegexOptions.IgnoreCase).Trim();
+                    return s;
+                }
+
                 // 0) Very direct shape: "<org> and address is/at/: <addr>"
-                var re0 = new Regex(
-                    @"^(?<org>.+?)\s+(?:&|and)\s+address\s*(?:is|at|:)?\s*(?<addr>.+)$",
+                var re0 = new Regex(@"^(?<org>.+?)\s+(?:&|and)\s+address\s*(?:is|at|=|:)?\s*(?<addr>.+)$",
                     RegexOptions.IgnoreCase);
                 var m0 = re0.Match(t);
-                if (m0.Success) return (m0.Groups["org"].Value, m0.Groups["addr"].Value);
+                if (m0.Success) return (Clean(m0.Groups["org"].Value), Clean(m0.Groups["addr"].Value));
 
-                // 1) "Organisation/Company is/:\s<org> , address is/:\s<addr>"
+                // 1) "Organization/Company/Business/Name is/:\s<org> , address is/:\s<addr>"
                 var re1 = new Regex(
-                    @"(?:organisation|organization|company|business)\s*(?:name)?\s*(?:is|:)?\s*(?<org>[^,;]+?)\s*[,;]\s*address\s*(?:is|:)?\s*(?<addr>.+)$",
+                    @"(?:organisation|organization|company|business|name)\s*(?:name)?\s*(?:is|=|:)?\s*(?<org>[^,;]+?)\s*[,;]\s*address\s*(?:is|=|:|at)?\s*(?<addr>.+)$",
                     RegexOptions.IgnoreCase);
                 var m1 = re1.Match(t);
-                if (m1.Success) return (m1.Groups["org"].Value, m1.Groups["addr"].Value);
+                if (m1.Success) return (Clean(m1.Groups["org"].Value), Clean(m1.Groups["addr"].Value));
 
-                // 2) "<org> , address <addr>"
+                // 2) Unlabeled: "<org> , address <addr>"
                 var re2 = new Regex(
-                    @"^(?<org>[^,;]+?)\s*[,;]\s*address\s*(?:is|:|at)?\s*(?<addr>.+)$",
+                    @"^(?<org>[^,;]+?)\s*[,;]\s*address\s*(?:is|=|:|at)?\s*(?<addr>.+)$",
                     RegexOptions.IgnoreCase);
                 var m2 = re2.Match(t);
-                if (m2.Success) return (m2.Groups["org"].Value, m2.Groups["addr"].Value);
+                if (m2.Success) return (Clean(m2.Groups["org"].Value), Clean(m2.Groups["addr"].Value));
 
-                // 3) Loose fallback around the first "address"
+                // 3) Labeled in reverse: "address: <addr> , organization: <org>"
+                var re3 = new Regex(
+                    @"address\s*(?:is|=|:|at)?\s*(?<addr>[^,;]+?)\s*[,;]\s*(?:organisation|organization|company|business|name)\s*(?:name)?\s*(?:is|=|:)?\s*(?<org>.+)$",
+                    RegexOptions.IgnoreCase);
+                var m3 = re3.Match(t);
+                if (m3.Success) return (Clean(m3.Groups["org"].Value), Clean(m3.Groups["addr"].Value));
+
+                // 4) Loose fallback: split at first "address"
                 var idx = t.IndexOf("address", StringComparison.OrdinalIgnoreCase);
                 if (idx > 0)
                 {
-                    var left = t[..idx].Trim().TrimEnd(',', ';', ':');
-                    var right = t[(idx + "address".Length)..]
-                                .Replace("is", "", StringComparison.OrdinalIgnoreCase)
-                                .Replace("at", "", StringComparison.OrdinalIgnoreCase)
-                                .Replace(":", "")
-                                .Trim();
-
+                    var left = t[..idx];
+                    var right = t[(idx + "address".Length)..];
+                    right = Regex.Replace(right, @"^(?:\s*(is|=|:|at))?\s*", "", RegexOptions.IgnoreCase);
                     left = CleanupOrgLeft(left);
-
                     if (!string.IsNullOrWhiteSpace(left) || !string.IsNullOrWhiteSpace(right))
-                        return (left, right);
+                        return (Clean(left), Clean(right));
                 }
 
                 return (null, null);
@@ -3755,11 +3939,11 @@ public async Task<decimal?> UpsertOrganisationAsync(
 
                     // Strings in table
                     Person = persons.ToString(),   // char(30)
-                    Task = task,                   // tinyint in your screenshot? -> You showed "task (tinyint, null)"; if it's actually tinyint, change this to cast a byte and map property type accordingly.
+                    Task = (byte?)task,                   // tinyint in your screenshot? -> You showed "task (tinyint, null)"; if it's actually tinyint, change this to cast a byte and map property type accordingly.
 
                     // Required flags/fields
                     // techrateIsHourorDay is char(1): 'H' for hourly, 'D' for day
-                    TechrateIsHourorDay = true,
+                    TechrateIsHourOrDay = "true",
 
                     // First/return dates
                     FirstDate = day,

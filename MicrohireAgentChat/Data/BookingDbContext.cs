@@ -16,7 +16,7 @@ public sealed class BookingDbContext : DbContext
     public DbSet<TblCrew> TblCrews => Set<TblCrew>();
     public DbSet<TblCust> TblCusts => Set<TblCust>();
     public DbSet<TblLinkCustContact> TblLinkCustContacts => Set<TblLinkCustContact>(); // NEW
-
+    public DbSet<TblBooknote> TblBooknotes => Set<TblBooknote>();   // NEW  
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // --- tblbookings ---
@@ -53,7 +53,7 @@ public sealed class BookingDbContext : DbContext
         e.Property(x => x.hire_price).HasColumnName("hire_price");
         e.Property(x => x.labour).HasColumnName("labour");
         e.Property(x => x.sundry_total).HasColumnName("sundry_total");
-
+        e.Property(x => x.Tax2).HasColumnName("Tax2");
         // Booking meta (limited set)
         e.Property(x => x.booking_type_v32).HasColumnName("booking_type_v32");
         e.Property(x => x.BookingProgressStatus).HasColumnName("BookingProgressStatus");
@@ -82,7 +82,7 @@ public sealed class BookingDbContext : DbContext
         p.Property(x => x.category).HasColumnName("category");
         p.Property(x => x.descriptionv6).HasColumnName("descriptionv6");
         p.Property(x => x.PrintedDesc).HasColumnName("PrintedDesc");
-
+        p.Property(x => x.groupFld).HasColumnName("groupFld");
         // --- tblContact ---
         var c = modelBuilder.Entity<TblContact>();
         c.ToTable("tblContact");
@@ -226,37 +226,120 @@ public sealed class BookingDbContext : DbContext
         rt.Property(x => x.rate_1st_day).HasColumnName("rate_1st_day").HasColumnType("float");
 
         // --- tblCrew ---
+        // --- TblCrew ---
         var tc = modelBuilder.Entity<TblCrew>();
-        tc.ToTable("tblCrew");
+
+        // Table name: use the exact DB object name ("TblCrew" vs "tblCrew")
+        tc.ToTable("TblCrew");
+
         tc.HasKey(x => x.ID);
-        tc.Property(x => x.ID).HasColumnName("ID").HasColumnType("decimal(10,0)").ValueGeneratedOnAdd();
+        tc.Property(x => x.ID)
+          .HasColumnName("ID")
+          .HasColumnType("decimal(10,0)")
+          .ValueGeneratedOnAdd();
 
-        tc.Property(x => x.BookingNoV32).HasColumnName("booking_no_v32").HasMaxLength(35);
-        tc.Property(x => x.HeadingNo).HasColumnName("heading_no").HasColumnType("tinyint");
-        tc.Property(x => x.SeqNo).HasColumnName("seq_no");
-        tc.Property(x => x.SubSeqNo).HasColumnName("sub_seq_no");
+        tc.Property(x => x.BookingNoV32)
+          .HasColumnName("booking_no_v32")
+          .HasMaxLength(35);
 
-        tc.Property(x => x.ProductCodeV42).HasColumnName("product_code_v42").HasMaxLength(30);
-        tc.Property(x => x.DelTimeHour).HasColumnName("del_time_hour").HasColumnType("tinyint");
-        tc.Property(x => x.DelTimeMin).HasColumnName("del_time_min").HasColumnType("tinyint");
-        tc.Property(x => x.ReturnTimeHour).HasColumnName("return_time_hour");
-        tc.Property(x => x.ReturnTimeMin).HasColumnName("return_time_min");
+        tc.Property(x => x.HeadingNo)
+          .HasColumnName("heading_no")
+          .HasColumnType("tinyint");
 
-        tc.Property(x => x.TransQty).HasColumnName("trans_qty");
-        tc.Property(x => x.Price).HasColumnName("price");
-        tc.Property(x => x.UnitRate).HasColumnName("unitRate");
+        tc.Property(x => x.SeqNo)
+          .HasColumnName("seq_no")
+          .HasColumnType("decimal(19,0)");
 
-        tc.Property(x => x.Hours).HasColumnName("hours");
-        tc.Property(x => x.Minutes).HasColumnName("Minutes");
-        tc.Property(x => x.Person).HasColumnName("person");
-        tc.Property(x => x.Task).HasColumnName("task");
-        tc.Property(x => x.TechrateIsHourorDay).HasColumnName("techrateIsHourorDay"); // bit
-        tc.Property(x => x.FirstDate).HasColumnName("FirstDate");
-        tc.Property(x => x.RetnDate).HasColumnName("RetnDate");
-        tc.Property(x => x.GroupSeqNo).HasColumnName("GroupSeqNo");
-        tc.Property(x => x.StraightTime).HasColumnName("StraightTime"); // bit
-        tc.Property(x => x.TechIsConfirmed).HasColumnName("TechIsConfirmed");
-        tc.Property(x => x.MeetTechOnSite).HasColumnName("MeetTechOnSite");
+        tc.Property(x => x.SubSeqNo)
+          .HasColumnName("sub_seq_no");
+
+        // codes / description
+        tc.Property(x => x.ProductCodeV42)
+          .HasColumnName("product_code_v42")
+          .HasMaxLength(30);
+
+        // times (tinyint)
+        tc.Property(x => x.DelTimeHour)
+          .HasColumnName("del_time_hour")
+          .HasColumnType("tinyint");
+
+        tc.Property(x => x.DelTimeMin)
+          .HasColumnName("del_time_min")
+          .HasColumnType("tinyint");
+
+        tc.Property(x => x.ReturnTimeHour)
+          .HasColumnName("return_time_hour")
+          .HasColumnType("tinyint");
+
+        tc.Property(x => x.ReturnTimeMin)
+          .HasColumnName("return_time_min")
+          .HasColumnType("tinyint");
+
+        // qty / price
+        tc.Property(x => x.TransQty)
+          .HasColumnName("trans_qty"); // int
+
+        tc.Property(x => x.Price)
+          .HasColumnName("price")
+          .HasColumnType("float");
+
+        tc.Property(x => x.UnitRate)
+          .HasColumnName("unitRate")
+          .HasColumnType("float");
+
+        // duration fields
+        tc.Property(x => x.Hours)
+          .HasColumnName("hours")
+          .HasColumnType("tinyint");
+
+        tc.Property(x => x.Minutes)
+          .HasColumnName("Minutes")
+          .HasColumnType("tinyint");
+
+        // person / task
+        tc.Property(x => x.Person)
+          .HasColumnName("person")
+          .HasMaxLength(30)       // char(30)
+          .IsFixedLength();
+
+        tc.Property(x => x.Task)
+          .HasColumnName("task")
+          .HasColumnType("tinyint");
+
+        // hour/day flag
+        tc.Property(x => x.TechrateIsHourOrDay)
+          .HasColumnName("techrateIsHourorDay")
+          .HasMaxLength(1)        // char(1)
+          .IsFixedLength();
+
+        // dates
+        tc.Property(x => x.FirstDate)
+          .HasColumnName("FirstDate");   // datetime
+
+        tc.Property(x => x.RetnDate)
+          .HasColumnName("RetnDate");    // datetime
+
+        // misc
+        tc.Property(x => x.GroupSeqNo)
+          .HasColumnName("GroupSeqNo");  // int
+
+        tc.Property(x => x.StraightTime)
+          .HasColumnName("StraightTime")
+          .HasColumnType("float");       // <-- not bit
+
+        tc.Property(x => x.TechIsConfirmed)
+          .HasColumnName("TechIsConfirmed")
+          .HasColumnType("bit")
+          .IsRequired();
+
+        tc.Property(x => x.MeetTechOnSite)
+          .HasColumnName("MeetTechOnSite")
+          .HasColumnType("bit")
+          .IsRequired();
+
+        // optional extras if present in your model
+        // tc.Property(x => x.HourlyRateID).HasColumnName("HourlyRateID").HasColumnType("decimal(10,0)").IsRequired();
+
 
         // --- tblcust ---
         var tcust = modelBuilder.Entity<TblCust>();
@@ -305,5 +388,37 @@ public sealed class BookingDbContext : DbContext
         link.HasIndex(x => new { x.Customer_Code, x.ContactID })
             .HasDatabaseName("IX_tblLinkCustContact_Code_Contact")
             .IsUnique(false);
+
+        var bn = modelBuilder.Entity<TblBooknote>();
+        bn.ToTable("tblbooknote");
+        bn.HasKey(x => x.Id);
+
+        bn.Property(x => x.Id)
+          .HasColumnName("ID")
+          .HasColumnType("decimal(10,0)")
+          .ValueGeneratedOnAdd();
+
+        bn.Property(x => x.BookingNo)
+          .HasColumnName("bookingNo")
+          .HasMaxLength(35)
+          .IsUnicode(false);
+
+        bn.Property(x => x.LineNo)
+          .HasColumnName("line_no");
+
+        bn.Property(x => x.TextLine)
+          .HasColumnName("text_line")
+          .IsUnicode(false);                 // varchar(max) (non-Unicode)
+
+        bn.Property(x => x.NoteType)
+          .HasColumnName("NoteType");        // 1=user, 2=assistant
+
+        bn.Property(x => x.OperatorId)
+          .HasColumnName("OperatorID")
+          .HasColumnType("decimal(10,0)");
+
+        // helpful ordering/index per booking
+        bn.HasIndex(x => new { x.BookingNo, x.LineNo })
+          .HasDatabaseName("IX_tblbooknote_Booking_Line");
     }
 }

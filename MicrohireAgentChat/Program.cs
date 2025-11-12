@@ -44,6 +44,7 @@ builder.Services.AddDbContext<BookingDbContext>(opt =>
 //    options.UseSqlServer(builder.Configuration.GetConnectionString("AppConnection")));
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AzureAgentChatService>();
+builder.Services.AddScoped<BookingService>();
 builder.Services.AddHostedService<AgentToolInstaller>();
 builder.Services.AddSingleton<PdfStamperService>();
 builder.Services.AddSingleton<PdfFromBlankService>();

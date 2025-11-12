@@ -216,14 +216,12 @@ public sealed class ChatController : Controller
 
             text = text.Trim();
 
-            // capture time range (single picker)
             if (TryCaptureTimeSelection(text, out var start, out var end))
             {
                 SaveTimeSelectionToSession(start, end);
                 text = $"Choose time: {start:hh\\:mm}–{end:hh\\:mm}";
             }
 
-            // capture full schedule (multi-time)
             if (TryCaptureScheduleSelection(text, out var set, out var reh, out var showStart, out var showEnd, out var pack))
             {
                 SaveScheduleToSession(set, reh, showStart, showEnd, pack);
@@ -234,7 +232,7 @@ public sealed class ChatController : Controller
                 text = pretty.Trim();
             }
 
-            // —— rate-limit safe send ——
+            // —— safe send ——
             var threadId = _chat.EnsureThreadId(HttpContext.Session);
             var sem = GetThreadLock(threadId);
             IEnumerable<DisplayMessage> messages;
@@ -249,57 +247,51 @@ public sealed class ChatController : Controller
 
             var msgList = messages is List<DisplayMessage> ml ? ml : messages.ToList();
 
-            // ---------------- ORGANISATION + CUSTOMER CODE + LINK CONTACT ----------------
-            // Extract from transcript
-            var (orgName, orgAddr) = _chat.ExtractOrganisationFromTranscript(msgList);
-
-            string? customerCode = null;
-            decimal? orgId = null;
-
-            if (!string.IsNullOrWhiteSpace(orgName))
-            {
-                // Existing?
-                var found = await _chat.FindOrganisationAsync(_bookingDb, orgName!, ct);
-                if (found is not null)
-                {
-                    orgId = found.Value.id;
-                    customerCode = found.Value.code;
-                    // Optional: show back the canonical name for verification
-                    // TempData["FoundOrganisationName"] = found.Value.name;
-                }
-            }
-
-            // Create if not found
-            if (orgId is null && !string.IsNullOrWhiteSpace(orgName))
-            {
-                orgId = await _chat.UpsertOrganisationAsync(_bookingDb, orgName!, orgAddr, ct);
-                if (orgId is not null)
-                    customerCode = await _chat.GetCustomerCodeByIdAsync(_bookingDb, orgId.Value, ct);
-            }
-
-            // Try resolve contact now (independent of consent) so we can link it
+            // NEW: upsert contact immediately (captures email/position early)
             decimal? contactId = await TrySaveContactAsync(msgList, ct);
 
-            // Link contact to organisation when both are known
-            if (contactId is not null && !string.IsNullOrWhiteSpace(customerCode))
+            // if booking already exists, persist FULL transcript now
+            var bookingNoAtStart = HttpContext.Session.GetString("Draft:BookingNo");
+            if (!string.IsNullOrWhiteSpace(bookingNoAtStart))
             {
-                await _chat.LinkContactToOrganisationAsync(_bookingDb, customerCode!, contactId.Value, ct);
-                // store the code for later booking creation use
-                HttpContext.Session.SetString("Draft:CustomerCode", customerCode!);
+                await _chat.SaveFullTranscriptToBooknoteAsync(_bookingDb, bookingNoAtStart!, msgList, ct);
             }
-            // ---------------------------------------------------------------------------
+
+            // -------- ORG / CONTACT LINKING DATA --------
+            var (orgName, orgAddr) = _chat.ExtractOrganisationFromTranscript(msgList);
+            string? customerCode = null;
+            decimal? orgId = null;
 
             // build facts once
             var facts = ExtractFactsForPersistence(msgList);
 
-            // persist ONLY when the user's latest message is a positive reply
-            // to the immediately preceding assistant summary confirmation
+            // persist only when user positively confirms summary
             var isConsentToSummary = LooksLikeConsent(text) && WasLastAssistantASummaryAsk(msgList);
 
             if (isConsentToSummary)
             {
-                // contactId might already be set above; if not, try again quickly
-                contactId ??= await TrySaveContactAsync(msgList, ct);
+                if (!string.IsNullOrWhiteSpace(orgName))
+                {
+                    var found = await _chat.FindOrganisationAsync(_bookingDb, orgName!, ct);
+                    if (found is not null)
+                    {
+                        orgId = found.Value.id;
+                        customerCode = found.Value.code;
+                    }
+                }
+
+                if (orgId is null && !string.IsNullOrWhiteSpace(orgName))
+                {
+                    orgId = await _chat.UpsertOrganisationAsync(_bookingDb, orgName!, orgAddr, ct);
+                    if (orgId is not null)
+                        customerCode = await _chat.GetCustomerCodeByIdAsync(_bookingDb, orgId.Value, ct);
+                }
+
+                if (contactId is not null && !string.IsNullOrWhiteSpace(customerCode))
+                {
+                    await _chat.LinkContactToOrganisationAsync(_bookingDb, customerCode!, contactId.Value, ct);
+                    HttpContext.Session.SetString("Draft:CustomerCode", customerCode!);
+                }
 
                 var summaryKey = ComputeSummaryKey(msgList);
                 var lastPersistedKey = HttpContext.Session.GetString("Draft:PersistedSummaryKey");
@@ -307,7 +299,6 @@ public sealed class ChatController : Controller
                     string.Equals(summaryKey, lastPersistedKey, StringComparison.Ordinal))
                 {
                     RedactPricesForUiInPlace(msgList);
-                    // keep CTA state for the view as well
                     ViewData["ShowQuoteCta"] = WasLastAssistantASummaryAsk(msgList) ? "1" : "0";
                     return PartialView("_Messages", msgList);
                 }
@@ -326,6 +317,11 @@ public sealed class ChatController : Controller
                         await _chat.InsertCrewRowsAsync(_bookingDb, bookingNo, facts, ct);
                     }
 
+                    if (string.IsNullOrWhiteSpace(bookingNoAtStart))
+                    {
+                        await _chat.SaveFullTranscriptToBooknoteAsync(_bookingDb, bookingNo!, msgList, ct);
+                    }
+
                     HttpContext.Session.SetString("Draft:PersistedSummaryKey", summaryKey ?? string.Empty);
                     SetConsent(HttpContext.Session, false);
                     HttpContext.Session.SetString("Draft:ShowedBookingNo", "1");
@@ -333,10 +329,7 @@ public sealed class ChatController : Controller
             }
 
             RedactPricesForUiInPlace(msgList);
-
-            // Tell the view whether to show the Yes/No buttons
             ViewData["ShowQuoteCta"] = WasLastAssistantASummaryAsk(msgList) ? "1" : "0";
-
             return PartialView("_Messages", msgList);
         }
         catch (Exception ex)
@@ -345,6 +338,7 @@ public sealed class ChatController : Controller
             return Content(ex.Message);
         }
     }
+
 
     private static string ComputeSummaryKey(IReadOnlyList<DisplayMessage> messages, int lookback = 6)
     {
@@ -710,6 +704,30 @@ public sealed class ChatController : Controller
         var dummy = DateTime.Today.Add(ts.Value);
         return dummy.ToString("h:mm tt", CultureInfo.InvariantCulture);
     }
+    // Accept common roles, reject schedule/quote-ish text
+    private static bool LooksLikeJobTitle(string? s)
+    {
+        if (string.IsNullOrWhiteSpace(s)) return false;
+        var t = Regex.Replace(s, @"\s+", " ").Trim().ToLowerInvariant();
+
+        // obvious non-titles
+        string[] bad = { "schedule", "confirm", "choose", "address", "date", "time", "start", "end", "pack", "quote", "booking", "order" };
+        if (bad.Any(b => t.Contains(b))) return false;
+
+        // 1–4 words, letters and a few separators
+        var words = t.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length == 0 || words.Length > 4) return false;
+        if (words.Any(w => !Regex.IsMatch(w, @"^[a-z][a-z\.'\-/,]*$"))) return false;
+
+        // at least one “role” hint
+        string[] hints = {
+        "manager","lead","leader","director","head","owner","founder","ceo","coo","cto","cmo","cfo",
+        "admin","assistant","coordinator","planner","producer","engineer","analyst","specialist",
+        "consultant","supervisor","sales","marketing","events","hr","recruiter","teacher","principal",
+        "chair","president","vp","vice","partner"
+    };
+        return hints.Any(h => t.Contains(h));
+    }
 
     private async Task<decimal?> TrySaveContactAsync(IEnumerable<DisplayMessage> messages, CancellationToken ct)
     {
@@ -736,39 +754,36 @@ public sealed class ChatController : Controller
                 var txt = string.Join("\n", m.Parts ?? Enumerable.Empty<string>()).Trim();
                 if (string.IsNullOrWhiteSpace(txt)) continue;
 
-                // email
                 if (userEmail is null)
                 {
                     var em = emailRe.Match(txt);
                     if (em.Success) userEmail = em.Value.Trim();
                 }
 
-                // phone
                 if (userPhone is null)
                 {
                     var pm = phoneRe.Match(txt);
                     if (pm.Success) userPhone = NormalizePhone(pm.Value);
                 }
 
-                // position/title
                 if (userPosition is null)
                 {
                     var p = ExtractPosition(txt);
-                    if (!string.IsNullOrWhiteSpace(p)) userPosition = p;
+                    if (!string.IsNullOrWhiteSpace(p) && LooksLikeJobTitle(p))
+                        userPosition = p;
                 }
 
                 if (userEmail != null && userPhone != null && userPosition != null) break;
             }
 
             var userName = GuessUserNameFromTranscript(list);
-
             if (!LooksLikeValidHumanName(userName) || LooksLikeAssistantName(userName))
                 userName = null;
 
             if (string.IsNullOrWhiteSpace(userName))
                 return null;
 
-            // NOTE: now passing position along
+            // Upsert now (captures email/position early)
             return await _chat.UpsertContactByEmailAsync(_bookingDb, userName, userEmail, userPhone, userPosition, ct);
         }
         catch
@@ -806,25 +821,22 @@ public sealed class ChatController : Controller
             return sb.ToString();
         }
 
-        // Heuristics to pull a position/title out of free text
         static string? ExtractPosition(string text)
         {
             if (string.IsNullOrWhiteSpace(text)) return null;
             var t = text.Replace('’', '\'').Replace('“', '"').Replace('”', '"');
-            // 1) Labeled: Position/Title/Role: <value>
+
             var reLabel = new Regex(@"(?:^|\b)(position|title|role)\s*[:\-]\s*(?<v>.+)$",
                 RegexOptions.IgnoreCase);
             var m1 = reLabel.Match(t);
             if (m1.Success) return Clean(m1.Groups["v"].Value);
 
-            // 2) “I am the <value>”, “I'm <value> at …”, “I work as <value>”
-            var reIam = new Regex(@"\b(i\s*am|i'm|i\s*work\s*as|my\s*role\s*is)\s+(the\s+)?(?<v>[A-Za-z][A-Za-z \-/,&\.]{2,50})",
+            var reIam = new Regex(@"\b(i\s*am|i'm|i\s*work\s*as|my\s*role\s*is)\s+(the\s+)?(?<v>[A-Za-z][A-Za-z \-/,&\.]{2,60})",
                 RegexOptions.IgnoreCase);
             var m2 = reIam.Match(t);
             if (m2.Success) return Clean(m2.Groups["v"].Value);
 
-            // 3) “<value> at <org>”
-            var reAt = new Regex(@"^(?<v>[A-Za-z][A-Za-z \-/,&\.]{2,50})\s+at\s+.+", RegexOptions.IgnoreCase);
+            var reAt = new Regex(@"^(?<v>[A-Za-z][A-Za-z \-/,&\.]{2,60})\s+at\s+.+", RegexOptions.IgnoreCase);
             var m3 = reAt.Match(t);
             if (m3.Success) return Clean(m3.Groups["v"].Value);
 
@@ -832,17 +844,19 @@ public sealed class ChatController : Controller
 
             static string Clean(string s)
             {
-                s = s.Trim();
-                // strip trailing sentence punctuation
-                s = s.TrimEnd('.', ',', ';', ':');
-                // keep it short & neat
-                if (s.Length > 60) s = s.Substring(0, 60);
+                s = s.Trim().TrimEnd('.', ',', ';', ':');
+                if (s.Length > 60) s = s[..60];
                 return CultureInfo.CurrentCulture.TextInfo.ToTitleCase(s.ToLowerInvariant());
             }
         }
     }
 
 
+    private static string JoinParts(DisplayMessage m) =>
+    string.Join("\n", m.Parts ?? Enumerable.Empty<string>()).Trim();
+
+    private static byte NoteTypeFor(string role) =>
+        string.Equals(role, "user", StringComparison.OrdinalIgnoreCase) ? (byte)1 : (byte)2;
     private static string? GuessUserNameFromTranscript(IEnumerable<DisplayMessage> messages)
     {
         var list = messages?.ToList() ?? new List<DisplayMessage>();
