@@ -17,6 +17,8 @@ public sealed class BookingDbContext : DbContext
     public DbSet<TblCust> TblCusts => Set<TblCust>();
     public DbSet<TblLinkCustContact> TblLinkCustContacts => Set<TblLinkCustContact>(); // NEW
     public DbSet<TblBooknote> TblBooknotes => Set<TblBooknote>();   // NEW  
+    public DbSet<VwProdsComponents> VwProdsComponents => Set<VwProdsComponents>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         // --- tblbookings ---
@@ -420,5 +422,17 @@ public sealed class BookingDbContext : DbContext
         // helpful ordering/index per booking
         bn.HasIndex(x => new { x.BookingNo, x.LineNo })
           .HasDatabaseName("IX_tblbooknote_Booking_Line");
+
+        // --- vwProdsComponents (VIEW, keyless) ---
+        modelBuilder.Entity<VwProdsComponents>(v =>
+        {
+            v.HasNoKey();
+            v.ToView("vwProdsComponents");
+            v.Property(x => x.ParentCode).HasColumnName("parent_code");
+            v.Property(x => x.ProductCode).HasColumnName("product_code");
+            v.Property(x => x.VariablePart).HasColumnName("variable_part");
+            v.Property(x => x.Qty).HasColumnName("qty_v5");
+            v.Property(x => x.SubSeqNo).HasColumnName("sub_seq_no");
+        });
     }
 }

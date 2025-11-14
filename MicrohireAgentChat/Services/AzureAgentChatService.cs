@@ -3491,8 +3491,8 @@ public async Task<decimal?> UpsertOrganisationAsync(
         }
 
         public async Task UpsertItemsFromSummaryAsync(
-     BookingDbContext db, ISession session,
-     IEnumerable<DisplayMessage> messages, IDictionary<string, string> facts, CancellationToken ct)
+       BookingDbContext db, ISession session,
+       IEnumerable<DisplayMessage> messages, IDictionary<string, string> facts, CancellationToken ct)
         {
             var lastAssistant = messages.LastOrDefault(m =>
                 string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase));
@@ -3534,85 +3534,79 @@ public async Task<decimal?> UpsertOrganisationAsync(
 
             int ParseCount(params string[] labelHints) => ParseCountFromValue(FindValue(labelHints));
 
-            // Helper to pull a number from free text like "2 wireless microphones"
-            static int ExtractCount(string? text, string pattern, int fallbackIfKeywordOnly = 0)
-            {
-                if (string.IsNullOrWhiteSpace(text)) return 0;
-                var m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
-                if (m.Success && int.TryParse(m.Groups[1].Value, out var n)) return n;
-
-                var keywordOnly = Regex.Replace(pattern, @"\(\?\:|\?i\)|\(\?:", "", RegexOptions.IgnoreCase);
-                keywordOnly = Regex.Replace(keywordOnly, @"\(\d\+\)", "", RegexOptions.IgnoreCase);
-                keywordOnly = Regex.Replace(keywordOnly, @"\(\?\:.*?\)", "", RegexOptions.IgnoreCase);
-                keywordOnly = Regex.Replace(keywordOnly, @"\(\d\+\)", "", RegexOptions.IgnoreCase);
-
-                return Regex.IsMatch(text, pattern.Replace("(\\d+)", ""), RegexOptions.IgnoreCase)
-                    ? fallbackIfKeywordOnly : 0;
-            }
-
-            // ---------- COUNTS FROM SUMMARY (labels) ----------
+            // ---------- COUNTS ----------
             var speakersCountLabel = Math.Max(ParseCount("number of speakers", "speakers", "speaker"), 0);
             var projectorsCountLabel = Math.Max(ParseCount("number of projectors", "projectors", "projector"), 0);
 
             var laptopsFromExplicit = Math.Max(ParseCount("laptops required for presenters",
-                                                            "laptop required for presenters",
-                                                            "laptops", "laptop"), 0);
+                                                          "laptop required for presenters",
+                                                          "laptops", "laptop"), 0);
             var laptopsFromPresenters = Math.Max(ParseCount("number of presenters", "presenters", "presenter"), 0);
             var laptopsFromPresentns = Math.Max(ParseCount("number of presentations", "presentations", "presentation"), 0);
             var laptopsCount = Math.Max(laptopsFromExplicit, Math.Max(laptopsFromPresenters, laptopsFromPresentns));
 
-            // ---------- COUNTS FROM Equipment line ----------
+            // ---- NEGATIVE SIGNALS: presenter/client will bring their own laptop ----
+            static bool ContainsAny(string? s, params string[] phrases)
+                => !string.IsNullOrWhiteSpace(s) &&
+                   phrases.Any(p => s!.IndexOf(p, StringComparison.OrdinalIgnoreCase) >= 0);
+
+            var presenterDetails = FindValue("presenter details", "presenter", "presenters") ?? string.Empty;
+            var avNotes = FindValue("av", "audio visual", "audio-visual") ?? string.Empty;
+            var extraNotes = FindValue("notes", "requirements", "adjustments") ?? string.Empty;
+
+            bool presenterBringsLaptop =
+                ContainsAny(presenterDetails, "laptop provided by presenter", "presenter provided laptop",
+                            "presenter will bring laptop", "bring own laptop", "byo laptop",
+                            "using own laptop", "client will bring laptop", "client provided laptop", "presenter’s laptop") ||
+                ContainsAny(avNotes, "presenter will bring laptop", "bring own laptop", "byo laptop", "using own laptop") ||
+                ContainsAny(extraNotes, "presenter will bring laptop", "bring own laptop", "byo laptop", "using own laptop");
+
+            if (presenterBringsLaptop)
+            {
+                laptopsCount = 0; // do not add our laptop bundle/components
+            }
+            else
+            {
+                // NEW: infer laptops from AV text like:
+                // "AV Setup: Projector, screen, laptop for the speaker"
+                int laptopsFromAv = 0;
+                var lm = Regex.Match(avNotes, @"\b(\d+)\s*laptops?\b", RegexOptions.IgnoreCase);
+                if (lm.Success && int.TryParse(lm.Groups[1].Value, out var ln))
+                {
+                    laptopsFromAv = ln;
+                }
+                else if (Regex.IsMatch(avNotes, @"\blaptop\b", RegexOptions.IgnoreCase))
+                {
+                    // At least one laptop mentioned with no explicit number
+                    laptopsFromAv = 1;
+                }
+
+                if (laptopsFromAv > 0)
+                {
+                    laptopsCount = Math.Max(laptopsCount, laptopsFromAv);
+                }
+            }
+
+            // ---------- EQUIPMENT TEXT ----------
             var equipmentText = FindValue("equipment", "audio visual", "audio-visual") ?? string.Empty;
+            var micsFromEquip = Regex.Match(equipmentText, @"\b(\d+)\s*(wireless\s+microphones?|mics?)\b").Groups[1].Value switch
+            {
+                var s when int.TryParse(s, out var n) => n,
+                _ => 0
+            };
+            var projectorsFromEquip = Regex.IsMatch(equipmentText, @"projector", RegexOptions.IgnoreCase) ? 1 : 0;
+            var speakersFromEquip = Regex.IsMatch(equipmentText, @"speakers?", RegexOptions.IgnoreCase) ? 1 : 0;
 
-            // e.g., "2 wireless microphones (shared)"
-            var micsFromEquip = ExtractCount(equipmentText, @"\b(\d+)\s*(wireless\s+microphones?|mics?)\b");
-            // e.g., "projector" or "2 projectors"
-            var projectorsFromEquip = ExtractCount(equipmentText, @"\b(\d+)\s*(projectors?)\b", fallbackIfKeywordOnly: 1);
-            // e.g., "single speaker system" or "2 speakers"
-            var speakersFromEquip = ExtractCount(equipmentText, @"\b(\d+)\s*(speakers?)\b");
-            if (speakersFromEquip == 0 && Regex.IsMatch(equipmentText, @"\bsingle\s+speaker(\s+system)?\b", RegexOptions.IgnoreCase))
-                speakersFromEquip = 1;
-
-            // Merge label- and equipment-derived counts
             var speakersCount = Math.Max(speakersCountLabel, speakersFromEquip);
             var projectorsCount = Math.Max(projectorsCountLabel, projectorsFromEquip);
-
-            // Prefer explicit mic count (from Equipment) for the mic driver; otherwise map speakers→mics
             var wirelessMicCount = Math.Max(speakersCount, micsFromEquip);
 
-            // bail only if we truly have nothing actionable
             var hasSpeakers = wirelessMicCount > 0;
             var hasProjectors = projectorsCount > 0;
             var hasLaptops = laptopsCount > 0;
             if (!hasSpeakers && !hasProjectors && !hasLaptops) return;
 
-            // Heuristic presentation flag
-            bool wantsPresentation =
-                hasLaptops || hasProjectors ||
-                (equipmentText.Length > 0 &&
-                    (equipmentText.IndexOf("projector", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                     equipmentText.IndexOf("laptop", StringComparison.OrdinalIgnoreCase) >= 0)) ||
-                (FindValue("goal", "purpose", "objective") is string pu &&
-                    pu.IndexOf("presentation", StringComparison.OrdinalIgnoreCase) >= 0) ||
-                (FindValue("presenters", "presentations",
-                           "number of presenters", "number of presentations") is string pr &&
-                    (pr.IndexOf("laptop", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                     ParseCountFromValue(pr) > 0));
-
-            var roomText = (FindValue("room", "venue") ?? string.Empty).ToLowerInvariant();
-
-            // ---------- rules ----------
-            string rulesPath = (_env != null)
-                ? Path.Combine(_env.WebRootPath, "data", "item-rules.json")
-                : Path.Combine(AppContext.BaseDirectory, "wwwroot", "data", "item-rules.json");
-            if (!System.IO.File.Exists(rulesPath)) return;
-
-            var rules = JsonSerializer.Deserialize<List<ItemRule>>(
-                            await System.IO.File.ReadAllTextAsync(rulesPath, ct))
-                        ?? new List<ItemRule>();
-            if (rules.Count == 0) return;
-
-            // ---------- booking ----------
+            // ---------- BOOKING ----------
             var bookingNo = session.GetString("Draft:BookingNo");
             if (string.IsNullOrWhiteSpace(bookingNo)) return;
 
@@ -3621,7 +3615,7 @@ public async Task<decimal?> UpsertOrganisationAsync(
 
             var date = booking.SDate ?? DateTime.Today;
 
-            // ---------- drivers ----------
+            // ---------- DRIVERS (reserved for future rules) ----------
             var drivers = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase)
             {
                 ["wireless_mic_count"] = wirelessMicCount,
@@ -3629,27 +3623,7 @@ public async Task<decimal?> UpsertOrganisationAsync(
                 ["laptop_count"] = laptopsCount
             };
 
-            foreach (var r in rules.Where(x => string.Equals(x.type, "driver", StringComparison.OrdinalIgnoreCase)))
-            {
-                if (string.IsNullOrWhiteSpace(r.key) || string.IsNullOrWhiteSpace(r.sourceLabel)) continue;
-                if (!facts.TryGetValue(r.sourceLabel!, out var val)) continue;
-
-                int qty = 0;
-                if (string.Equals(r.qtyFrom, "regex", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrWhiteSpace(r.regex))
-                {
-                    var m = Regex.Match(val, r.regex!, RegexOptions.IgnoreCase);
-                    if (m.Success && int.TryParse(m.Groups[1].Value, out var n)) qty = n;
-                }
-                else if (string.Equals(r.qtyFrom, "labelNumber", StringComparison.OrdinalIgnoreCase))
-                {
-                    var m = Regex.Match(val, "(\\d+)");
-                    if (m.Success && int.TryParse(m.Groups[1].Value, out var n)) qty = n;
-                }
-                if (r.multiplier is int mul && mul > 1) qty *= mul;
-                drivers[r.key!] = (drivers.TryGetValue(r.key!, out var cur) ? cur : 0) + Math.Max(0, qty);
-            }
-
-            // ---------- bundles -> wanted ----------
+            // ---------- wanted list ----------
             var wanted = new Dictionary<string, (int qty, string? comment)>(StringComparer.OrdinalIgnoreCase);
             void AddWanted(string code, int qty, string? cmt)
             {
@@ -3661,56 +3635,51 @@ public async Task<decimal?> UpsertOrganisationAsync(
                     wanted[norm] = (qty, cmt);
             }
 
-            bool BundleEnabledByDrivers(ItemRule r)
+            // ---------- LAPTOP PACKAGE (PCLPRO) + COMPONENTS METADATA ----------
+            if (hasLaptops)
             {
-                var key = r.key ?? string.Empty;
-                if (key.Contains("mic", StringComparison.OrdinalIgnoreCase)) return hasSpeakers;
-                if (key.Contains("laptop", StringComparison.OrdinalIgnoreCase) ||
-                    key.Contains("presenter", StringComparison.OrdinalIgnoreCase)) return hasLaptops || wantsPresentation;
-                if (key.Contains("projector", StringComparison.OrdinalIgnoreCase)) return hasProjectors;
-                if (key.Contains("ceiling_pkg", StringComparison.OrdinalIgnoreCase)) return hasSpeakers;
-                return true;
-            }
+                // Load components for PCLPRO so we can ensure they exist in tblInvmas.
+                var comps = await db.VwProdsComponents
+                    .AsNoTracking()
+                    .Where(v => v.ParentCode == "PCLPRO" && (v.VariablePart == null || v.VariablePart == 0))
+                    .ToListAsync(ct);
 
-            foreach (var r in rules.Where(x => string.Equals(x.type, "bundle", StringComparison.OrdinalIgnoreCase)))
-            {
-                if (r.roomContains is { Length: > 0 })
+                if (comps.Count > 0)
                 {
-                    bool all = r.roomContains.All(tok => roomText.Contains(tok, StringComparison.OrdinalIgnoreCase));
-                    if (!all) continue;
-                }
-                if (r.requirePresentation == true && !wantsPresentation) continue;
-                if (!BundleEnabledByDrivers(r)) continue;
-                if (r.bundleItems == null) continue;
+                    // Ensure all components exist in tblInvmas (for grouping, pictures, etc.)
+                    var compCodes = comps.Select(c => c.ProductCode).ToList();
+                    var existingCodes = new HashSet<string>(
+                        await db.TblInvmas.AsNoTracking()
+                            .Where(m => compCodes.Contains(m.product_code))
+                            .Select(m => m.product_code)
+                            .ToListAsync(ct),
+                        StringComparer.OrdinalIgnoreCase);
 
-                foreach (var bi in r.bundleItems)
-                {
-                    int qty = 0;
-                    switch ((bi.qtyFrom ?? "literal").ToLowerInvariant())
+                    foreach (var c in comps)
                     {
-                        case "literal":
-                            qty = bi.literalQty ?? 1;
-                            break;
-                        case "optionalfixed":
-                            qty = bi.literalQty ?? 0;
-                            break;
-                        case "usedriverqty":
-                            if (!string.IsNullOrWhiteSpace(bi.driverKey) &&
-                                drivers.TryGetValue(bi.driverKey!, out var dq) && dq > 0)
-                                qty = dq;
-                            break;
-                        case "maxof":
-                            var list = (bi.driverKeys ?? Array.Empty<string>())
-                                       .Select(k => drivers.TryGetValue(k, out var v) ? v : 0);
-                            qty = Math.Max(bi.defaultQty ?? 0, list.DefaultIfEmpty(0).Max());
-                            break;
+                        if (!existingCodes.Contains(c.ProductCode))
+                        {
+                            db.TblInvmas.Add(new TblInvmas
+                            {
+                                product_code = c.ProductCode,
+                                groupFld = "LAPTOP"
+                            });
+                        }
                     }
-                    AddWanted(bi.product_code, qty, bi.comment);
+                    await db.SaveChangesAsync(ct);
+                }
+
+                // Add the **package** itself to the wanted list;
+                // components will be expanded later when we persist.
+                if (laptopsCount > 0)
+                {
+                    AddWanted("PCLPRO", laptopsCount, null);
                 }
             }
+
             if (wanted.Count == 0) return;
 
-            // ---------- rates ----------
+            // ---------- RATES ----------
             var wantedCodeSet = new HashSet<string>(wanted.Keys.Select(k => k.Trim().ToUpperInvariant()),
                                                     StringComparer.OrdinalIgnoreCase);
 
@@ -3727,81 +3696,148 @@ public async Task<decimal?> UpsertOrganisationAsync(
 
             double GetUnitRate(string codeNorm) => rates.TryGetValue(codeNorm, out var r1) ? r1 : 0d;
 
-            // ---------- persist ----------
-            //var bookingNo = session.GetString("Draft:BookingNo"); // re-read for safety
-            if (string.IsNullOrWhiteSpace(bookingNo)) return;
-
+            // ---------- PERSIST (with package / component rules) ----------
             int NextSeqNo()
                 => (db.TblItemtrans.Where(t => t.BookingNoV32 == bookingNo)
                                    .Select(t => (int?)t.SeqNo).Max() ?? 0) + 1;
 
+            async Task<List<VwProdsComponents>> GetFixedComponentsAsync(string parentCode)
+            {
+                return await db.VwProdsComponents.AsNoTracking()
+                    .Where(v => v.ParentCode == parentCode && (v.VariablePart == null || v.VariablePart == 0))
+                    .OrderBy(v => v.SubSeqNo)
+                    .ToListAsync(ct);
+            }
+
+            TblItemtran NewBaseLine(string code, int seq, int subSeq, int itemType,
+                                    decimal qty, double unitRate, double price, string? cmt)
+            {
+                return new TblItemtran
+                {
+                    BookingNoV32 = bookingNo,
+                    HeadingNo = 0,
+                    SeqNo = seq,
+                    SubSeqNo = subSeq,
+                    TransTypeV41 = 0,
+                    ProductCodeV42 = code,
+                    DelTimeHour = booking.del_time_h ?? 0,
+                    DelTimeMin = booking.del_time_m ?? 0,
+                    ReturnTimeHour = booking.ret_time_h ?? 0,
+                    ReturnTimeMin = booking.ret_time_m ?? 0,
+                    TransQty = qty,
+                    UnitRate = unitRate,
+                    Price = price,
+                    ItemType = (byte)itemType,   // 0=normal, 1=package, 2=component
+                    DaysUsing = 1,
+                    SubHireQtyV61 = 0m,
+                    CommentDescV42 = cmt,
+                    FirstDate = date,
+                    RetnDate = date,
+                    BookDate = date,
+                    PDate = date,
+                    AddedAtCheckout = false,
+                    UndiscAmt = 0,
+                    AssignType = 0,
+                    QtyShort = 1,
+                    AvailRecFlag = true,
+                    SubRentalLinkID = 0,
+                    ReturnToLocn = 20,
+                    TransToLocn = 20,
+                    FromLocn = 20
+                };
+            }
+
             foreach (var (codeNorm, val) in wanted)
             {
-                var qty = Math.Max(val.qty, 1);
-                var cmt = val.comment;
+                var totalQty = Math.Max(val.qty, 1);
 
-                var unitRate = GetUnitRate(codeNorm);
-                var newPrice = Math.Round(unitRate * qty, 2);
+                // Is this code a package? If vwProdsComponents has fixed components for it, then yes.
+                var components = await GetFixedComponentsAsync(codeNorm);
 
-                var existing = await db.TblItemtrans.FirstOrDefaultAsync(x =>
-                    x.BookingNoV32 == bookingNo &&
-                    ((x.ProductCodeV42 ?? string.Empty).Trim().ToUpper()) == codeNorm, ct);
-
-                if (existing == null)
+                if (components.Count == 0)
                 {
-                    db.TblItemtrans.Add(new TblItemtran
+                    // ----- NOT A PACKAGE: single normal item (itemtype = 0) -----
+                    var unitRate = GetUnitRate(codeNorm);
+                    var newPrice = Math.Round(unitRate * totalQty, 2);
+
+                    var existing = await db.TblItemtrans.FirstOrDefaultAsync(x =>
+                        x.BookingNoV32 == bookingNo &&
+                        ((x.ProductCodeV42 ?? string.Empty).Trim().ToUpper()) == codeNorm, ct);
+
+                    if (existing == null)
                     {
-                        BookingNoV32 = bookingNo,
-                        HeadingNo = 0,
-                        SeqNo = NextSeqNo(),
-                        SubSeqNo = 0,
+                        var seq = NextSeqNo();
+                        db.TblItemtrans.Add(NewBaseLine(
+                            code: codeNorm,
+                            seq: seq,
+                            subSeq: 0,
+                            itemType: 0,
+                            qty: totalQty,
+                            unitRate: unitRate,
+                            price: newPrice,
+                            cmt: val.comment));
+                    }
+                    else
+                    {
+                        existing.TransQty = totalQty;
+                        if (existing.UnitRate == null || existing.UnitRate == 0) existing.UnitRate = GetUnitRate(codeNorm);
+                        var effectiveRate = existing.UnitRate ?? 0;
+                        existing.Price = Math.Round(effectiveRate * totalQty, 2);
+                        if (!string.IsNullOrWhiteSpace(val.comment)) existing.CommentDescV42 = val.comment;
+                    }
 
-                        TransTypeV41 = 0,
-                        ProductCodeV42 = codeNorm,
-
-                        DelTimeHour = booking.del_time_h ?? 0,
-                        DelTimeMin = booking.del_time_m ?? 0,
-                        ReturnTimeHour = booking.ret_time_h ?? 0,
-                        ReturnTimeMin = booking.ret_time_m ?? 0,
-
-                        TransQty = qty,
-                        UnitRate = unitRate,
-                        Price = newPrice,
-
-                        ItemType = 0,
-                        DaysUsing = 1,
-                        SubHireQtyV61 = 0m,
-
-                        CommentDescV42 = cmt,
-                        FirstDate = date,
-                        RetnDate = date,
-                        BookDate = date,
-                        PDate = date,
-
-                        AddedAtCheckout = false,
-                        UndiscAmt = 0,
-
-                        AssignType = 0,
-                        QtyShort = 1,
-                        AvailRecFlag = true,
-                        SubRentalLinkID = 0,
-                        ReturnToLocn = 20,
-                        TransToLocn = 20,
-                        FromLocn = 20
-                    });
+                    continue;
                 }
-                else
+
+                // ----- PACKAGE: parent + components -----
+                var seqNo = NextSeqNo();
+
+                // 1) Parent/package line (itemtype = 1) – this carries the price.
                 {
-                    existing.TransQty = qty;
-                    if (existing.UnitRate == null || existing.UnitRate == 0) existing.UnitRate = unitRate;
-                    var effectiveRate = existing.UnitRate ?? 0;
-                    existing.Price = Math.Round(effectiveRate * qty, 2);
-                    if (!string.IsNullOrWhiteSpace(cmt)) existing.CommentDescV42 = cmt;
+                    var pkgUnitRate = GetUnitRate(codeNorm);
+                    var pkgPrice = Math.Round(pkgUnitRate * totalQty, 2);
+
+                    var parentLine = NewBaseLine(
+                        code: codeNorm,
+                        seq: seqNo,
+                        subSeq: 0,
+                        itemType: 1,
+                        qty: totalQty,
+                        unitRate: pkgUnitRate,
+                        price: pkgPrice,
+                        cmt: val.comment);
+
+                    db.TblItemtrans.Add(parentLine);
+                }
+
+                // 2) Components (itemtype = 2), sub_seq_no from view, ParentCode set.
+                int autoSubSeq = 1;
+                foreach (var comp in components)
+                {
+                    var compCode = comp.ProductCode.Trim().ToUpperInvariant();
+                    var subSeq = comp.SubSeqNo.GetValueOrDefault((byte)autoSubSeq++);
+                    var perPackageQty = comp.Qty.GetValueOrDefault(1);
+                    var totalCompQty = (decimal)(perPackageQty * totalQty);
+
+                    var compLine = NewBaseLine(
+                        code: compCode,
+                        seq: seqNo,
+                        subSeq: subSeq,
+                        itemType: 2,
+                        qty: totalCompQty,
+                        unitRate: 0,        // components unpriced, package line carries total
+                        price: 0,
+                        cmt: null);
+
+                    compLine.ParentCode = codeNorm;   // link to package
+                    db.TblItemtrans.Add(compLine);
                 }
             }
 
             await db.SaveChangesAsync(ct);
         }
+
+
 
 
 
