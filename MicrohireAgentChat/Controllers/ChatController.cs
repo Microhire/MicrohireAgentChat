@@ -5,9 +5,10 @@ using MicrohireAgentChat.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Globalization;
-using System.Text.RegularExpressions;
 using System.Collections.Concurrent;
+using System.Globalization;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace MicrohireAgentChat.Controllers;
 
@@ -205,7 +206,7 @@ public sealed class ChatController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> SendPartial(string text, CancellationToken ct)
+    public async Task<IActionResult>  SendPartial(string text, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(text)) return BadRequest("empty");
 
@@ -736,15 +737,74 @@ public sealed class ChatController : Controller
             if (messages is null) return null;
 
             var list = messages.ToList();
+            if (list.Count == 0) return null;
+
+            // ---------- build facts from full transcript ----------
+            var facts = ExtractFactsForPersistence(list);
+
+            static string Norm(string s)
+            {
+                if (string.IsNullOrWhiteSpace(s)) return string.Empty;
+                var sb = new StringBuilder(s.Length);
+                foreach (var ch in s)
+                {
+                    if (char.IsLetterOrDigit(ch) || char.IsWhiteSpace(ch))
+                        sb.Append(char.ToLowerInvariant(ch));
+                }
+                return Regex.Replace(sb.ToString().Trim(), @"\s+", " ");
+            }
+
+            static bool LooksLikeMissing(string? value)
+            {
+                if (string.IsNullOrWhiteSpace(value)) return true;
+                var v = value.Trim().ToLowerInvariant();
+
+                return v is "no"
+                    or "none"
+                    or "n/a"
+                    or "na"
+                    or "nil"
+                    or "unknown"
+                    or "tbc"
+                    or "not sure"
+                    or "dont know"
+                    or "don't know";
+            }
+
+            static string? Clean(string? value)
+            {
+                if (LooksLikeMissing(value)) return null;
+                return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+            }
+
+            string? FindValue(params string[] labelHints)
+            {
+                var hints = labelHints.Select(Norm).ToArray();
+                foreach (var kv in facts)
+                {
+                    var k = Norm(kv.Key);
+                    if (hints.Any(h => k.Contains(h)))
+                        return kv.Value;
+                }
+                return null;
+            }
+
+            // ---------- from facts ----------
+            var factEmail = Clean(FindValue("email", "e-mail", "email address"));
+            var factPhone = Clean(FindValue("mobile", "cell", "phone", "phone number", "mobile number"));
+            var factPosition = Clean(FindValue("position", "role", "job title", "title"));
+            var factName = Clean(FindValue("contact name", "primary contact", "main contact", "name"));
+
+            // ---------- from raw user messages (regex scan) ----------
             static bool IsUser(DisplayMessage m) =>
                 string.Equals(m.Role, "user", StringComparison.OrdinalIgnoreCase);
 
-            var emailRe = new Regex(@"\b[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}\b", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+            var emailRe = new Regex(@"\b[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}\b",
+                RegexOptions.IgnoreCase | RegexOptions.Compiled);
             var phoneRe = new Regex(@"\+?\d[\d\s\-()]{6,}\d", RegexOptions.Compiled);
 
             string? userEmail = null, userPhone = null, userPosition = null;
 
-            // Look back through ~20 user turns
             for (int i = list.Count - 1, seen = 0; i >= 0 && seen < 20; i--)
             {
                 var m = list[i];
@@ -769,22 +829,41 @@ public sealed class ChatController : Controller
                 if (userPosition is null)
                 {
                     var p = ExtractPosition(txt);
-                    if (!string.IsNullOrWhiteSpace(p) && LooksLikeJobTitle(p))
+                    if (!string.IsNullOrWhiteSpace(p))
                         userPosition = p;
                 }
 
                 if (userEmail != null && userPhone != null && userPosition != null) break;
             }
 
-            var userName = GuessUserNameFromTranscript(list);
-            if (!LooksLikeValidHumanName(userName) || LooksLikeAssistantName(userName))
-                userName = null;
+            // choose best source: user text overrides facts, then facts
+            var email = Clean(userEmail) ?? factEmail;
+            var phone = Clean(userPhone) ?? factPhone;
+            var position = Clean(userPosition) ?? factPosition;
 
-            if (string.IsNullOrWhiteSpace(userName))
+            // name: prefer facts, then your existing GuessUserNameFromTranscript
+            var name = !LooksLikeMissing(factName) ? factName : null;
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                var guessed = GuessUserNameFromTranscript(list);
+                if (!LooksLikeMissing(guessed))
+                    name = guessed;
+            }
+
+            if (!LooksLikeValidHumanName(name) || LooksLikeAssistantName(name))
+                name = null;
+
+            // final guard: if we have nothing meaningful, don't create anything
+            if (name is null && email is null && phone is null && position is null)
                 return null;
 
-            // Upsert now (captures email/position early)
-            return await _chat.UpsertContactByEmailAsync(_bookingDb, userName, userEmail, userPhone, userPosition, ct);
+            return await _chat.UpsertContactByEmailAsync(
+                _bookingDb,
+                name,
+                email,
+                phone,
+                position,
+                ct);
         }
         catch
         {
@@ -804,9 +883,24 @@ public sealed class ChatController : Controller
         static bool LooksLikeValidHumanName(string? s)
         {
             if (string.IsNullOrWhiteSpace(s)) return false;
+
             var t = s.Trim();
             if (t.Length < 2 || t.Length > 60) return false;
             if (t.Contains('@')) return false;
+
+            var lower = t.ToLowerInvariant();
+            if (lower is "no"
+                or "none"
+                or "n/a"
+                or "na"
+                or "nil"
+                or "unknown"
+                or "tbc"
+                or "not sure"
+                or "dont know"
+                or "don't know")
+                return false;
+
             return true;
         }
 
@@ -829,27 +923,32 @@ public sealed class ChatController : Controller
             var reLabel = new Regex(@"(?:^|\b)(position|title|role)\s*[:\-]\s*(?<v>.+)$",
                 RegexOptions.IgnoreCase);
             var m1 = reLabel.Match(t);
-            if (m1.Success) return Clean(m1.Groups["v"].Value);
+            if (m1.Success) return CleanInner(m1.Groups["v"].Value);
 
             var reIam = new Regex(@"\b(i\s*am|i'm|i\s*work\s*as|my\s*role\s*is)\s+(the\s+)?(?<v>[A-Za-z][A-Za-z \-/,&\.]{2,60})",
                 RegexOptions.IgnoreCase);
             var m2 = reIam.Match(t);
-            if (m2.Success) return Clean(m2.Groups["v"].Value);
+            if (m2.Success) return CleanInner(m2.Groups["v"].Value);
 
-            var reAt = new Regex(@"^(?<v>[A-Za-z][A-Za-z \-/,&\.]{2,60})\s+at\s+.+", RegexOptions.IgnoreCase);
+            var reAt = new Regex(@"^(?<v>[A-Za-z][A-Za-z \-/,&\.]{2,60})\s+at\s+.+",
+                RegexOptions.IgnoreCase);
             var m3 = reAt.Match(t);
-            if (m3.Success) return Clean(m3.Groups["v"].Value);
+            if (m3.Success) return CleanInner(m3.Groups["v"].Value);
 
             return null;
 
-            static string Clean(string s)
+            static string? CleanInner(string s)
             {
                 s = s.Trim().TrimEnd('.', ',', ';', ':');
                 if (s.Length > 60) s = s[..60];
+                var lower = s.ToLowerInvariant();
+                if (lower is "no" or "none" or "n/a" or "na" or "nil" or "unknown") return null;
+
                 return CultureInfo.CurrentCulture.TextInfo.ToTitleCase(s.ToLowerInvariant());
             }
         }
     }
+
 
 
     private static string JoinParts(DisplayMessage m) =>
