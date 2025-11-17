@@ -11,6 +11,7 @@ public sealed class BookingDbContext : DbContext
     public DbSet<TblContact> Contacts => Set<TblContact>();
     public DbSet<TblBooking> TblBookings => Set<TblBooking>();
     public DbSet<TblInvmas> TblInvmas => Set<TblInvmas>();
+    public DbSet<TblCategory> TblCategories => Set<TblCategory>();
     public DbSet<TblItemtran> TblItemtrans => Set<TblItemtran>();
     public DbSet<TblRatetbl> TblRatetbls => Set<TblRatetbl>();
     public DbSet<TblCrew> TblCrews => Set<TblCrew>();
@@ -85,6 +86,16 @@ public sealed class BookingDbContext : DbContext
         p.Property(x => x.descriptionv6).HasColumnName("descriptionv6");
         p.Property(x => x.PrintedDesc).HasColumnName("PrintedDesc");
         p.Property(x => x.groupFld).HasColumnName("groupFld");
+        
+        // --- tblCategory ---
+        var cat = modelBuilder.Entity<TblCategory>();
+        cat.ToTable("tblCategory");
+        cat.HasKey(x => x.CategoryCode);
+        cat.Property(x => x.CategoryCode).HasColumnName("category_code").HasMaxLength(30);
+        cat.Property(x => x.CategoryDescription).HasColumnName("cat_descV6").HasMaxLength(50);
+        cat.Property(x => x.GroupCode).HasColumnName("Group_code").HasMaxLength(30);
+        cat.Property(x => x.ParentCategoryCode).HasColumnName("ParentCategoryCode").HasMaxLength(30);
+        cat.Property(x => x.CategoryType).HasColumnName("CategoryType");
         // --- tblContact ---
         var c = modelBuilder.Entity<TblContact>();
         c.ToTable("tblContact");

@@ -36,6 +36,7 @@ namespace MicrohireAgentChat.Services
         private readonly IHttpContextAccessor _http;
         private readonly ILogger<AzureAgentChatService> _logger;
         private readonly IWestinRoomCatalog _roomCatalog;
+        private readonly ILoggerFactory _loggerFactory;
         //  private readonly AppDbContext _appDb;
         private static readonly ConcurrentDictionary<string, SemaphoreSlim> _threadLocks = new();
         private static readonly Regex ChooseTimeRe =
@@ -49,7 +50,11 @@ namespace MicrohireAgentChat.Services
             IOptions<AzureAgentOptions> options,
             BookingDbContext bookings,
             IHttpContextAccessor http,
-            ILogger<AzureAgentChatService> logger, IWestinRoomCatalog roomCatalog, IBookingDraftStore? drafts, IWebHostEnvironment env)
+            ILogger<AzureAgentChatService> logger, 
+            IWestinRoomCatalog roomCatalog, 
+            IBookingDraftStore? drafts, 
+            IWebHostEnvironment env,
+            ILoggerFactory loggerFactory)
         //  ,AppDbContext appDb
         {
             _projectClient = projectClient;
@@ -60,6 +65,7 @@ namespace MicrohireAgentChat.Services
             _roomCatalog = roomCatalog;
             _drafts = drafts;
             _env = env;
+            _loggerFactory = loggerFactory;
             //_appDb = appDb;
         }
 
@@ -632,6 +638,203 @@ namespace MicrohireAgentChat.Services
                                                 };
 
                                                 outputs.Add((toolCallId, JsonSerializer.Serialize(new { ui = new { images = new[] { img } } })));
+                                                break;
+                                            }
+
+                                        case "get_laptops":
+                                            {
+                                                using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(argsJson) ? "{}" : argsJson);
+                                                string laptopType = "all";
+                                                if (doc.RootElement.TryGetProperty("type", out var t) && t.ValueKind == JsonValueKind.String)
+                                                    laptopType = (t.GetString() ?? "all").ToLowerInvariant();
+
+                                                var inventoryService = new InventoryService(_bookings, _loggerFactory.CreateLogger<InventoryService>());
+                                                List<TblInvmas> laptops;
+
+                                                if (laptopType == "windows")
+                                                    laptops = await inventoryService.GetWindowsLaptopsAsync(ct);
+                                                else if (laptopType == "mac")
+                                                    laptops = await inventoryService.GetMacbooksAsync(ct);
+                                                else
+                                                    laptops = await inventoryService.GetAllLaptopsAsync(ct);
+
+                                                var items = new List<object>();
+                                                // Limit to top 10 most relevant laptops for better UX
+                                                foreach (var laptop in laptops.Take(10))
+                                                {
+                                                    var price = await inventoryService.GetProductPriceAsync(laptop.product_code ?? "", 0, ct);
+                                                    items.Add(new
+                                                    {
+                                                        product_code = laptop.product_code,
+                                                        name = laptop.descriptionv6 ?? laptop.PrintedDesc,
+                                                        description = laptop.descriptionv6 ?? laptop.PrintedDesc,
+                                                        category = laptop.category,
+                                                        price_per_day = price,
+                                                        imageUrl = ProductImageUrl(laptop.PictureFileName),
+                                                        display_name = $"{laptop.descriptionv6 ?? laptop.PrintedDesc} ({laptop.product_code})"
+                                                    });
+                                                }
+
+                                                var message = laptopType == "windows" ? "Windows Laptops (PC)" : 
+                                                             laptopType == "mac" ? "Apple Macbook Pro Laptops" : 
+                                                             "All Available Laptops";
+
+                                                outputs.Add((toolCallId, JsonSerializer.Serialize(new { 
+                                                    items, 
+                                                    count = items.Count,
+                                                    message,
+                                                    note = "When recommending, always mention the product code (e.g., MBALPHAS, DELL3580) so it can be tracked in the booking."
+                                                })));
+                                                break;
+                                            }
+
+                                        case "search_equipment":
+                                            {
+                                                using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(argsJson) ? "{}" : argsJson);
+                                                string query = "";
+                                                string? category = null;
+
+                                                if (doc.RootElement.TryGetProperty("query", out var q) && q.ValueKind == JsonValueKind.String)
+                                                    query = q.GetString() ?? "";
+                                                if (doc.RootElement.TryGetProperty("category", out var c) && c.ValueKind == JsonValueKind.String)
+                                                    category = c.GetString();
+
+                                                var inventoryService = new InventoryService(_bookings, _loggerFactory.CreateLogger<InventoryService>());
+                                                var products = await inventoryService.SearchProductsAsync(query, ct);
+
+                                                // Filter by category if specified
+                                                if (!string.IsNullOrWhiteSpace(category))
+                                                {
+                                                    var categoryCodes = await _bookings.TblCategories.AsNoTracking()
+                                                        .Where(cat => cat.CategoryCode == category || cat.ParentCategoryCode == category)
+                                                        .Select(cat => cat.CategoryCode)
+                                                        .ToListAsync(ct);
+                                                    products = products.Where(p => categoryCodes.Contains(p.category ?? "")).ToList();
+                                                }
+
+                                                var items = new List<object>();
+                                                foreach (var prod in products)
+                                                {
+                                                    var price = await inventoryService.GetProductPriceAsync(prod.product_code ?? "", 0, ct);
+                                                    var isPackage = await inventoryService.IsPackageAsync(prod.product_code ?? "", ct);
+                                                    items.Add(new
+                                                    {
+                                                        product_code = prod.product_code,
+                                                        description = prod.descriptionv6 ?? prod.PrintedDesc,
+                                                        category = prod.category,
+                                                        price_per_day = price,
+                                                        is_package = isPackage,
+                                                        imageUrl = ProductImageUrl(prod.PictureFileName)
+                                                    });
+                                                }
+
+                                                outputs.Add((toolCallId, JsonSerializer.Serialize(new { items, count = items.Count, query })));
+                                                break;
+                                            }
+
+                                        case "get_equipment_by_category":
+                                            {
+                                                using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(argsJson) ? "{}" : argsJson);
+                                                string categoryCode = "";
+
+                                                if (doc.RootElement.TryGetProperty("category", out var c) && c.ValueKind == JsonValueKind.String)
+                                                    categoryCode = c.GetString() ?? "";
+
+                                                var inventoryService = new InventoryService(_bookings, _loggerFactory.CreateLogger<InventoryService>());
+                                                var products = await inventoryService.GetProductsByCategoryAsync(categoryCode, ct);
+
+                                                var items = new List<object>();
+                                                foreach (var prod in products)
+                                                {
+                                                    var price = await inventoryService.GetProductPriceAsync(prod.product_code ?? "", 0, ct);
+                                                    var isPackage = await inventoryService.IsPackageAsync(prod.product_code ?? "", ct);
+                                                    items.Add(new
+                                                    {
+                                                        product_code = prod.product_code,
+                                                        description = prod.descriptionv6 ?? prod.PrintedDesc,
+                                                        category = prod.category,
+                                                        price_per_day = price,
+                                                        is_package = isPackage,
+                                                        imageUrl = ProductImageUrl(prod.PictureFileName)
+                                                    });
+                                                }
+
+                                                outputs.Add((toolCallId, JsonSerializer.Serialize(new { items, count = items.Count, category = categoryCode })));
+                                                break;
+                                            }
+
+                                        case "get_product_details":
+                                            {
+                                                using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(argsJson) ? "{}" : argsJson);
+                                                string productCode = "";
+
+                                                if (doc.RootElement.TryGetProperty("product_code", out var pc) && pc.ValueKind == JsonValueKind.String)
+                                                    productCode = pc.GetString() ?? "";
+
+                                                var inventoryService = new InventoryService(_bookings, _loggerFactory.CreateLogger<InventoryService>());
+                                                var product = await inventoryService.GetProductByCodeAsync(productCode, ct);
+
+                                                if (product == null)
+                                                {
+                                                    outputs.Add((toolCallId, JsonSerializer.Serialize(new { error = "Product not found" })));
+                                                    break;
+                                                }
+
+                                                var price = await inventoryService.GetProductPriceAsync(productCode, 0, ct);
+                                                var isPackage = await inventoryService.IsPackageAsync(productCode, ct);
+
+                                                var result = new
+                                                {
+                                                    product_code = product.product_code,
+                                                    description = product.descriptionv6 ?? product.PrintedDesc,
+                                                    printed_desc = product.PrintedDesc,
+                                                    category = product.category,
+                                                    price_per_day = price,
+                                                    is_package = isPackage,
+                                                    imageUrl = ProductImageUrl(product.PictureFileName)
+                                                };
+
+                                                outputs.Add((toolCallId, JsonSerializer.Serialize(result)));
+                                                break;
+                                            }
+
+                                        case "check_package_components":
+                                            {
+                                                using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(argsJson) ? "{}" : argsJson);
+                                                string productCode = "";
+
+                                                if (doc.RootElement.TryGetProperty("product_code", out var pc) && pc.ValueKind == JsonValueKind.String)
+                                                    productCode = pc.GetString() ?? "";
+
+                                                var inventoryService = new InventoryService(_bookings, _loggerFactory.CreateLogger<InventoryService>());
+                                                var isPackage = await inventoryService.IsPackageAsync(productCode, ct);
+
+                                                if (!isPackage)
+                                                {
+                                                    outputs.Add((toolCallId, JsonSerializer.Serialize(new { is_package = false, components = new object[0] })));
+                                                    break;
+                                                }
+
+                                                var components = await inventoryService.ResolvePackageRecursiveAsync(productCode, 1.0, ct);
+                                                var items = new List<object>();
+
+                                                foreach (var (compCode, qty) in components)
+                                                {
+                                                    var compProduct = await inventoryService.GetProductByCodeAsync(compCode, ct);
+                                                    if (compProduct != null)
+                                                    {
+                                                        var price = await inventoryService.GetProductPriceAsync(compCode, 0, ct);
+                                                        items.Add(new
+                                                        {
+                                                            product_code = compCode,
+                                                            description = compProduct.descriptionv6 ?? compProduct.PrintedDesc,
+                                                            quantity = qty,
+                                                            price_per_day = price
+                                                        });
+                                                    }
+                                                }
+
+                                                outputs.Add((toolCallId, JsonSerializer.Serialize(new { is_package = true, components = items, total_components = items.Count })));
                                                 break;
                                             }
 
@@ -3635,45 +3838,92 @@ public async Task<decimal?> UpsertOrganisationAsync(
                     wanted[norm] = (qty, cmt);
             }
 
-            // ---------- LAPTOP PACKAGE (PCLPRO) + COMPONENTS METADATA ----------
+            // ---------- LAPTOP DETECTION ----------
             if (hasLaptops)
             {
-                // Load components for PCLPRO so we can ensure they exist in tblInvmas.
-                var comps = await db.VwProdsComponents
-                    .AsNoTracking()
-                    .Where(v => v.ParentCode == "PCLPRO" && (v.VariablePart == null || v.VariablePart == 0))
-                    .ToListAsync(ct);
-
-                if (comps.Count > 0)
+                // Try to extract specific laptop codes mentioned in the conversation
+                var mentionedLaptops = new List<string>();
+                
+                // Search for specific laptop product codes in the conversation
+                var laptopKeywords = new[] {
+                    "MBALPHAS", "MBALPHAX", "DELL3580", "DELLG15", 
+                    "PCL-PRO", "PCLPRO", "PCLP-L1", "PCLP-L2", "PCLP-L3",
+                    "13MBP", "15MBP", "16MBP", "QLABMAC",
+                    "Metabox Alpha-S", "Metabox Alpha", "Dell G15", "Dell Precision",
+                    "Macbook Pro 13", "Macbook Pro 15", "Macbook Pro 16"
+                };
+                
+                var normalizedRaw = Norm(raw);
+                foreach (var keyword in laptopKeywords)
                 {
-                    // Ensure all components exist in tblInvmas (for grouping, pictures, etc.)
-                    var compCodes = comps.Select(c => c.ProductCode).ToList();
-                    var existingCodes = new HashSet<string>(
-                        await db.TblInvmas.AsNoTracking()
-                            .Where(m => compCodes.Contains(m.product_code))
-                            .Select(m => m.product_code)
-                            .ToListAsync(ct),
-                        StringComparer.OrdinalIgnoreCase);
-
-                    foreach (var c in comps)
+                    if (normalizedRaw.Contains(Norm(keyword)))
                     {
-                        if (!existingCodes.Contains(c.ProductCode))
+                        // Map friendly names to product codes
+                        var code = keyword switch
                         {
-                            db.TblInvmas.Add(new TblInvmas
-                            {
-                                product_code = c.ProductCode,
-                                groupFld = "LAPTOP"
-                            });
+                            "Metabox Alpha-S" or "Metabox Alpha" => "MBALPHAS",
+                            "Dell G15" => "DELLG15",
+                            "Dell Precision" => "DELL3580",
+                            "Macbook Pro 13" => "13MBPPL1",
+                            "Macbook Pro 15" => "15MBPPL1",
+                            "Macbook Pro 16" => "16MBPM3",
+                            _ => keyword
+                        };
+                        
+                        if (!mentionedLaptops.Contains(code.ToUpperInvariant()))
+                        {
+                            mentionedLaptops.Add(code.ToUpperInvariant());
                         }
                     }
-                    await db.SaveChangesAsync(ct);
                 }
-
-                // Add the **package** itself to the wanted list;
-                // components will be expanded later when we persist.
-                if (laptopsCount > 0)
+                
+                // If specific laptops were mentioned, use those; otherwise use the package
+                if (mentionedLaptops.Count > 0)
                 {
-                    AddWanted("PCLPRO", laptopsCount, null);
+                    // Add each mentioned laptop individually
+                    foreach (var laptopCode in mentionedLaptops)
+                    {
+                        AddWanted(laptopCode, laptopsCount, null);
+                    }
+                }
+                else
+                {
+                    // Fallback: Use PCLPRO package and load its components
+                    var comps = await db.VwProdsComponents
+                        .AsNoTracking()
+                        .Where(v => v.ParentCode == "PCLPRO" && (v.VariablePart == null || v.VariablePart == 0))
+                        .ToListAsync(ct);
+
+                    if (comps.Count > 0)
+                    {
+                        // Ensure all components exist in tblInvmas
+                        var compCodes = comps.Select(c => c.ProductCode).ToList();
+                        var existingCodes = new HashSet<string>(
+                            await db.TblInvmas.AsNoTracking()
+                                .Where(m => compCodes.Contains(m.product_code))
+                                .Select(m => m.product_code)
+                                .ToListAsync(ct),
+                            StringComparer.OrdinalIgnoreCase);
+
+                        foreach (var c in comps)
+                        {
+                            if (!existingCodes.Contains(c.ProductCode))
+                            {
+                                db.TblInvmas.Add(new TblInvmas
+                                {
+                                    product_code = c.ProductCode,
+                                    groupFld = "LAPTOP"
+                                });
+                            }
+                        }
+                        await db.SaveChangesAsync(ct);
+                    }
+
+                    // Add the package itself
+                    if (laptopsCount > 0)
+                    {
+                        AddWanted("PCLPRO", laptopsCount, null);
+                    }
                 }
             }
 

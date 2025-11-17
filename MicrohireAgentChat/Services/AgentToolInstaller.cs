@@ -106,7 +106,54 @@ public sealed class AgentToolInstaller : IHostedService
                 }),
 
             FunctionTool("send_internal_followup", "Notify sales to follow up",
-                new { type = "object", properties = new { }, additionalProperties = false })
+                new { type = "object", properties = new { }, additionalProperties = false }),
+
+            // NEW: Inventory/Equipment tools
+            FunctionTool("get_laptops", "Get available laptop inventory (Windows or Mac)",
+                new {
+                    type = "object",
+                    properties = new {
+                        type = new { type = "string", description = "Laptop type to retrieve (windows, mac, or all)" }
+                    },
+                    additionalProperties = false
+                }),
+
+            FunctionTool("search_equipment", "Search for equipment/products by name or description",
+                new {
+                    type = "object",
+                    properties = new {
+                        query = new { type = "string", description = "Search term (e.g., 'microphone', 'projector', 'laptop')" },
+                        category = new { type = "string", description = "Optional category filter (e.g., 'LAPTOP', 'MACBOOK', 'NETWORK')" }
+                    },
+                    required = new[] { "query" }
+                }),
+
+            FunctionTool("get_equipment_by_category", "Get all equipment in a specific category",
+                new {
+                    type = "object",
+                    properties = new {
+                        category = new { type = "string", description = "Category code (e.g., 'LAPTOP', 'MACBOOK', 'IPAD', 'NETWORK', 'PRINTER')" }
+                    },
+                    required = new[] { "category" }
+                }),
+
+            FunctionTool("get_product_details", "Get detailed information about a specific product including pricing",
+                new {
+                    type = "object",
+                    properties = new {
+                        product_code = new { type = "string", description = "Product code to look up" }
+                    },
+                    required = new[] { "product_code" }
+                }),
+
+            FunctionTool("check_package_components", "Check if a product is a package and get its components",
+                new {
+                    type = "object",
+                    properties = new {
+                        product_code = new { type = "string", description = "Package product code" }
+                    },
+                    required = new[] { "product_code" }
+                })
         };
 
         var body = new { tools };

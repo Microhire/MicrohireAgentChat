@@ -7,7 +7,7 @@
 		<OutputType>Exe</OutputType>
 
 		<!-- Toggle this if you want to skip install on build -->
-		<PlaywrightInstallOnBuild>true</PlaywrightInstallOnBuild>
+		<PlaywrightInstallOnBuild>false</PlaywrightInstallOnBuild>
 
 		<!-- Try to locate the tool manifest whether you build from sln or proj -->
 		<DotNetToolsDir Condition="'$(SolutionDir)' != ''">$(SolutionDir)</DotNetToolsDir>
@@ -59,7 +59,7 @@
 	</Target>
 
 	<!-- Try CLI first -->
-	<Target Name="PlaywrightInstallOnBuildTarget" AfterTargets="Build" DependsOnTargets="PlaywrightToolRestore" Condition="'$(PlaywrightInstallOnBuild)'=='true'">
+	<Target Name="PlaywrightInstallOnBuildTarget" AfterTargets="Build" Condition="'$(PlaywrightInstallOnBuild)'=='true'">
 		<Exec Command="dotnet tool run playwright install" WorkingDirectory="$(DotNetToolsDir)" ContinueOnError="true">
 			<Output TaskParameter="ExitCode" PropertyName="PlaywrightExitCode" />
 		</Exec>

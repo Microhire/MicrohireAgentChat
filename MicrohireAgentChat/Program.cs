@@ -45,6 +45,7 @@ builder.Services.AddDbContext<BookingDbContext>(opt =>
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AzureAgentChatService>();
 builder.Services.AddScoped<BookingService>();
+builder.Services.AddScoped<InventoryService>();
 builder.Services.AddHostedService<AgentToolInstaller>();
 builder.Services.AddSingleton<PdfStamperService>();
 builder.Services.AddSingleton<PdfFromBlankService>();
