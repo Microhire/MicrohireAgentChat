@@ -1,0 +1,70 @@
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService AuthorizationService
+@model QuoteAllFields
+
+@{
+    Layout = "_LayoutQuote";
+    ViewData["Title"] = $"Overview";
+    ViewBag.Page = 2;
+}
+<div class="m-2">
+    <p>@Model.ContactName</p>
+    <p>@Model.Location</p>
+    <br>
+    <p class="mb-4">@Model.Address</p>
+
+    <p>Dear @Model.ContactName,</p>
+    <br>
+    <p class="text-justify">Thank you for the opportunity to present our audio-visual production services for your upcoming event at @Model.Location. 
+    We are pleased to provide our proposal in the following pages, based on the information we have received
+    and our recommendations for a seamless and successful event. Our team are committed to achieving your event
+    objectives and welcome the opportunity to discuss your requirements and any budget parameters in further detail. If
+    you have any questions or need further information, please do not hesitate to contact me on the details below. Thank
+    you again and we look forward to speaking to you soon.</p>
+
+    <div class="mt-5">
+        <div class="row">
+            <div class="col-4 quote-header">Location</div>
+            <div class="col-8">@Model.Location</div>
+
+            <div class="col-4 quote-header">Address</div>
+            <div class="col-8">@Model.Address</div>
+
+            <div class="col-4 quote-header">Room</div>
+            <div class="col-8">@Model.Room</div>
+
+            <div class="col-4 quote-header">Date</div>
+            <div class="col-8">@Model.DateRange</div>
+            <br>
+
+            <div class="col-4 quote-header">Event Account Manager</div>
+            <div class="col-8">@Model.AccountMgrName</div>
+
+            <div class="col-4 quote-header">Mobile Number</div>
+            <div class="col-8">@Model.AccountMgrMobile</div>
+
+            <div class="col-4 quote-header">Email</div>
+            <div class="col-8">@Model.AccountMgrEmail</div>
+            <br>
+            <p><i>Please confirm the following dates and times are accurate</i></p>
+            <br>
+
+            <div class="col-4 quote-header">Setup</div>
+            <div class="col-4">@Model.SetupDate</div>
+            <div class="col-4">@Model.SetupTime</div>
+
+            <div class="col-4 quote-header">Reheasal</div>
+            <div class="col-4">@Model.RehearsalDate</div>
+            <div class="col-4">@Model.RehearsalTime</div>
+
+            <div class="col-4 quote-header">Event Start</div>
+            <div class="col-4">@Model.EventStartDate</div>
+            <div class="col-4">@Model.EventStartTime</div>
+
+            <div class="col-4 quote-header">Event End</div>
+            <div class="col-4">@Model.EventEndDate</div>
+            <div class="col-4">@Model.EventEndTime</div>
+
+        </div>
+    </div>
+</div>

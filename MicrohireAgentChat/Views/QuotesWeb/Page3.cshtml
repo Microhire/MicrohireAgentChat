@@ -1,0 +1,55 @@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Web
+@inject IAuthorizationService AuthorizationService
+@model QuoteAllFields
+
+@{
+    Layout = "_LayoutQuote";
+    ViewData["Title"] = $"EQUIPMENT & SERVICES";
+    ViewBag.Page = 3;
+}
+<div class="m-5 mt-2">
+    <table class="table td-no-border">
+        <thead>
+            <tr>
+                <th scope="col" class="">Description</th>
+                <th scope="col" >Qty.</th>
+                <th scope="col" ></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="fw-bold" colspan="3">@Model.RoomNoteHeader</td>
+            </tr>
+            <tr>
+                <td class="italic" colspan="3">@Model.RoomNoteStarts</td>
+            </tr>
+            <tr>
+                <td class="italic" colspan="3">@Model.RoomNoteEnds</td>
+            </tr>
+            <tr class=""></tr>
+            <tr>
+                <td class="fw-bold">@Model.RoomNoteHeader Total</td>
+                <td class="fw-bold">@Model.RoomNoteTotal</td>
+                <td></td>
+            </tr>
+
+            <tr class="" style="height:50px"></tr>
+            <tr>
+                <td class="fw-bold" colspan="3">Vision</td>
+            </tr>
+            @if(Model.VisionRows != null)
+            foreach (var data in Model.VisionRows)
+            {
+                <tr>
+                    <td class="italic">@data.Description</td>
+                    <td colspan="2">@data?.Qty</td>
+                </tr>
+            }
+            <tr>
+                <td class="fw-bold" colspan="2">Vision Total</td>
+                <td class="fw-bold">@(Model.VisionTotal)</td>
+            </tr>
+        </tbody>
+    </table>
+</div>

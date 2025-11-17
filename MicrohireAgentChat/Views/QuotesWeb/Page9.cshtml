@@ -1,0 +1,68 @@
+@using Microsoft.AspNetCore.Authorization
+@using iText.Forms.Xfdf
+@inject IAuthorizationService AuthorizationService
+@model QuoteAllFields
+
+@{
+    Layout = "_LayoutQuote";
+    ViewData["Title"] = $"BUDGET SUMMARY";
+    ViewBag.Page = 9;
+}
+<div class="m-2">
+    <table class="table td-no-border w-50">
+        <tbody>
+            <tr>
+                <td >Rental Equipment</td>
+                <td style="text-align: right;">@Model.RentalTotal</td>
+            </tr>
+    
+            <tr>
+                <td >Labour</td>
+                <td style="text-align: right;">@Model.LabourTotal</td>
+            </tr>
+    
+            <tr>
+                <td >Service Charge</td>
+                <td style="text-align: right;">@Model.ServiceCharge</td>
+            </tr>
+            <tr>
+                <td ></td>
+                <td ><hr class="hr-dash"/></td>
+            </tr>
+            <tr>
+                <td >Sub Total (ex GST)</td>
+                <td style="text-align: right;">@Model.SubTotalExGst</td>
+            </tr>
+    
+            <tr>
+                <td >GST</td>
+                <td style="text-align: right;">@Model.Gst</td>
+            </tr>
+            <tr>
+                <td ></td>
+                <td ><hr class="hr-dash"/></td>
+            </tr>
+            <tr>
+                <td >Total</td>
+                <td style="text-align: right;">@Model.GrandTotalIncGst</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <br>
+    <p class="text-justify">@Model.BudgetNotesTopLine.</p>
+    <p class="text-justify">@Model.BudgetValidityLine.</p>
+    <p class="text-justify">@Model.BudgetConfirmLine.</p>
+    <p class="text-justify">@Model.BudgetContactLine.</p>
+    <p class="text-justify">@Model.BudgetSignoffLine.</p>
+
+    <div class="mt-5">
+        <p>@Model.AccountMgrName <span>Event Staging Manager</span></p>
+        <p><strong>Microhire | @Model.Location</strong></p>
+        <p>@Model.Address</p>
+        <p><span class="initial-contact">M</span> <a href="tel:@Model.AccountMgrMobile">@Model.AccountMgrMobile</a></p>
+        <p><span class="initial-contact">T</span></p>
+        <p><span class="initial-contact">E</span> <a href="mailto:@Model.AccountMgrEmail">@Model.AccountMgrEmail</a></p>
+
+    </div>
+</div>

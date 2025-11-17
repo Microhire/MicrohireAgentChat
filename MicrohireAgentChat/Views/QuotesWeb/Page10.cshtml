@@ -1,0 +1,78 @@
+@using Microsoft.AspNetCore.Authorization
+@using iText.Forms.Xfdf
+@inject IAuthorizationService AuthorizationService
+@model QuoteAllFields
+
+@{
+    Layout = "_LayoutQuote";
+    ViewData["Title"] = $"CONFIRMATION OF SERVICES";
+    ViewBag.Page = 10;
+
+    @* var role = UserClaimsHelper.Role(User);
+    var isEditAble = role == UserRole.STAFF || role == UserRole.ADMIN; *@
+    var isStaff = false;
+}
+<div class="m-2">
+    <p class="text-justify">@Model.BudgetNotesTopLine.</p>
+    <p class="text-justify">@Model.BudgetValidityLine.</p>
+    <p class="text-justify">@Model.BudgetConfirmLine.</p>
+    <p class="text-justify">@Model.BudgetContactLine.</p>
+    <p class="text-justify">@Model.BudgetSignoffLine.</p>
+    <br>
+
+    <div class="m-2">
+        <div class="form-group">
+            <label style="width: 200px;">Reference Number</label>
+            <span>@Model.Reference</span>
+        </div>
+        <div class="form-group">
+            <label style="width: 200px;">Total Quotation</label>
+            <span>@Model.GrandTotalIncGst inc GST</span>
+        </div>
+    </div>
+    @if(isStaff){
+        <div class="m-2">
+            @* <p>STATUS: @(Model?.IsApprove == true?"Client Approved":"Pending Client Approval.") </p>
+            @if(!string.IsNullOrEmpty(Model?.Feedback)){
+                <p>Client Comments : </p>
+                <p>@Html.Raw(Model?.Feedback)</p>
+            } *@
+        </div>
+    }else{
+        @* var isUserApprove = Model?.Status == YourStrategyStatusConstant.Approved; *@
+        var isUserApprove = false;
+        <div class="m-2">
+            <div class="form-group">
+                <label style="width: 200px;">Full Name</label>
+                <input class="form-input" name="Name"/>
+            </div>
+            <div class="form-group">
+                <label style="width: 200px;">Title</label>
+                <input class="form-input" name="Title"/>
+            </div>
+            @* <div class="form-group">
+                <label style="width: 200px;">Signature</label>
+                <input class="form-input" name="Signature"/>
+            </div> *@
+            <div class="form-group">
+                <label style="width: 200px;">Date</label>
+                <input type="date" class="form-input" name="Date"/>
+            </div>
+            <div class="form-group">
+                <label style="width: 200px;">Purchase Order</label>
+                <input class="form-input" name="Order"/>
+            </div>
+
+            @if(!isUserApprove){
+                <div class="text-end d-flex gap-2">
+                    <button type="button" id="submitfeedback" class="btn btn-rectangle">
+                        Submit
+                    </button>
+                    @* <button type="button" id="submitApprovefeedback" class="btn btn-rectangle">
+                        Approve
+                    </button> *@
+                </div>
+            }
+        </div>
+    }
+</div>

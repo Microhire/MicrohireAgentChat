@@ -1,0 +1,38 @@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Web
+@inject IAuthorizationService AuthorizationService
+@model QuoteAllFields
+
+@{
+    Layout = "_LayoutQuote";
+    ViewData["Title"] = $"EQUIPMENT & SERVICES";
+    ViewBag.Page = 5;
+}
+<div class="m-5 mt-2">
+    <table class="table td-no-border">
+        <thead>
+            <tr>
+                <th scope="col" class="">Description</th>
+                <th scope="col" >Qty.</th>
+                <th scope="col" ></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="fw-bold" colspan="3">Lighting</td>
+            </tr>
+            @if(Model.LightingRows != null)
+            foreach (var data in Model.LightingRows)
+            {
+                <tr>
+                    <td class="italic">@data.Description</td>
+                    <td colspan="2">@data?.Qty</td>
+                </tr>
+            }
+            <tr>
+                <td class="fw-bold" colspan="2">Lighting Total</td>
+                <td class="fw-bold">@(Model.LightingTotal)</td>
+            </tr>
+        </tbody>
+    </table>
+</div>

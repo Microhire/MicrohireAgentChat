@@ -1,0 +1,38 @@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Web
+@inject IAuthorizationService AuthorizationService
+@model QuoteAllFields
+
+@{
+    Layout = "_LayoutQuote";
+    ViewData["Title"] = $"EQUIPMENT & SERVICES";
+    ViewBag.Page = 4;
+}
+<div class="m-5 mt-2">
+    <table class="table td-no-border">
+        <thead>
+            <tr>
+                <th scope="col" class="">Description</th>
+                <th scope="col" >Qty.</th>
+                <th scope="col" ></th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td class="fw-bold" colspan="3">Audio</td>
+            </tr>
+            @if(Model.AudioRows != null)
+            foreach (var data in Model.AudioRows)
+            {
+                <tr>
+                    <td class="italic">@data.Description</td>
+                    <td colspan="2">@data?.Qty</td>
+                </tr>
+            }
+            <tr>
+                <td class="fw-bold" colspan="2">Audio Total</td>
+                <td class="fw-bold">@(Model.AudioTotal)</td>
+            </tr>
+        </tbody>
+    </table>
+</div>

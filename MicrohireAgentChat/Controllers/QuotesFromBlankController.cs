@@ -125,7 +125,18 @@ public class QuotesFromBlankController : Controller
             ConfirmP2: "Upon request, any additions or amendments will be updated to this proposal accordingly.",
             ConfirmP3: "We understand that equipment and personnel are not allocated until this document is signed and returned.",
             ConfirmP4: "This proposal and billing details are subject to Microhire’s terms and conditions.",
-            ConfirmTermsUrl: "https://www.microhire.com.au/terms-conditions/"
+            ConfirmTermsUrl: "https://www.microhire.com.au/terms-conditions/",
+
+
+            LightingRows: new List<EquipmentRow> {
+            },
+            LightingTotal: "$619.10",
+            RecordingRows: new List<EquipmentRow> {
+            },
+            RecordingTotal: "$619.10",
+            DrapeRows: new List<EquipmentRow> {
+            },
+            DrapeTotal: "$619.10"
         );
 
         var (name, _) = _svc.Generate(fields);

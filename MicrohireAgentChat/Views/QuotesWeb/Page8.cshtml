@@ -1,0 +1,44 @@
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Web
+@inject IAuthorizationService AuthorizationService
+@model QuoteAllFields
+
+@{
+    Layout = "_LayoutQuote";
+    ViewData["Title"] = $"TECHNICAL SERVICES";
+    ViewBag.Page = 8;
+}
+<div class="m-5 mt-2">
+    <table class="table td-no-border">
+        <thead>
+            <tr>
+                <th scope="col" class="">Description</th>
+                <th scope="col" >Task</th>
+                <th scope="col" >Qty.</th>
+                <th scope="col" >Start Date/Time</th>
+                <th scope="col" >Finish</th>
+                <th scope="col" >Hrs</th>
+                <th scope="col" >Total ($)</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if(Model.LabourRows != null)
+            foreach (var data in Model.LabourRows)
+            {
+                <tr>
+                    <td >@data.Description</td>
+                    <td >@data.Task</td>
+                    <td >@data.Qty</td>
+                    <td >@data.Start</td>
+                    <td >@data.Finish</td>
+                    <td >@data.Hrs</td>
+                    <td >@data.Total</td>
+                </tr>
+            }
+            <tr>
+                <td class="fw-bold" colspan="6" style="text-align: right;">Labour Total</td>
+                <td class="fw-bold">@(Model.LabourTotal)</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
