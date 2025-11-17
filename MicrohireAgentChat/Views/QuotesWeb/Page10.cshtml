@@ -1,122 +1,78 @@
-@* @using InvestorPartner.Group.Ui.Constants
-@using InvestorPartner.Group.Ui.Helpers
-@using InvestorPartner.Group.Ui.Models
-@model YourStrategyTypeModel;
-
 @using Microsoft.AspNetCore.Authorization
+@using iText.Forms.Xfdf
 @inject IAuthorizationService AuthorizationService
+@model QuoteAllFields
 
 @{
     Layout = "_LayoutQuote";
-    ViewData["Title"] = $"{Model?.Type} Report";
-    ViewBag.Page = 5;
-    
-    var role = UserClaimsHelper.Role(User);
-    var isEditAble = role == UserRole.STAFF || role == UserRole.ADMIN;
+    ViewData["Title"] = $"CONFIRMATION OF SERVICES";
+    ViewBag.Page = 10;
+
+    @* var role = UserClaimsHelper.Role(User);
+    var isEditAble = role == UserRole.STAFF || role == UserRole.ADMIN; *@
+    var isStaff = false;
 }
+<div class="m-2">
+    <p class="text-justify">@Model.BudgetNotesTopLine.</p>
+    <p class="text-justify">@Model.BudgetValidityLine.</p>
+    <p class="text-justify">@Model.BudgetConfirmLine.</p>
+    <p class="text-justify">@Model.BudgetContactLine.</p>
+    <p class="text-justify">@Model.BudgetSignoffLine.</p>
+    <br>
 
-@await Html.PartialAsync("YourStrategy/TvaHeader")
-
-<div class="spacer"></div>
-<div class="m-5">
-    <h4 class="fw-bold ps-5">Disclaimer</h4>
-    <div class="div-disclaimer my-5 mx-2">
-        The information set out in this report has been prepared using information derived from a variety of internal and external sources and may be based on assumptions. IP Group does not warrant the accuracy or completeness of any of the information and does not accept any legal liability or responsibility for injury, loss or damage incurred using, or reliance on, or interpretation of the information contained herein. To the extent that this report includes any statement or figure as to a future matter, that statement or figure is provided as an estimate and/or opinion based upon the information known to IP Group at the date of preparing this report and assumptions which may be incorrect. The recipient accepts this report on the condition that they will make their own enquiries, advice, assessment and investigations about the matters contained in the document and make any additional enquiries or investigations it deems necessary or appropriate in order to verify the accuracy and completeness of the information presented in this document. 
+    <div class="m-2">
+        <div class="form-group">
+            <label style="width: 200px;">Reference Number</label>
+            <span>@Model.Reference</span>
+        </div>
+        <div class="form-group">
+            <label style="width: 200px;">Total Quotation</label>
+            <span>@Model.GrandTotalIncGst inc GST</span>
+        </div>
     </div>
-    <h5 class="text-center fw-bold text-dark-gray mt-5">END OF THE REPORT </h5>
-</div>
-
-<div>
-    @if(isEditAble){
-        <div class="container p-4 mt-4">
-            <p>STATUS: @(Model?.IsApprove == true?"Client Approved":"Pending Client Approval.") </p>
+    @if(isStaff){
+        <div class="m-2">
+            @* <p>STATUS: @(Model?.IsApprove == true?"Client Approved":"Pending Client Approval.") </p>
             @if(!string.IsNullOrEmpty(Model?.Feedback)){
                 <p>Client Comments : </p>
                 <p>@Html.Raw(Model?.Feedback)</p>
-            }
+            } *@
         </div>
     }else{
-        var isUserApprove = Model?.Status == YourStrategyStatusConstant.Approved;
-        <div class="container p-4 mt-4 bg-white">
-            <div class="form-group form-check mb-3">
-                <input @(isUserApprove?"disabled":"") type="checkbox" class="form-check-input" id="isApprove" name="isApprove" value="true"  @(Model?.IsApprove == true?"checked":"")/>
-                <label class="form-check-label" for="isApprove">
-                    I have reviewed this strategy in detail and agree to the recommendations and information outlined above.
-                </label>
+        @* var isUserApprove = Model?.Status == YourStrategyStatusConstant.Approved; *@
+        var isUserApprove = false;
+        <div class="m-2">
+            <div class="form-group">
+                <label style="width: 200px;">Full Name</label>
+                <input class="form-input" name="Name"/>
             </div>
-            <div id="divComment" class="form-group mb-3" style="display:@(Model?.IsApprove == true?"none":"block");">
-                <label for="feedback" class="form-label">
-                    Additional Comments or Suggestions (optional)
-                </label>
-                <textarea @(isUserApprove?"disabled":"") class="form-control" id="feedback" name="feedback" rows="4" placeholder="Please share any feedback or questions you may have...">
-                    @Model?.Feedback
-                </textarea>
+            <div class="form-group">
+                <label style="width: 200px;">Title</label>
+                <input class="form-input" name="Title"/>
             </div>
+            @* <div class="form-group">
+                <label style="width: 200px;">Signature</label>
+                <input class="form-input" name="Signature"/>
+            </div> *@
+            <div class="form-group">
+                <label style="width: 200px;">Date</label>
+                <input type="date" class="form-input" name="Date"/>
+            </div>
+            <div class="form-group">
+                <label style="width: 200px;">Purchase Order</label>
+                <input class="form-input" name="Order"/>
+            </div>
+
             @if(!isUserApprove){
                 <div class="text-end d-flex gap-2">
                     <button type="button" id="submitfeedback" class="btn btn-rectangle">
                         Submit
                     </button>
-                    <button type="button" id="submitApprovefeedback" class="btn btn-rectangle">
+                    @* <button type="button" id="submitApprovefeedback" class="btn btn-rectangle">
                         Approve
-                    </button>
+                    </button> *@
                 </div>
             }
         </div>
     }
 </div>
-@section Scripts {    
-    <script src="~/lib/ckeditor/ckeditor.js"></script>
-    <script src="~/js/ckeditor.js"></script>
-    <script>
-        let length = @(Model?.Sections?.Count?? 0);
-        $(document).ready(function () {
-            document.querySelectorAll('textarea').forEach(function(element) {
-                initCKeditor(element);
-            });
-            
-            const submitYourStrategyFeedback = (changeStatus) => {
-                const isApprove = $("#isApprove").prop("checked");
-                const feedbackText = CKEDITOR.instances['feedback'].getData();
-                $.ajax({
-                    url: '/Strategy/UpdateYourStrategyFeedback',
-                    type: 'POST',
-                    data: {
-                        id: "@Model?.id",isApprove,feedback:feedbackText, changeStatus
-                    },
-                    success: function (data) {
-                        if(data?.success){
-                            if(isApprove){
-                                $("#divComment").hide();
-                                if(changeStatus){
-                                    $("#isApprove").prop("disabled", true)
-                                }
-                            }else{
-                                $("#divComment").show();
-                            }
-                            notyf.success("Save successfully");
-                        }else{
-                            notyf.error(data?.message);
-                        }
-                    },
-                    error: function (xhr, status, error) {
-                        console.error('Error:', error);
-                        notyf.error('An error occurred while deleting the document.');
-                    }
-                });
-            };
-            $(document).on('click', '#submitfeedback', function () {
-                submitYourStrategyFeedback(false)
-            });
-            $(document).on('click', '#submitApprovefeedback', function () {
-                const isApprove = $("#isApprove").prop("checked");
-                if(!isApprove){
-                    notyf.error("The approve must agree")
-                    return
-                }
-                submitYourStrategyFeedback(true)
-            });
-            
-        });
-    </script>
-} *@

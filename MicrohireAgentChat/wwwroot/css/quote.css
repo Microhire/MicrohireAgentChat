@@ -1,3 +1,6 @@
+p {
+  margin-bottom: 1em;
+}
 #quotelayout.view-only {
   background: #fff;
 }
@@ -479,4 +482,30 @@ span.BigStrategyTitleDisplay.strategyTitleDisplay {
 .table th {
   color: #9e1d20;
   border-bottom: 2px solid;
+}
+.initial-contact {
+  color: #9e1d20;
+  font-weight: bold;
+}
+.hr-dash {
+  border: 0;
+  height: 0;
+  border-top: 1px dashed var(--hr-color, #cfcfcf);
+  margin: 1.25rem 0;
+  opacity: 0.95;
+}
+.form-group {
+  margin-bottom: 1em;
+}
+.form-input {
+  border: 0;
+  border-bottom: 1px solid;
+  background: transparent;
+}
+
+.table.w-50 .table.td-no-border td:not(.header) {
+  padding: 2px;
+}
+.text-justify {
+  text-align: justify;
 }

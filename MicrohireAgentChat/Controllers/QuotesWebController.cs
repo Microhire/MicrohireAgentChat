@@ -58,7 +58,7 @@ public sealed class QuotesWebController : Controller
         }
         catch
         {
-            TempData["Error"] = "Strategy is not exists";
+            TempData["Error"] = "Quote is not exists";
             return RedirectToAction("Index", "Home");
         }
     }
@@ -75,7 +75,7 @@ public sealed class QuotesWebController : Controller
         }
         catch
         {
-            TempData["Error"] = "Strategy is not exists";
+            TempData["Error"] = "Quote is not exists";
             return RedirectToAction("Index", "Home");
         }
     }
@@ -91,7 +91,7 @@ public sealed class QuotesWebController : Controller
         }
         catch
         {
-            TempData["Error"] = "Strategy is not exists";
+            TempData["Error"] = "Quote is not exists";
             return RedirectToAction("Index", "Home");
         }
     }
@@ -109,7 +109,7 @@ public sealed class QuotesWebController : Controller
         }
         catch
         {
-            TempData["Error"] = "Strategy is not exists";
+            TempData["Error"] = "Quote is not exists";
             return RedirectToAction("Index", "Home");
         }
     }
@@ -121,14 +121,11 @@ public sealed class QuotesWebController : Controller
         try
         {
             var quote = await ViewbagQuoteReport(id, type, null, 0, false);
-
-            ViewBag.Id = id;
-            ViewBag.Type = type ?? "Tax";
             return View(quote);
         }
         catch
         {
-            TempData["Error"] = "Strategy is not exists";
+            TempData["Error"] = "Quote is not exists";
             return RedirectToAction("Index", "Home");
         }
     }
@@ -140,14 +137,11 @@ public sealed class QuotesWebController : Controller
         try
         {
             var quote = await ViewbagQuoteReport(id, type, null, 0, false);
-
-            ViewBag.Id = id;
-            ViewBag.Type = type ?? "Tax";
             return View(quote);
         }
         catch
         {
-            TempData["Error"] = "Strategy is not exists";
+            TempData["Error"] = "Quote is not exists";
             return RedirectToAction("Index", "Home");
         }
     }
@@ -159,14 +153,11 @@ public sealed class QuotesWebController : Controller
         try
         {
             var quote = await ViewbagQuoteReport(id, type, null, 0, false);
-
-            ViewBag.Id = id;
-            ViewBag.Type = type ?? "Tax";
             return View(quote);
         }
         catch
         {
-            TempData["Error"] = "Strategy is not exists";
+            TempData["Error"] = "Quote is not exists";
             return RedirectToAction("Index", "Home");
         }
     }
@@ -179,14 +170,11 @@ public sealed class QuotesWebController : Controller
         try
         {
             var quote = await ViewbagQuoteReport(id, type, null, 0, false);
-
-            ViewBag.Id = id;
-            ViewBag.Type = type ?? "Tax";
             return View(quote);
         }
         catch
         {
-            TempData["Error"] = "Strategy is not exists";
+            TempData["Error"] = "Quote is not exists";
             return RedirectToAction("Index", "Home");
         }
     }
@@ -199,14 +187,11 @@ public sealed class QuotesWebController : Controller
         try
         {
             var quote = await ViewbagQuoteReport(id, type, null, 0, false);
-
-            ViewBag.Id = id;
-            ViewBag.Type = type ?? "Tax";
             return View(quote);
         }
         catch
         {
-            TempData["Error"] = "Strategy is not exists";
+            TempData["Error"] = "Quote is not exists";
             return RedirectToAction("Index", "Home");
         }
     }
@@ -220,36 +205,15 @@ public sealed class QuotesWebController : Controller
         {
             var quote = await ViewbagQuoteReport(id, type, null, 0, false);
 
-            ViewBag.Id = id;
-            ViewBag.Type = type ?? "Tax";
             return View(quote);
         }
         catch
         {
-            TempData["Error"] = "Strategy is not exists";
+            TempData["Error"] = "Quote is not exists";
             return RedirectToAction("Index", "Home");
         }
     }
 
-    [HttpGet]
-    public async Task<IActionResult> Page11(int id, string type)
-    {
-        // Contract		
-
-        try
-        {
-            var quote = await ViewbagQuoteReport(id, type, null, 0, false);
-
-            ViewBag.Id = id;
-            ViewBag.Type = type ?? "Tax";
-            return View(quote);
-        }
-        catch
-        {
-            TempData["Error"] = "Strategy is not exists";
-            return RedirectToAction("Index", "Home");
-        }
-    }
        public async Task<QuoteAllFields?> ViewbagQuoteReport(int id, string type, int? skip, int? take, bool loadImage = false)
     {
         try
@@ -280,8 +244,8 @@ public sealed class QuotesWebController : Controller
                 ViewBag.SkippedPages = skippedPages;
             }
 
-            // ViewBag.YourStrategy = yourStrategy?.Sections;
-            // ViewBag.ContactId = yourStrategy?.ContactId;
+            // ViewBag.YourQuote = yourQuote?.Sections;
+            // ViewBag.ContactId = yourQuote?.ContactId;
             ViewBag.Id = quote?.Reference;
             // ViewBag.Type = type;
             ViewData["Name"] = quote?.EventTitle;
@@ -289,17 +253,17 @@ public sealed class QuotesWebController : Controller
         }
         catch
         {
-            TempData["Error"] = "Strategy is not exists";
+            TempData["Error"] = "Quote is not exists";
             return null;
         }
     }
     public async Task<QuoteAllFields?> GetCompileDataAsync(int id)
     {
         // var quote = await GetAsync(id);
-        // var yourStrategySegment = await GetSectionsAsync(yourStrategy?.id ?? id, 1, 100);
-        // if (yourStrategy is not null && yourStrategySegment?.Items is not null)
+        // var yourQuoteSegment = await GetSectionsAsync(yourQuote?.id ?? id, 1, 100);
+        // if (yourQuote is not null && yourQuoteSegment?.Items is not null)
         // {
-        //     yourStrategy.Sections = yourStrategySegment.Items.Where(x => x != null).ToList()!;
+        //     yourQuote.Sections = yourQuoteSegment.Items.Where(x => x != null).ToList()!;
         // }
 
 
