@@ -206,7 +206,7 @@ public sealed class ChatController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult>  SendPartial(string text, CancellationToken ct)
+    public async Task<IActionResult> SendPartial(string text, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(text)) return BadRequest("empty");
 
@@ -216,6 +216,7 @@ public sealed class ChatController : Controller
             await _chat.EnsureThreadIdPersistedAsync(HttpContext.Session, userKey, ct);
 
             text = text.Trim();
+            var rawUserTextForContact = text;   // keep original text for contact parsing
 
             if (TryCaptureTimeSelection(text, out var start, out var end))
             {
@@ -248,8 +249,17 @@ public sealed class ChatController : Controller
 
             var msgList = messages is List<DisplayMessage> ml ? ml : messages.ToList();
 
-            // NEW: upsert contact immediately (captures email/position early)
+            // ---------- CONTACT UPSERT (only once per thread) ----------
+
             decimal? contactId = await TrySaveContactAsync(msgList, ct);
+
+            if (contactId.HasValue)
+            {
+                HttpContext.Session.SetString(
+                    "Draft:ContactId",
+                    contactId.Value.ToString(CultureInfo.InvariantCulture));
+            }
+
 
             // if booking already exists, persist FULL transcript now
             var bookingNoAtStart = HttpContext.Session.GetString("Draft:BookingNo");
@@ -339,6 +349,7 @@ public sealed class ChatController : Controller
             return Content(ex.Message);
         }
     }
+
 
 
     private static string ComputeSummaryKey(IReadOnlyList<DisplayMessage> messages, int lookback = 6)
@@ -705,158 +716,129 @@ public sealed class ChatController : Controller
         var dummy = DateTime.Today.Add(ts.Value);
         return dummy.ToString("h:mm tt", CultureInfo.InvariantCulture);
     }
-    // Accept common roles, reject schedule/quote-ish text
-    private static bool LooksLikeJobTitle(string? s)
-    {
-        if (string.IsNullOrWhiteSpace(s)) return false;
-        var t = Regex.Replace(s, @"\s+", " ").Trim().ToLowerInvariant();
-
-        // obvious non-titles
-        string[] bad = { "schedule", "confirm", "choose", "address", "date", "time", "start", "end", "pack", "quote", "booking", "order" };
-        if (bad.Any(b => t.Contains(b))) return false;
-
-        // 1–4 words, letters and a few separators
-        var words = t.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (words.Length == 0 || words.Length > 4) return false;
-        if (words.Any(w => !Regex.IsMatch(w, @"^[a-z][a-z\.'\-/,]*$"))) return false;
-
-        // at least one “role” hint
-        string[] hints = {
-        "manager","lead","leader","director","head","owner","founder","ceo","coo","cto","cmo","cfo",
-        "admin","assistant","coordinator","planner","producer","engineer","analyst","specialist",
-        "consultant","supervisor","sales","marketing","events","hr","recruiter","teacher","principal",
-        "chair","president","vp","vice","partner"
-    };
-        return hints.Any(h => t.Contains(h));
-    }
 
     private async Task<decimal?> TrySaveContactAsync(IEnumerable<DisplayMessage> messages, CancellationToken ct)
     {
         try
         {
             if (messages is null) return null;
-
             var list = messages.ToList();
             if (list.Count == 0) return null;
 
-            // ---------- build facts from full transcript ----------
-            var facts = ExtractFactsForPersistence(list);
-
-            static string Norm(string s)
-            {
-                if (string.IsNullOrWhiteSpace(s)) return string.Empty;
-                var sb = new StringBuilder(s.Length);
-                foreach (var ch in s)
-                {
-                    if (char.IsLetterOrDigit(ch) || char.IsWhiteSpace(ch))
-                        sb.Append(char.ToLowerInvariant(ch));
-                }
-                return Regex.Replace(sb.ToString().Trim(), @"\s+", " ");
-            }
+            // ---------- helpers ----------
+            static bool IsUser(DisplayMessage m) =>
+                string.Equals(m.Role, "user", StringComparison.OrdinalIgnoreCase);
 
             static bool LooksLikeMissing(string? value)
             {
                 if (string.IsNullOrWhiteSpace(value)) return true;
                 var v = value.Trim().ToLowerInvariant();
-
-                return v is "no"
-                    or "none"
-                    or "n/a"
-                    or "na"
-                    or "nil"
-                    or "unknown"
-                    or "tbc"
-                    or "not sure"
-                    or "dont know"
-                    or "don't know";
+                return v is "no" or "none" or "n/a" or "na" or "nil"
+                         or "unknown" or "tbc" or "not sure"
+                         or "dont know" or "don't know";
             }
 
-            static string? Clean(string? value)
+            static bool LooksLikeValidHumanName(string? s)
             {
-                if (LooksLikeMissing(value)) return null;
-                return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+                if (string.IsNullOrWhiteSpace(s)) return false;
+                var t = s.Trim();
+                if (t.Contains('@')) return false;
+                if (Regex.IsMatch(t, @"\d")) return false;
+                if (t.Length < 2 || t.Length > 80) return false;
+
+                var lower = t.ToLowerInvariant();
+                if (LooksLikeMissing(lower)) return false;
+                if (lower is "yes" or "yeah" or "yep" or "nope" or "ok" or "okay")
+                    return false;
+
+                return true;
             }
 
-            string? FindValue(params string[] labelHints)
+            static string NormalizePhone(string raw)
             {
-                var hints = labelHints.Select(Norm).ToArray();
-                foreach (var kv in facts)
-                {
-                    var k = Norm(kv.Key);
-                    if (hints.Any(h => k.Contains(h)))
-                        return kv.Value;
-                }
-                return null;
+                raw = raw.Trim();
+                var sb = new StringBuilder(raw.Length);
+                foreach (var ch in raw)
+                    if (char.IsDigit(ch) || (ch == '+' && sb.Length == 0))
+                        sb.Append(ch);
+                return sb.ToString();
             }
-
-            // ---------- from facts ----------
-            var factEmail = Clean(FindValue("email", "e-mail", "email address"));
-            var factPhone = Clean(FindValue("mobile", "cell", "phone", "phone number", "mobile number"));
-            var factPosition = Clean(FindValue("position", "role", "job title", "title"));
-            var factName = Clean(FindValue("contact name", "primary contact", "main contact", "name"));
-
-            // ---------- from raw user messages (regex scan) ----------
-            static bool IsUser(DisplayMessage m) =>
-                string.Equals(m.Role, "user", StringComparison.OrdinalIgnoreCase);
 
             var emailRe = new Regex(@"\b[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}\b",
                 RegexOptions.IgnoreCase | RegexOptions.Compiled);
             var phoneRe = new Regex(@"\+?\d[\d\s\-()]{6,}\d", RegexOptions.Compiled);
 
-            string? userEmail = null, userPhone = null, userPosition = null;
+            string? name = null;
+            string? email = null;
+            string? phone = null;
+            string? position = null;
 
-            for (int i = list.Count - 1, seen = 0; i >= 0 && seen < 20; i--)
+            // -------- NAME (first valid user answer without comma) --------
+            foreach (var m in list.Where(IsUser))
+            {
+                var txt = string.Join("\n", m.Parts ?? Enumerable.Empty<string>()).Trim();
+                if (string.IsNullOrWhiteSpace(txt)) continue;
+
+                // ignore the combined contact line for name
+                if (txt.Contains(",")) continue;
+
+                if (LooksLikeValidHumanName(txt))
+                {
+                    name = txt;
+                    break;
+                }
+            }
+
+            // optional: fallback to summary-based guess
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                var guessed = GuessUserNameFromTranscript(list);
+                if (LooksLikeValidHumanName(guessed))
+                    name = guessed;
+            }
+
+            // -------- EMAIL / PHONE / POSITION (scan backwards) --------
+            for (int i = list.Count - 1; i >= 0; i--)
             {
                 var m = list[i];
                 if (!IsUser(m)) continue;
-                seen++;
 
                 var txt = string.Join("\n", m.Parts ?? Enumerable.Empty<string>()).Trim();
                 if (string.IsNullOrWhiteSpace(txt)) continue;
 
-                if (userEmail is null)
+                if (email == null)
                 {
                     var em = emailRe.Match(txt);
-                    if (em.Success) userEmail = em.Value.Trim();
+                    if (em.Success) email = em.Value.Trim();
                 }
 
-                if (userPhone is null)
+                if (phone == null)
                 {
                     var pm = phoneRe.Match(txt);
-                    if (pm.Success) userPhone = NormalizePhone(pm.Value);
+                    if (pm.Success) phone = NormalizePhone(pm.Value);
                 }
 
-                if (userPosition is null)
+                if (position == null)
                 {
-                    var p = ExtractPosition(txt);
+                    var p = ExtractPositionForContact(txt);
                     if (!string.IsNullOrWhiteSpace(p))
-                        userPosition = p;
+                        position = p;
                 }
 
-                if (userEmail != null && userPhone != null && userPosition != null) break;
+                if (email != null && phone != null && position != null)
+                    break;
             }
 
-            // choose best source: user text overrides facts, then facts
-            var email = Clean(userEmail) ?? factEmail;
-            var phone = Clean(userPhone) ?? factPhone;
-            var position = Clean(userPosition) ?? factPosition;
-
-            // name: prefer facts, then your existing GuessUserNameFromTranscript
-            var name = !LooksLikeMissing(factName) ? factName : null;
-            if (string.IsNullOrWhiteSpace(name))
+            // ---- IMPORTANT GUARD ----
+            // if we still don't have any real contact details, don't create/update
+            if (string.IsNullOrWhiteSpace(email) &&
+                string.IsNullOrWhiteSpace(phone) &&
+                string.IsNullOrWhiteSpace(position))
             {
-                var guessed = GuessUserNameFromTranscript(list);
-                if (!LooksLikeMissing(guessed))
-                    name = guessed;
+                return null;
             }
 
-            if (!LooksLikeValidHumanName(name) || LooksLikeAssistantName(name))
-                name = null;
-
-            // final guard: if we have nothing meaningful, don't create anything
-            if (name is null && email is null && phone is null && position is null)
-                return null;
-
+            // At this point we have at least one of: email / phone / position
             return await _chat.UpsertContactByEmailAsync(
                 _bookingDb,
                 name,
@@ -869,85 +851,53 @@ public sealed class ChatController : Controller
         {
             return null;
         }
+    }
 
-        static bool LooksLikeAssistantName(string? s)
+
+    private static string? ExtractPositionForContact(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        var t = text.Replace('’', '\'').Replace('“', '"').Replace('”', '"');
+
+        // "..., position : leader" OR "position :-leader"
+        var reLabel = new Regex(
+            @"(?:^|[,;])\s*(position|title|role)\s*[:\-]\s*(?<v>[^,;]+)",
+            RegexOptions.IgnoreCase);
+
+        var m1 = reLabel.Match(t);
+        if (m1.Success) return Clean(m1.Groups["v"].Value);
+
+        // "I am the event manager", "I work as a coordinator"
+        var reIam = new Regex(
+            @"\b(i\s*am|i'm|i\s*work\s*as|my\s*role\s*is)\s+(the\s+)?(?<v>[A-Za-z][A-Za-z \-/&\.]{2,60})",
+            RegexOptions.IgnoreCase);
+
+        var m2 = reIam.Match(t);
+        if (m2.Success) return Clean(m2.Groups["v"].Value);
+
+        return null;
+
+        static string? Clean(string s)
         {
-            if (string.IsNullOrWhiteSpace(s)) return false;
-            var t = s.Trim().ToLowerInvariant();
-            if (t.Contains("isla") && t.Contains("microhire")) return true;
-            if (t.Equals("isla")) return true;
-            if (t.StartsWith("my name is ")) return true;
-            return false;
-        }
+            s = s.Trim().Trim(' ', '.', ',', ';', ':', '-', '–', '—');
+            if (s.Length == 0) return null;
+            if (s.Length > 60) s = s[..60];
 
-        static bool LooksLikeValidHumanName(string? s)
-        {
-            if (string.IsNullOrWhiteSpace(s)) return false;
+            // reject numeric garbage (like 7894561230)
+            var digitCount = s.Count(char.IsDigit);
+            if (digitCount >= s.Length / 2) return null;
 
-            var t = s.Trim();
-            if (t.Length < 2 || t.Length > 60) return false;
-            if (t.Contains('@')) return false;
+            var lower = s.ToLowerInvariant();
+            if (lower is "no" or "none" or "n/a" or "na" or "nil" or "unknown")
+                return null;
 
-            var lower = t.ToLowerInvariant();
-            if (lower is "no"
-                or "none"
-                or "n/a"
-                or "na"
-                or "nil"
-                or "unknown"
-                or "tbc"
-                or "not sure"
-                or "dont know"
-                or "don't know")
-                return false;
-
-            return true;
-        }
-
-        static string NormalizePhone(string raw)
-        {
-            raw = raw.Trim();
-            var sb = new System.Text.StringBuilder(raw.Length);
-            foreach (var ch in raw)
-            {
-                if (char.IsDigit(ch) || (ch == '+' && sb.Length == 0)) sb.Append(ch);
-            }
-            return sb.ToString();
-        }
-
-        static string? ExtractPosition(string text)
-        {
-            if (string.IsNullOrWhiteSpace(text)) return null;
-            var t = text.Replace('’', '\'').Replace('“', '"').Replace('”', '"');
-
-            var reLabel = new Regex(@"(?:^|\b)(position|title|role)\s*[:\-]\s*(?<v>.+)$",
-                RegexOptions.IgnoreCase);
-            var m1 = reLabel.Match(t);
-            if (m1.Success) return CleanInner(m1.Groups["v"].Value);
-
-            var reIam = new Regex(@"\b(i\s*am|i'm|i\s*work\s*as|my\s*role\s*is)\s+(the\s+)?(?<v>[A-Za-z][A-Za-z \-/,&\.]{2,60})",
-                RegexOptions.IgnoreCase);
-            var m2 = reIam.Match(t);
-            if (m2.Success) return CleanInner(m2.Groups["v"].Value);
-
-            var reAt = new Regex(@"^(?<v>[A-Za-z][A-Za-z \-/,&\.]{2,60})\s+at\s+.+",
-                RegexOptions.IgnoreCase);
-            var m3 = reAt.Match(t);
-            if (m3.Success) return CleanInner(m3.Groups["v"].Value);
-
-            return null;
-
-            static string? CleanInner(string s)
-            {
-                s = s.Trim().TrimEnd('.', ',', ';', ':');
-                if (s.Length > 60) s = s[..60];
-                var lower = s.ToLowerInvariant();
-                if (lower is "no" or "none" or "n/a" or "na" or "nil" or "unknown") return null;
-
-                return CultureInfo.CurrentCulture.TextInfo.ToTitleCase(s.ToLowerInvariant());
-            }
+            return CultureInfo.CurrentCulture.TextInfo
+                .ToTitleCase(s.ToLowerInvariant());
         }
     }
+
+
+
 
 
 

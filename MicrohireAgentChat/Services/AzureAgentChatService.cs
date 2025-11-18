@@ -2493,12 +2493,12 @@ namespace MicrohireAgentChat.Services
             return (null, null);
         }
         public async Task<decimal?> UpsertContactByEmailAsync(
-     BookingDbContext db,
-     string? fullName,
-     string? email,
-     string? phoneE164,
-     string? position,
-     CancellationToken ct)
+            BookingDbContext db,
+            string? fullName,
+            string? email,
+            string? phoneE164,
+            string? position,
+            CancellationToken ct)
         {
             try
             {
@@ -2514,7 +2514,6 @@ namespace MicrohireAgentChat.Services
 
                 var now = NowAest();
 
-                // ---------- helpers (never used inside EF predicates) ----------
                 static string? Trunc(string? s, int len)
                     => string.IsNullOrEmpty(s) ? s : (s.Length <= len ? s : s[..len]);
 
@@ -2522,50 +2521,28 @@ namespace MicrohireAgentChat.Services
                 {
                     if (string.IsNullOrWhiteSpace(s)) return false;
                     var t = s.Trim().ToLowerInvariant();
-                    return t.Equals("isla")
-                        || t.Equals("isla from microhire")
-                        || (t.Contains("isla") && t.Contains("microhire"));
+                    return t.Contains("isla") || t.Contains("microhire");
                 }
 
                 static bool LooksLikeMissing(string? value)
                 {
                     if (string.IsNullOrWhiteSpace(value)) return true;
                     var v = value.Trim().ToLowerInvariant();
-                    return v is "no"
-                        or "none"
-                        or "n/a"
-                        or "na"
-                        or "nil"
-                        or "unknown"
-                        or "tbc"
-                        or "not sure"
-                        or "dont know"
-                        or "don't know";
-                }
-
-                static string NameKey(string? s)
-                {
-                    if (string.IsNullOrWhiteSpace(s)) return string.Empty;
-                    var raw = s.Trim().ToLowerInvariant();
-                    raw = Regex.Replace(raw, @"\s+", " ");
-                    var sb = new StringBuilder(raw.Length);
-                    foreach (var ch in raw)
-                    {
-                        if ((ch >= 'a' && ch <= 'z') || ch == ' ') sb.Append(ch);
-                    }
-                    return Regex.Replace(sb.ToString(), @"\s+", " ").Trim();
+                    return v is "no" or "none" or "n/a" or "na" or "nil"
+                             or "unknown" or "tbc" or "not sure"
+                             or "dont know" or "don't know";
                 }
 
                 static string? NormalizePosition(string? p)
                 {
                     if (LooksLikeMissing(p)) return null;
                     if (string.IsNullOrWhiteSpace(p)) return null;
-
                     p = Regex.Replace(p, @"\s+", " ").Trim();
                     return p.Length < 2 ? null : p;
                 }
 
-                (string? first, string? middle, string? last, string? display) SplitName(string? name)
+                // NAME SPLIT
+                (string? first, string? middle, string? last, string? displayRaw) SplitName(string? name)
                 {
                     if (string.IsNullOrWhiteSpace(name))
                         return (null, null, null, null);
@@ -2574,67 +2551,53 @@ namespace MicrohireAgentChat.Services
                         CultureInfo.CurrentCulture.TextInfo.ToTitleCase(s.ToLowerInvariant());
 
                     var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length == 1) return (Cap(parts[0]), null, null, Cap(parts[0]));
-                    if (parts.Length == 2) return (Cap(parts[0]), null, Cap(parts[1]), Cap(name));
-                    return (Cap(parts[0]),
-                            Cap(string.Join(' ', parts.Skip(1).Take(parts.Length - 2))),
-                            Cap(parts[^1]),
-                            Cap(name));
+
+                    if (parts.Length == 1)
+                        return (Cap(parts[0]), null, null, Cap(parts[0]));
+
+                    if (parts.Length == 2)
+                        return (Cap(parts[0]), null, Cap(parts[1]), Cap(name));
+
+                    return (
+                        Cap(parts[0]),
+                        Cap(string.Join(' ', parts.Skip(1).Take(parts.Length - 2))),
+                        Cap(parts[^1]),
+                        Cap(name)
+                    );
                 }
-                // ----------------------------------------------------------------
 
                 var (first, middle, last, displayRaw) = SplitName(fullName);
 
-                string? display = LooksLikeAssistantName(displayRaw) ? null : displayRaw;
-                var displayKey = NameKey(display);
+                if (string.Equals(middle, "from", StringComparison.OrdinalIgnoreCase))
+                    middle = null;
 
+                string? display = LooksLikeAssistantName(displayRaw) ? null : displayRaw;
+
+                // --------------------------
+                // EMAIL-ONLY LOOKUP
+                // --------------------------
                 TblContact? existing = null;
 
-                // 1) by EMAIL
                 if (!string.IsNullOrWhiteSpace(email))
                 {
                     var e = email.Trim().ToLowerInvariant();
                     existing = await db.Contacts
                         .FirstOrDefaultAsync(c => c.Email != null && c.Email.ToLower() == e, ct);
 
-                    if (existing != null && LooksLikeAssistantName(existing.Contactname) && !string.IsNullOrWhiteSpace(display))
+                    if (existing != null &&
+                        LooksLikeAssistantName(existing.Contactname) &&
+                        !string.IsNullOrWhiteSpace(display))
                     {
                         existing.Contactname = Trunc(display, 35);
                     }
                 }
 
-                // 2) by PHONE
-                if (existing == null && !string.IsNullOrWhiteSpace(phoneE164))
-                {
-                    var ph = phoneE164.Trim();
-                    existing = await db.Contacts.FirstOrDefaultAsync(c => c.Cell == ph, ct);
-                    if (existing != null && LooksLikeAssistantName(existing.Contactname))
-                        existing = null;
-                }
-
-                // 3) by NAME
-                if (existing == null && !string.IsNullOrWhiteSpace(display))
-                {
-                    var firstWord = display.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? display;
-                    var lastWord = display.Split(' ', StringSplitOptions.RemoveEmptyEntries).LastOrDefault() ?? display;
-
-                    var candidates = await db.Contacts
-                        .Where(c => c.Contactname != null
-                                    && EF.Functions.Like(c.Contactname, $"%{firstWord}%")
-                                    && EF.Functions.Like(c.Contactname, $"%{lastWord}%"))
-                        .Take(10)
-                        .ToListAsync(ct);
-
-                    existing = candidates
-                        .Where(c => !LooksLikeAssistantName(c.Contactname))
-                        .FirstOrDefault(c => NameKey(c.Contactname) == displayKey);
-                }
-
+                // NORMALIZED POSITION
                 string? pos = Trunc(NormalizePosition(position), 50);
 
+                // CREATE NEW CONTACT
                 if (existing is null)
                 {
-                    // if we don't have a real display name AND no other data, don't create trash rows
                     if (string.IsNullOrWhiteSpace(display) &&
                         string.IsNullOrWhiteSpace(email) &&
                         string.IsNullOrWhiteSpace(phoneE164) &&
@@ -2645,11 +2608,10 @@ namespace MicrohireAgentChat.Services
                     {
                         Contactname = Trunc(display, 35),
                         Firstname = Trunc(first, 25),
-                        MidName = Trunc(middle, 35),
+                        MidName = string.IsNullOrWhiteSpace(middle) ? null : Trunc(middle, 35),
                         Surname = Trunc(last, 35),
                         Email = Trunc(email, 80),
                         Cell = Trunc(phoneE164, 16),
-                        Phone1 = null,
                         Active = "Y",
                         CreateDate = now,
                         LastContact = now,
@@ -2662,50 +2624,45 @@ namespace MicrohireAgentChat.Services
                     await db.SaveChangesAsync(ct);
                     return row.Id;
                 }
-              else
-{
-    // update: name & contact details
-    if (!string.IsNullOrWhiteSpace(display))
-    {
-        existing.Contactname = Trunc(display, 35);
 
-        // If the stored first/surname look like the bot, or are blank,
-        // re-split from the new display name (e.g. "Nidhi Tamakuwala").
-        if (LooksLikeBotPerson(existing.Firstname) ||
-            LooksLikeBotPerson(existing.Surname)  ||
-            (string.IsNullOrWhiteSpace(existing.Firstname) && string.IsNullOrWhiteSpace(existing.Surname)))
-        {
-            var split = SplitName(display);
-            if (!string.IsNullOrWhiteSpace(split.first))  existing.Firstname = Trunc(split.first, 25);
-            if (!string.IsNullOrWhiteSpace(split.middle)) existing.MidName   = Trunc(split.middle, 35);
-            if (!string.IsNullOrWhiteSpace(split.last))   existing.Surname  = Trunc(split.last, 35);
-        }
-    }
+                // UPDATE EXISTING CONTACT
+                if (!string.IsNullOrWhiteSpace(display))
+                    existing.Contactname = Trunc(display, 35);
 
-    // if we got fresh name parts from the call, update them too
-    if (!string.IsNullOrWhiteSpace(first))  existing.Firstname = Trunc(first, 25);
-    if (!string.IsNullOrWhiteSpace(middle)) existing.MidName   = Trunc(middle, 35);
-    if (!string.IsNullOrWhiteSpace(last))   existing.Surname   = Trunc(last, 35);
+                if (!string.IsNullOrWhiteSpace(first))
+                    existing.Firstname = Trunc(first, 25);
 
-    if (!string.IsNullOrWhiteSpace(email))     existing.Email = Trunc(email, 80);
-    if (!string.IsNullOrWhiteSpace(phoneE164)) existing.Cell  = Trunc(phoneE164, 16);
-    if (!string.IsNullOrWhiteSpace(pos))       existing.Position = pos;
+                if (!string.IsNullOrWhiteSpace(middle) &&
+                    !string.Equals(middle, "from", StringComparison.OrdinalIgnoreCase))
+                    existing.MidName = Trunc(middle, 35);
 
-    existing.Active      = existing.Active ?? "Y";
-    existing.LastContact = now;
-    existing.LastAttempt = now;
-    existing.LastUpdate  = now;
+                if (!string.IsNullOrWhiteSpace(last))
+                    existing.Surname = Trunc(last, 35);
 
-    await db.SaveChangesAsync(ct);
-    return existing.Id;
-}
+                if (!string.IsNullOrWhiteSpace(email))
+                    existing.Email = Trunc(email, 80);
 
+                if (!string.IsNullOrWhiteSpace(phoneE164))
+                    existing.Cell = Trunc(phoneE164, 16);
+
+                if (!string.IsNullOrWhiteSpace(pos))
+                    existing.Position = pos;
+
+                existing.Active = existing.Active ?? "Y";
+                existing.LastContact = now;
+                existing.LastAttempt = now;
+                existing.LastUpdate = now;
+
+                await db.SaveChangesAsync(ct);
+                return existing.Id;
             }
             catch (OperationCanceledException) { throw; }
             catch (DbUpdateException ex)
             {
                 Exception root = ex;
-                while (root.InnerException != null) root = root.InnerException;
+                while (root.InnerException != null)
+                    root = root.InnerException;
+
                 throw new InvalidOperationException($"tblContact upsert failed: {root.Message}", ex);
             }
         }
@@ -4383,7 +4340,6 @@ public async Task<decimal?> UpsertOrganisationAsync(
         {
             try
             {
-
                 static int? ToHHmm(TimeSpan? t) => t == null ? (int?)null : (t.Value.Hours * 100 + t.Value.Minutes);
                 static TimeSpan? ParseTime(string? s)
                 {
@@ -4396,11 +4352,38 @@ public async Task<decimal?> UpsertOrganisationAsync(
                 DateTime NowAest()
                 {
 #if WINDOWS
-        var tz = TimeZoneInfo.FindSystemTimeZoneById("E. Australia Standard Time");
+            var tz = TimeZoneInfo.FindSystemTimeZoneById("E. Australia Standard Time");
 #else
                     var tz = TimeZoneInfo.FindSystemTimeZoneById("Australia/Brisbane");
 #endif
                     return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
+                }
+
+                // ---- local helper: read "Room: Westin Ballroom" from last assistant summary ----
+                static string? ExtractRoomFromSummary(IEnumerable<DisplayMessage> msgs)
+                {
+                    var lastAssistant = msgs.LastOrDefault(m =>
+                        string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase));
+                    if (lastAssistant == null) return null;
+
+                    var text = string.Join("\n", lastAssistant.Parts ?? Enumerable.Empty<string>());
+                    if (string.IsNullOrWhiteSpace(text)) return null;
+
+                    foreach (var rawLine in text.Split('\n'))
+                    {
+                        var line = rawLine.Trim();
+                        // e.g. "• Room: Westin Ballroom" or "Room: Westin Ballroom"
+                        var match = Regex.Match(line, @"^(?:•\s*)?room\s*:\s*(.+)$",
+                            RegexOptions.IgnoreCase);
+                        if (match.Success)
+                        {
+                            var value = match.Groups[1].Value.Trim();
+                            if (!string.IsNullOrWhiteSpace(value))
+                                return value;
+                        }
+                    }
+
+                    return null;
                 }
 
                 var (dateDto, _) = ExtractEventDate(messages);
@@ -4412,11 +4395,15 @@ public async Task<decimal?> UpsertOrganisationAsync(
                 var rehearsalTs = ParseTime(session.GetString("Draft:RehearsalTime"));
                 var packTs = ParseTime(session.GetString("Draft:PackUpTime"));
 
-                var room = ExtractLastChoice(messages, "Choose room:");
+                // old logic: button-driven choice (often null for you)
+                var roomFromChoice = ExtractLastChoice(messages, "Choose room:");
+                // new logic: pull from summary bullet
+                var roomFromSummary = ExtractRoomFromSummary(messages);
+
+                var room = roomFromChoice ?? roomFromSummary;
                 var layout = ExtractLastChoice(messages, "Choose layout:");
                 var attendees = ExtractAttendees(messages);
                 var evtType = ExtractEventType(messages) ?? "Meeting";
-
 
                 if (date == null || startTs == null || endTs == null)
                     return null;
@@ -4435,18 +4422,23 @@ public async Task<decimal?> UpsertOrganisationAsync(
                     row = await GetOrCreateBookingAsync(db, bookingNo, ct);
                 }
 
-                // ---- map fields (adjust property casing to your model if needed) ----
-                row.VenueRoom = Trunc(room, 100);
-                row.EventType = Trunc(evtType, 50);
+                // ---- map fields ----
+                if (!string.IsNullOrWhiteSpace(room))
+                    row.VenueRoom = Trunc(room, 100);
+
+                if (!string.IsNullOrWhiteSpace(evtType))
+                    row.EventType = Trunc(evtType, 50);
+
                 // if (attendees.HasValue) row.ExpAttendees = attendees;
 
-                if (contactId.HasValue) row.ContactID = (int?)contactId.Value;
+                if (contactId.HasValue)
+                    row.ContactID = (int?)contactId.Value;
 
                 // single-day
                 row.SetDate = date;
                 row.ShowSDate = date;
                 row.ShowEdate = date;
-              
+
                 // HHmm integer columns
                 var hhmmStart = ToHHmm(startTs);
                 var hhmmEnd = ToHHmm(endTs);
@@ -4467,6 +4459,10 @@ public async Task<decimal?> UpsertOrganisationAsync(
                 row.contact_nameV6 = "Megan Suurenbroek";
                 row.BookingProgressStatus = 1;
                 row.EntryDate = DateTime.Now;
+                row.From_locn = 20;
+                row.return_to_locn = 20;
+                row.Trans_to_locn = 20;
+
                 await db.SaveChangesAsync(ct);
                 return bookingNo;
             }
