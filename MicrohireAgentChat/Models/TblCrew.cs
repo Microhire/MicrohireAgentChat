@@ -1,38 +1,59 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
-namespace MicrohireAgentChat.Models
+namespace MicrohireAgentChat.Models;
+
+[Table("TblCrew")]
+public sealed class TblCrew
 {
-    // Models/TblCrew.cs
-    public sealed class TblCrew
-    {
-        public decimal ID { get; set; }               // decimal(10,0) identity
-        public string BookingNoV32 { get; set; } = null!;
-        public byte HeadingNo { get; set; }
-        public int SeqNo { get; set; }
-        public int SubSeqNo { get; set; }
-        public string? ProductCodeV42 { get; set; }   // store "SETUP", "PACKDOWN", etc (or use a proper column)
-        public byte? DelTimeHour { get; set; }
-        public byte? DelTimeMin { get; set; }
-        public short? ReturnTimeHour { get; set; }
-        public short? ReturnTimeMin { get; set; }
-        public double? Price { get; set; }
-        public int? TransQty { get; set; }        // persons
-        public decimal? HourlyRateID { get; set; }            // computed
-        public double? UnitRate { get; set; }         // 110
+    [Column("ID")] public decimal ID { get; set; }                    // decimal(10,0) identity
+    [Column("booking_no_v32")] public string BookingNoV32 { get; set; } = null!; // varchar(35)
 
-        public int? Hours { get; set; }            // total hours
-        public int? Minutes { get; set; }           // leftover minutes (usually 0)
-        public string? Person { get; set; }           // optional note
-        public int? Task { get; set; }             // label
-        public bool? TechrateIsHourorDay { get; set; }// true = hour
-        public DateTime? FirstDate { get; set; }
-        public DateTime? RetnDate { get; set; }
-        public int? GroupSeqNo { get; set; }
-        public decimal? StraightTime { get; set; }
-        public bool? TechIsConfirmed { get; set; }
-        public bool? MeetTechOnSite { get; set; }
-    }
+    [Column("heading_no")] public byte? HeadingNo { get; set; }              // tinyint NULL
+    [Column("seq_no")] public decimal? SeqNo { get; set; }               // decimal(19,0) NULL
+    [Column("sub_seq_no")] public int? SubSeqNo { get; set; }                // int NULL
 
+    [Column("product_code_v42")] public string? ProductCodeV42 { get; set; }       // varchar(30) NULL
 
+    // times (all tinyint → byte?)
+    [Column("del_time_hour")] public byte? DelTimeHour { get; set; }
+    [Column("del_time_min")] public byte? DelTimeMin { get; set; }
+    [Column("return_time_hour")] public byte? ReturnTimeHour { get; set; }
+    [Column("return_time_min")] public byte? ReturnTimeMin { get; set; }
 
+    [Column("trans_qty")] public int? TransQty { get; set; }                // int NULL
+    [Column("price")] public double? Price { get; set; }                // float NULL
+    [Column("rate_selected")] public byte? RateSelected { get; set; }           // tinyint NULL
+
+    [Column("hours")] public byte? Hours { get; set; }                  // tinyint NULL
+    [Column("Minutes")] public byte? Minutes { get; set; }                // tinyint NULL
+
+    [Column("person")] public string? Person { get; set; }               // char(30) NULL
+    [Column("task")] public byte? Task { get; set; }                   // tinyint NULL
+
+    [Column("TechRate")] public double? TechRate { get; set; }             // float NULL
+    [Column("TechPay")] public double? TechPay { get; set; }              // float NULL
+    [Column("unitRate")] public double? UnitRate { get; set; }             // float NULL
+
+    [Column("techrateIsHourorDay")] public string? TechrateIsHourOrDay { get; set; }  // char(1) NULL
+
+    [Column("FirstDate")] public DateTime? FirstDate { get; set; }          // datetime NULL
+    [Column("RetnDate")] public DateTime? RetnDate { get; set; }           // datetime NULL
+
+    [Column("GroupSeqNo")] public int? GroupSeqNo { get; set; }              // int NULL
+    [Column("StraightTime")] public double? StraightTime { get; set; }         // float NULL
+    [Column("OverTime")] public double? OverTime { get; set; }             // float NULL
+    [Column("DoubleTime")] public double? DoubleTime { get; set; }           // float NULL
+
+    [Column("UseCustomRate")] public bool? UseCustomRate { get; set; }          // bit NULL
+    [Column("CustomRate")] public double? CustomRate { get; set; }           // float NULL
+    [Column("HourOrDay")] public string? HourOrDay { get; set; }            // char(1) NULL
+    [Column("ShortTurnaround")] public bool? ShortTurnaround { get; set; }        // bit NULL
+
+    [Column("HourlyRateID")] public decimal HourlyRateID { get; set; }         // decimal(10,0) NOT NULL
+
+    [Column("UnpaidHours")] public int? UnpaidHours { get; set; }             // int NULL
+    [Column("UnpaidMins")] public int? UnpaidMins { get; set; }              // int NULL
+
+    [Column("TechIsConfirmed")] public bool TechIsConfirmed { get; set; }         // bit NOT NULL
+    [Column("MeetTechOnSite")] public bool MeetTechOnSite { get; set; }          // bit NOT NULL
 }

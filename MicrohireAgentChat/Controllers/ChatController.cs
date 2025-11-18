@@ -1,11 +1,14 @@
 ﻿// Controllers/ChatController.cs
-using System.Text.RegularExpressions;
 using MicrohireAgentChat.Data;
 using MicrohireAgentChat.Models; // for DisplayMessage if needed
 using MicrohireAgentChat.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Concurrent;
 using System.Globalization;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace MicrohireAgentChat.Controllers;
 
@@ -57,10 +60,10 @@ public sealed class ChatController : Controller
         {
             var userKey = GetUserKey();
             var threadId = await _chat.EnsureThreadIdPersistedAsync(HttpContext.Session, userKey, ct);
-
             await _chat.EnsureGreetingAsync(HttpContext.Session, GreetingText, ct);
 
             var (_, messages) = _chat.GetTranscript(threadId);
+            RedactPricesForUiInPlace(messages);
             return View(messages);
         }
         catch (Exception ex)
@@ -83,40 +86,97 @@ public sealed class ChatController : Controller
             await _chat.EnsureThreadIdPersistedAsync(HttpContext.Session, userKey, ct);
 
             text = text.Trim();
-
-            // 1) Capture single time range "Choose time: HH:mm–HH:mm"
             if (TryCaptureTimeSelection(text, out var start, out var end))
             {
                 SaveTimeSelectionToSession(start, end);
                 text = $"Choose time: {start:hh\\:mm}–{end:hh\\:mm}";
             }
-
-            // 2) Capture multi-time schedule "Choose schedule: setup=...; rehearsal=...; start=...; end=...; packup=..."
             if (TryCaptureScheduleSelection(text, out var set, out var reh, out var showStart, out var showEnd, out var pack))
             {
                 SaveScheduleToSession(set, reh, showStart, showEnd, pack);
-
-                // Rewrite the outgoing text into a friendly normalized message
-                var pretty = $"Schedule selected: " +
-                             $"Setup {Pretty12(set)}; " +
-                             $"Rehearsal {Pretty12(reh)}; " +
-                             (showStart.HasValue ? $"Start {Pretty12(showStart)}; " : "") +
-                             (showEnd.HasValue ? $"End {Pretty12(showEnd)}; " : "") +
-                             $"Pack Up {Pretty12(pack)}.";
+                var pretty = $"Schedule selected: Setup {Pretty12(set)}; Rehearsal {Pretty12(reh)}; "
+                           + (showStart.HasValue ? $"Start {Pretty12(showStart)}; " : "")
+                           + (showEnd.HasValue ? $"End {Pretty12(showEnd)}; " : "")
+                           + $"Pack Up {Pretty12(pack)}.";
                 text = pretty.Trim();
             }
 
-            var messages = await _chat.SendAsync(HttpContext.Session, text, ct);
-            return View("Index", messages);
+            // —— rate-limit safe send ——
+            var threadId = _chat.EnsureThreadId(HttpContext.Session);
+            var sem = GetThreadLock(threadId);
+            await sem.WaitAsync(ct);
+            try
+            {
+                var messages = await WithRateLimitRetry(
+                    () => _chat.SendAsync(HttpContext.Session, text, ct),
+                    ct);
+
+                RedactPricesForUiInPlace(messages);
+                return View("Index", messages);
+            }
+            finally { sem.Release(); }
         }
         catch (Exception ex)
         {
             ModelState.AddModelError(string.Empty, ex.Message);
-
             var threadId = _chat.EnsureThreadId(HttpContext.Session);
             var (_, messages) = _chat.GetTranscript(threadId);
+            RedactPricesForUiInPlace(messages);
             return View("Index", messages);
         }
+    }
+
+    private static bool WasLastAssistantASummaryAsk(IReadOnlyList<DisplayMessage> messages)
+    {
+        if (messages == null || messages.Count < 2) return false;
+
+        // Find the last USER turn (the message you just posted)
+        int userIdx = -1;
+        for (int i = messages.Count - 1; i >= 0; i--)
+        {
+            var m = messages[i];
+            if (string.Equals(m.Role, "user", StringComparison.OrdinalIgnoreCase))
+            {
+                userIdx = i;
+                break;
+            }
+        }
+        if (userIdx <= 0) return false;
+
+        // Find the nearest ASSISTANT turn before that USER turn
+        for (int j = userIdx - 1; j >= 0; j--)
+        {
+            var a = messages[j];
+            if (!string.Equals(a.Role, "assistant", StringComparison.OrdinalIgnoreCase)) continue;
+
+            var raw = string.Join("\n\n", a.Parts ?? Enumerable.Empty<string>());
+            var t = Normalize(raw);
+            return LooksLikeSummaryAsk(t);
+        }
+        return false;
+
+        static string Normalize(string s)
+        {
+            if (string.IsNullOrWhiteSpace(s)) return string.Empty;
+            s = s.ToLowerInvariant();
+            s = s.Replace('’', '\'').Replace('‘', '\'')
+                 .Replace('“', '"').Replace('”', '"')
+                 .Replace('–', '-').Replace('—', '-');
+            return Regex.Replace(s, @"\s+", " ").Trim();
+        }
+
+        // A "summary ask" = assistant showed the summary and asked to confirm before quoting
+        static bool LooksLikeSummaryAsk(string t) =>
+               t.Contains("here is your summary")
+            || t.Contains("here’s your summary")
+            || t.Contains("here's what i have so far")
+            || t.Contains("let me summarize")
+            || t.Contains("does everything look correct")
+            || t.Contains("does this look correct")
+            || t.Contains("please confirm")
+            || t.Contains("can you confirm")
+            || t.Contains("before i create your quote")
+            || t.Contains("before creating your quote");
     }
 
     [HttpPost]
@@ -143,6 +203,7 @@ public sealed class ChatController : Controller
             return View("Index", Enumerable.Empty<DisplayMessage>());
         }
     }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SendPartial(string text, CancellationToken ct)
@@ -155,15 +216,14 @@ public sealed class ChatController : Controller
             await _chat.EnsureThreadIdPersistedAsync(HttpContext.Session, userKey, ct);
 
             text = text.Trim();
+            var rawUserTextForContact = text;   // keep original text for contact parsing
 
-            // --- capture time range (single picker) ---
             if (TryCaptureTimeSelection(text, out var start, out var end))
             {
                 SaveTimeSelectionToSession(start, end);
                 text = $"Choose time: {start:hh\\:mm}–{end:hh\\:mm}";
             }
 
-            // --- capture full schedule (multi-time) ---
             if (TryCaptureScheduleSelection(text, out var set, out var reh, out var showStart, out var showEnd, out var pack))
             {
                 SaveScheduleToSession(set, reh, showStart, showEnd, pack);
@@ -174,69 +234,113 @@ public sealed class ChatController : Controller
                 text = pretty.Trim();
             }
 
-            // -------------- Send to the agent --------------
-            var messages = await _chat.SendAsync(HttpContext.Session, text, ct);
+            // —— safe send ——
+            var threadId = _chat.EnsureThreadId(HttpContext.Session);
+            var sem = GetThreadLock(threadId);
+            IEnumerable<DisplayMessage> messages;
+            await sem.WaitAsync(ct);
+            try
+            {
+                messages = await WithRateLimitRetry(
+                    () => _chat.SendAsync(HttpContext.Session, text, ct),
+                    ct);
+            }
+            finally { sem.Release(); }
+
             var msgList = messages is List<DisplayMessage> ml ? ml : messages.ToList();
 
-            // -------------- Contact capture --------------
-            var contactId = await TrySaveContactAsync(msgList, ct);
+            // ---------- CONTACT UPSERT (only once per thread) ----------
 
-            // -------------- Consent (from *user* text) --------------
-            if (LooksLikeConsent(text))
+            decimal? contactId = await TrySaveContactAsync(msgList, ct);
+
+            if (contactId.HasValue)
             {
-                // No prereq check anymore — a clear "yes/proceed" sets consent.
-                SetConsent(HttpContext.Session, true);
+                HttpContext.Session.SetString(
+                    "Draft:ContactId",
+                    contactId.Value.ToString(CultureInfo.InvariantCulture));
             }
 
 
-            // -------------- Gate all writes --------------
-
-            // -------------- Gate all writes --------------
-            var isSummary = HasFinalSummary(msgList);
-            var hasConsent = HasConsent(HttpContext.Session);
-
-            // Build facts ONCE in the controller from the best assistant "summary" message
-            var facts = ExtractFactsForPersistence(msgList);   // <— new helper below
-
-            if (isSummary && hasConsent && contactId != null)
+            // if booking already exists, persist FULL transcript now
+            var bookingNoAtStart = HttpContext.Session.GetString("Draft:BookingNo");
+            if (!string.IsNullOrWhiteSpace(bookingNoAtStart))
             {
-                // 1) Save header
+                await _chat.SaveFullTranscriptToBooknoteAsync(_bookingDb, bookingNoAtStart!, msgList, ct);
+            }
+
+            // -------- ORG / CONTACT LINKING DATA --------
+            var (orgName, orgAddr) = _chat.ExtractOrganisationFromTranscript(msgList);
+            string? customerCode = null;
+            decimal? orgId = null;
+
+            // build facts once
+            var facts = ExtractFactsForPersistence(msgList);
+
+            // persist only when user positively confirms summary
+            var isConsentToSummary = LooksLikeConsent(text) && WasLastAssistantASummaryAsk(msgList);
+
+            if (isConsentToSummary)
+            {
+                if (!string.IsNullOrWhiteSpace(orgName))
+                {
+                    var found = await _chat.FindOrganisationAsync(_bookingDb, orgName!, ct);
+                    if (found is not null)
+                    {
+                        orgId = found.Value.id;
+                        customerCode = found.Value.code;
+                    }
+                }
+
+                if (orgId is null && !string.IsNullOrWhiteSpace(orgName))
+                {
+                    orgId = await _chat.UpsertOrganisationAsync(_bookingDb, orgName!, orgAddr, ct);
+                    if (orgId is not null)
+                        customerCode = await _chat.GetCustomerCodeByIdAsync(_bookingDb, orgId.Value, ct);
+                }
+
+                if (contactId is not null && !string.IsNullOrWhiteSpace(customerCode))
+                {
+                    await _chat.LinkContactToOrganisationAsync(_bookingDb, customerCode!, contactId.Value, ct);
+                    HttpContext.Session.SetString("Draft:CustomerCode", customerCode!);
+                }
+
+                var summaryKey = ComputeSummaryKey(msgList);
+                var lastPersistedKey = HttpContext.Session.GetString("Draft:PersistedSummaryKey");
+                if (!string.IsNullOrEmpty(summaryKey) &&
+                    string.Equals(summaryKey, lastPersistedKey, StringComparison.Ordinal))
+                {
+                    RedactPricesForUiInPlace(msgList);
+                    ViewData["ShowQuoteCta"] = WasLastAssistantASummaryAsk(msgList) ? "1" : "0";
+                    return PartialView("_Messages", msgList);
+                }
+
                 await _chat.TrySaveBookingAsync(_bookingDb, HttpContext.Session, msgList, contactId, ct);
 
-                // 2) Booking no
                 var bookingNo = HttpContext.Session.GetString("Draft:BookingNo");
                 if (!string.IsNullOrWhiteSpace(bookingNo))
                 {
-                    // 3) Items & crew (pass facts)
-                    await _chat.UpsertItemsFromSummaryAsync(_bookingDb, HttpContext.Session, msgList, facts, ct);
-                    await _chat.InsertCrewRowsAsync(_bookingDb, bookingNo, facts, ct);
+                    var hasAnyItems = await _bookingDb.TblItemtrans.AnyAsync(x => x.BookingNoV32 == bookingNo, ct);
+                    var hasAnyCrew = await _bookingDb.TblCrews.AnyAsync(c => c.BookingNoV32 == bookingNo, ct);
 
-                    // 4) Confirm with booking no.
-                    //var body = $"Your booking has been created 🎉\n\n" +
-                    //           $"• **Booking No:** {bookingNo}\n" +
-                    //           $"Would you like me to email the quote or make any adjustments?";
-                    //var html = $"<p><strong>Your booking has been created 🎉</strong></p>" +
-                    //           $"<p>Booking No: <code>{System.Net.WebUtility.HtmlEncode(bookingNo)}</code></p>" +
-                    //           $"<p>Would you like me to email the quote or make any adjustments?</p>";
-                    //msgList.Add(new DisplayMessage("assistant", DateTimeOffset.UtcNow, new[] { body })
-                    //{ FullText = body, Html = html });
+                    if (!hasAnyItems && !hasAnyCrew)
+                    {
+                        await _chat.UpsertItemsFromSummaryAsync(_bookingDb, HttpContext.Session, msgList, facts, ct);
+                        await _chat.InsertCrewRowsAsync(_bookingDb, bookingNo, facts, ct);
+                    }
 
-                    SetConsent(HttpContext.Session, false);     // avoid duplicates
+                    if (string.IsNullOrWhiteSpace(bookingNoAtStart))
+                    {
+                        await _chat.SaveFullTranscriptToBooknoteAsync(_bookingDb, bookingNo!, msgList, ct);
+                    }
+
+                    HttpContext.Session.SetString("Draft:PersistedSummaryKey", summaryKey ?? string.Empty);
+                    SetConsent(HttpContext.Session, false);
                     HttpContext.Session.SetString("Draft:ShowedBookingNo", "1");
                 }
             }
 
-            //else
-            //{
-            //    // If a summary just showed and we don't have consent yet, ask *once*.
-            //    if (isSummary && !hasConsent && !LooksLikeConsent(text))
-            //    {
-            //        const string prompt = "Would you like me to generate your quote now?";
-            //        msgList.Add(new DisplayMessage("assistant", DateTimeOffset.UtcNow, new[] { prompt })
-            //        { FullText = prompt, Html = $"<p>{System.Net.WebUtility.HtmlEncode(prompt)}</p>" });
-            //    }
-            //}
-
+            RedactPricesForUiInPlace(msgList);
+            ViewData["ShowQuoteCta"] = WasLastAssistantASummaryAsk(msgList) ? "1" : "0";
             return PartialView("_Messages", msgList);
         }
         catch (Exception ex)
@@ -245,6 +349,32 @@ public sealed class ChatController : Controller
             return Content(ex.Message);
         }
     }
+
+
+
+    private static string ComputeSummaryKey(IReadOnlyList<DisplayMessage> messages, int lookback = 6)
+    {
+        if (messages == null || messages.Count == 0) return string.Empty;
+
+        for (int i = messages.Count - 1, seen = 0; i >= 0 && seen < lookback; i--)
+        {
+            var m = messages[i];
+            if (!"assistant".Equals(m.Role, StringComparison.OrdinalIgnoreCase)) continue;
+            seen++;
+
+            var raw = string.Join("\n\n", m.Parts ?? Enumerable.Empty<string>());
+            var t = Regex.Replace(raw, @"\s+", " ").Trim().ToLowerInvariant();
+            if (!string.IsNullOrEmpty(t))
+            {
+                using var sha = System.Security.Cryptography.SHA256.Create();
+                var bytes = System.Text.Encoding.UTF8.GetBytes(t);
+                var hash = sha.ComputeHash(bytes);
+                return Convert.ToHexString(hash); // e.g., "A1B2..."
+            }
+        }
+        return string.Empty;
+    }
+
     private static IDictionary<string, string> ExtractFactsForPersistence(IReadOnlyList<DisplayMessage> messages)
     {
         if (messages == null || messages.Count == 0) return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -309,35 +439,28 @@ public sealed class ChatController : Controller
         return ParseSummaryFacts(rawSummary);
     }
 
-
     private const string GenerateQuoteFlag = "Draft:GenerateQuote";
-    // --- Quote gating helpers ----------------------------------------------------
 
-    // -------------------- Consent + Summary helpers --------------------
-    // -------------------- Consent + Summary helpers --------------------
     private static bool LooksLikeConsent(string userText)
     {
         if (string.IsNullOrWhiteSpace(userText)) return false;
 
         var t = userText.ToLowerInvariant();
-        // very common patterns
         string[] yesPhrases =
         {
         "yes", "yep", "yeah", "please proceed", "proceed", "go ahead",
         "generate the quote", "generate quote", "create the quote",
         "prepare the quote", "make the quote", "send the quote",
         "yes create quote", "yes please", "that’s ok", "thats ok", "this ok", "looks good"
-    };
+        };
 
         return yesPhrases.Any(p => t.Contains(p));
     }
-
 
     private static bool HasFinalSummary(IReadOnlyList<DisplayMessage> messages, int lookback = 6)
     {
         if (messages == null || messages.Count == 0) return false;
 
-        // Search the last few assistant turns for a “summary checkpoint”
         for (int i = messages.Count - 1, seen = 0; i >= 0 && seen < lookback; i--)
         {
             var m = messages[i];
@@ -364,7 +487,7 @@ public sealed class ChatController : Controller
         static bool LooksLikeSummaryText(string t) =>
                t.Contains("final summary")
             || t.Contains("here is your final summary")
-             || t.Contains("quote")
+            || t.Contains("quote")
             || t.Contains("here's your final summary")
             || t.Contains("let me summarize")
             || t.Contains("here’s your summary")
@@ -374,31 +497,22 @@ public sealed class ChatController : Controller
             || t.Contains("before i create your quote");
     }
 
-
-   private const string ConsentKey = "Draft:Consent";
-
+    private const string ConsentKey = "Draft:Consent";
     private static bool HasConsent(ISession s)
         => string.Equals(s.GetString(ConsentKey), "1", StringComparison.Ordinal);
-
     private static void SetConsent(ISession s, bool on)
         => s.SetString(ConsentKey, on ? "1" : "0");
 
-
-    // --- Simple "summary facts" parser for the last assistant message ---
-    // Returns a case-insensitive dictionary: Label -> Value
     private static Dictionary<string, string> ParseSummaryFacts(string raw)
     {
         var facts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         if (string.IsNullOrWhiteSpace(raw)) return facts;
 
-        // split lines and try a few patterns
         var lines = raw.Replace("\r", "").Split('\n');
 
-        // Pattern A: bullet/normal lines:  • Label: value    or    - Label – value
         var reLine = new Regex(@"^\s*(?:[\*\u2022\-]\s*)?(?<label>[^:–\-]+?)\s*[:\-–]\s*(?<value>.+?)\s*$",
                                RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
-        // Pattern B: markdown-y bracketed:  [**Label**, **Value**]
         var reBracket = new Regex(@"^\s*\[\s*\*\*(?<label>[^*]+?)\*\*\s*,\s*\*\*(?<value>.+?)\*\*\s*\]\s*$",
                                   RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
@@ -427,7 +541,6 @@ public sealed class ChatController : Controller
 
             if (!string.IsNullOrWhiteSpace(label) && !string.IsNullOrWhiteSpace(value))
             {
-                // prefer the latest non-empty value for a label
                 facts[label] = value;
             }
         }
@@ -444,19 +557,11 @@ public sealed class ChatController : Controller
         return ParseSummaryFacts(raw);
     }
 
-
-    // Detects the assistant's final confirmation/summary so we only persist then.
-   
-
-    // True if the POSTed text was a schedule selection command.
     private static bool IsScheduleSelection(string text)
     {
         if (string.IsNullOrWhiteSpace(text)) return false;
         return text.Trim().StartsWith("Choose schedule:", StringComparison.OrdinalIgnoreCase);
     }
-
-    // Checks whether we have enough to persist: room (from transcript),
-    // date (from your extractor), and start/end (already in Session from pickers).
 
     [HttpGet]
     public async Task<IActionResult> TranscriptPartial(CancellationToken ct)
@@ -465,10 +570,14 @@ public sealed class ChatController : Controller
         {
             var userKey = GetUserKey();
             var threadId = await _chat.EnsureThreadIdPersistedAsync(HttpContext.Session, userKey, ct);
-
             await _chat.EnsureGreetingAsync(HttpContext.Session, GreetingText, ct);
 
             var (_, messages) = _chat.GetTranscript(threadId);
+
+            // Tell the view whether to show the Yes/No buttons
+            ViewData["ShowQuoteCta"] = WasLastAssistantASummaryAsk(messages.ToList()) ? "1" : "0";
+
+            RedactPricesForUiInPlace(messages);
             return PartialView("_Messages", messages);
         }
         catch (Exception ex)
@@ -493,6 +602,10 @@ public sealed class ChatController : Controller
             await _chat.EnsureGreetingAsync(HttpContext.Session, GreetingText, ct);
 
             var (_, messages) = _chat.GetTranscript(newThreadId);
+
+            // Tell the view whether to show the Yes/No buttons
+            ViewData["ShowQuoteCta"] = WasLastAssistantASummaryAsk(messages.ToList()) ? "1" : "0";
+
             return PartialView("_Messages", messages);
         }
         catch (Exception ex)
@@ -526,7 +639,6 @@ public sealed class ChatController : Controller
         HttpContext.Session.SetString("Draft:EndTime", end.ToString(@"hh\:mm"));
     }
 
-    // Schedule: parse & stash
     private static bool TryCaptureScheduleSelection(
         string text,
         out TimeSpan setup,
@@ -544,7 +656,7 @@ public sealed class ChatController : Controller
         var m = ChooseScheduleRe.Match(text);
         if (!m.Success) return false;
 
-        var blob = m.Groups[1].Value; // "setup=07:00; rehearsal=09:30; start=10:00; end=16:00; packup=18:00"
+        var blob = m.Groups[1].Value;
         var kvs = blob.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         TimeSpan ts;
@@ -581,7 +693,6 @@ public sealed class ChatController : Controller
             }
         }
 
-        // Require at least setup/rehearsal/packup to consider it a valid schedule capture.
         return gotSetup && gotReh && gotPack;
     }
 
@@ -610,119 +721,396 @@ public sealed class ChatController : Controller
     {
         try
         {
-            var ci = _chat.ExtractContactInfo(messages);
+            if (messages is null) return null;
+            var list = messages.ToList();
+            if (list.Count == 0) return null;
 
-            var inferredName = GuessUserNameFromTranscript(messages);
+            // ---------- helpers ----------
+            static bool IsUser(DisplayMessage m) =>
+                string.Equals(m.Role, "user", StringComparison.OrdinalIgnoreCase);
 
-            string? name = ci?.Name?.Trim();
-            string? email = ci?.Email?.Trim();
-            string? phone = ci?.PhoneE164?.Trim();
-
-            // If we inferred a name from the user's last reply and it doesn't look like the assistant,
-            // ALWAYS prefer it (this overrides "Isla from Microhire").
-            if (!string.IsNullOrWhiteSpace(inferredName) && !LooksLikeAssistantName(inferredName))
+            static bool LooksLikeMissing(string? value)
             {
-                name = inferredName;
+                if (string.IsNullOrWhiteSpace(value)) return true;
+                var v = value.Trim().ToLowerInvariant();
+                return v is "no" or "none" or "n/a" or "na" or "nil"
+                         or "unknown" or "tbc" or "not sure"
+                         or "dont know" or "don't know";
             }
 
-            // If name is still missing or still looks like the assistant, stop here.
-            if (!LooksLikeValidHumanName(name))
+            static bool LooksLikeValidHumanName(string? s)
+            {
+                if (string.IsNullOrWhiteSpace(s)) return false;
+                var t = s.Trim();
+                if (t.Contains('@')) return false;
+                if (Regex.IsMatch(t, @"\d")) return false;
+                if (t.Length < 2 || t.Length > 80) return false;
+
+                var lower = t.ToLowerInvariant();
+                if (LooksLikeMissing(lower)) return false;
+                if (lower is "yes" or "yeah" or "yep" or "nope" or "ok" or "okay")
+                    return false;
+
+                return true;
+            }
+
+            static string NormalizePhone(string raw)
+            {
+                raw = raw.Trim();
+                var sb = new StringBuilder(raw.Length);
+                foreach (var ch in raw)
+                    if (char.IsDigit(ch) || (ch == '+' && sb.Length == 0))
+                        sb.Append(ch);
+                return sb.ToString();
+            }
+
+            var emailRe = new Regex(@"\b[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}\b",
+                RegexOptions.IgnoreCase | RegexOptions.Compiled);
+            var phoneRe = new Regex(@"\+?\d[\d\s\-()]{6,}\d", RegexOptions.Compiled);
+
+            string? name = null;
+            string? email = null;
+            string? phone = null;
+            string? position = null;
+
+            // -------- NAME (first valid user answer without comma) --------
+            foreach (var m in list.Where(IsUser))
+            {
+                var txt = string.Join("\n", m.Parts ?? Enumerable.Empty<string>()).Trim();
+                if (string.IsNullOrWhiteSpace(txt)) continue;
+
+                // ignore the combined contact line for name
+                if (txt.Contains(",")) continue;
+
+                if (LooksLikeValidHumanName(txt))
+                {
+                    name = txt;
+                    break;
+                }
+            }
+
+            // optional: fallback to summary-based guess
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                var guessed = GuessUserNameFromTranscript(list);
+                if (LooksLikeValidHumanName(guessed))
+                    name = guessed;
+            }
+
+            // -------- EMAIL / PHONE / POSITION (scan backwards) --------
+            for (int i = list.Count - 1; i >= 0; i--)
+            {
+                var m = list[i];
+                if (!IsUser(m)) continue;
+
+                var txt = string.Join("\n", m.Parts ?? Enumerable.Empty<string>()).Trim();
+                if (string.IsNullOrWhiteSpace(txt)) continue;
+
+                if (email == null)
+                {
+                    var em = emailRe.Match(txt);
+                    if (em.Success) email = em.Value.Trim();
+                }
+
+                if (phone == null)
+                {
+                    var pm = phoneRe.Match(txt);
+                    if (pm.Success) phone = NormalizePhone(pm.Value);
+                }
+
+                if (position == null)
+                {
+                    var p = ExtractPositionForContact(txt);
+                    if (!string.IsNullOrWhiteSpace(p))
+                        position = p;
+                }
+
+                if (email != null && phone != null && position != null)
+                    break;
+            }
+
+            // ---- IMPORTANT GUARD ----
+            // if we still don't have any real contact details, don't create/update
+            if (string.IsNullOrWhiteSpace(email) &&
+                string.IsNullOrWhiteSpace(phone) &&
+                string.IsNullOrWhiteSpace(position))
+            {
                 return null;
-            // Allow provisional save with name only; email/phone may come later
-            return await _chat.UpsertContactByEmailAsync(_bookingDb, name!, email, phone, ct);
+            }
+
+            // At this point we have at least one of: email / phone / position
+            return await _chat.UpsertContactByEmailAsync(
+                _bookingDb,
+                name,
+                email,
+                phone,
+                position,
+                ct);
         }
         catch
         {
-            // Don’t break the chat flow because of contact-capture issues
             return null;
-        }
-
-        static bool LooksLikeAssistantName(string? s)
-        {
-            if (string.IsNullOrWhiteSpace(s)) return false;
-            var t = s.Trim().ToLowerInvariant();
-
-            // catches: "isla", "isla from microhire", "isla - microhire", etc.
-            if (t.Contains("isla") && t.Contains("microhire")) return true;
-            if (t.Equals("isla")) return true;
-
-            // also treat very bot-ish phrases as non-user names
-            if (t.StartsWith("my name is ")) return true;
-
-            return false;
-        }
-
-
-        static bool LooksLikeValidHumanName(string? s)
-        {
-            if (string.IsNullOrWhiteSpace(s)) return false;
-            var t = s.Trim();
-            if (t.Length < 2) return false;
-            if (t.Contains('@')) return false;            // not an email
-            if (t.Length > 60) return false;              // too long for a name
-            return true;
         }
     }
 
-    /// <summary>
-    /// If the last assistant asked for the guest’s name, take the next user message
-    /// (short, no '@', <= 4 words) as the name. Fallback: latest short user message.
-    /// </summary>
+
+    private static string? ExtractPositionForContact(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return null;
+        var t = text.Replace('’', '\'').Replace('“', '"').Replace('”', '"');
+
+        // "..., position : leader" OR "position :-leader"
+        var reLabel = new Regex(
+            @"(?:^|[,;])\s*(position|title|role)\s*[:\-]\s*(?<v>[^,;]+)",
+            RegexOptions.IgnoreCase);
+
+        var m1 = reLabel.Match(t);
+        if (m1.Success) return Clean(m1.Groups["v"].Value);
+
+        // "I am the event manager", "I work as a coordinator"
+        var reIam = new Regex(
+            @"\b(i\s*am|i'm|i\s*work\s*as|my\s*role\s*is)\s+(the\s+)?(?<v>[A-Za-z][A-Za-z \-/&\.]{2,60})",
+            RegexOptions.IgnoreCase);
+
+        var m2 = reIam.Match(t);
+        if (m2.Success) return Clean(m2.Groups["v"].Value);
+
+        return null;
+
+        static string? Clean(string s)
+        {
+            s = s.Trim().Trim(' ', '.', ',', ';', ':', '-', '–', '—');
+            if (s.Length == 0) return null;
+            if (s.Length > 60) s = s[..60];
+
+            // reject numeric garbage (like 7894561230)
+            var digitCount = s.Count(char.IsDigit);
+            if (digitCount >= s.Length / 2) return null;
+
+            var lower = s.ToLowerInvariant();
+            if (lower is "no" or "none" or "n/a" or "na" or "nil" or "unknown")
+                return null;
+
+            return CultureInfo.CurrentCulture.TextInfo
+                .ToTitleCase(s.ToLowerInvariant());
+        }
+    }
+
+
+
+
+
+
+    private static string JoinParts(DisplayMessage m) =>
+    string.Join("\n", m.Parts ?? Enumerable.Empty<string>()).Trim();
+
+    private static byte NoteTypeFor(string role) =>
+        string.Equals(role, "user", StringComparison.OrdinalIgnoreCase) ? (byte)1 : (byte)2;
     private static string? GuessUserNameFromTranscript(IEnumerable<DisplayMessage> messages)
     {
         var list = messages?.ToList() ?? new List<DisplayMessage>();
         if (list.Count == 0) return null;
 
-        // Find last assistant turn that asked for the name
+        // Helper: trim to first line/sentence and clean up
+        static string FirstSegment(string s)
+        {
+            s = (s ?? string.Empty).Trim();
+            // split on newline or sentence punctuation
+            var cut = s.IndexOfAny(new[] { '\n', '.', '!', '?' });
+            if (cut >= 0) s = s[..cut];
+            // remove trailing commas etc.
+            s = s.Trim().Trim(',', ';', ':');
+            return s;
+        }
+
+        // Helper: strong name check (letters, space, apostrophe, hyphen, dot)
+        static bool LooksLikeName(string txt)
+        {
+            if (string.IsNullOrWhiteSpace(txt)) return false;
+            var t = txt.Trim();
+
+            // reject emails, numbers, and known non-name words
+            if (t.Contains('@')) return false;
+            if (t.Any(char.IsDigit)) return false;
+
+            var lower = t.ToLowerInvariant();
+            if (lower.Contains("address") || lower.Contains("email") || lower.Contains("phone") || lower.Contains("position"))
+                return false;
+
+            // allow 1–4 words of letters/.-'
+            var words = t.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length == 0 || words.Length > 4) return false;
+
+            var nameWord = new System.Text.RegularExpressions.Regex(@"^[a-zA-Z][a-zA-Z\.'\-]{0,59}$");
+            if (!words.All(w => nameWord.IsMatch(w))) return false;
+
+            // not absurdly short/long overall
+            if (t.Length < 2 || t.Length > 60) return false;
+
+            return true;
+        }
+
+        static string ToTitle(string s)
+            => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(s.ToLowerInvariant());
+
+        // 1) Find the assistant message that asks for the user's name
+        var askRegex = new Regex(
+            @"(what\s+is\s+your\s+full\s+name\??|your\s+full\s+name\??|may\s+i\s+know\s+your\s+name\??|please\s+share\s+your\s+name)",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         int askIdx = -1;
-        for (int i = list.Count - 1; i >= 0; i--)
+        for (int i = 0; i < list.Count; i++)
         {
             var m = list[i];
             if (!"assistant".Equals(m.Role, StringComparison.OrdinalIgnoreCase)) continue;
 
-            var text = string.Join("\n", m.Parts ?? Enumerable.Empty<string>()).ToLowerInvariant();
-            if (text.Contains("what is your full name") || text.Contains("your full name"))
+            var text = string.Join("\n", m.Parts ?? Enumerable.Empty<string>());
+            if (askRegex.IsMatch(text))
             {
                 askIdx = i;
                 break;
             }
         }
 
-        // If we found the ask, the next user message after that is likely the name
+        // 2) If we found the ask, take the VERY NEXT plausible user reply
         if (askIdx >= 0)
         {
             for (int i = askIdx + 1; i < list.Count; i++)
             {
                 var u = list[i];
                 if (!"user".Equals(u.Role, StringComparison.OrdinalIgnoreCase)) continue;
-                var txt = (string.Join("\n", u.Parts ?? Enumerable.Empty<string>())).Trim();
-                if (LooksLikeName(txt)) return ToTitle(txt);
+
+                var raw = string.Join("\n", u.Parts ?? Enumerable.Empty<string>()).Trim();
+                if (string.IsNullOrWhiteSpace(raw)) continue;
+
+                var seg = FirstSegment(raw);
+                if (LooksLikeName(seg)) return ToTitle(seg);
             }
         }
 
-        // Fallback: latest plausible user message that looks like a name
+        // 3) Fallbacks:
+        //   a) explicit "my name is ..." from any user message
+        var nameIs = new Regex(@"\b(my\s+name\s+is|i'm|i\s+am)\s+(?<v>[A-Za-z][A-Za-z \.'\-]{1,60})",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
         for (int i = list.Count - 1; i >= 0; i--)
         {
             var u = list[i];
             if (!"user".Equals(u.Role, StringComparison.OrdinalIgnoreCase)) continue;
-            var txt = (string.Join("\n", u.Parts ?? Enumerable.Empty<string>())).Trim();
-            if (LooksLikeName(txt)) return ToTitle(txt);
+            var txt = string.Join("\n", u.Parts ?? Enumerable.Empty<string>()).Trim();
+            var m = nameIs.Match(txt);
+            if (m.Success)
+            {
+                var v = FirstSegment(m.Groups["v"].Value);
+                if (LooksLikeName(v)) return ToTitle(v);
+            }
+        }
+
+        //   b) last plausible bare user line that looks like a name
+        for (int i = list.Count - 1; i >= 0; i--)
+        {
+            var u = list[i];
+            if (!"user".Equals(u.Role, StringComparison.OrdinalIgnoreCase)) continue;
+            var seg = FirstSegment(string.Join("\n", u.Parts ?? Enumerable.Empty<string>()));
+            if (LooksLikeName(seg)) return ToTitle(seg);
         }
 
         return null;
-
-        static bool LooksLikeName(string txt)
-        {
-            if (string.IsNullOrWhiteSpace(txt)) return false;
-            if (txt.Contains('@')) return false;
-            if (txt.StartsWith("choose ", StringComparison.OrdinalIgnoreCase)) return false; // UI command
-            var words = txt.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-            if (words.Length == 0 || words.Length > 4) return false;
-            return txt.Length <= 60;
-        }
-
-        static string ToTitle(string s)
-            => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(s.ToLowerInvariant());
     }
 
+
+    // Price/quote redaction
+    private static readonly Regex CurrencyAmountRe =
+        new(@"(?ix)
+        (?:[$₹]|AUD|USD|INR)\s*            # currency symbol/code
+        \d{1,3}(?:,\d{3})*(?:\.\d{1,2})?   # 1,234.56
+    ");
+
+    private static readonly Regex PriceOrQuoteLineRe =
+        new(@"(?i)\b(
+        total\s+(amount|estimated\s*cost)|
+        amount\s+comes\s+to|
+        (incl(?:uding)?\s*)?gst|
+        quote(\s*number)?|
+        price|cost|fee|charge
+    )\b");
+
+    private static void RedactPricesForUiInPlace(IEnumerable<DisplayMessage> messages)
+    {
+        if (messages == null) return;
+
+        foreach (var m in messages)
+        {
+            if (!"assistant".Equals(m.Role, StringComparison.OrdinalIgnoreCase) || m.Parts == null)
+                continue;
+
+            var newParts = new List<string>(m.Parts.Count);
+            foreach (var part in m.Parts)
+            {
+                var lines = (part ?? string.Empty).Replace("\r", "").Split('\n');
+                var kept = new List<string>();
+
+                foreach (var line in lines)
+                {
+                    if (CurrencyAmountRe.IsMatch(line)) continue;
+                    if (PriceOrQuoteLineRe.IsMatch(line)) continue;
+                    kept.Add(line);
+                }
+
+                if (kept.Count == 0 && lines.Length > 0)
+                    kept.Add("[A quote was prepared. Price is hidden in chat.]");
+
+                newParts.Add(string.Join("\n", kept));
+            }
+
+            m.Parts = newParts;
+        }
+    }
+
+    // One in-flight call per thread prevents parallel runs that trigger 429s.
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> _threadLocks = new();
+
+    private SemaphoreSlim GetThreadLock(string threadId)
+        => _threadLocks.GetOrAdd(threadId, _ => new SemaphoreSlim(1, 1));
+
+    private static async Task<T> WithRateLimitRetry<T>(
+        Func<Task<T>> action,
+        CancellationToken ct,
+        int maxAttempts = 5,
+        double baseDelaySeconds = 2.0)
+    {
+        var rnd = new Random();
+        for (int attempt = 1; attempt <= maxAttempts; attempt++)
+        {
+            ct.ThrowIfCancellationRequested();
+            try
+            {
+                return await action();
+            }
+            catch (Exception ex) when (IsRateLimit(ex))
+            {
+                var retryAfter = ParseRetryAfterSeconds(ex);
+                var delay = retryAfter.HasValue
+                    ? TimeSpan.FromSeconds(retryAfter.Value)
+                    : TimeSpan.FromSeconds(Math.Min(30, baseDelaySeconds * Math.Pow(2, attempt - 1)) + rnd.NextDouble());
+
+                if (attempt == maxAttempts) throw;
+                await Task.Delay(delay, ct);
+            }
+        }
+        throw new InvalidOperationException("Unreachable");
+
+        static bool IsRateLimit(Exception ex)
+        {
+            var msg = ex.Message?.ToLowerInvariant() ?? "";
+            return msg.Contains("rate limit") || msg.Contains("429") || msg.Contains("too many requests") || msg.Contains("try again in");
+        }
+
+        static double? ParseRetryAfterSeconds(Exception ex)
+        {
+            var m = Regex.Match(ex.Message ?? "", @"try again in\s+(\d+)\s*second", RegexOptions.IgnoreCase);
+            if (m.Success && double.TryParse(m.Groups[1].Value, out var s)) return s;
+            return null;
+        }
+    }
 }
