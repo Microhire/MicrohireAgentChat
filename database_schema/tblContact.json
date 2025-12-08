@@ -1,0 +1,998 @@
+{
+  "name": "tblContact",
+  "schema": "dbo",
+  "description": "Contact persons table - stores contact information for individuals",
+  "row_count": 20738,
+  "columns": [
+    {
+      "name": "ID",
+      "data_type": "decimal(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": true,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CustCodeLink",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Contactname",
+      "data_type": "varchar(35)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "firstname",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "surname",
+      "data_type": "varchar(35)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "nameKeyField",
+      "data_type": "varchar(11)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "position",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "busname",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Adr1",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Adr2",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Adr3",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Postcode",
+      "data_type": "varchar(12)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Phone1",
+      "data_type": "varchar(16)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Phone2",
+      "data_type": "varchar(16)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Fax",
+      "data_type": "varchar(16)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Webpage",
+      "data_type": "varchar(80)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Email",
+      "data_type": "varchar(80)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "driversLicNo",
+      "data_type": "varchar(20)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "OtherID",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "specialty",
+      "data_type": "varchar(60)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PictureDatafile",
+      "data_type": "varchar(240)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "lastBookDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "MidName",
+      "data_type": "varchar(35)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Cell",
+      "data_type": "varchar(16)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Ext1",
+      "data_type": "varchar(8)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Ext2",
+      "data_type": "varchar(8)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Active",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "MailList",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DecMaker",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "LastContact",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "LastAttempt",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Department",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "SourceID",
+      "data_type": "decimal(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CreateDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "LastUpdate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ReferralName",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field1",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field2",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field3",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field4",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field5",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field6",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field7",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field8",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "AskFor",
+      "data_type": "varchar(20)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CreditCardName",
+      "data_type": "varchar(20)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CreditCardNumber",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "expMonth",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "expYear",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CardStreet1",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CardStreet2",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CardCity",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CardState",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CardPostCode",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CreditCardIdNo",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Sendme_faxes",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Sendme_emails",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CardHolder_Name",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "SalesPerson_Code",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "SalesAssignEndDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Country",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "State",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Phone1ID",
+      "data_type": "decimal(18,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Phone2ID",
+      "data_type": "decimal(18,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CellID",
+      "data_type": "decimal(18,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "FaxID",
+      "data_type": "decimal(18,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "bDriver",
+      "data_type": "bit",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "bFreeLanceContact",
+      "data_type": "bit",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "JobTitle",
+      "data_type": "varchar(15)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Phone1CountryCode",
+      "data_type": "varchar(10)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Phone1AreaCode",
+      "data_type": "varchar(10)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Phone2CountryCode",
+      "data_type": "varchar(10)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Phone2AreaCode",
+      "data_type": "varchar(10)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "FaxCountryCode",
+      "data_type": "varchar(10)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "FaxAreaCode",
+      "data_type": "varchar(10)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CellCountryCode",
+      "data_type": "varchar(10)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CellAreaCode",
+      "data_type": "varchar(10)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "FaxDialAreaCode",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "FaxCallType",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "SubRentalVendor",
+      "data_type": "varchar(8)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "AgencyContact",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "UpdateVendorContact",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "username",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "password",
+      "data_type": "varchar(256)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "TimeZone",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "RPwebservicesActive",
+      "data_type": "bit",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "RPWSDefaultOpID",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CultureInt",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ProjectManager",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Utc",
+      "data_type": "smallint(5,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "field9",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "field10",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "field11",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "field12",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "field13",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "field14",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "field15",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "RPWSCrewManager",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    }
+  ],
+  "primary_keys": [
+    "ID"
+  ],
+  "foreign_keys": [],
+  "sample_data": [
+    {
+      "ID": "1",
+      "CustCodeLink": null,
+      "Contactname": "Amelia Hickey",
+      "firstname": "Amelia",
+      "surname": "Hickey",
+      "nameKeyField": "",
+      "position": "Business Development Manager",
+      "busname": null,
+      "Adr1": "1 Olympic Drive",
+      "Adr2": "",
+      "Adr3": "Milsons Point",
+      "Postcode": "",
+      "Phone1": "90337533",
+      "Phone2": "",
+      "Fax": "",
+      "Webpage": "",
+      "Email": "AHickey@lunaparksydney.com",
+      "driversLicNo": "",
+      "OtherID": null,
+      "specialty": null,
+      "PictureDatafile": "",
+      "lastBookDate": "1980-01-01 00:00:00",
+      "MidName": "",
+      "Cell": "0412 128 521",
+      "Ext1": "",
+      "Ext2": "",
+      "Active": "Y",
+      "MailList": "Y",
+      "DecMaker": "Y",
+      "LastContact": "1980-01-01 00:00:00",
+      "LastAttempt": "1980-01-01 00:00:00",
+      "Department": "Sales",
+      "SourceID": "0",
+      "CreateDate": "2020-12-01 00:00:00",
+      "LastUpdate": "2020-12-01 00:00:00",
+      "ReferralName": "",
+      "Field1": "",
+      "Field2": "",
+      "Field3": "",
+      "Field4": "",
+      "Field5": "",
+      "Field6": "",
+      "Field7": "1980-01-01 00:00:00",
+      "Field8": "1980-01-01 00:00:00",
+      "AskFor": "",
+      "CreditCardName": "",
+      "CreditCardNumber": "",
+      "expMonth": "",
+      "expYear": "",
+      "CardStreet1": "",
+      "CardStreet2": "",
+      "CardCity": "",
+      "CardState": "",
+      "CardPostCode": "",
+      "CreditCardIdNo": "",
+      "Sendme_faxes": "Y",
+      "Sendme_emails": "Y",
+      "CardHolder_Name": "",
+      "SalesPerson_Code": "",
+      "SalesAssignEndDate": "1980-01-01 00:00:00",
+      "Country": "",
+      "State": "",
+      "Phone1ID": "-1",
+      "Phone2ID": "-1",
+      "CellID": "-1",
+      "FaxID": "-1",
+      "bDriver": false,
+      "bFreeLanceContact": false,
+      "JobTitle": "",
+      "Phone1CountryCode": "",
+      "Phone1AreaCode": "02",
+      "Phone2CountryCode": "",
+      "Phone2AreaCode": "",
+      "FaxCountryCode": "",
+      "FaxAreaCode": "",
+      "CellCountryCode": "",
+      "CellAreaCode": "",
+      "FaxDialAreaCode": false,
+      "FaxCallType": 0,
+      "SubRentalVendor": "",
+      "AgencyContact": false,
+      "UpdateVendorContact": false,
+      "username": "",
+      "password": "",
+      "TimeZone": "UTC",
+      "RPwebservicesActive": false,
+      "RPWSDefaultOpID": 0,
+      "CultureInt": 1,
+      "ProjectManager": false,
+      "Utc": 0,
+      "field9": "",
+      "field10": "",
+      "field11": "",
+      "field12": "",
+      "field13": "",
+      "field14": "",
+      "field15": "1980-01-01 00:00:00",
+      "RPWSCrewManager": null
+    },
+    {
+      "ID": "2",
+      "CustCodeLink": null,
+      "Contactname": "Anna Faggion",
+      "firstname": "Anna",
+      "surname": "Faggion",
+      "nameKeyField": "",
+      "position": "",
+      "busname": null,
+      "Adr1": "PO Box 528",
+      "Adr2": "",
+      "Adr3": "Milsons Point",
+      "Postcode": "",
+      "Phone1": "02 9922 6644",
+      "Phone2": "",
+      "Fax": "",
+      "Webpage": "",
+      "Email": "afaggion@lunaparksydney.com",
+      "driversLicNo": "",
+      "OtherID": null,
+      "specialty": null,
+      "PictureDatafile": "",
+      "lastBookDate": "1980-01-01 00:00:00",
+      "MidName": "",
+      "Cell": "",
+      "Ext1": "",
+      "Ext2": "",
+      "Active": "Y",
+      "MailList": "Y",
+      "DecMaker": "Y",
+      "LastContact": "1980-01-01 00:00:00",
+      "LastAttempt": "1980-01-01 00:00:00",
+      "Department": "",
+      "SourceID": "0",
+      "CreateDate": "2020-12-01 00:00:00",
+      "LastUpdate": "2020-12-01 00:00:00",
+      "ReferralName": "",
+      "Field1": "",
+      "Field2": "",
+      "Field3": "",
+      "Field4": "",
+      "Field5": "",
+      "Field6": "",
+      "Field7": "1980-01-01 00:00:00",
+      "Field8": "1980-01-01 00:00:00",
+      "AskFor": "",
+      "CreditCardName": "",
+      "CreditCardNumber": "",
+      "expMonth": "",
+      "expYear": "",
+      "CardStreet1": "",
+      "CardStreet2": "",
+      "CardCity": "",
+      "CardState": "",
+      "CardPostCode": "",
+      "CreditCardIdNo": "",
+      "Sendme_faxes": "Y",
+      "Sendme_emails": "Y",
+      "CardHolder_Name": "",
+      "SalesPerson_Code": "",
+      "SalesAssignEndDate": "1980-01-01 00:00:00",
+      "Country": "",
+      "State": "NSW",
+      "Phone1ID": "-1",
+      "Phone2ID": "-1",
+      "CellID": "-1",
+      "FaxID": "-1",
+      "bDriver": false,
+      "bFreeLanceContact": false,
+      "JobTitle": "",
+      "Phone1CountryCode": "",
+      "Phone1AreaCode": "",
+      "Phone2CountryCode": "",
+      "Phone2AreaCode": "",
+      "FaxCountryCode": "",
+      "FaxAreaCode": "",
+      "CellCountryCode": "",
+      "CellAreaCode": "",
+      "FaxDialAreaCode": false,
+      "FaxCallType": 0,
+      "SubRentalVendor": "",
+      "AgencyContact": false,
+      "UpdateVendorContact": false,
+      "username": "",
+      "password": "",
+      "TimeZone": "UTC",
+      "RPwebservicesActive": false,
+      "RPWSDefaultOpID": 0,
+      "CultureInt": 1,
+      "ProjectManager": false,
+      "Utc": 0,
+      "field9": "",
+      "field10": "",
+      "field11": "",
+      "field12": "",
+      "field13": "",
+      "field14": "",
+      "field15": "1980-01-01 00:00:00",
+      "RPWSCrewManager": null
+    }
+  ]
+}

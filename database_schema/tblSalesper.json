@@ -1,0 +1,188 @@
+{
+  "name": "tblSalesper",
+  "schema": "dbo",
+  "description": "Salespersons table - stores sales representative information",
+  "row_count": 187,
+  "columns": [
+    {
+      "name": "ID",
+      "data_type": "decimal(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": true,
+      "is_foreign_key": false
+    },
+    {
+      "name": "salesperson_code",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Salesperson_name",
+      "data_type": "varchar(45)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "assigned_for",
+      "data_type": "smallint(5,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "MonthsAssignedToContact",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ContactID",
+      "data_type": "decimal(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "bDisabled",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CommSales",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CommRental",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CommCrew",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CommInsur",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CommCCSurcharge",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CommOnLosses",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CommOnSundry",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CommOnEventManagementFee",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CommOnCrossRentals",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CommOnCrossCrew",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    }
+  ],
+  "primary_keys": [
+    "ID"
+  ],
+  "foreign_keys": [],
+  "sample_data": [
+    {
+      "ID": "34",
+      "salesperson_code": "AAA",
+      "Salesperson_name": "# Pending",
+      "assigned_for": 0,
+      "MonthsAssignedToContact": 0,
+      "ContactID": "0",
+      "bDisabled": false,
+      "CommSales": null,
+      "CommRental": null,
+      "CommCrew": null,
+      "CommInsur": null,
+      "CommCCSurcharge": null,
+      "CommOnLosses": null,
+      "CommOnSundry": null,
+      "CommOnEventManagementFee": null,
+      "CommOnCrossRentals": null,
+      "CommOnCrossCrew": null
+    },
+    {
+      "ID": "129",
+      "salesperson_code": "ABF",
+      "Salesperson_name": "ABIE FORTUNE",
+      "assigned_for": 0,
+      "MonthsAssignedToContact": 0,
+      "ContactID": "9116",
+      "bDisabled": false,
+      "CommSales": null,
+      "CommRental": null,
+      "CommCrew": null,
+      "CommInsur": null,
+      "CommCCSurcharge": null,
+      "CommOnLosses": null,
+      "CommOnSundry": null,
+      "CommOnEventManagementFee": null,
+      "CommOnCrossRentals": null,
+      "CommOnCrossCrew": null
+    }
+  ]
+}

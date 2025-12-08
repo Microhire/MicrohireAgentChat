@@ -57,7 +57,7 @@
         public bool? AddedAtCheckout { get; set; }                      // bit
 
         public int? GroupSeqNo { get; set; }                            // int
-        public int? SubRentalLinkID { get; set; }                       // int
+        public int SubRentalLinkID { get; set; }                        // int NOT NULL (default 0)
         public byte AssignType { get; set; }                            // tinyint NOT NULL
         public int QtyShort { get; set; }                               // int NOT NULL
         public int? QtyAvailable { get; set; }                          // int
@@ -70,7 +70,7 @@
         public bool? NodeCollapsed { get; set; }                        // bit
         public bool AvailRecFlag { get; set; }                          // bit NOT NULL
 
-        public int? BookingId { get; set; }                             // int
+        public decimal? BookingId { get; set; }                         // decimal(10,0)
         public double? UndiscAmt { get; set; }                          // float
 
         public bool? ViewLogi { get; set; }                             // bit

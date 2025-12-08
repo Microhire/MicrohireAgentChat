@@ -51,7 +51,7 @@
 <div class="chat-box-main">
     <div class="chat-box-header">
         <!-- adjust classes (first-step-active/second-step-active) as your flow progresses -->
-        <div class="chat-box-progress first-step-active"></div>
+        <div class="chat-box-progress @ViewData["ProgressStep"]"></div>
         <div class="chat-box-progress-titles">
             <span>Venue</span>
             <span>Services</span>
@@ -59,6 +59,21 @@
             <span>Quote</span>
         </div>
     </div>
+
+    @if (!string.IsNullOrWhiteSpace(ViewData["ExistingQuoteUrl"] as string))
+    {
+        <div class="alert alert-success border-0 rounded-0 mb-0 py-2 px-3" style="background: #d4edda; border-bottom: 1px solid #c3e6cb;">
+            <div class="d-flex align-items-center">
+                <i class="ph ph-check-circle text-success me-2"></i>
+                <div class="flex-grow-1">
+                    <strong>Quote Ready!</strong> Your professional quote has been generated and is available for download.
+                </div>
+                <a href="@ViewData["ExistingQuoteUrl"]" target="_blank" class="btn btn-success btn-sm ms-3">
+                    <i class="ph ph-download me-1"></i> Download PDF
+                </a>
+            </div>
+        </div>
+    }
 
     <div class="chat-box-body">
         <div id="messagesWrap" class="chat-box-wrap">
@@ -75,9 +90,24 @@
                 <i class="ph ph-caret-right"></i>
             </button>
 
-            <form id="resetForm" asp-action="Reset" method="post" class="ms-2" style="display:none">
+            @if (ViewData["DevModeEnabled"] as bool? == true)
+            {
+                <button id="startReplayBtn" type="button" class="btn btn-outline-primary ms-2" title="Start Test Conversation">
+                    <i class="ph ph-play"></i> Test
+                </button>
+
+                <button id="nextReplayBtn" type="button" class="btn btn-outline-secondary ms-1" title="Send Next Test Message" style="display:none">
+                    <i class="ph ph-fast-forward"></i> Next
+                </button>
+
+                <span id="replayStatus" class="ms-2 text-muted" style="display:none"></span>
+            }
+
+            <form id="resetForm" asp-action="Reset" method="post" class="ms-2">
                 @Html.AntiForgeryToken()
-                <button class="btn btn-link" type="submit" title="New Thread">New Thread</button>
+                <button class="btn btn-link text-decoration-none" type="submit" title="Start New Conversation">
+                    <i class="ph ph-plus-circle"></i> New Quote
+                </button>
             </form>
         </div>
     </div>
@@ -227,6 +257,19 @@
             const text = (input.value || '').trim();
             if (!text) return;
 
+            // Immediately add user message to conversation
+            const userMessageDiv = document.createElement('div');
+            userMessageDiv.className = 'chat-message message-sent';
+            userMessageDiv.innerHTML = `
+              <div class="chat-message-box">
+                <div class="chat-message-body">
+                  <div class="chat-text">${text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+                </div>
+              </div>`;
+            messagesWrap.appendChild(userMessageDiv);
+            input.value = '';
+            scrollToBottom();
+
             sendBtn.disabled = true;
             addTypingBubble();
 
@@ -242,7 +285,6 @@
               if (!res.ok) throw new Error('Request failed');
               const html = await res.text();
               messagesWrap.innerHTML = html;
-              input.value = '';
               hydrateUiBlocks(messagesWrap);
               scrollToBottom();
             } catch (err) {
@@ -274,6 +316,94 @@
               alert(err.message || 'Failed to reset');
             }
           });
+
+          // ----- DEV MODE: Conversation Replay -----
+          const startReplayBtn = document.getElementById('startReplayBtn');
+          const nextReplayBtn = document.getElementById('nextReplayBtn');
+          const replayStatus = document.getElementById('replayStatus');
+
+          if (startReplayBtn) {
+            startReplayBtn.addEventListener('click', async () => {
+              try {
+                startReplayBtn.disabled = true;
+                startReplayBtn.textContent = 'Starting...';
+
+                const res = await fetch('@Url.Action("StartConversationReplay", "Chat")', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    'RequestVerificationToken': sendToken
+                  }
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                  startReplayBtn.style.display = 'none';
+                  nextReplayBtn.style.display = 'inline-block';
+                  replayStatus.style.display = 'inline';
+                  replayStatus.textContent = `${data.messageCount} messages ready`;
+                  nextReplayBtn.disabled = false;
+                } else {
+                  throw new Error(data.error || 'Failed to start replay');
+                }
+              } catch (err) {
+                console.error(err);
+                alert(err.message || 'Failed to start conversation replay');
+                startReplayBtn.disabled = false;
+                startReplayBtn.innerHTML = '<i class="ph ph-play"></i> Test';
+              }
+            });
+          }
+
+          if (nextReplayBtn) {
+            nextReplayBtn.addEventListener('click', async () => {
+              try {
+                nextReplayBtn.disabled = true;
+                nextReplayBtn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Sending...';
+
+                const res = await fetch('@Url.Action("GetNextReplayMessage", "Chat")', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    'RequestVerificationToken': sendToken
+                  }
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                  // Auto-fill the input with the next message
+                  input.value = data.message;
+                  replayStatus.textContent = data.completed ? 'Completed!' : `${data.remaining} messages remaining`;
+
+                  if (data.completed) {
+                    nextReplayBtn.style.display = 'none';
+                    startReplayBtn.style.display = 'inline-block';
+                    startReplayBtn.disabled = false;
+                    startReplayBtn.innerHTML = '<i class="ph ph-play"></i> Test';
+                    replayStatus.style.display = 'none';
+                  } else {
+                    nextReplayBtn.disabled = false;
+                    nextReplayBtn.innerHTML = '<i class="ph ph-fast-forward"></i> Next';
+                  }
+                } else {
+                  if (data.error === 'Replay completed') {
+                    nextReplayBtn.style.display = 'none';
+                    startReplayBtn.style.display = 'inline-block';
+                    startReplayBtn.disabled = false;
+                    startReplayBtn.innerHTML = '<i class="ph ph-play"></i> Test';
+                    replayStatus.style.display = 'none';
+                  } else {
+                    throw new Error(data.error || 'Failed to get next message');
+                  }
+                }
+              } catch (err) {
+                console.error(err);
+                alert(err.message || 'Failed to get next replay message');
+                nextReplayBtn.disabled = false;
+                nextReplayBtn.innerHTML = '<i class="ph ph-fast-forward"></i> Next';
+              }
+            });
+          }
         })();
     </script>
 }

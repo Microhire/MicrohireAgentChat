@@ -1,0 +1,598 @@
+{
+  "name": "tblcrew",
+  "schema": "dbo",
+  "description": "Labour/crew table - stores labour assignments for bookings with tasks, hours, and rates",
+  "row_count": 195524,
+  "columns": [
+    {
+      "name": "ID",
+      "data_type": "decimal(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": true,
+      "is_foreign_key": false
+    },
+    {
+      "name": "booking_no_v32",
+      "data_type": "varchar(35)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "heading_no",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "seq_no",
+      "data_type": "decimal(19,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "sub_seq_no",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "product_code_v42",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "del_time_hour",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "del_time_min",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "return_time_hour",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "return_time_min",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "trans_qty",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "price",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "rate_selected",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "hours",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Minutes",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "person",
+      "data_type": "char(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "task",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "TechRate",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "TechPay",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "unitRate",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "techrateIsHourorDay",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "FirstDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "RetnDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "GroupSeqNo",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "StraightTime",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "OverTime",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DoubleTime",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "UseCustomRate",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CustomRate",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "HourOrDay",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ShortTurnaround",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "HourlyRateID",
+      "data_type": "decimal(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "UnpaidHours",
+      "data_type": "int(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "UnpaidMins",
+      "data_type": "int(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "TechIsConfirmed",
+      "data_type": "bit",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "MeetTechOnSite",
+      "data_type": "bit",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "bit_field_v41",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "SubrentalLinkID",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "AssignTo",
+      "data_type": "varchar(35)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "days_using",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "MinimumHours",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ConfirmationLevel",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "JobDescription",
+      "data_type": "varchar(160)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Notes",
+      "data_type": "varchar(512)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "AdmModifiedNoteDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "JobTimeZone",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "TechTimezone",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "JobOffered",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "JobOffereddate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "JobAccepted",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "JobAcceptedDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Conflict",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PrintOnQuote",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PrintOnInvoice",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "JobTechOfferStatus",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "JobTechOfferDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "JobTechNotes",
+      "data_type": "varchar(512)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CrewClientNotes",
+      "data_type": "varchar(40)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    }
+  ],
+  "primary_keys": [
+    "ID"
+  ],
+  "foreign_keys": [],
+  "sample_data": [
+    {
+      "ID": "187913",
+      "booking_no_v32": "C0852400004",
+      "heading_no": 0,
+      "seq_no": "65531",
+      "sub_seq_no": 0,
+      "product_code_v42": "DRIVER",
+      "del_time_hour": 8,
+      "del_time_min": 0,
+      "return_time_hour": 9,
+      "return_time_min": 0,
+      "trans_qty": 1,
+      "price": 110.0,
+      "rate_selected": 1,
+      "hours": 1,
+      "Minutes": 0,
+      "person": "                              ",
+      "task": 8,
+      "TechRate": 55.0,
+      "TechPay": 55.0,
+      "unitRate": 0.0,
+      "techrateIsHourorDay": "H",
+      "FirstDate": "2014-11-11 00:00:00",
+      "RetnDate": "2014-11-11 00:00:00",
+      "GroupSeqNo": 65535,
+      "StraightTime": 1.0,
+      "OverTime": 0.0,
+      "DoubleTime": 0.0,
+      "UseCustomRate": false,
+      "CustomRate": 110.0,
+      "HourOrDay": "H",
+      "ShortTurnaround": false,
+      "HourlyRateID": "1",
+      "UnpaidHours": 0,
+      "UnpaidMins": 0,
+      "TechIsConfirmed": false,
+      "MeetTechOnSite": false,
+      "bit_field_v41": 0,
+      "SubrentalLinkID": 9244286,
+      "AssignTo": "",
+      "days_using": 1.0,
+      "MinimumHours": 0.0,
+      "ConfirmationLevel": 0,
+      "JobDescription": "",
+      "Notes": "\r\n",
+      "AdmModifiedNoteDate": "1899-12-30 00:00:00",
+      "JobTimeZone": 0,
+      "TechTimezone": 0,
+      "JobOffered": false,
+      "JobOffereddate": "1899-12-30 00:00:00",
+      "JobAccepted": false,
+      "JobAcceptedDate": "1899-12-30 00:00:00",
+      "Conflict": false,
+      "PrintOnQuote": true,
+      "PrintOnInvoice": true,
+      "JobTechOfferStatus": 255,
+      "JobTechOfferDate": "2024-10-27 20:50:49",
+      "JobTechNotes": null,
+      "CrewClientNotes": ""
+    },
+    {
+      "ID": "80393",
+      "booking_no_v32": "C0272700060",
+      "heading_no": 0,
+      "seq_no": "65458",
+      "sub_seq_no": 0,
+      "product_code_v42": "PRJTMAN",
+      "del_time_hour": 11,
+      "del_time_min": 0,
+      "return_time_hour": 16,
+      "return_time_min": 0,
+      "trans_qty": 1,
+      "price": 725.0,
+      "rate_selected": 1,
+      "hours": 5,
+      "Minutes": 0,
+      "person": "                              ",
+      "task": 13,
+      "TechRate": 0.0,
+      "TechPay": 0.0,
+      "unitRate": 0.0,
+      "techrateIsHourorDay": "H",
+      "FirstDate": "2019-11-28 00:00:00",
+      "RetnDate": "2019-11-28 00:00:00",
+      "GroupSeqNo": 65535,
+      "StraightTime": 5.0,
+      "OverTime": 0.0,
+      "DoubleTime": 0.0,
+      "UseCustomRate": false,
+      "CustomRate": 145.0,
+      "HourOrDay": "H",
+      "ShortTurnaround": false,
+      "HourlyRateID": "1",
+      "UnpaidHours": 0,
+      "UnpaidMins": 0,
+      "TechIsConfirmed": false,
+      "MeetTechOnSite": false,
+      "bit_field_v41": 0,
+      "SubrentalLinkID": 3544330,
+      "AssignTo": "",
+      "days_using": 1.0,
+      "MinimumHours": 0.0,
+      "ConfirmationLevel": 0,
+      "JobDescription": "",
+      "Notes": "\r\n\r\n\r\n\r\n",
+      "AdmModifiedNoteDate": "1899-12-30 00:00:00",
+      "JobTimeZone": 0,
+      "TechTimezone": 0,
+      "JobOffered": false,
+      "JobOffereddate": "1899-12-30 00:00:00",
+      "JobAccepted": false,
+      "JobAcceptedDate": "1899-12-30 00:00:00",
+      "Conflict": false,
+      "PrintOnQuote": true,
+      "PrintOnInvoice": true,
+      "JobTechOfferStatus": 255,
+      "JobTechOfferDate": "2022-11-28 11:45:19",
+      "JobTechNotes": null,
+      "CrewClientNotes": null
+    }
+  ]
+}

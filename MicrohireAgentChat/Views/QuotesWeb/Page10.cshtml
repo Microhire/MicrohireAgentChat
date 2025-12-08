@@ -1,78 +1,394 @@
 @using Microsoft.AspNetCore.Authorization
-@using iText.Forms.Xfdf
 @inject IAuthorizationService AuthorizationService
 @model QuoteAllFields
 
 @{
     Layout = "_LayoutQuote";
-    ViewData["Title"] = $"CONFIRMATION OF SERVICES";
+    ViewData["Title"] = $"Budget Summary & Confirmation";
     ViewBag.Page = 10;
-
-    @* var role = UserClaimsHelper.Role(User);
-    var isEditAble = role == UserRole.STAFF || role == UserRole.ADMIN; *@
-    var isStaff = false;
 }
-<div class="m-2">
-    <p class="text-justify">@Model.BudgetNotesTopLine.</p>
-    <p class="text-justify">@Model.BudgetValidityLine.</p>
-    <p class="text-justify">@Model.BudgetConfirmLine.</p>
-    <p class="text-justify">@Model.BudgetContactLine.</p>
-    <p class="text-justify">@Model.BudgetSignoffLine.</p>
-    <br>
 
-    <div class="m-2">
-        <div class="form-group">
-            <label style="width: 200px;">Reference Number</label>
-            <span>@Model.Reference</span>
+<style>
+    .summary-page {
+        padding: 2rem;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .page-header {
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #E71E25;
+    }
+    
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1a1a2e;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 0.25rem;
+    }
+    
+    .page-subtitle {
+        font-size: 0.875rem;
+        color: #888;
+    }
+    
+    .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+    }
+    
+    .budget-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        padding: 1.5rem;
+    }
+    
+    .budget-title {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #E71E25;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .budget-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid #f5f5f5;
+    }
+    
+    .budget-row:last-child {
+        border-bottom: none;
+    }
+    
+    .budget-label {
+        font-size: 0.9rem;
+        color: #555;
+    }
+    
+    .budget-value {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #1a1a2e;
+    }
+    
+    .budget-subtotal {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 2px dashed #e0e0e0;
+    }
+    
+    .budget-total {
+        background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
+        color: white;
+        margin: -1.5rem;
+        margin-top: 1.5rem;
+        padding: 1.5rem;
+        border-radius: 0 0 12px 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .total-label {
+        font-size: 1rem;
+        font-weight: 500;
+    }
+    
+    .total-amount {
+        font-size: 1.75rem;
+        font-weight: 700;
+    }
+    
+    .terms-card {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 1.5rem;
+    }
+    
+    .terms-title {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #888;
+        margin-bottom: 1rem;
+    }
+    
+    .terms-text {
+        font-size: 0.85rem;
+        line-height: 1.7;
+        color: #555;
+        margin-bottom: 1rem;
+    }
+    
+    .terms-text:last-child {
+        margin-bottom: 0;
+    }
+    
+    .confirmation-section {
+        margin-top: 2rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        padding: 2rem;
+    }
+    
+    .confirmation-title {
+        font-size: 1rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #E71E25;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #E71E25;
+    }
+    
+    .reference-info {
+        display: flex;
+        gap: 3rem;
+        margin-bottom: 2rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .reference-item {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .reference-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #888;
+        margin-bottom: 0.25rem;
+    }
+    
+    .reference-value {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #1a1a2e;
+    }
+    
+    .signature-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1rem;
+    }
+    
+    .form-label {
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #888;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-input {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        font-size: 0.9rem;
+        transition: border-color 0.2s;
+    }
+    
+    .form-input:focus {
+        outline: none;
+        border-color: #E71E25;
+    }
+    
+    .submit-section {
+        margin-top: 1.5rem;
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+    }
+    
+    .btn-submit {
+        background: linear-gradient(135deg, #E71E25 0%, #c0392b 100%);
+        color: white;
+        border: none;
+        padding: 1rem 2rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(231, 30, 37, 0.3);
+    }
+    
+    .account-manager-card {
+        background: linear-gradient(135deg, #E71E25 0%, #c0392b 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-top: 2rem;
+    }
+    
+    .am-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        opacity: 0.8;
+        margin-bottom: 0.75rem;
+    }
+    
+    .am-name {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .am-contact {
+        font-size: 0.875rem;
+        opacity: 0.9;
+        margin-bottom: 0.25rem;
+    }
+    
+    .footer-info {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(255,255,255,0.2);
+        font-size: 0.8rem;
+        opacity: 0.8;
+    }
+</style>
+
+<div class="summary-page">
+    <div class="page-header">
+        <h1 class="page-title">Budget Summary</h1>
+        <div class="page-subtitle">@Model.EventTitle</div>
+    </div>
+    
+    <div class="content-grid">
+        <div class="budget-card">
+            <div class="budget-title">Cost Breakdown</div>
+            
+            <div class="budget-row">
+                <span class="budget-label">Rental Equipment</span>
+                <span class="budget-value">@Model.RentalTotal</span>
+            </div>
+            <div class="budget-row">
+                <span class="budget-label">Labour</span>
+                <span class="budget-value">@Model.LabourTotal</span>
+            </div>
+            <div class="budget-row">
+                <span class="budget-label">Service Charge</span>
+                <span class="budget-value">@Model.ServiceCharge</span>
+            </div>
+            
+            <div class="budget-row budget-subtotal">
+                <span class="budget-label">Sub Total (ex GST)</span>
+                <span class="budget-value">@Model.SubTotalExGst</span>
+            </div>
+            <div class="budget-row">
+                <span class="budget-label">GST (10%)</span>
+                <span class="budget-value">@Model.Gst</span>
+            </div>
+            
+            <div class="budget-total">
+                <span class="total-label">Total (inc GST)</span>
+                <span class="total-amount">@Model.GrandTotalIncGst</span>
+            </div>
         </div>
-        <div class="form-group">
-            <label style="width: 200px;">Total Quotation</label>
-            <span>@Model.GrandTotalIncGst inc GST</span>
+        
+        <div>
+            <div class="terms-card">
+                <div class="terms-title">Terms & Notes</div>
+                <p class="terms-text">@Model.BudgetNotesTopLine</p>
+                <p class="terms-text">@Model.BudgetValidityLine</p>
+                <p class="terms-text">@Model.BudgetConfirmLine</p>
+                <p class="terms-text">@Model.BudgetSignoffLine</p>
+            </div>
+            
+            <div class="account-manager-card">
+                <div class="am-title">Your Account Manager</div>
+                <div class="am-name">@Model.AccountMgrName</div>
+                <div class="am-contact">📱 @Model.AccountMgrMobile</div>
+                <div class="am-contact">✉️ @Model.AccountMgrEmail</div>
+                <div class="footer-info">
+                    @Model.FooterOfficeLine1<br>
+                    @Model.FooterOfficeLine2
+                </div>
+            </div>
         </div>
     </div>
-    @if(isStaff){
-        <div class="m-2">
-            @* <p>STATUS: @(Model?.IsApprove == true?"Client Approved":"Pending Client Approval.") </p>
-            @if(!string.IsNullOrEmpty(Model?.Feedback)){
-                <p>Client Comments : </p>
-                <p>@Html.Raw(Model?.Feedback)</p>
-            } *@
+    
+    <div class="confirmation-section">
+        <div class="confirmation-title">Confirmation of Services</div>
+        
+        <div class="reference-info">
+            <div class="reference-item">
+                <span class="reference-label">Reference Number</span>
+                <span class="reference-value">@Model.Reference</span>
+            </div>
+            <div class="reference-item">
+                <span class="reference-label">Total Quotation</span>
+                <span class="reference-value">@Model.GrandTotalIncGst inc GST</span>
+            </div>
         </div>
-    }else{
-        @* var isUserApprove = Model?.Status == YourStrategyStatusConstant.Approved; *@
-        var isUserApprove = false;
-        <div class="m-2">
-            <div class="form-group">
-                <label style="width: 200px;">Full Name</label>
-                <input class="form-input" name="Name"/>
-            </div>
-            <div class="form-group">
-                <label style="width: 200px;">Title</label>
-                <input class="form-input" name="Title"/>
-            </div>
-            @* <div class="form-group">
-                <label style="width: 200px;">Signature</label>
-                <input class="form-input" name="Signature"/>
-            </div> *@
-            <div class="form-group">
-                <label style="width: 200px;">Date</label>
-                <input type="date" class="form-input" name="Date"/>
-            </div>
-            <div class="form-group">
-                <label style="width: 200px;">Purchase Order</label>
-                <input class="form-input" name="Order"/>
-            </div>
-
-            @if(!isUserApprove){
-                <div class="text-end d-flex gap-2">
-                    <button type="button" id="submitfeedback" class="btn btn-rectangle">
-                        Submit
-                    </button>
-                    @* <button type="button" id="submitApprovefeedback" class="btn btn-rectangle">
-                        Approve
-                    </button> *@
+        
+        <p class="terms-text">@Model.ConfirmP1</p>
+        <p class="terms-text">@Model.ConfirmP2</p>
+        <p class="terms-text">@Model.ConfirmP3</p>
+        <p class="terms-text">@Model.ConfirmP4</p>
+        <p class="terms-text" style="margin-top: 1rem;">
+            <a href="@Model.ConfirmTermsUrl" target="_blank" style="color: #E71E25;">View Terms & Conditions</a>
+        </p>
+        
+        <div class="signature-grid">
+            <div>
+                <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <input class="form-input" name="Name" placeholder="Enter your full name"/>
                 </div>
-            }
+                <div class="form-group">
+                    <label class="form-label">Title / Position</label>
+                    <input class="form-input" name="Title" placeholder="Enter your title"/>
+                </div>
+            </div>
+            <div>
+                <div class="form-group">
+                    <label class="form-label">Date</label>
+                    <input type="date" class="form-input" name="Date"/>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Purchase Order (if applicable)</label>
+                    <input class="form-input" name="Order" placeholder="Enter PO number"/>
+                </div>
+            </div>
         </div>
-    }
+        
+        <div class="submit-section">
+            <button type="button" id="submitfeedback" class="btn-submit">
+                Accept & Confirm Quote
+            </button>
+        </div>
+    </div>
 </div>

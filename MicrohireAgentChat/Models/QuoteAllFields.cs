@@ -91,7 +91,13 @@ public sealed record QuoteAllFields(
 {
 }
 
-public sealed record EquipmentRow(string Description, string? Qty, string? LineTotal, bool IsGroup = false);
+public sealed record EquipmentRow(
+    string Description, 
+    string? Qty, 
+    string? LineTotal, 
+    bool IsGroup = false,
+    bool IsComponent = false  // True for package components (shown indented, no price)
+);
 
 public sealed record LaborRow(
     string Description, // AV Technician

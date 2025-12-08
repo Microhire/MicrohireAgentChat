@@ -15,8 +15,9 @@ public sealed class BookingDbContext : DbContext
     public DbSet<TblRatetbl> TblRatetbls => Set<TblRatetbl>();
     public DbSet<TblCrew> TblCrews => Set<TblCrew>();
     public DbSet<TblCust> TblCusts => Set<TblCust>();
-    public DbSet<TblLinkCustContact> TblLinkCustContacts => Set<TblLinkCustContact>(); // NEW
-    public DbSet<TblBooknote> TblBooknotes => Set<TblBooknote>();   // NEW  
+    public DbSet<TblLinkCustContact> TblLinkCustContacts => Set<TblLinkCustContact>();
+    public DbSet<TblBooknote> TblBooknotes => Set<TblBooknote>();
+    public DbSet<TblVenue> TblVenues => Set<TblVenue>();
     public DbSet<VwProdsComponents> VwProdsComponents => Set<VwProdsComponents>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -221,11 +222,17 @@ public sealed class BookingDbContext : DbContext
         // --- tblRatetbl ---
         var rt = modelBuilder.Entity<TblRatetbl>();
         rt.ToTable("tblRatetbl");
-        rt.HasKey(x => new { x.product_code, x.TableNo });
-
-        rt.Property(x => x.product_code).HasColumnName("ProductCode").HasMaxLength(35);
-        rt.Property(x => x.TableNo).HasColumnName("TableNo").HasColumnType("tinyint");
-        rt.Property(x => x.rate_1st_day).HasColumnName("rate_1st_day").HasColumnType("float");
+        rt.HasKey(x => x.ID);
+        rt.Property(x => x.ID).HasColumnName("ID").HasColumnType("decimal(10,0)");
+        rt.Property(x => x.product_code).HasColumnName("ProductCode").HasMaxLength(30);
+        rt.Property(x => x.TableNo).HasColumnName("tableNo").HasColumnType("tinyint");
+        rt.Property(x => x.rate_1st_day).HasColumnName("rate_1st_day");
+        rt.Property(x => x.rate_extra_days).HasColumnName("rate_extra_days");
+        rt.Property(x => x.hourly_rate).HasColumnName("hourly_rate");
+        rt.Property(x => x.half_day).HasColumnName("half_day");
+        
+        // Index for efficient lookups
+        rt.HasIndex(x => new { x.product_code, x.TableNo }).HasDatabaseName("IX_tblRatetbl_ProductCode_TableNo");
 
         // --- tblCrew ---
         // --- TblCrew ---
@@ -339,8 +346,11 @@ public sealed class BookingDbContext : DbContext
           .HasColumnType("bit")
           .IsRequired();
 
-        // optional extras if present in your model
-        // tc.Property(x => x.HourlyRateID).HasColumnName("HourlyRateID").HasColumnType("decimal(10,0)").IsRequired();
+        // HourlyRateID - decimal(10,0) NOT NULL in DB
+        tc.Property(x => x.HourlyRateID)
+          .HasColumnName("HourlyRateID")
+          .HasColumnType("decimal(10,0)")
+          .IsRequired();
 
 
         // --- tblcust ---
@@ -434,5 +444,56 @@ public sealed class BookingDbContext : DbContext
             v.Property(x => x.Qty).HasColumnName("qty_v5");
             v.Property(x => x.SubSeqNo).HasColumnName("sub_seq_no");
         });
+
+        // --- tblVenues ---
+        var venue = modelBuilder.Entity<TblVenue>();
+        venue.ToTable("tblVenues");
+        venue.HasKey(x => x.ID);
+
+        venue.Property(x => x.ID)
+             .HasColumnName("ID")
+             .HasColumnType("decimal(10,0)")
+             .ValueGeneratedOnAdd();
+
+        venue.Property(x => x.VenueName).HasColumnName("VenueName").HasMaxLength(100);
+        venue.Property(x => x.ContactName).HasColumnName("ContactName").HasMaxLength(50);
+        venue.Property(x => x.ContactID).HasColumnName("ContactID").HasColumnType("decimal(10,0)");
+        venue.Property(x => x.WebPage).HasColumnName("WebPage").HasMaxLength(200);
+        
+        // Address fields
+        venue.Property(x => x.Address1).HasColumnName("Address1").HasMaxLength(100);
+        venue.Property(x => x.Address2).HasColumnName("Address2").HasMaxLength(100);
+        venue.Property(x => x.City).HasColumnName("City").HasMaxLength(50);
+        venue.Property(x => x.State).HasColumnName("State").HasMaxLength(25);
+        venue.Property(x => x.Country).HasColumnName("Country").HasMaxLength(50);
+        venue.Property(x => x.ZipCode).HasColumnName("ZipCode").HasMaxLength(15);
+        
+        // Phone fields
+        venue.Property(x => x.Phone1CountryCode).HasColumnName("Phone1CountryCode").HasMaxLength(6);
+        venue.Property(x => x.Phone1AreaCode).HasColumnName("Phone1AreaCode").HasMaxLength(6);
+        venue.Property(x => x.Phone1Digits).HasColumnName("Phone1Digits").HasMaxLength(12);
+        venue.Property(x => x.Phone1Ext).HasColumnName("Phone1Ext").HasMaxLength(10);
+        
+        venue.Property(x => x.Phone2CountryCode).HasColumnName("Phone2CountryCode").HasMaxLength(6);
+        venue.Property(x => x.Phone2AreaCode).HasColumnName("Phone2AreaCode").HasMaxLength(6);
+        venue.Property(x => x.Phone2Digits).HasColumnName("Phone2Digits").HasMaxLength(12);
+        venue.Property(x => x.Phone2Ext).HasColumnName("Phone2Ext").HasMaxLength(10);
+        
+        venue.Property(x => x.FaxCountryCode).HasColumnName("FaxCountryCode").HasMaxLength(6);
+        venue.Property(x => x.FaxAreaCode).HasColumnName("FaxAreaCode").HasMaxLength(6);
+        venue.Property(x => x.FaxDigits).HasColumnName("FaxDigits").HasMaxLength(12);
+        
+        venue.Property(x => x.CellCountryCode).HasColumnName("CellCountryCode").HasMaxLength(6);
+        venue.Property(x => x.CellAreaCode).HasColumnName("CellAreaCode").HasMaxLength(6);
+        venue.Property(x => x.CellDigits).HasColumnName("CellDigits").HasMaxLength(12);
+        
+        // Type and metadata
+        venue.Property(x => x.Type).HasColumnName("Type");
+        venue.Property(x => x.BookingNo).HasColumnName("BookingNo").HasMaxLength(35);
+        venue.Property(x => x.VenueNickname).HasColumnName("VenueNickname").HasMaxLength(50);
+        venue.Property(x => x.VenueTextType).HasColumnName("VenueTextType").HasMaxLength(50);
+        venue.Property(x => x.DefaultFolder).HasColumnName("DefaultFolder").HasMaxLength(200);
+
+        venue.HasIndex(x => x.VenueName).HasDatabaseName("IX_tblVenues_Name");
     }
 }

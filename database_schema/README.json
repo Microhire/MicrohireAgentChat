@@ -1,0 +1,106 @@
+{
+  "database": "AITESTDB",
+  "server": "116.90.5.144:41383",
+  "total_tables": 11,
+  "tables": [
+    {
+      "name": "tblbookings",
+      "description": "Main bookings table - stores all booking/order details including customer, venue, dates, and financial information",
+      "row_count": 68966,
+      "column_count": 204,
+      "has_primary_key": true,
+      "has_foreign_keys": false,
+      "file": "tblbookings.json"
+    },
+    {
+      "name": "vwProdsComponents",
+      "description": "View showing product components - displays what items/components make up package products",
+      "row_count": 6268,
+      "column_count": 18,
+      "has_primary_key": false,
+      "has_foreign_keys": false,
+      "file": "vwProdsComponents.json"
+    },
+    {
+      "name": "tblitemtran",
+      "description": "Equipment transactions table - tracks all equipment items in bookings including quantities, rates, and dates",
+      "row_count": 1826879,
+      "column_count": 73,
+      "has_primary_key": true,
+      "has_foreign_keys": false,
+      "file": "tblitemtran.json"
+    },
+    {
+      "name": "tblcrew",
+      "description": "Labour/crew table - stores labour assignments for bookings with tasks, hours, and rates",
+      "row_count": 195524,
+      "column_count": 58,
+      "has_primary_key": true,
+      "has_foreign_keys": false,
+      "file": "tblcrew.json"
+    },
+    {
+      "name": "tblContact",
+      "description": "Contact persons table - stores contact information for individuals",
+      "row_count": 20738,
+      "column_count": 98,
+      "has_primary_key": true,
+      "has_foreign_keys": false,
+      "file": "tblContact.json"
+    },
+    {
+      "name": "tblcust",
+      "description": "Customer/organization table - stores customer companies and organizations",
+      "row_count": 14422,
+      "column_count": 141,
+      "has_primary_key": true,
+      "has_foreign_keys": false,
+      "file": "tblcust.json"
+    },
+    {
+      "name": "tblLinkCustContact",
+      "description": "Customer-contact link table - links contacts to customer organizations (many-to-many)",
+      "row_count": 20604,
+      "column_count": 3,
+      "has_primary_key": true,
+      "has_foreign_keys": false,
+      "file": "tblLinkCustContact.json"
+    },
+    {
+      "name": "tblSalesper",
+      "description": "Salespersons table - stores sales representative information",
+      "row_count": 187,
+      "column_count": 17,
+      "has_primary_key": true,
+      "has_foreign_keys": false,
+      "file": "tblSalesper.json"
+    },
+    {
+      "name": "tblinvmas",
+      "description": "Products/inventory master table - master list of all products, packages, and equipment",
+      "row_count": 4795,
+      "column_count": 97,
+      "has_primary_key": true,
+      "has_foreign_keys": false,
+      "file": "tblinvmas.json"
+    },
+    {
+      "name": "tbltask",
+      "description": "Labour tasks table - defines labour task types (setup, pack down, operate, etc.)",
+      "row_count": 26,
+      "column_count": 6,
+      "has_primary_key": true,
+      "has_foreign_keys": false,
+      "file": "tbltask.json"
+    },
+    {
+      "name": "tblInvmas_Labour_Rates",
+      "description": "Labour rates table - stores labour rates for products by location",
+      "row_count": 21980,
+      "column_count": 7,
+      "has_primary_key": true,
+      "has_foreign_keys": false,
+      "file": "tblInvmas_Labour_Rates.json"
+    }
+  ]
+}

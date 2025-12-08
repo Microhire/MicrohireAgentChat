@@ -1,38 +1,202 @@
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Web
 @inject IAuthorizationService AuthorizationService
 @model QuoteAllFields
 
 @{
     Layout = "_LayoutQuote";
-    ViewData["Title"] = $"EQUIPMENT & SERVICES";
+    ViewData["Title"] = $"Lighting Equipment";
     ViewBag.Page = 5;
 }
-<div class="m-5 mt-2">
-    <table class="table td-no-border">
-        <thead>
-            <tr>
-                <th scope="col" class="">Description</th>
-                <th scope="col" >Qty.</th>
-                <th scope="col" ></th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td class="fw-bold" colspan="3">Lighting</td>
-            </tr>
-            @if(Model.LightingRows != null)
-            foreach (var data in Model.LightingRows)
-            {
+
+<style>
+    .equipment-page {
+        padding: 2rem;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .page-header {
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #E71E25;
+    }
+    
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1a1a2e;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 0.25rem;
+    }
+    
+    .page-subtitle {
+        font-size: 0.875rem;
+        color: #888;
+    }
+    
+    .section-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #f39c12;
+    }
+    
+    .section-icon {
+        width: 32px;
+        height: 32px;
+        background: #f39c12;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 0.75rem;
+        color: white;
+        font-size: 1rem;
+    }
+    
+    .section-title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #1a1a2e;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .equipment-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .equipment-table th {
+        background: #f8f9fa;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #888;
+        padding: 0.75rem 1rem;
+        text-align: left;
+        border-bottom: 2px solid #e0e0e0;
+    }
+    
+    .equipment-table th:last-child {
+        text-align: right;
+    }
+    
+    .equipment-table td {
+        padding: 0.875rem 1rem;
+        font-size: 0.9rem;
+        border-bottom: 1px solid #f0f0f0;
+        vertical-align: top;
+    }
+    
+    .equipment-table tr:hover {
+        background: #fafafa;
+    }
+    
+    .equipment-description {
+        color: #1a1a2e;
+    }
+    
+    .equipment-qty {
+        text-align: center;
+        font-weight: 500;
+        color: #555;
+    }
+    
+    .equipment-price {
+        text-align: right;
+        font-weight: 600;
+        color: #1a1a2e;
+    }
+    
+    .group-row td {
+        background: #f0f0f0;
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: #555;
+        border-bottom: none;
+        padding: 0.5rem 1rem;
+    }
+    
+    .section-total {
+        display: flex;
+        justify-content: space-between;
+        background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: 4px;
+        margin-top: 0.5rem;
+        font-weight: 600;
+    }
+    
+    .no-items {
+        padding: 3rem;
+        text-align: center;
+        color: #888;
+        font-style: italic;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .no-items-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+</style>
+
+<div class="equipment-page">
+    <div class="page-header">
+        <h1 class="page-title">Lighting Equipment</h1>
+        <div class="page-subtitle">@Model.EventTitle</div>
+    </div>
+    
+    <div class="section-header">
+        <div class="section-icon">💡</div>
+        <div class="section-title">Lighting</div>
+    </div>
+    
+    @if (Model.LightingRows != null && Model.LightingRows.Any())
+    {
+        <table class="equipment-table">
+            <thead>
                 <tr>
-                    <td class="italic">@data.Description</td>
-                    <td colspan="2">@data?.Qty</td>
+                    <th>Description</th>
+                    <th style="width: 80px; text-align: center;">Qty</th>
+                    <th style="width: 120px;">Price</th>
                 </tr>
-            }
-            <tr>
-                <td class="fw-bold" colspan="2">Lighting Total</td>
-                <td class="fw-bold">@(Model.LightingTotal)</td>
-            </tr>
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.LightingRows)
+                {
+                    @if (item.IsGroup)
+                    {
+                        <tr class="group-row">
+                            <td colspan="3">@item.Description</td>
+                        </tr>
+                    }
+                    else
+                    {
+                        <tr>
+                            <td class="equipment-description">@item.Description</td>
+                            <td class="equipment-qty">@item.Qty</td>
+                            <td class="equipment-price">@item.LineTotal</td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+        <div class="section-total">
+            <span>Lighting Total</span>
+            <span>@Model.LightingTotal</span>
+        </div>
+    }
+    else
+    {
+        <div class="no-items">
+            <div class="no-items-icon">💡</div>
+            <p>No lighting equipment included in this quote</p>
+        </div>
+    }
 </div>

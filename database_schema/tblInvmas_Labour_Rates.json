@@ -1,0 +1,88 @@
+{
+  "name": "tblInvmas_Labour_Rates",
+  "schema": "dbo",
+  "description": "Labour rates table - stores labour rates for products by location",
+  "row_count": 21980,
+  "columns": [
+    {
+      "name": "ID",
+      "data_type": "decimal(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": true,
+      "is_foreign_key": false
+    },
+    {
+      "name": "tblInvmasID",
+      "data_type": "decimal(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "rate_no",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Labour_rate",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Locn",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "IsDefault",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DefaultRate",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    }
+  ],
+  "primary_keys": [
+    "ID"
+  ],
+  "foreign_keys": [],
+  "sample_data": [
+    {
+      "ID": "20161",
+      "tblInvmasID": "2940",
+      "rate_no": 1,
+      "Labour_rate": 145.0,
+      "Locn": 18,
+      "IsDefault": true,
+      "DefaultRate": null
+    },
+    {
+      "ID": "20162",
+      "tblInvmasID": "2940",
+      "rate_no": 2,
+      "Labour_rate": 217.5,
+      "Locn": 18,
+      "IsDefault": false,
+      "DefaultRate": null
+    }
+  ]
+}

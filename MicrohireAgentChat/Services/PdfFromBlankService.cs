@@ -6,7 +6,6 @@ using iText.Kernel.Pdf;
 using iText.Kernel.Pdf.Canvas;
 using iText.Layout;
 using iText.Layout.Element;
-using iText.Layout.Hyphenation;
 using iText.Layout.Properties;
 using MicrohireAgentChat.Models;
 using Microsoft.AspNetCore.Hosting;
@@ -16,12 +15,31 @@ public class PdfFromBlankService
     private readonly IWebHostEnvironment _env;
     public PdfFromBlankService(IWebHostEnvironment env) => _env = env;
 
+    // Template page layout constants (A4: 595 x 842 points)
+    // The BLANK template has:
+    // - Page 1: Full red cover design with white bar at y~168 for title
+    // - Pages 2+: Content pages with red arrow at top-left, red line at y~755
+    
+    // Page 1 (Cover) measurements
+    private const float COVER_TITLE_Y = 168f;        // Center of white bar
+    private const float COVER_TITLE_X = 85f;         // Left edge of white bar
+    private const float COVER_TITLE_WIDTH = 425f;    // Width of white bar
+    
+    // Pages 2+ (Content pages) - IMPORTANT: red line is at y~755
+    // Content must start BELOW the red line
+    private const float CONTENT_LEFT = 50f;
+    private const float CONTENT_RIGHT = 545f;
+    private const float SECTION_TITLE_Y = 770f;      // Section title ABOVE the red line
+    private const float EVENT_TITLE_Y = 745f;        // Event title just at the red line
+    private const float CONTENT_START_Y = 710f;      // Main content starts BELOW red line
+    private const float FOOTER_Y = 35f;              // Footer reference position
+
     public (string fileName, string fullPath) Generate(QuoteAllFields q)
     {
         var webRoot = _env.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot");
         var src = Path.Combine(webRoot, "files", "quotes", "Quote-BLANK-TEMPLATE.pdf");
         if (!File.Exists(src))
-            throw new FileNotFoundException("Blank template not found at /wwwroot/files/quotes/Quote-BLANK-TEMPLATE.pdf", src);
+            throw new FileNotFoundException("Blank template not found", src);
 
         var outDir = Path.Combine(webRoot, "files", "quotes");
         Directory.CreateDirectory(outDir);
@@ -35,379 +53,381 @@ public class PdfFromBlankService
 
         var font = PdfFontFactory.CreateFont(StandardFonts.HELVETICA);
         var bold = PdfFontFactory.CreateFont(StandardFonts.HELVETICA_BOLD);
+        var redBright = new DeviceRgb(200, 30, 30);
+        var redDark = new DeviceRgb(150, 20, 20);
 
-        // ========================= PAGE 1: OVERVIEW =========================
+        // ========================= PAGE 1: COVER =========================
         {
-            var page = pdf.GetPage(1);
-            var c = new PdfCanvas(page);
-
-            // Brand colours
-            var redBright = new iText.Kernel.Colors.DeviceRgb(230, 0, 0);   // title + underline tone
-            var redDark = new iText.Kernel.Colors.DeviceRgb(180, 30, 20); // "OVERVIEW" tone
-
-            // ---- Tuned placement to match the snapshot/template ----
-            const float ARROW_TIP_X = 92f;   // tip of the red triangle in the artwork
-            const float LEFT_MARGIN = 56f;   // body text left margin
-            const float OVERVIEW_X = 72f;
-            const float OVERVIEW_Y = 820f;  // lowered slightly so it breathes
-            const float GAP_OVERVIEW_TITLE = 56f;   // tighter gap between the two header lines
-            const float TITLE_LEFT_OFFSET = 22f;   // how far title sits to the right of the triangle tip
-
-            const float OVERVIEW_SIZE = 36f;
-            const float TITLE_SIZE = 38f;
-
-            // ---------- Header ----------
-            // OVERVIEW (dark red)
-            Text(c, bold, OVERVIEW_SIZE, OVERVIEW_X, OVERVIEW_Y, "OVERVIEW", redDark);
-
-            // Title (“ARCSOPT MEETING” or q.EventTitle) in bright red, aligned to the triangle
-            float xTitle = ARROW_TIP_X + TITLE_LEFT_OFFSET;
-            float yTitle = OVERVIEW_Y - GAP_OVERVIEW_TITLE;
-
-            var titleRect = new iText.Kernel.Geom.Rectangle(
-                xTitle,
-                yTitle - (TITLE_SIZE * 0.72f),   // baseline → rectangle origin (approx. cap-height)
-                820f,
-                TITLE_SIZE * 1.2f
-            );
-
-            using (var titleCanvas = new Canvas(c, titleRect))
-            {
-                titleCanvas.Add(
-                    new Paragraph(q.EventTitle)
-                        .SetFont(bold)
-                        .SetFontSize(TITLE_SIZE)
-                        .SetFontColor(redBright)
-                        .SetCharacterSpacing(0.2f) // subtle tightening to mimic the sample weight
-                        .SetMargin(0).SetPadding(0)
-                );
-            }
-
-            // ---------- Contact block (safe: uses fields you already have) ----------
-            var contactLines = new List<string>();
-            if (!string.IsNullOrWhiteSpace(q.ContactName)) contactLines.Add(q.ContactName);
-            if (!string.IsNullOrWhiteSpace(q.Client)) contactLines.Add(q.Client);
-            if (!string.IsNullOrWhiteSpace(q.Email)) contactLines.Add(q.Email);
-
-            // Start well below the underline so nothing collides
-            float yCursor = 708f;
-            foreach (var line in contactLines)
-            {
-                Text(c, font, 12, LEFT_MARGIN, yCursor, line);
-                yCursor -= 18f; // 12pt + a bit of leading
-            }
-
-            // Greeting
-            yCursor -= 10f;
-            var firstName = string.IsNullOrWhiteSpace(q.ContactName) ? "Client"
-                         : q.ContactName.Trim().Split(' ')[0];
-            Text(c, font, 12, LEFT_MARGIN, yCursor, $"Dear {firstName},");
-
-            // ---------- Intro paragraph (fully justified) ----------
-            float paraTop = yCursor - 16f;  // gap under greeting
-            float paraH = 118f;
-            float paraY = paraTop - paraH;
-
-            var introBox = new iText.Kernel.Geom.Rectangle(LEFT_MARGIN, paraY, 814f, paraH);
-            using (var canv = new Canvas(new PdfCanvas(page), introBox))
-            {
-                canv.Add(new Paragraph(
-                    "Thank you for the opportunity to present our audio-visual production services for your upcoming event at The Westin Brisbane. " +
-                    "We are pleased to provide our proposal in the following pages, based on the information we have received and our recommendations for a seamless and successful event. " +
-                    "Our team are committed to achieving your event objectives and welcome the opportunity to discuss your requirements and any budget parameters in further detail. " +
-                    "If you have any questions or need further information, please do not hesitate to contact me on the details below. Thank you again and we look forward to speaking to you soon.")
-                    .SetFont(font)
-                    .SetFontSize(12)
-                    .SetFixedLeading(15)
-                    .SetFontColor(iText.Kernel.Colors.ColorConstants.DARK_GRAY)
-                    .SetTextAlignment(TextAlignment.JUSTIFIED)
-                    .SetHyphenation(new HyphenationConfig("en", "AU", 2, 2))
-                    .SetMargin(0).SetPadding(0)
-                );
-            }
-
-            // ---------- Details (single left column) ----------
-            float rowH = 20f;
-            float yTop = paraY - 28f;          // space after paragraph
-            float labX = LEFT_MARGIN;
-            float valX = 220f;
-            int r = 0;
-
-            InlineDetailAligned(c, bold, font, labX, valX, yTop - rowH * r++, "LOCATION", q.Location);
-            InlineDetailAligned(c, bold, font, labX, valX, yTop - rowH * r++, "ADDRESS", q.Address);
-            InlineDetailAligned(c, bold, font, labX, valX, yTop - rowH * r++, "ROOM", q.Room);
-            InlineDetailAligned(c, bold, font, labX, valX, yTop - rowH * r++, "DATE", q.DateRange);
-            InlineDetailAligned(c, bold, font, labX, valX, yTop - rowH * r++, "DELIVERY CONTACT", q.DeliveryContact);
-            InlineDetailAligned(c, bold, font, labX, valX, yTop - rowH * r++, "EVENT ACCOUNT MANAGER", q.AccountMgrName);
-            InlineDetailAligned(c, bold, font, labX, valX, yTop - rowH * r++, "MOBILE NUMBER", q.AccountMgrMobile);
-            InlineDetailAligned(c, bold, font, labX, valX, yTop - rowH * r++, "EMAIL", q.AccountMgrEmail);
-
-            // ---------- Confirm & schedule ----------
-            float confirmY = (yTop - rowH * (r - 1)) - 28f;
-            Text(c, font, 12, LEFT_MARGIN, confirmY,
-                 "Please confirm the following dates and times are accurate:",
-                 iText.Kernel.Colors.ColorConstants.DARK_GRAY);
-
-            float schedY = confirmY - 24f;
-            TimeRow(c, bold, font, LEFT_MARGIN, schedY - rowH * 0, "SETUP BY", q.SetupDate, "Time: " + q.SetupTime);
-            TimeRow(c, bold, font, LEFT_MARGIN, schedY - rowH * 1, "REHEARSAL", q.RehearsalDate, "Time: " + q.RehearsalTime);
-            TimeRow(c, bold, font, LEFT_MARGIN, schedY - rowH * 2, "EVENT START", q.EventStartDate, "Time: " + q.EventStartTime);
-            TimeRow(c, bold, font, LEFT_MARGIN, schedY - rowH * 3, "EVENT END", q.EventEndDate, "Time: " + q.EventEndTime);
-
-            // Footer reference (leave as-is if your template draws its own footer)
-            Text(c, font, 10, LEFT_MARGIN, 40f, $"Ref No: {q.Reference}");
+            var c = new PdfCanvas(pdf.GetPage(1));
+            
+            // Event title in the white bar (centered)
+            var titleText = q.EventTitle?.ToUpper() ?? "EVENT";
+            var titleWidth = bold.GetWidth(titleText, 26f);
+            var titleX = COVER_TITLE_X + (COVER_TITLE_WIDTH - titleWidth) / 2;
+            Text(c, bold, 26f, titleX, COVER_TITLE_Y, titleText, redDark);
+            
+            // Reference at bottom
+            Text(c, font, 9f, CONTENT_LEFT, FOOTER_Y, $"Ref No: {q.Reference}");
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-        // =================== PAGE 2: EQUIPMENT & SERVICES ===================
+        // ========================= PAGE 2: OVERVIEW =========================
         if (pdf.GetNumberOfPages() >= 2)
         {
             var c = new PdfCanvas(pdf.GetPage(2));
-            Text(c, bold, 12, 40, 780, "EQUIPMENT & SERVICES");
-            Text(c, bold, 16, 40, 760, q.EventTitle);
 
-            // Top table headers already in template; draw room note
-            float y = 710;
-            Text(c, bold, 10, 40, y, q.RoomNoteHeader); y -= 14;
-            Text(c, font, 9, 40, y, q.RoomNoteStarts); y -= 12;
-            Text(c, font, 9, 40, y, q.RoomNoteEnds); y -= 18;
-            Text(c, bold, 10, 40, y, $"{q.RoomNoteHeader} Total");
-            TextRight(c, bold, 10, 560, y, q.RoomNoteTotal);
-            y -= 28;
+            // Header (above red line)
+            Text(c, bold, 12f, CONTENT_LEFT, SECTION_TITLE_Y, "OVERVIEW", redDark);
+            Text(c, bold, 20f, CONTENT_LEFT + 15f, EVENT_TITLE_Y, q.EventTitle?.ToUpper() ?? "", redBright);
 
-            // Vision section
-            Text(c, bold, 10.5f, 40, y, "Vision"); y -= 14;
-            y = DrawEquipmentList(c, font, bold, 40, y, q.VisionRows);
-            y -= 6;
-            Text(c, bold, 10, 40, y, "Vision Total");
-            TextRight(c, bold, 10, 560, y, q.VisionTotal);
-            y -= 28;
+            // Contact block (right side) - stays at top
+            float contactX = 400f;
+            float contactY = CONTENT_START_Y;
+            
+            if (!string.IsNullOrWhiteSpace(q.ContactName))
+            { Text(c, font, 10f, contactX, contactY, q.ContactName); contactY -= 14f; }
+            if (!string.IsNullOrWhiteSpace(q.Client))
+            { Text(c, font, 10f, contactX, contactY, q.Client); contactY -= 14f; }
+            if (!string.IsNullOrWhiteSpace(q.Email))
+            { Text(c, font, 10f, contactX, contactY, q.Email); contactY -= 18f; }
 
-            // Audio section
-            Text(c, bold, 10.5f, 40, y, "Audio"); y -= 14;
-            y = DrawEquipmentList(c, font, bold, 40, y, q.AudioRows);
-            y -= 6;
-            Text(c, bold, 10, 40, y, "Audio Total");
-            TextRight(c, bold, 10, 560, y, q.AudioTotal);
+            var firstName = string.IsNullOrWhiteSpace(q.ContactName) ? "Client" : q.ContactName.Trim().Split(' ')[0];
+            Text(c, font, 10f, contactX, contactY, $"Dear {firstName},");
+            
+            // LEFT COLUMN - All content starts at same level as "Dear [Name],"
+            float rowH = 14f;
+            float labX = CONTENT_LEFT;
+            float valX = 190f;
+            float y = contactY; // Start at same Y as "Dear Megan,"
+            
+            // 1. Location details
+            y -= 5f; // Small gap after "Dear..."
+            DetailRow(c, bold, font, labX, valX, y, "LOCATION:", q.Location); y -= rowH;
+            DetailRow(c, bold, font, labX, valX, y, "ADDRESS:", q.Address); y -= rowH;
+            DetailRow(c, bold, font, labX, valX, y, "ROOM:", q.Room); y -= rowH;
+            DetailRow(c, bold, font, labX, valX, y, "DATE RANGE:", q.DateRange); y -= rowH;
+            y -= 8f; // blank line
+            
+            // 2. Contact details
+            DetailRow(c, bold, font, labX, valX, y, "DELIVERY CONTACT:", q.DeliveryContact); y -= rowH;
+            DetailRow(c, bold, font, labX, valX, y, "ACCOUNT MANAGER:", q.AccountMgrName); y -= rowH;
+            DetailRow(c, bold, font, labX, valX, y, "MOBILE:", q.AccountMgrMobile); y -= rowH;
+            DetailRow(c, bold, font, labX, valX, y, "EMAIL:", q.AccountMgrEmail); y -= rowH;
+            y -= 12f; // gap before intro
+            
+            // 3. Intro paragraph
+            var introBox = new iText.Kernel.Geom.Rectangle(CONTENT_LEFT, y - 80f, 320f, 80f);
+            using (var canv = new Canvas(new PdfCanvas(pdf.GetPage(2)), introBox))
+            {
+                canv.Add(new Paragraph(
+                    "Thank you for the opportunity to present our audio-visual production services for your upcoming event. " +
+                    "We are pleased to provide our proposal in the following pages, based on the information we have received " +
+                    "and our recommendations for a seamless and successful event. Our team are committed to achieving your event " +
+                    "objectives and welcome the opportunity to discuss your requirements and any budget parameters in further detail.")
+                    .SetFont(font).SetFontSize(9f).SetFixedLeading(11.5f)
+                    .SetFontColor(ColorConstants.DARK_GRAY)
+                    .SetTextAlignment(TextAlignment.JUSTIFIED)
+                    .SetMargin(0).SetPadding(0));
+            }
+            y -= 95f; // after intro paragraph
+            
+            // 4. Schedule confirmation
+            Text(c, font, 9f, CONTENT_LEFT, y, "Please confirm the following dates and times are accurate:", ColorConstants.DARK_GRAY);
+            y -= 18f;
+            TimeRow(c, bold, font, CONTENT_LEFT, y, "SETUP BY:", q.SetupDate, "Time: " + q.SetupTime); y -= rowH;
+            TimeRow(c, bold, font, CONTENT_LEFT, y, "REHEARSAL:", q.RehearsalDate, "Time: " + q.RehearsalTime); y -= rowH;
+            TimeRow(c, bold, font, CONTENT_LEFT, y, "EVENT START:", q.EventStartDate, "Time: " + q.EventStartTime); y -= rowH;
+            TimeRow(c, bold, font, CONTENT_LEFT, y, "EVENT END:", q.EventEndDate, "Time: " + q.EventEndTime);
 
-            // Footer ref
-            Text(c, font, 9, 40, 40, $"Ref No: {q.Reference}");
+            Text(c, font, 9f, CONTENT_LEFT, FOOTER_Y, $"Ref No: {q.Reference}");
         }
 
-        // =================== PAGE 3: TECHNICAL SERVICES =====================
+        // ========================= PAGE 3: EQUIPMENT & SERVICES =========================
         if (pdf.GetNumberOfPages() >= 3)
         {
             var c = new PdfCanvas(pdf.GetPage(3));
-            Text(c, bold, 12, 40, 780, "TECHNICAL SERVICES");
-            Text(c, bold, 16, 40, 760, q.EventTitle);
 
-            // Headers line (template likely has rule)
-            var y = 720f;
-            // Table headings: Description | Task | Qty | Start | Finish | Hrs | Total ($)
-            Text(c, bold, 9.5f, 40, y, "Description");
-            Text(c, bold, 9.5f, 170, y, "Task");
-            Text(c, bold, 9.5f, 255, y, "Qty");
-            Text(c, bold, 9.5f, 290, y, "Start Date/Time");
-            Text(c, bold, 9.5f, 380, y, "Finish Date/Time");
-            Text(c, bold, 9.5f, 470, y, "Hrs");
-            Text(c, bold, 9.5f, 510, y, "Total ($)");
+            Text(c, bold, 12f, CONTENT_LEFT, SECTION_TITLE_Y, "EQUIPMENT & SERVICES", redDark);
+            Text(c, bold, 20f, CONTENT_LEFT + 15f, EVENT_TITLE_Y, q.EventTitle?.ToUpper() ?? "", redBright);
 
-            y -= 20f;
+            float y = CONTENT_START_Y;
 
-            foreach (var r in q.LabourRows)
+            // Room header
+            if (!string.IsNullOrWhiteSpace(q.RoomNoteHeader))
             {
-                Text(c, font, 9.5f, 40, y, r.Description);
-                Text(c, font, 9.5f, 170, y, r.Task);
-                Text(c, font, 9.5f, 255, y, r.Qty);
-                Text(c, font, 9.5f, 290, y, r.Start);
-                Text(c, font, 9.5f, 380, y, r.Finish);
-                Text(c, font, 9.5f, 470, y, r.Hrs);
-                TextRight(c, font, 9.5f, 560, y, r.Total);
-                y -= 18f;
-                if (y < 120) break;
+                Text(c, bold, 10f, CONTENT_LEFT, y, q.RoomNoteHeader); y -= 14f;
+                Text(c, font, 9f, CONTENT_LEFT, y, q.RoomNoteStarts ?? ""); y -= 12f;
+                Text(c, font, 9f, CONTENT_LEFT, y, q.RoomNoteEnds ?? ""); y -= 14f;
+                Text(c, bold, 10f, CONTENT_LEFT, y, $"{q.RoomNoteHeader} Total");
+                TextRight(c, bold, 10f, CONTENT_RIGHT, y, q.RoomNoteTotal ?? "$0.00");
+                y -= 25f;
             }
 
-            // Labour Total
-            TextRight(c, bold, 10, 560, 100, $"Labour Total   {q.LabourTotal}");
+            // Vision section
+            if (q.VisionRows?.Any() == true)
+            {
+                Text(c, bold, 11f, CONTENT_LEFT, y, "VISION", redDark); y -= 16f;
+                y = DrawEquipmentList(c, font, bold, CONTENT_LEFT, y, q.VisionRows);
+                y -= 6f;
+                Text(c, bold, 10f, CONTENT_LEFT, y, "Vision Total");
+                TextRight(c, bold, 10f, CONTENT_RIGHT, y, q.VisionTotal ?? "$0.00");
+                y -= 25f;
+            }
 
-            // Footer ref
-            Text(c, font, 9, 40, 40, $"Ref No: {q.Reference}");
+            // Audio section
+            if (q.AudioRows?.Any() == true)
+            {
+                Text(c, bold, 11f, CONTENT_LEFT, y, "AUDIO", redDark); y -= 16f;
+                y = DrawEquipmentList(c, font, bold, CONTENT_LEFT, y, q.AudioRows);
+                y -= 6f;
+                Text(c, bold, 10f, CONTENT_LEFT, y, "Audio Total");
+                TextRight(c, bold, 10f, CONTENT_RIGHT, y, q.AudioTotal ?? "$0.00");
+                y -= 25f;
+            }
+
+            // Lighting section
+            if (q.LightingRows?.Any() == true)
+            {
+                Text(c, bold, 11f, CONTENT_LEFT, y, "LIGHTING", redDark); y -= 16f;
+                y = DrawEquipmentList(c, font, bold, CONTENT_LEFT, y, q.LightingRows);
+                y -= 6f;
+                Text(c, bold, 10f, CONTENT_LEFT, y, "Lighting Total");
+                TextRight(c, bold, 10f, CONTENT_RIGHT, y, q.LightingTotal ?? "$0.00");
+            }
+
+            Text(c, font, 9f, CONTENT_LEFT, FOOTER_Y, $"Ref No: {q.Reference}");
         }
 
-        // ====================== PAGE 4: BUDGET SUMMARY ======================
+        // ========================= PAGE 4: TECHNICAL SERVICES =========================
         if (pdf.GetNumberOfPages() >= 4)
         {
             var c = new PdfCanvas(pdf.GetPage(4));
-            Text(c, bold, 12, 40, 780, "BUDGET SUMMARY");
-            Text(c, bold, 16, 40, 760, q.EventTitle);
 
-            float y = 720;
-            MoneyRow(c, font, bold, 380, 560, ref y, "Rental Equipment", q.RentalTotal);
-            MoneyRow(c, font, bold, 380, 560, ref y, "Labour", q.LabourTotal);
-            MoneyRow(c, font, bold, 380, 560, ref y, "Service Charge", q.ServiceCharge);
+            Text(c, bold, 12f, CONTENT_LEFT, SECTION_TITLE_Y, "TECHNICAL SERVICES", redDark);
+            Text(c, bold, 20f, CONTENT_LEFT + 15f, EVENT_TITLE_Y, q.EventTitle?.ToUpper() ?? "", redBright);
 
-            // dotted rule (optional)
-            y -= 10; Text(c, font, 10, 380, y, "----------------------"); y -= 14;
+            float y = CONTENT_START_Y;
 
-            MoneyRow(c, font, bold, 380, 560, ref y, "Sub Total (ex GST)", q.SubTotalExGst);
-            MoneyRow(c, font, bold, 380, 560, ref y, "GST", q.Gst);
+            // Table headers
+            Text(c, bold, 8f, CONTENT_LEFT, y, "Description");
+            Text(c, bold, 8f, 160f, y, "Task");
+            Text(c, bold, 8f, 250f, y, "Qty");
+            Text(c, bold, 8f, 280f, y, "Start");
+            Text(c, bold, 8f, 380f, y, "Finish");
+            Text(c, bold, 8f, 470f, y, "Hrs");
+            Text(c, bold, 8f, 510f, y, "Total");
+            y -= 18f;
 
-            // dotted rule
-            y -= 10; Text(c, font, 10, 380, y, "----------------------"); y -= 14;
+            if (q.LabourRows?.Any() == true)
+            {
+                foreach (var row in q.LabourRows)
+                {
+                    var lines = Wrap(row.Description ?? "", 22).ToList();
+                    for (int i = 0; i < lines.Count; i++)
+                    {
+                        Text(c, font, 8f, CONTENT_LEFT, y, lines[i]);
+                        if (i == 0)
+                        {
+                            Text(c, font, 8f, 160f, y, row.Task ?? "");
+                            Text(c, font, 8f, 250f, y, row.Qty ?? "");
+                            Text(c, font, 8f, 280f, y, row.Start ?? "");
+                            Text(c, font, 8f, 380f, y, row.Finish ?? "");
+                            Text(c, font, 8f, 470f, y, row.Hrs ?? "");
+                            TextRight(c, font, 8f, CONTENT_RIGHT, y, row.Total ?? "");
+                        }
+                        y -= 12f;
+                        if (y < 80) break;
+                    }
+                    y -= 4f;
+                    if (y < 80) break;
+                }
+            }
+            else
+            {
+                Text(c, font, 9f, CONTENT_LEFT, y, "No technical services required for this event.");
+            }
 
-            MoneyRow(c, bold, bold, 380, 560, ref y, "Total", q.GrandTotalIncGst);
+            // Labour Total at fixed position
+            Text(c, bold, 10f, CONTENT_LEFT, 80f, "Labour Total");
+            TextRight(c, bold, 10f, CONTENT_RIGHT, 80f, q.LabourTotal ?? "$0.00");
 
-            // Paragraph notes (as in your screenshot)
-            float py = 560;
-            foreach (var line in Wrap(q.BudgetNotesTopLine, 110)) { Text(c, font, 9, 40, py, line, ColorConstants.DARK_GRAY); py -= 12; }
-            foreach (var line in Wrap(q.BudgetValidityLine, 110)) { Text(c, font, 9, 40, py, line, ColorConstants.DARK_GRAY); py -= 12; }
-            foreach (var line in Wrap(q.BudgetConfirmLine, 110)) { Text(c, font, 9, 40, py, line, ColorConstants.DARK_GRAY); py -= 12; }
-            foreach (var line in Wrap(q.BudgetContactLine, 110)) { Text(c, font, 9, 40, py, line, ColorConstants.DARK_GRAY); py -= 12; }
-            foreach (var line in Wrap(q.BudgetSignoffLine, 110)) { Text(c, font, 9, 40, py, line, ColorConstants.DARK_GRAY); py -= 12; }
-
-            // Signature block
-            Text(c, bold, 10, 40, 140, q.AccountMgrName + "    Event Staging Manager");
-            Text(c, font, 9, 40, 124, q.FooterOfficeLine1);
-            Text(c, font, 9, 40, 110, q.FooterOfficeLine2);
-            Text(c, bold, 9, 40, 96, "M"); Text(c, font, 9, 60, 96, q.AccountMgrMobile);
-            Text(c, bold, 9, 40, 82, "T"); Text(c, font, 9, 60, 82, "");
-            Text(c, bold, 9, 40, 68, "E"); Text(c, font, 9, 60, 68, q.AccountMgrEmail);
-
-            // Footer ref
-            Text(c, font, 9, 40, 40, $"Ref No: {q.Reference}");
+            Text(c, font, 9f, CONTENT_LEFT, FOOTER_Y, $"Ref No: {q.Reference}");
         }
 
-        // ================== PAGE 5: CONFIRMATION OF SERVICES =================
+        // ========================= PAGE 5: BUDGET SUMMARY =========================
         if (pdf.GetNumberOfPages() >= 5)
         {
             var c = new PdfCanvas(pdf.GetPage(5));
-            Text(c, bold, 12, 40, 780, "CONFIRMATION OF SERVICES");
-            Text(c, bold, 16, 40, 760, q.EventTitle);
 
-            float y = 720;
-            foreach (var line in Wrap(q.ConfirmP1, 110)) { Text(c, font, 9.5f, 40, y, line); y -= 12; }
-            foreach (var line in Wrap(q.ConfirmP2, 110)) { Text(c, font, 9.5f, 40, y, line); y -= 12; }
-            foreach (var line in Wrap(q.ConfirmP3, 110)) { Text(c, font, 9.5f, 40, y, line); y -= 12; }
-            foreach (var line in Wrap(q.ConfirmP4, 110)) { Text(c, font, 9.5f, 40, y, line); y -= 12; }
+            Text(c, bold, 12f, CONTENT_LEFT, SECTION_TITLE_Y, "BUDGET SUMMARY", redDark);
+            Text(c, bold, 20f, CONTENT_LEFT + 15f, EVENT_TITLE_Y, q.EventTitle?.ToUpper() ?? "", redBright);
 
-            // terms URL (your sample shows it as plain text)
-            Text(c, font, 9.5f, 40, y - 6, q.ConfirmTermsUrl, ColorConstants.BLUE);
+            // Terms (left column)
+            float termsY = CONTENT_START_Y;
+            Text(c, bold, 10f, CONTENT_LEFT, termsY, "TERMS & CONDITIONS"); termsY -= 18f;
 
-            // Right column: Reference / Total
-            Text(c, font, 9.5f, 40, 130, "Reference Number");
-            Text(c, font, 9.5f, 200, 130, q.Reference);
-            Text(c, font, 9.5f, 40, 112, "Total Quotation");
-            Text(c, font, 9.5f, 200, 112, q.GrandTotalIncGst + " inc GST");
+            var terms = new[] {
+                q.BudgetNotesTopLine ?? "The team at Microhire look forward to working with you to make every aspect of your event a success.",
+                q.BudgetValidityLine ?? "To ensure that your event receives the best possible equipment and technical personnel, please confirm that all details are correct including dates, timing and quantities. Note that our pricing is valid for 30 days and our resources are subject to availability at the time of booking.",
+                q.BudgetConfirmLine ?? "Please confirm your acceptance of the proposal and its inclusions by returning a signed copy of the Confirmation of Services page, so we can proceed with your requirements.",
+                q.BudgetContactLine ?? "However, if you wish to discuss any additions or updates regarding our proposal, please do not hesitate to contact me on the details below.",
+                q.BudgetSignoffLine ?? "We look forward to working with you on a seamless and successful event."
+            };
 
-            // Signature lines (template has lines; if not, draw them)
-            // (Leave as-is to respect your blank template)
+            foreach (var term in terms)
+            {
+                foreach (var line in Wrap(term, 55))
+                {
+                    Text(c, font, 8.5f, CONTENT_LEFT, termsY, line, ColorConstants.DARK_GRAY);
+                    termsY -= 11f;
+                }
+                termsY -= 6f;
+            }
+
+            // Budget breakdown (right column)
+            float budgetY = CONTENT_START_Y;
+            float labelX = 350f;
+            float valueX = CONTENT_RIGHT;
+
+            MoneyRow(c, font, bold, labelX, valueX, ref budgetY, "Rental Equipment", q.RentalTotal ?? "$0.00");
+            MoneyRow(c, font, bold, labelX, valueX, ref budgetY, "Labour", q.LabourTotal ?? "$0.00");
+            MoneyRow(c, font, bold, labelX, valueX, ref budgetY, "Service Charge", q.ServiceCharge ?? "$0.00");
+            budgetY -= 8f;
+            MoneyRow(c, font, bold, labelX, valueX, ref budgetY, "Sub Total (ex GST)", q.SubTotalExGst ?? "$0.00");
+            MoneyRow(c, font, bold, labelX, valueX, ref budgetY, "GST (10%)", q.Gst ?? "$0.00");
+            budgetY -= 8f;
+            Text(c, bold, 10f, labelX, budgetY, "TOTAL (inc GST)");
+            TextRight(c, bold, 10f, valueX, budgetY, q.GrandTotalIncGst ?? "$0.00");
+
+            Text(c, font, 9f, CONTENT_LEFT, FOOTER_Y, $"Ref No: {q.Reference}");
+        }
+
+        // ========================= PAGE 6: CONFIRMATION =========================
+        if (pdf.GetNumberOfPages() >= 6)
+        {
+            var c = new PdfCanvas(pdf.GetPage(6));
+
+            Text(c, bold, 12f, CONTENT_LEFT, SECTION_TITLE_Y, "CONFIRMATION OF SERVICES", redDark);
+            Text(c, bold, 20f, CONTENT_LEFT + 15f, EVENT_TITLE_Y, q.EventTitle?.ToUpper() ?? "", redBright);
+
+            float y = CONTENT_START_Y;
+            var confirmTexts = new[] {
+                q.ConfirmP1 ?? $"On behalf of {q.Client ?? "the client"}, I accept this proposal and wish to proceed with the details that are confirmed to be correct.",
+                q.ConfirmP2 ?? "Upon request, any additions or amendments will be updated to this proposal accordingly.",
+                q.ConfirmP3 ?? "We understand that equipment and personnel are not allocated until this document is signed and returned.",
+                q.ConfirmP4 ?? "This proposal and billing details are subject to Microhire's terms and conditions."
+            };
+
+            foreach (var text in confirmTexts)
+            {
+                if (!string.IsNullOrWhiteSpace(text))
+                {
+                    foreach (var line in Wrap(text, 95))
+                    {
+                        Text(c, font, 9.5f, CONTENT_LEFT, y, line);
+                        y -= 13f;
+                    }
+                    y -= 8f;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(q.ConfirmTermsUrl))
+            {
+                y -= 5f;
+                Text(c, font, 9f, CONTENT_LEFT, y, "Terms and Conditions: " + q.ConfirmTermsUrl, ColorConstants.BLUE);
+            }
+
+            // Signature section
+            float sigY = 200f;
+            float sigX = 350f;
+            Text(c, bold, 10f, sigX, sigY, "REFERENCE DETAILS"); sigY -= 18f;
+            Text(c, font, 9f, sigX, sigY, "Reference Number: " + (q.Reference ?? "")); sigY -= 14f;
+            Text(c, font, 9f, sigX, sigY, "Total: " + (q.GrandTotalIncGst ?? "$0.00") + " inc GST"); sigY -= 25f;
+
+            Text(c, bold, 10f, sigX, sigY, "CLIENT ACCEPTANCE"); sigY -= 18f;
+            Text(c, font, 9f, sigX, sigY, "Signature: _______________________________"); sigY -= 14f;
+            Text(c, font, 9f, sigX, sigY, "Name: ___________________________________"); sigY -= 14f;
+            Text(c, font, 9f, sigX, sigY, "Date: ____________________________________"); sigY -= 14f;
+            Text(c, font, 9f, sigX, sigY, "Position: ________________________________");
+
+            Text(c, font, 9f, CONTENT_LEFT, FOOTER_Y, $"Ref No: {q.Reference}");
         }
 
         pdf.Close();
         return (outName, dest);
     }
 
-    // ---------- helpers ----------
-    private static void InlineDetailAligned(
-    PdfCanvas c,
-    PdfFont labelFont, PdfFont valueFont,
-    float xLabel, float xValue, float y,
-    string label, string value,
-    float labelSize = 9.5f, float valueSize = 9.5f)
-    {
-        // label in red, bold
-        c.BeginText().SetFontAndSize(labelFont, labelSize).SetColor(ColorConstants.RED, true)
-         .MoveText(xLabel, y).ShowText(label).EndText();
-
-        // value in black, regular; fixed x so all values line up
-        c.BeginText().SetFontAndSize(valueFont, valueSize).SetColor(ColorConstants.BLACK, true)
-         .MoveText(xValue, y).ShowText(value).EndText();
-    }
-
-    private static void InlineDetail(
-    PdfCanvas c, PdfFont labelFont, PdfFont valueFont,
-    float x, float y, string label, string value,
-    Color? color = null, float gap = 6f)
-    {
-        var col = color ?? ColorConstants.RED; // match "SETUP BY"
-                                               // draw LABEL:
-        c.BeginText().SetFontAndSize(labelFont, 9.5f).SetColor(col, true)
-         .MoveText(x, y).ShowText(label).EndText();
-
-        // measure label width so value starts right after it
-        var lw = labelFont.GetWidth(label, 9.5f);
-        var valueX = x + lw + gap;
-
-        // draw VALUE (same color to match request)
-        c.BeginText().SetFontAndSize(valueFont, 9.5f).SetColor(col, true)
-         .MoveText(valueX, y).ShowText(value).EndText();
-    }
-
+    // ==================== HELPERS ====================
 
     private static void Text(PdfCanvas c, PdfFont f, float size, float x, float y, string txt, Color? col = null)
     {
-        c.BeginText().SetFontAndSize(f, size).SetColor(col ?? ColorConstants.BLACK, true).MoveText(x, y).ShowText(txt).EndText();
+        if (string.IsNullOrEmpty(txt)) return;
+        c.BeginText().SetFontAndSize(f, size).SetColor(col ?? ColorConstants.BLACK, true)
+         .MoveText(x, y).ShowText(txt).EndText();
     }
+
     private static void TextRight(PdfCanvas c, PdfFont f, float size, float xRight, float y, string txt, Color? col = null)
     {
-        var w = f.GetWidth(txt, size);
-        Text(c, f, size, xRight - w, y, txt, col);
+        if (string.IsNullOrEmpty(txt)) return;
+        Text(c, f, size, xRight - f.GetWidth(txt, size), y, txt, col);
     }
-    private static void LabelValue(PdfCanvas c, PdfFont bold, PdfFont normal, float x, float y, string label, string value)
+
+    private static void DetailRow(PdfCanvas c, PdfFont labelFont, PdfFont valueFont, float xLabel, float xValue, float y, string label, string? value)
     {
-        Text(c, bold, 9.5f, x, y, label);
-        Text(c, normal, 9.5f, x + 140, y, value);
+        Text(c, labelFont, 9f, xLabel, y, label, new DeviceRgb(180, 30, 30));
+        Text(c, valueFont, 9f, xValue, y, value ?? "");
     }
-    private static void TimeRow(PdfCanvas c, PdfFont bold, PdfFont normal, float x, float y, string label, string date, string right)
+
+    private static void TimeRow(PdfCanvas c, PdfFont bold, PdfFont normal, float x, float y, string label, string? date, string? time)
     {
-        Text(c, bold, 9.5f, x, y, label, ColorConstants.RED);
-        Text(c, normal, 9.5f, x + 140, y, date);
-        Text(c, bold, 9.5f, x + 380, y, right);
+        Text(c, bold, 9f, x, y, label, new DeviceRgb(180, 30, 30));
+        Text(c, normal, 9f, x + 110f, y, date ?? "");
+        Text(c, bold, 9f, x + 340f, y, time ?? "");
     }
-    private static float DrawEquipmentList(PdfCanvas c, PdfFont normal, PdfFont bold, float x, float y, List<EquipmentRow> rows)
+
+    private static void MoneyRow(PdfCanvas c, PdfFont labelFont, PdfFont valueFont, float lx, float rx, ref float y, string label, string value)
     {
+        Text(c, labelFont, 9.5f, lx, y, label);
+        TextRight(c, valueFont, 9.5f, rx, y, value);
+        y -= 16f;
+    }
+
+    private static float DrawEquipmentList(PdfCanvas c, PdfFont normal, PdfFont bold, float x, float y, List<EquipmentRow>? rows)
+    {
+        if (rows == null || rows.Count == 0) return y;
+
         foreach (var r in rows)
         {
             if (r.IsGroup)
             {
-                Text(c, bold, 9.5f, x, y, r.Description);
-                y -= 14;
+                Text(c, bold, 9.5f, x, y, r.Description?.ToUpper() ?? "");
+                y -= 14f;
                 continue;
             }
-            // Wrap long description
-            var lines = Wrap(r.Description ?? "", 90).ToList();
+
+            var isComp = r.IsComponent;
+            var fontSize = isComp ? 8.5f : 9f;
+            var color = isComp ? ColorConstants.DARK_GRAY : ColorConstants.BLACK;
+            var indent = isComp ? 20f : 0f;
+
+            var lines = Wrap(r.Description ?? "", isComp ? 55 : 60).ToList();
             for (int i = 0; i < lines.Count; i++)
             {
-                Text(c, normal, 9.5f, x, y, lines[i]);
-                if (i == 0)
+                Text(c, normal, fontSize, x + indent, y, lines[i], color);
+                if (i == 0 && !isComp)
                 {
-                    if (!string.IsNullOrWhiteSpace(r.Qty)) Text(c, normal, 9.5f, 480, y, r.Qty!);
-                    if (!string.IsNullOrWhiteSpace(r.LineTotal)) TextRight(c, normal, 9.5f, 560, y, r.LineTotal!);
+                    if (!string.IsNullOrWhiteSpace(r.Qty))
+                        TextRight(c, normal, fontSize, x + 420f, y, r.Qty!);
+                    if (!string.IsNullOrWhiteSpace(r.LineTotal))
+                        TextRight(c, normal, fontSize, x + 495f, y, r.LineTotal!);
                 }
-                y -= 14;
+                y -= isComp ? 10f : 12f;
             }
-            y -= 4;
-            if (y < 140) break; // page guard
+            y -= isComp ? 2f : 4f;
+            if (y < 70) break;
         }
         return y;
     }
-    private static void MoneyRow(PdfCanvas c, PdfFont normal, PdfFont bold, float lx, float rx, ref float y, string label, string value)
-    {
-        Text(c, normal, 10, lx, y, label);
-        TextRight(c, normal, 10, rx, y, value);
-        y -= 18;
-    }
+
     private static IEnumerable<string> Wrap(string text, int maxChars)
     {
         if (string.IsNullOrWhiteSpace(text)) yield break;

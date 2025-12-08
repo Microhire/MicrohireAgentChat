@@ -1,0 +1,48 @@
+{
+  "name": "tblLinkCustContact",
+  "schema": "dbo",
+  "description": "Customer-contact link table - links contacts to customer organizations (many-to-many)",
+  "row_count": 20604,
+  "columns": [
+    {
+      "name": "ID",
+      "data_type": "decimal(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": true,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Customer_Code",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ContactID",
+      "data_type": "decimal(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    }
+  ],
+  "primary_keys": [
+    "ID"
+  ],
+  "foreign_keys": [],
+  "sample_data": [
+    {
+      "ID": "1",
+      "Customer_Code": "",
+      "ContactID": "1"
+    },
+    {
+      "ID": "2",
+      "Customer_Code": "",
+      "ContactID": "2"
+    }
+  ]
+}

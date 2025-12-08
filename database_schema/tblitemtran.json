@@ -1,0 +1,748 @@
+{
+  "name": "tblitemtran",
+  "schema": "dbo",
+  "description": "Equipment transactions table - tracks all equipment items in bookings including quantities, rates, and dates",
+  "row_count": 1826879,
+  "columns": [
+    {
+      "name": "ID",
+      "data_type": "decimal(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": true,
+      "is_foreign_key": false
+    },
+    {
+      "name": "booking_no_v32",
+      "data_type": "varchar(35)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "heading_no",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "seq_no",
+      "data_type": "decimal(19,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "sub_seq_no",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "trans_type_v41",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "product_code_v42",
+      "data_type": "char(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "del_time_hour",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "del_time_min",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "return_time_hour",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "return_time_min",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "trans_qty",
+      "data_type": "decimal(19,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "price",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "item_type",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "days_using",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "sub_hire_qtyV61",
+      "data_type": "decimal(19,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "From_locn",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Trans_to_locn",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "return_to_locn",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "bit_field_v41",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "TimeBookedH",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "TimeBookedM",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "TimeBookedS",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "QtyReturned",
+      "data_type": "decimal(19,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "QtyCheckedOut",
+      "data_type": "decimal(19,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "techRateorDaysCharged",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "TechPay",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "unitRate",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "prep_on",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Comment_desc_v42",
+      "data_type": "char(70)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "AssignTo",
+      "data_type": "varchar(255)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "FirstDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "RetnDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "BookDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PTimeH",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PTimeM",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DayWeekRate",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "QtyReserved",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "AddedAtCheckout",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "GroupSeqNo",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "SubRentalLinkID",
+      "data_type": "int(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "AssignType",
+      "data_type": "tinyint(3,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "QtyShort",
+      "data_type": "int(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "QtyAvailable",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PackageLevel",
+      "data_type": "smallint(5,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "BeforeDiscountAmount",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "QuickTurnAroundQty",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "InRack",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CostPrice",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "NodeCollapsed",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "AvailRecFlag",
+      "data_type": "bit",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "booking_id",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Undisc_amt",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "View_Logi",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "View_client",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Logi_HeadingNo",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Logi_GroupSeqNo",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Logi_Seq_No",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Logi_Sub_Seq_no",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ParentCode",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "EstSubRentalCost",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "EstSubRentalDays",
+      "data_type": "smallint(5,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "VendorID",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Notes",
+      "data_type": "varchar",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "UseEstSubHireOverride",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Estimated_sub_hire_v5",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "resolvedDiscrep",
+      "data_type": "bit",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "QTBookingNo",
+      "data_type": "varchar(35)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "QTSource",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "warehouseMutedPerOER",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "techrateIsHourorDay",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "OriginalBookNo",
+      "data_type": "varchar(35)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    }
+  ],
+  "primary_keys": [
+    "ID"
+  ],
+  "foreign_keys": [],
+  "sample_data": [
+    {
+      "ID": "9505547",
+      "booking_no_v32": "C0000100005",
+      "heading_no": 0,
+      "seq_no": "3",
+      "sub_seq_no": 11,
+      "trans_type_v41": 12,
+      "product_code_v42": null,
+      "del_time_hour": null,
+      "del_time_min": null,
+      "return_time_hour": null,
+      "return_time_min": null,
+      "trans_qty": null,
+      "price": null,
+      "item_type": null,
+      "days_using": null,
+      "sub_hire_qtyV61": null,
+      "From_locn": null,
+      "Trans_to_locn": null,
+      "return_to_locn": null,
+      "bit_field_v41": null,
+      "TimeBookedH": null,
+      "TimeBookedM": null,
+      "TimeBookedS": null,
+      "QtyReturned": null,
+      "QtyCheckedOut": null,
+      "techRateorDaysCharged": null,
+      "TechPay": null,
+      "unitRate": null,
+      "prep_on": null,
+      "Comment_desc_v42": "Projector + Screen                                ",
+      "AssignTo": null,
+      "FirstDate": null,
+      "RetnDate": null,
+      "BookDate": null,
+      "PDate": null,
+      "PTimeH": null,
+      "PTimeM": null,
+      "DayWeekRate": null,
+      "QtyReserved": null,
+      "AddedAtCheckout": null,
+      "GroupSeqNo": 0,
+      "SubRentalLinkID": 0,
+      "AssignType": 0,
+      "QtyShort": 0,
+      "QtyAvailable": null,
+      "PackageLevel": null,
+      "BeforeDiscountAmount": null,
+      "QuickTurnAroundQty": null,
+      "InRack": null,
+      "CostPrice": null,
+      "NodeCollapsed": null,
+      "AvailRecFlag": false,
+      "booking_id": 64920,
+      "Undisc_amt": null,
+      "View_Logi": true,
+      "View_client": true,
+      "Logi_HeadingNo": 0,
+      "Logi_GroupSeqNo": 0,
+      "Logi_Seq_No": 0,
+      "Logi_Sub_Seq_no": 0,
+      "ParentCode": null,
+      "EstSubRentalCost": null,
+      "EstSubRentalDays": null,
+      "VendorID": null,
+      "Notes": null,
+      "UseEstSubHireOverride": null,
+      "Estimated_sub_hire_v5": null,
+      "resolvedDiscrep": false,
+      "QTBookingNo": null,
+      "QTSource": null,
+      "warehouseMutedPerOER": null,
+      "techrateIsHourorDay": null,
+      "OriginalBookNo": null
+    },
+    {
+      "ID": "9505548",
+      "booking_no_v32": "C0000100005",
+      "heading_no": 0,
+      "seq_no": "3",
+      "sub_seq_no": 12,
+      "trans_type_v41": 12,
+      "product_code_v42": null,
+      "del_time_hour": null,
+      "del_time_min": null,
+      "return_time_hour": null,
+      "return_time_min": null,
+      "trans_qty": null,
+      "price": null,
+      "item_type": null,
+      "days_using": null,
+      "sub_hire_qtyV61": null,
+      "From_locn": null,
+      "Trans_to_locn": null,
+      "return_to_locn": null,
+      "bit_field_v41": null,
+      "TimeBookedH": null,
+      "TimeBookedM": null,
+      "TimeBookedS": null,
+      "QtyReturned": null,
+      "QtyCheckedOut": null,
+      "techRateorDaysCharged": null,
+      "TechPay": null,
+      "unitRate": null,
+      "prep_on": null,
+      "Comment_desc_v42": "Ceiling PA                                        ",
+      "AssignTo": null,
+      "FirstDate": null,
+      "RetnDate": null,
+      "BookDate": null,
+      "PDate": null,
+      "PTimeH": null,
+      "PTimeM": null,
+      "DayWeekRate": null,
+      "QtyReserved": null,
+      "AddedAtCheckout": null,
+      "GroupSeqNo": 0,
+      "SubRentalLinkID": 0,
+      "AssignType": 0,
+      "QtyShort": 0,
+      "QtyAvailable": null,
+      "PackageLevel": null,
+      "BeforeDiscountAmount": null,
+      "QuickTurnAroundQty": null,
+      "InRack": null,
+      "CostPrice": null,
+      "NodeCollapsed": null,
+      "AvailRecFlag": false,
+      "booking_id": 64920,
+      "Undisc_amt": null,
+      "View_Logi": true,
+      "View_client": true,
+      "Logi_HeadingNo": 0,
+      "Logi_GroupSeqNo": 0,
+      "Logi_Seq_No": 0,
+      "Logi_Sub_Seq_no": 0,
+      "ParentCode": null,
+      "EstSubRentalCost": null,
+      "EstSubRentalDays": null,
+      "VendorID": null,
+      "Notes": null,
+      "UseEstSubHireOverride": null,
+      "Estimated_sub_hire_v5": null,
+      "resolvedDiscrep": false,
+      "QTBookingNo": null,
+      "QTSource": null,
+      "warehouseMutedPerOER": null,
+      "techrateIsHourorDay": null,
+      "OriginalBookNo": null
+    }
+  ]
+}

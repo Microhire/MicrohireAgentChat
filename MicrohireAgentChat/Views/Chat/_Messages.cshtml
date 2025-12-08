@@ -26,6 +26,35 @@
   .isla-busy{opacity:.7;pointer-events:none}
   .isla-spinner{display:inline-block;width:.9em;height:.9em;margin-left:.5em;border:.15em solid currentColor;border-right-color:transparent;border-radius:50%;animation:isla-spin .8s linear infinite}
   .isla-thinking{margin-top:.25rem;font-size:.9rem;color:#888}
+  
+  /* Quote Ready Display */
+  .isla-quote-ready{
+    background:linear-gradient(135deg,#f8f9fa 0%,#fff 100%);
+    border:2px solid #c62828;
+    border-radius:12px;
+    padding:1.5rem;
+    text-align:center;
+    margin:1rem 0;
+    box-shadow:0 4px 12px rgba(0,0,0,0.08);
+  }
+  .isla-quote-icon{color:#c62828;margin-bottom:0.75rem}
+  .isla-quote-title{font-size:1.25rem;font-weight:700;color:#c62828;margin-bottom:0.5rem}
+  .isla-quote-message{color:#555;font-size:0.95rem;margin-bottom:0.75rem}
+  .isla-quote-ref{color:#888;font-size:0.85rem;margin-bottom:1rem}
+  .isla-quote-download-btn{
+    display:inline-flex;
+    align-items:center;
+    gap:0.5rem;
+    background:#c62828;
+    color:#fff;
+    padding:0.75rem 1.5rem;
+    border-radius:8px;
+    text-decoration:none;
+    font-weight:600;
+    transition:background 0.2s ease,transform 0.1s ease;
+  }
+  .isla-quote-download-btn:hover{background:#b71c1c;transform:translateY(-1px);color:#fff}
+  .isla-quote-download-btn:active{transform:translateY(0)}
 </style>
 
 @if (Model?.Any() != true)
@@ -102,9 +131,11 @@ else
                                             <div class="isla-gallery-grid">
                                                 @foreach (var it in gallery.Items ?? Enumerable.Empty<IslaGalleryItem>())
                                                 {
-                                                    <button class="isla-card" type="button"
+                                                    var imgUrl = string.IsNullOrWhiteSpace(it.Url) ? "/images/placeholder-equipment.png" : it.Url;
+                                                    var isEquipment = (it.Kind ?? "").Equals("equipment", StringComparison.OrdinalIgnoreCase);
+                                                    <button class="isla-card @(isEquipment ? "isla-equipment-card" : "")" type="button"
                                                             data-select='@Html.Raw(JsonSerializer.Serialize(it.Select ?? new { }))'>
-                                                        <img src="@it.Url" alt="@it.Label" loading="lazy" />
+                                                        <img src="@imgUrl" alt="@it.Label" loading="lazy" onerror="this.onerror=null;this.src='/images/placeholder-equipment.png';" />
                                                         <div class="isla-card-label">@it.Label</div>
                                                     </button>
                                                 }
@@ -236,6 +267,38 @@ else
                                                 <button type="button" class="btn-apply-multitime">@submit</button>
                                             </div>
                                         }
+                                        // ---- Quote URL display ----
+                                        else if (uiEl.TryGetProperty("quoteUrl", out var qUrlEl) && qUrlEl.ValueKind == JsonValueKind.String)
+                                        {
+                                            var quoteUrlValue = qUrlEl.GetString() ?? "";
+                                            var bookingNum = uiEl.TryGetProperty("bookingNo", out var bn) ? bn.GetString() : null;
+                                            
+                                            <div class="isla-quote-ready">
+                                                <div class="isla-quote-icon">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                                        <polyline points="14 2 14 8 20 8"></polyline>
+                                                        <line x1="16" y1="13" x2="8" y2="13"></line>
+                                                        <line x1="16" y1="17" x2="8" y2="17"></line>
+                                                        <polyline points="10 9 9 9 8 9"></polyline>
+                                                    </svg>
+                                                </div>
+                                                <div class="isla-quote-title">Quote Ready!</div>
+                                                <p class="isla-quote-message">Your professional quote has been generated and is ready for download.</p>
+                                                @if (!string.IsNullOrWhiteSpace(bookingNum))
+                                                {
+                                                    <p class="isla-quote-ref">Reference: @bookingNum</p>
+                                                }
+                                                <a href="@quoteUrlValue" target="_blank" class="isla-quote-download-btn">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                                        <polyline points="7 10 12 15 17 10"></polyline>
+                                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                                    </svg>
+                                                    Download Quote PDF
+                                                </a>
+                                            </div>
+                                        }
                                         else
                                         {
                                             // Unknown UI type -> keep as data blob
@@ -312,9 +375,15 @@ else
             rawLower.Contains("attendees") ||
             rawLower.Contains("guests:") ||
             rawLower.Contains("purpose") ||
-            rawLower.Contains("goal:");
-
-        if(!hasSummaryLabels) return false;
+            rawLower.Contains("goal:") ||
+            rawLower.Contains("equipment selection") ||
+            rawLower.Contains("equipment lineup") ||
+            rawLower.Contains("finalized equipment") ||
+            rawLower.Contains("here's the equipment") ||
+            rawLower.Contains("laptops:") ||
+            rawLower.Contains("projectors:") ||
+            rawLower.Contains("screens:") ||
+            rawLower.Contains("microphones:");
 
         bool asksToConfirm =
             rawLower.Contains("does this look correct") ||
@@ -326,9 +395,17 @@ else
             rawLower.Contains("before i prepare your quote") ||
             rawLower.Contains("ready for me to create the quote") ||
             rawLower.Contains("should i create the quote") ||
-            rawLower.Contains("would you like me to create the quote");
+            rawLower.Contains("would you like me to create the quote") ||
+            rawLower.Contains("shall we move ahead") ||
+            rawLower.Contains("shall we proceed") ||
+            rawLower.Contains("finalize the quote") ||
+            rawLower.Contains("is there anything else") ||
+            rawLower.Contains("anything else you'd like to add") ||
+            rawLower.Contains("would you like to add anything");
 
-        return asksToConfirm;
+        // Show CTA if both conditions are met, OR if it's clearly asking to finalize
+        return (hasSummaryLabels && asksToConfirm) || 
+               (rawLower.Contains("shall we move ahead") && rawLower.Contains("finalize"));
     }
 
     // Shapes for galleries
@@ -384,7 +461,15 @@ else
   document.addEventListener('click',(ev)=>{
     const btn=ev.target.closest('.isla-card'); if(!btn) return;
     const raw=btn.getAttribute('data-select')||'{}'; let obj={}; try{obj=JSON.parse(raw);}catch{}
-    let text=''; if(obj.room) text=`Choose room: ${obj.room}`; if(obj.layout) text=`Choose layout: ${obj.layout}`;
+    let text='';
+    // Room/layout selection
+    if(obj.room) text=`Choose room: ${obj.room}`;
+    else if(obj.layout) text=`Choose layout: ${obj.layout}`;
+    // Equipment selection - handle product_code
+    else if(obj.product_code) {
+      const desc = obj.description || obj.product_code;
+      text=`Selected equipment: ${desc} (${obj.product_code})`;
+    }
     if(text) postChat(text,btn);
   },{passive:true});
 

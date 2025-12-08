@@ -1,0 +1,2058 @@
+{
+  "name": "tblbookings",
+  "schema": "dbo",
+  "description": "Main bookings table - stores all booking/order details including customer, venue, dates, and financial information",
+  "row_count": 68966,
+  "columns": [
+    {
+      "name": "ID",
+      "data_type": "decimal(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": true,
+      "is_foreign_key": false
+    },
+    {
+      "name": "booking_no",
+      "data_type": "varchar(35)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "order_no",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "payment_type",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "deposit_quoted_v50",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "price_quoted",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "docs_produced",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "hire_price",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "booking_type_v32",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "status",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "delivery",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "percent_disc",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "delivery_viav71",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "delivery_time",
+      "data_type": "char(6)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "pickup_viaV71",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "pickup_time",
+      "data_type": "char(6)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "invoiced",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "labour",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "invoice_no",
+      "data_type": "decimal(19,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "event_code",
+      "data_type": "char(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "discount_rate",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "same_address",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "insurance_v5",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "days_using",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "un_disc_amount",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "del_time_h",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "del_time_m",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ret_time_h",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ret_time_m",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Item_cnt",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "sales_discount_rate",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "sales_amount",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "tax1",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "division",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "contact_nameV6",
+      "data_type": "varchar(35)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "sales_tax_no",
+      "data_type": "char(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "last_modified_by",
+      "data_type": "char(2)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "delivery_address_exist",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "sales_percent_disc",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "pricing_scheme_used",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "days_charged_v51",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "sale_of_asset",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "From_locn",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "return_to_locn",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "retail_value",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "perm_casual",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "setupTimeV61",
+      "data_type": "varchar(4)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "RehearsalTime",
+      "data_type": "varchar(4)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "StrikeTime",
+      "data_type": "varchar(4)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Trans_to_locn",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "showStartTime",
+      "data_type": "varchar(4)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ShowEndTime",
+      "data_type": "varchar(4)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "transferNo",
+      "data_type": "decimal(19,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "currencyStr",
+      "data_type": "varchar(5)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "BookingProgressStatus",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ConfirmedBy",
+      "data_type": "varchar(35)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ConfirmedDocRef",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "VenueRoom",
+      "data_type": "varchar(35)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "expAttendees",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "HourBooked",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "MinBooked",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "SecBooked",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "TaxAuthority1",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "TaxAuthority2",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "HorCCroom",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "subrooms",
+      "data_type": "char(12)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "truckOut",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "truckIn",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "tripOut",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "tripIn",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "showName",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "freightServiceDel",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "freightServiceRet",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DelZone",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "RetZone",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "OurNumberDel",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "OurNumberRet",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DatesAndTimesEnabled",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Government",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "prep_time_h",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "prep_entered",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "prep_time_m",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "sales_undisc_amount",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "losses",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "half_day_aplic",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ContactLoadedIntoVenue",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Assigned_to_v61",
+      "data_type": "varchar(35)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "sundry_total",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "OrganizationV6",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Salesperson",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "order_date",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "dDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "rDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Inv_date",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ShowSdate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ShowEdate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "SetDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ADelDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "SDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "RehDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ConDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "TOutDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "TInDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PreDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ConByDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "bookingPrinted",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CustCode",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ExtendedFrom",
+      "data_type": "varchar(5)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "last_operators",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "operatorsID",
+      "data_type": "decimal(19,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PotPercent",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Referral",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "EventType",
+      "data_type": "varchar(20)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Priority",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "InvoiceStage",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CreditCardName",
+      "data_type": "varchar(20)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CreditCardNumber",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "expMonth",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "expYear",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CardHolder",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CardStreet1",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CardStreet2",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CardCity",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CardState",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CardPostCode",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CreditCardIdNo",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PickupRetDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "rent_invd_too_date",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "MaxBookingValue",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "UsesPriceTable",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DateToInvoice",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "TwoWkDisc",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ThreeWkDisc",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ServCont",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PaymentOptions",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PrintedPayTerm",
+      "data_type": "varchar(40)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "RentalType",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "UseBillSchedule",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Tax2",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ContactID",
+      "data_type": "decimal(9,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ShortHours",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ProjectManager",
+      "data_type": "varchar(8)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "dtExpected_ReturnDate",
+      "data_type": "datetime",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "vcExpected_ReturnTime",
+      "data_type": "varchar(4)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "vcTruckOutTime",
+      "data_type": "varchar(4)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "vcTruckInTime",
+      "data_type": "varchar(4)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CustID",
+      "data_type": "decimal(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "VenueID",
+      "data_type": "int(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "LateChargesApplied",
+      "data_type": "bit",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "shortagesAreTransfered",
+      "data_type": "bit",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "VenueContactID",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "VenueContact",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "VenueContactPhoneID",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "LTBillingOption",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DressCode",
+      "data_type": "varchar(35)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Collection",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "FuelSurchargeRate",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "FreightLocked",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "LabourLocked",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "RentalLocked",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PriceLocked",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "insurance_type",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "EntryDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CreditSurchargeRate",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CreditSurchargeAmount",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DisableTreeOrder",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ConfirmationFinancials",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "EventManagementRate",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "EventManagementAmount",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "EquipmentModified",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CrewStatusColumn",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "LoadDateTime",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "UnloadDateTime",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DeprepDateTime",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DeprepOn",
+      "data_type": "bit",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DeliveryDateOn",
+      "data_type": "bit",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PickupDateOn",
+      "data_type": "bit",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ScheduleDatesOn",
+      "data_type": "varchar(10)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "bBookingIsComplete",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DiscountOverride",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "MasterBillingID",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "MasterBillingMethod",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "schedHeadEquipSpan",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "TaxabPCT",
+      "data_type": "float(53)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "UntaxPCT",
+      "data_type": "float(53)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Tax1PCT",
+      "data_type": "float(53)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Tax2PCT",
+      "data_type": "float(53)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PaymentContactID",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "sale_of_asset_undisc_amt",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "LockedForScanning",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "OldAssignedTo",
+      "data_type": "varchar(35)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DateLastModified",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "crew_cnt",
+      "data_type": "int(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "rTargetMargin",
+      "data_type": "float(53)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "rProfitMargin",
+      "data_type": "float(53)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ContractNo",
+      "data_type": "varchar(18)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "SyncType",
+      "data_type": "tinyint(3,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "AllLocnAvail",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "HasQT",
+      "data_type": "bit",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "HasDAT",
+      "data_type": "bit",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "AllHeadingsDaysOverride",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "printedDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "BayNo",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Paymethod",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    }
+  ],
+  "primary_keys": [
+    "ID"
+  ],
+  "foreign_keys": [],
+  "sample_data": [
+    {
+      "ID": "1",
+      "booking_no": "C0448500001",
+      "order_no": "EO# 605623",
+      "payment_type": 0,
+      "deposit_quoted_v50": 0.0,
+      "price_quoted": 9235.680000007153,
+      "docs_produced": 0,
+      "hire_price": 11332.080000013113,
+      "booking_type_v32": 0,
+      "status": 0,
+      "delivery": -1849.929999999702,
+      "percent_disc": 0.1,
+      "delivery_viav71": -2,
+      "delivery_time": "0900  ",
+      "pickup_viaV71": -2,
+      "pickup_time": "0900  ",
+      "invoiced": "Y",
+      "labour": 2380.0,
+      "invoice_no": "155038",
+      "event_code": "                              ",
+      "discount_rate": 64.34037192852702,
+      "same_address": null,
+      "insurance_v5": 793.25,
+      "days_using": 1,
+      "un_disc_amount": 4712.079999998212,
+      "del_time_h": 9,
+      "del_time_m": 0,
+      "ret_time_h": 9,
+      "ret_time_m": 0,
+      "Item_cnt": 37,
+      "sales_discount_rate": 0.0,
+      "sales_amount": 0.0,
+      "tax1": 0.0,
+      "division": 3,
+      "contact_nameV6": "Merinda Hutchinson",
+      "sales_tax_no": "                         ",
+      "last_modified_by": null,
+      "delivery_address_exist": "Y",
+      "sales_percent_disc": 0.0,
+      "pricing_scheme_used": 3,
+      "days_charged_v51": 0.0,
+      "sale_of_asset": 0.0,
+      "From_locn": 14,
+      "return_to_locn": 14,
+      "retail_value": 0.0,
+      "perm_casual": "Y",
+      "setupTimeV61": "0900",
+      "RehearsalTime": "0900",
+      "StrikeTime": "0900",
+      "Trans_to_locn": 14,
+      "showStartTime": "0900",
+      "ShowEndTime": "0900",
+      "transferNo": "0",
+      "currencyStr": "",
+      "BookingProgressStatus": 3,
+      "ConfirmedBy": "Merinda Hutchinson",
+      "ConfirmedDocRef": "INV",
+      "VenueRoom": "Grand Ballroom",
+      "expAttendees": 0,
+      "HourBooked": 14,
+      "MinBooked": 36,
+      "SecBooked": 20,
+      "TaxAuthority1": 0,
+      "TaxAuthority2": 1,
+      "HorCCroom": 0,
+      "subrooms": "NNNNNNNNNNNN",
+      "truckOut": null,
+      "truckIn": null,
+      "tripOut": null,
+      "tripIn": null,
+      "showName": "Isabella & Giuseppe Reception",
+      "freightServiceDel": 255,
+      "freightServiceRet": 255,
+      "DelZone": 0,
+      "RetZone": 0,
+      "OurNumberDel": "Y",
+      "OurNumberRet": "Y",
+      "DatesAndTimesEnabled": "N",
+      "Government": "N",
+      "prep_time_h": 9,
+      "prep_entered": "N",
+      "prep_time_m": 0,
+      "sales_undisc_amount": 0.0,
+      "losses": 0.0,
+      "half_day_aplic": "N",
+      "ContactLoadedIntoVenue": 0,
+      "Assigned_to_v61": null,
+      "sundry_total": 0.0,
+      "OrganizationV6": "Wedding - Sheraton Grand Mirage Resort Gold Coast",
+      "Salesperson": "RIO",
+      "order_date": "2020-12-18 00:00:00",
+      "dDate": "2021-01-02 00:00:00",
+      "rDate": "2021-01-02 00:00:00",
+      "Inv_date": "2021-01-02 00:00:00",
+      "ShowSdate": "2021-01-02 00:00:00",
+      "ShowEdate": "2021-01-02 00:00:00",
+      "SetDate": "2021-01-02 00:00:00",
+      "ADelDate": "2021-01-02 00:00:00",
+      "SDate": "2021-01-02 00:00:00",
+      "RehDate": "2021-01-02 00:00:00",
+      "ConDate": "2020-12-18 00:00:00",
+      "TOutDate": null,
+      "TInDate": null,
+      "PreDate": "2021-01-02 00:00:00",
+      "ConByDate": "2020-12-26 00:00:00",
+      "bookingPrinted": "N",
+      "CustCode": "C04529",
+      "ExtendedFrom": "",
+      "last_operators": "RICHARD OBORN",
+      "operatorsID": "27",
+      "PotPercent": 100.0,
+      "Referral": "",
+      "EventType": "",
+      "Priority": 0,
+      "InvoiceStage": 0,
+      "CreditCardName": "",
+      "CreditCardNumber": "",
+      "expMonth": "",
+      "expYear": "",
+      "CardHolder": "",
+      "CardStreet1": "",
+      "CardStreet2": "",
+      "CardCity": "",
+      "CardState": "",
+      "CardPostCode": "",
+      "CreditCardIdNo": "",
+      "PickupRetDate": "2021-01-02 00:00:00",
+      "rent_invd_too_date": "1980-01-01 00:00:00",
+      "MaxBookingValue": 0.0,
+      "UsesPriceTable": 0,
+      "DateToInvoice": "2021-10-02 00:00:00",
+      "TwoWkDisc": null,
+      "ThreeWkDisc": null,
+      "ServCont": "N",
+      "PaymentOptions": 0,
+      "PrintedPayTerm": "*Pre-payment",
+      "RentalType": 0,
+      "UseBillSchedule": "N",
+      "Tax2": 839.6100000003353,
+      "ContactID": "96",
+      "ShortHours": null,
+      "ProjectManager": "",
+      "dtExpected_ReturnDate": "2020-12-02 00:00:00",
+      "vcExpected_ReturnTime": "1705",
+      "vcTruckOutTime": "0000",
+      "vcTruckInTime": "0000",
+      "CustID": "4485",
+      "VenueID": 8,
+      "LateChargesApplied": false,
+      "shortagesAreTransfered": false,
+      "VenueContactID": 21,
+      "VenueContact": "Richard Oborn",
+      "VenueContactPhoneID": 0,
+      "LTBillingOption": 0,
+      "DressCode": null,
+      "Collection": 0.0,
+      "FuelSurchargeRate": 0.0,
+      "FreightLocked": false,
+      "LabourLocked": false,
+      "RentalLocked": false,
+      "PriceLocked": false,
+      "insurance_type": 1,
+      "EntryDate": "2020-12-01 00:00:00",
+      "CreditSurchargeRate": 0.0,
+      "CreditSurchargeAmount": 0.0,
+      "DisableTreeOrder": false,
+      "ConfirmationFinancials": "",
+      "EventManagementRate": 0.0,
+      "EventManagementAmount": 0.0,
+      "EquipmentModified": true,
+      "CrewStatusColumn": 1,
+      "LoadDateTime": "2021-01-02 09:00:00",
+      "UnloadDateTime": "2021-01-02 09:00:00",
+      "DeprepDateTime": "2021-01-02 09:00:00",
+      "DeprepOn": false,
+      "DeliveryDateOn": false,
+      "PickupDateOn": false,
+      "ScheduleDatesOn": "NNNNNNNN",
+      "bBookingIsComplete": false,
+      "DiscountOverride": false,
+      "MasterBillingID": 0,
+      "MasterBillingMethod": 0,
+      "schedHeadEquipSpan": 0,
+      "TaxabPCT": 90.90906137938146,
+      "UntaxPCT": 0.0,
+      "Tax1PCT": 0.0,
+      "Tax2PCT": 9.090938620647648,
+      "PaymentContactID": 96,
+      "sale_of_asset_undisc_amt": 0.0,
+      "LockedForScanning": false,
+      "OldAssignedTo": "",
+      "DateLastModified": "2021-01-03 11:06:15",
+      "crew_cnt": 8,
+      "rTargetMargin": 0.0,
+      "rProfitMargin": 83.80192600004375,
+      "ContractNo": "",
+      "SyncType": 0,
+      "AllLocnAvail": false,
+      "HasQT": false,
+      "HasDAT": false,
+      "AllHeadingsDaysOverride": false,
+      "printedDate": null,
+      "BayNo": null,
+      "Paymethod": ""
+    },
+    {
+      "ID": "2",
+      "booking_no": "C0448600001",
+      "order_no": "",
+      "payment_type": 0,
+      "deposit_quoted_v50": 0.0,
+      "price_quoted": 16704.05000001192,
+      "docs_produced": 0,
+      "hire_price": 13150.0,
+      "booking_type_v32": 2,
+      "status": 0,
+      "delivery": 0.0,
+      "percent_disc": 0.0,
+      "delivery_viav71": -2,
+      "delivery_time": "1705  ",
+      "pickup_viaV71": -2,
+      "pickup_time": "2000  ",
+      "invoiced": "N",
+      "labour": 2430.0,
+      "invoice_no": "0",
+      "event_code": "                              ",
+      "discount_rate": 10.0,
+      "same_address": null,
+      "insurance_v5": 920.5,
+      "days_using": 2,
+      "un_disc_amount": 0.0,
+      "del_time_h": 9,
+      "del_time_m": 5,
+      "ret_time_h": 20,
+      "ret_time_m": 0,
+      "Item_cnt": 32,
+      "sales_discount_rate": 0.0,
+      "sales_amount": 0.0,
+      "tax1": 0.0,
+      "division": 3,
+      "contact_nameV6": "Lisa Taylor",
+      "sales_tax_no": "                         ",
+      "last_modified_by": null,
+      "delivery_address_exist": "Y",
+      "sales_percent_disc": 0.0,
+      "pricing_scheme_used": 3,
+      "days_charged_v51": 0.0,
+      "sale_of_asset": 0.0,
+      "From_locn": 8,
+      "return_to_locn": 8,
+      "retail_value": 0.0,
+      "perm_casual": "Y",
+      "setupTimeV61": "0730",
+      "RehearsalTime": "0730",
+      "StrikeTime": "1705",
+      "Trans_to_locn": 8,
+      "showStartTime": "0830",
+      "ShowEndTime": "1700",
+      "transferNo": "0",
+      "currencyStr": "",
+      "BookingProgressStatus": 0,
+      "ConfirmedBy": "",
+      "ConfirmedDocRef": "",
+      "VenueRoom": "Heritage Wharf",
+      "expAttendees": 0,
+      "HourBooked": 0,
+      "MinBooked": 0,
+      "SecBooked": 0,
+      "TaxAuthority1": 0,
+      "TaxAuthority2": 1,
+      "HorCCroom": 0,
+      "subrooms": "NNNNNNNNNNNN",
+      "truckOut": null,
+      "truckIn": null,
+      "tripOut": null,
+      "tripIn": null,
+      "showName": "FILEX EVENTS 2021 - HW JBW",
+      "freightServiceDel": 255,
+      "freightServiceRet": 255,
+      "DelZone": 0,
+      "RetZone": 0,
+      "OurNumberDel": "Y",
+      "OurNumberRet": "Y",
+      "DatesAndTimesEnabled": "Y",
+      "Government": "N",
+      "prep_time_h": 9,
+      "prep_entered": "N",
+      "prep_time_m": 5,
+      "sales_undisc_amount": 0.0,
+      "losses": 0.0,
+      "half_day_aplic": "N",
+      "ContactLoadedIntoVenue": 0,
+      "Assigned_to_v61": null,
+      "sundry_total": 0.0,
+      "OrganizationV6": "Filex",
+      "Salesperson": "MAW",
+      "order_date": "1980-01-01 00:00:00",
+      "dDate": "2021-08-18 00:00:00",
+      "rDate": "2021-08-20 00:00:00",
+      "Inv_date": "1980-01-01 00:00:00",
+      "ShowSdate": "2021-08-19 00:00:00",
+      "ShowEdate": "2021-08-20 00:00:00",
+      "SetDate": "2021-08-19 00:00:00",
+      "ADelDate": "2021-08-18 00:00:00",
+      "SDate": "2021-08-20 00:00:00",
+      "RehDate": "2021-08-19 00:00:00",
+      "ConDate": "1899-12-30 00:00:00",
+      "TOutDate": null,
+      "TInDate": null,
+      "PreDate": "2021-08-18 00:00:00",
+      "ConByDate": "2021-08-11 00:00:00",
+      "bookingPrinted": "N",
+      "CustCode": "",
+      "ExtendedFrom": "",
+      "last_operators": "DAVID RAY",
+      "operatorsID": "25",
+      "PotPercent": 100.0,
+      "Referral": "",
+      "EventType": "",
+      "Priority": 0,
+      "InvoiceStage": 0,
+      "CreditCardName": "",
+      "CreditCardNumber": "",
+      "expMonth": "",
+      "expYear": "",
+      "CardHolder": "",
+      "CardStreet1": "",
+      "CardStreet2": "",
+      "CardCity": "",
+      "CardState": "",
+      "CardPostCode": "",
+      "CreditCardIdNo": "",
+      "PickupRetDate": "2021-08-20 00:00:00",
+      "rent_invd_too_date": "1980-01-01 00:00:00",
+      "MaxBookingValue": 0.0,
+      "UsesPriceTable": 0,
+      "DateToInvoice": "2021-08-19 00:00:00",
+      "TwoWkDisc": null,
+      "ThreeWkDisc": null,
+      "ServCont": "N",
+      "PaymentOptions": 0,
+      "PrintedPayTerm": "*Pre-payment",
+      "RentalType": 0,
+      "UseBillSchedule": "N",
+      "Tax2": 1518.550000000745,
+      "ContactID": "4",
+      "ShortHours": null,
+      "ProjectManager": "",
+      "dtExpected_ReturnDate": "2020-12-02 00:00:00",
+      "vcExpected_ReturnTime": "1705",
+      "vcTruckOutTime": "0000",
+      "vcTruckInTime": "0000",
+      "CustID": "4486",
+      "VenueID": 2,
+      "LateChargesApplied": false,
+      "shortagesAreTransfered": false,
+      "VenueContactID": 0,
+      "VenueContact": "",
+      "VenueContactPhoneID": 0,
+      "LTBillingOption": 0,
+      "DressCode": null,
+      "Collection": 0.0,
+      "FuelSurchargeRate": 0.0,
+      "FreightLocked": false,
+      "LabourLocked": false,
+      "RentalLocked": false,
+      "PriceLocked": false,
+      "insurance_type": 1,
+      "EntryDate": "2020-12-01 00:00:00",
+      "CreditSurchargeRate": 0.0,
+      "CreditSurchargeAmount": 0.0,
+      "DisableTreeOrder": false,
+      "ConfirmationFinancials": "",
+      "EventManagementRate": 0.0,
+      "EventManagementAmount": 0.0,
+      "EquipmentModified": true,
+      "CrewStatusColumn": 1,
+      "LoadDateTime": "2021-08-18 09:05:00",
+      "UnloadDateTime": "2021-08-20 20:00:00",
+      "DeprepDateTime": "2021-08-20 20:00:00",
+      "DeprepOn": false,
+      "DeliveryDateOn": true,
+      "PickupDateOn": true,
+      "ScheduleDatesOn": "NYYYYYNN",
+      "bBookingIsComplete": false,
+      "DiscountOverride": false,
+      "MasterBillingID": 0,
+      "MasterBillingMethod": 0,
+      "schedHeadEquipSpan": 0,
+      "TaxabPCT": 90.90909090905916,
+      "UntaxPCT": 0.0,
+      "Tax1PCT": 0.0,
+      "Tax2PCT": 9.090909090911737,
+      "PaymentContactID": 4,
+      "sale_of_asset_undisc_amt": 0.0,
+      "LockedForScanning": false,
+      "OldAssignedTo": "",
+      "DateLastModified": "2021-07-22 10:41:45",
+      "crew_cnt": 6,
+      "rTargetMargin": 0.0,
+      "rProfitMargin": 92.88795200001914,
+      "ContractNo": "",
+      "SyncType": 0,
+      "AllLocnAvail": false,
+      "HasQT": false,
+      "HasDAT": false,
+      "AllHeadingsDaysOverride": false,
+      "printedDate": null,
+      "BayNo": null,
+      "Paymethod": ""
+    }
+  ]
+}

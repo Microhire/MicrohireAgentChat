@@ -3,6 +3,9 @@ using Azure.Identity;
 using MicrohireAgentChat.Config;
 using MicrohireAgentChat.Data;
 using MicrohireAgentChat.Services;
+using MicrohireAgentChat.Services.Extraction;
+using MicrohireAgentChat.Services.Orchestration;
+using MicrohireAgentChat.Services.Persistence;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
 
@@ -16,6 +19,8 @@ builder.Services.Configure<AzureAgentOptions>(opt =>
     opt.AgentId = Environment.GetEnvironmentVariable("AZURE_EXISTING_AGENT_ID")
                    ?? builder.Configuration["AzureAgent:AgentId"];
 });
+
+builder.Services.Configure<DevModeOptions>(builder.Configuration.GetSection("DevMode"));
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
 {
@@ -50,6 +55,27 @@ builder.Services.AddSingleton<PdfStamperService>();
 builder.Services.AddSingleton<PdfFromBlankService>();
 builder.Services.AddSingleton<IWestinRoomCatalog, WestinRoomCatalog>();
 builder.Services.AddSingleton<IBookingDraftStore, BookingDraftStore>();
+
+// Register new persistence and orchestration services
+builder.Services.AddScoped<ConversationExtractionService>();
+builder.Services.AddScoped<ContactPersistenceService>();
+builder.Services.AddScoped<OrganizationPersistenceService>();
+builder.Services.AddScoped<BookingPersistenceService>();
+builder.Services.AddScoped<ItemPersistenceService>();
+builder.Services.AddScoped<CrewPersistenceService>();
+builder.Services.AddScoped<BookingOrchestrationService>();
+
+// HTTP client for AI services
+builder.Services.AddHttpClient();
+
+// Register new modular services (extracted from AzureAgentChatService)
+builder.Services.AddScoped<EquipmentSearchService>();
+builder.Services.AddScoped<AIEquipmentQueryService>(); // AI-powered dynamic equipment search
+builder.Services.AddScoped<AgentToolHandlerService>();
+builder.Services.AddScoped<BookingQueryService>();
+builder.Services.AddScoped<TimePickerService>();
+builder.Services.AddScoped<QuoteGenerationService>();
+builder.Services.AddScoped<ConversationReplayService>();
 builder.Services.AddControllersWithViews();
 builder.Services.AddSession(options =>
 {

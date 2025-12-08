@@ -7,6 +7,7 @@ using Markdig;
 using MicrohireAgentChat.Config;
 using MicrohireAgentChat.Data;
 using MicrohireAgentChat.Models;
+using MicrohireAgentChat.Services.Orchestration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System;
@@ -22,25 +23,24 @@ namespace MicrohireAgentChat.Services
 {
     public sealed class AzureAgentChatService
     {
-        private readonly string _assistantId = "asst_uwAJjoHGdHJz5pUS93cJbMAC";      // your Agent ID
-        private readonly string _vectorStoreId = "AgentVectorStore_15401";
         private const string SessionKeyThreadId = "AgentThreadId";
         private const string SessionKeyGreeted = "IslaGreeted";
         private const string SessionKeyActiveRunId = "AgentActiveRunId";
-        private readonly IBookingDraftStore? _drafts;
-        private static readonly SemaphoreSlim _runsThrottle = new SemaphoreSlim(2, 2);
-        private readonly IWebHostEnvironment _env;
+        
         private readonly AIProjectClient _projectClient;
         private readonly string _agentId;
-        private readonly BookingDbContext _bookings;
         private readonly IHttpContextAccessor _http;
         private readonly ILogger<AzureAgentChatService> _logger;
-        private readonly IWestinRoomCatalog _roomCatalog;
-        //  private readonly AppDbContext _appDb;
+        private readonly IWebHostEnvironment _env;
+        private readonly BookingDbContext _bookings;
+        
+        // Modular services (extracted from this monolith)
+        private readonly BookingOrchestrationService _orchestration;
+        private readonly AgentToolHandlerService _toolHandler;
+        private readonly TimePickerService _timePicker;
+        private readonly QuoteGenerationService _quoteGen;
+        
         private static readonly ConcurrentDictionary<string, SemaphoreSlim> _threadLocks = new();
-        private static readonly Regex ChooseTimeRe =
-    new(@"^Choose\s*time:\s*(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})\s*$",
-        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         private static SemaphoreSlim GetThreadGate(string threadId)
             => _threadLocks.GetOrAdd(threadId, _ => new SemaphoreSlim(1, 1));
 
@@ -49,18 +49,23 @@ namespace MicrohireAgentChat.Services
             IOptions<AzureAgentOptions> options,
             BookingDbContext bookings,
             IHttpContextAccessor http,
-            ILogger<AzureAgentChatService> logger, IWestinRoomCatalog roomCatalog, IBookingDraftStore? drafts, IWebHostEnvironment env)
-        //  ,AppDbContext appDb
+            IWebHostEnvironment env,
+            ILogger<AzureAgentChatService> logger,
+            BookingOrchestrationService orchestration,
+            AgentToolHandlerService toolHandler,
+            TimePickerService timePicker,
+            QuoteGenerationService quoteGen)
         {
             _projectClient = projectClient;
             _agentId = options.Value.AgentId ?? throw new ArgumentNullException(nameof(options.Value.AgentId));
             _bookings = bookings;
             _http = http;
-            _logger = logger;
-            _roomCatalog = roomCatalog;
-            _drafts = drafts;
             _env = env;
-            //_appDb = appDb;
+            _logger = logger;
+            _orchestration = orchestration;
+            _toolHandler = toolHandler;
+            _timePicker = timePicker;
+            _quoteGen = quoteGen;
         }
 
         private PersistentAgentsClient AgentsClient => _projectClient.GetPersistentAgentsClient();
@@ -156,6 +161,7 @@ namespace MicrohireAgentChat.Services
             return (threadId, list);
         }
 
+
         public async Task<IEnumerable<DisplayMessage>> SendAsync(ISession session, string userText, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(userText)) return Enumerable.Empty<DisplayMessage>();
@@ -165,21 +171,19 @@ namespace MicrohireAgentChat.Services
             await gate.WaitAsync(ct);
             try
             {
-                // >>> NEW: handle "Choose schedule:" locally (no agent run)
-                if (TryCaptureScheduleSelection(userText.Trim(), out var chosen))
+                // Handle schedule selection using TimePickerService
+                if (_timePicker.TryParseScheduleSelection(userText.Trim(), out var schedule))
                 {
-                    // Persist the chosen times
-                    SaveScheduleToDraft(threadId, chosen);
+                    _timePicker.SaveScheduleToDraft(threadId, schedule);
 
-                    // Find the date from current transcript (for the pretty header)
+                    // Find the date from current transcript
                     var (_, current) = GetTranscript(threadId);
-                    var (dateDto, _) = ExtractEventDate(current);  // your existing helper
+                    var (dateDto, _) = ExtractEventDate(current);
 
-                    // Post a friendly assistant confirmation into the thread
-                    var confirmation = BuildScheduleConfirmation(chosen, dateDto);
+                    // Post confirmation
+                    var confirmation = _timePicker.BuildScheduleConfirmation(schedule, dateDto);
                     AgentsClient.Messages.CreateMessage(threadId, Azure.AI.Agents.Persistent.MessageRole.Agent, confirmation);
 
-                    // Return the updated transcript (and DO NOT re-add the picker)
                     var (_, finalNow) = GetTranscript(threadId);
                     return finalNow;
                 }
@@ -215,7 +219,7 @@ namespace MicrohireAgentChat.Services
                 // If room+date known but time missing AND Isla just asked for time, append a timepicker
                 try { await MaybeAppendTimePickerAsync(threadId, messages, ct); } catch { /* non-fatal */ }
 
-                // Optional post-processing
+                // Optional post-processing - NOW USING ORCHESTRATION SERVICE
                 try { await PostProcessAfterRunAsync(messages, ct); }
                 catch (Exception ex) { _logger.LogError(ex, "Post-processing (contact/booking) failed."); }
 
@@ -281,8 +285,21 @@ namespace MicrohireAgentChat.Services
             // 4) Did Isla just ask for the time?
             var lastAssistant = messages.LastOrDefault(m => string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase));
             string lastAssistantText = string.Join("\n\n", lastAssistant?.Parts ?? Enumerable.Empty<string>());
-            if (string.IsNullOrWhiteSpace(lastAssistantText) ||
-                lastAssistantText.IndexOf("what time would you like", StringComparison.OrdinalIgnoreCase) < 0)
+            if (string.IsNullOrWhiteSpace(lastAssistantText))
+                return;
+
+            // Check for various ways the AI might ask for time information
+            var textLower = lastAssistantText.ToLowerInvariant();
+            bool isAskingForTime = textLower.Contains("what time") ||
+                                   textLower.Contains("start time") ||
+                                   textLower.Contains("end time") ||
+                                   textLower.Contains("when does") ||
+                                   textLower.Contains("schedule") ||
+                                   textLower.Contains("timing") ||
+                                   textLower.Contains("setup time") ||
+                                   textLower.Contains("pack");
+
+            if (!isAskingForTime)
                 return;
 
             // 5) Build the inline MULTI timepicker JSON (Setup, Rehearsal, Pack Up)
@@ -366,182 +383,104 @@ namespace MicrohireAgentChat.Services
 
                                 try
                                 {
+                                    // Delegate tool handling to AgentToolHandlerService
+                                    var handled = await _toolHandler.HandleToolCallAsync(name, argsJson, threadId, ct);
+                                    if (handled != null)
+                                    {
+                                        outputs.Add((toolCallId, handled));
+                                        continue;
+                                    }
+
+                                    // Handle remaining tools not yet extracted
                                     switch (name)
                                     {
-                                        case "check_date_availability":
-                                            {
-                                                var rawJson = string.IsNullOrWhiteSpace(argsJson) ? "{}" : argsJson;
-                                                using var doc = JsonDocument.Parse(rawJson);
-
-                                                var map = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-                                                if (doc.RootElement.ValueKind == JsonValueKind.Object)
-                                                {
-                                                    foreach (var p in doc.RootElement.EnumerateObject())
-                                                    {
-                                                        object? v = p.Value.ValueKind switch
-                                                        {
-                                                            JsonValueKind.String => p.Value.GetString(),
-                                                            JsonValueKind.Number => p.Value.TryGetInt64(out var i) ? i :
-                                                                                    p.Value.TryGetDouble(out var d) ? d :
-                                                                                    p.Value.GetRawText(),
-                                                            JsonValueKind.True or JsonValueKind.False => p.Value.GetBoolean(),
-                                                            _ => p.Value.GetRawText()
-                                                        };
-                                                        map[p.Name] = v;
-                                                    }
-                                                }
-
-                                                var draft = _drafts.TryGet(threadId);
-                                                if (draft != null)
-                                                {
-                                                    if (!map.ContainsKey("startTime") && draft.Start is TimeSpan s)
-                                                        map["startTime"] = $"{(int)s.TotalHours:00}{s.Minutes:00}";
-                                                    if (!map.ContainsKey("endTime") && draft.End is TimeSpan e)
-                                                        map["endTime"] = $"{(int)e.TotalHours:00}{e.Minutes:00}";
-                                                    if (!map.ContainsKey("date") && draft.Date is DateOnly d)
-                                                        map["date"] = d.ToString("yyyy-MM-dd");
-                                                }
-
-                                                var mergedJson = JsonSerializer.Serialize(map);
-                                                var args = JsonSerializer.Deserialize<CheckDateArgs>(mergedJson)
-                                                           ?? throw new InvalidOperationException("check_date_availability: missing/invalid args");
-
-                                                var res = await CheckAvailabilityAsync(args, ct);
-                                                outputs.Add((toolCallId, JsonSerializer.Serialize(res)));
-                                                break;
-                                            }
-
-                                        case "get_now_aest":
-                                            {
-                                                var payload = BuildNowAestResponse();
-                                                outputs.Add((toolCallId, JsonSerializer.Serialize(payload)));
-                                                break;
-                                            }
-
-                                        case "list_westin_rooms":
-                                            {
-                                                var rooms = (await _roomCatalog.GetRoomsAsync(ct))
-                                                    .Select(r => new
-                                                    {
-                                                        id = r.Id,
-                                                        name = r.Name,
-                                                        slug = r.Slug,
-                                                        level = r.Level,
-                                                        cover = ToAbsoluteLocalUrl(r.Cover)
-                                                    });
-                                                outputs.Add((toolCallId, JsonSerializer.Serialize(new { rooms })));
-                                                break;
-                                            }
-
-                                        case "build_time_picker":
-                                            {
-                                                using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(argsJson) ? "{}" : argsJson);
-
-                                                string title = doc.RootElement.TryGetProperty("title", out var t) ? (t.GetString() ?? "Select start and end time") : "Select start and end time";
-                                                string? dateIso = doc.RootElement.TryGetProperty("date", out var d) ? d.GetString() : null;
-                                                string? defStart = doc.RootElement.TryGetProperty("defaultStart", out var ds) ? ds.GetString() : "09:00";
-                                                string? defEnd = doc.RootElement.TryGetProperty("defaultEnd", out var de) ? de.GetString() : "10:00";
-                                                int stepMinutes = doc.RootElement.TryGetProperty("stepMinutes", out var sm) && sm.ValueKind == JsonValueKind.Number
-                                                                    ? sm.GetInt32() : 30;
-
-                                                var payload = new
-                                                {
-                                                    ui = new
-                                                    {
-                                                        type = "timepicker",
-                                                        title = title,
-                                                        date = dateIso,
-                                                        defaultStart = defStart,
-                                                        defaultEnd = defEnd,
-                                                        stepMinutes = stepMinutes
-                                                    }
-                                                };
-
-                                                outputs.Add((toolCallId, JsonSerializer.Serialize(payload)));
-                                                break;
-                                            }
-
-                                        case "get_room_images":
-                                            {
-                                                using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(argsJson) ? "{}" : argsJson);
-
-                                                string roomKey = "";
-                                                if (doc.RootElement.TryGetProperty("room", out var rProp) && rProp.ValueKind == JsonValueKind.String)
-                                                    roomKey = rProp.GetString() ?? "";
-
-                                                var room = (await _roomCatalog.GetRoomsAsync(ct))
-                                                    .FirstOrDefault(r =>
-                                                        r.Name.Equals(roomKey, StringComparison.OrdinalIgnoreCase) ||
-                                                        r.Slug.Equals(roomKey, StringComparison.OrdinalIgnoreCase));
-
-                                                if (room is null)
-                                                {
-                                                    outputs.Add((toolCallId, JsonSerializer.Serialize(new { error = "room not found" })));
-                                                    break;
-                                                }
-
-                                                var payload = new
-                                                {
-                                                    room = room.Name,
-                                                    cover = ToAbsoluteLocalUrl(room.Cover),
-                                                    layouts = room.Layouts.Select(l => new
-                                                    {
-                                                        type = l.Type,
-                                                        capacity = l.Capacity,
-                                                        image = ToAbsoluteLocalUrl(l.Image)
-                                                    })
-                                                };
-
-                                                outputs.Add((toolCallId, JsonSerializer.Serialize(payload)));
-                                                break;
-                                            }
 
                                         case "generate_quote":
                                             {
-                                                string format = "html";
+                                                // SAFEGUARD: Check if user explicitly confirmed they're ready AND equipment is confirmed
+                                                bool userConfirmedReady = false;
+                                                bool equipmentConfirmed = false;
                                                 try
                                                 {
                                                     using var doc = JsonDocument.Parse(argsJson ?? "{}");
-                                                    if (doc.RootElement.TryGetProperty("format", out var f) && f.ValueKind == JsonValueKind.String)
-                                                        format = f.GetString()!.ToLowerInvariant();
+                                                    if (doc.RootElement.TryGetProperty("userConfirmedReady", out var ucr))
+                                                        userConfirmedReady = ucr.ValueKind == JsonValueKind.True;
+                                                    if (doc.RootElement.TryGetProperty("equipmentConfirmed", out var ec))
+                                                        equipmentConfirmed = ec.ValueKind == JsonValueKind.True;
                                                 }
                                                 catch { }
 
-                                                var html = StaticQuoteHtml();
-                                                string? quoteUrl = null;
-
-                                                if (format == "pdf")
+                                                // If equipment hasn't been confirmed, reject the quote generation
+                                                if (!equipmentConfirmed)
                                                 {
-                                                    var webRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
-                                                    var quotesDir = Path.Combine(webRoot, "files", "quotes");
-                                                    Directory.CreateDirectory(quotesDir);
-
-                                                    var htmlName = "latest.html";
-                                                    var pdfName = "Quote-C1374000002-001.pdf";
-
-                                                    var htmlPath = Path.Combine(quotesDir, htmlName);
-                                                    await File.WriteAllTextAsync(htmlPath, html, ct);
-
-                                                    var req = _http.HttpContext?.Request;
-                                                    var baseUrl = (req == null) ? "" : $"{req.Scheme}://{req.Host}";
-
-                                                    var srcRel = $"/files/quotes/{Uri.EscapeDataString(htmlName)}";
-                                                    var renderUrl = $"{baseUrl}/quotes/render?src={Uri.EscapeDataString(srcRel)}&out={Uri.EscapeDataString(pdfName)}";
-
-                                                    using var http = new HttpClient();
-                                                    var renderResp = await http.GetAsync(renderUrl, ct);
-                                                    renderResp.EnsureSuccessStatusCode();
-
-                                                    quoteUrl = $"{baseUrl}/files/quotes/{Uri.EscapeDataString(pdfName)}";
+                                                    outputs.Add((toolCallId, JsonSerializer.Serialize(new
+                                                    {
+                                                        error = "Cannot generate quote - equipment has not been confirmed by the user.",
+                                                        instruction = "STOP! You must follow this flow BEFORE generating a quote:\n" +
+                                                            "1) Call 'get_equipment_recommendations' with the user's equipment requirements text.\n" +
+                                                            "2) Show the user the equipment recommendations with pricing. Mention any packages available.\n" +
+                                                            "3) Ask 'Does this equipment look correct? Any changes needed?'\n" +
+                                                            "4) Wait for user to confirm (e.g., 'yes', 'looks good', 'that's right').\n" +
+                                                            "5) Ask 'Shall I prepare your quote now?'\n" +
+                                                            "6) Only after user explicitly confirms, call generate_quote with equipmentConfirmed=true and userConfirmedReady=true.\n\n" +
+                                                            "You CANNOT skip showing equipment recommendations to the user!"
+                                                    })));
+                                                    break;
                                                 }
+
+                                                // If user hasn't confirmed ready, reject the quote generation
+                                                if (!userConfirmedReady)
+                                                {
+                                                    outputs.Add((toolCallId, JsonSerializer.Serialize(new
+                                                    {
+                                                        error = "Cannot generate quote yet - user has not confirmed they are ready.",
+                                                        instruction = "You showed equipment to the user but haven't asked if they're ready for the quote.\n" +
+                                                            "Ask: 'Is there anything else you need, or shall I create your quote now?'\n" +
+                                                            "Only call generate_quote with userConfirmedReady=true after user explicitly says yes."
+                                                    })));
+                                                    break;
+                                                }
+
+                                                // Get the booking number from session
+                                                var session = _http.HttpContext?.Session;
+                                                var bookingNo = session?.GetString("Draft:BookingNo");
+                                                
+                                                if (string.IsNullOrWhiteSpace(bookingNo))
+                                                {
+                                                    outputs.Add((toolCallId, JsonSerializer.Serialize(new
+                                                    {
+                                                        error = "No booking found. Please ensure the booking has been created first.",
+                                                        instruction = "A booking must be created before generating a quote. Make sure all booking details (date, time, venue, equipment) have been confirmed."
+                                                    })));
+                                                    break;
+                                                }
+
+                                                // Use QuoteGenerationService to generate PDF from booking data
+                                                var (success, pdfUrl, error) = await _quoteGen.GenerateQuoteForBookingAsync(bookingNo, ct);
+                                                
+                                                if (!success || string.IsNullOrEmpty(pdfUrl))
+                                                {
+                                                    outputs.Add((toolCallId, JsonSerializer.Serialize(new
+                                                    {
+                                                        error = error ?? "Failed to generate quote PDF.",
+                                                        bookingNo
+                                                    })));
+                                                    break;
+                                                }
+
+                                                // Build full URL
+                                                var req = _http.HttpContext?.Request;
+                                                var baseUrl = (req == null) ? "" : $"{req.Scheme}://{req.Host}";
+                                                var fullQuoteUrl = $"{baseUrl}{pdfUrl}";
 
                                                 outputs.Add((toolCallId, JsonSerializer.Serialize(new
                                                 {
                                                     ui = new
                                                     {
-                                                        quoteHtml = (format == "html") ? html : null,
-                                                        quoteUrl
-                                                    }
+                                                        quoteUrl = fullQuoteUrl,
+                                                        bookingNo
+                                                    },
+                                                    message = $"Quote PDF generated successfully for booking {bookingNo}."
                                                 })));
                                                 break;
                                             }
@@ -1097,6 +1036,128 @@ namespace MicrohireAgentChat.Services
                 dto = default;
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Extract event time (start/end) from conversation messages
+        /// Looks for patterns like: "9:00 AM", "14:30", "2pm", "10am-4pm"
+        /// </summary>
+        public (TimeSpan? startTime, TimeSpan? endTime, string? matched) ExtractEventTime(IEnumerable<DisplayMessage> messages)
+        {
+            var ordered = messages.OrderBy(m => m.Timestamp).ToList();
+            static string JoinParts(DisplayMessage m) => string.Join(" ", m.Parts ?? Enumerable.Empty<string>());
+
+            var timePatterns = new[]
+            {
+                // 9:00 AM - 5:00 PM, 9am-5pm, etc.
+                @"\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)\s*(?:to|-|–|—)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)\b",
+                // 14:30 - 18:00, 2:00pm - 6:00pm, etc.
+                @"\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)?\s*(?:to|-|–|—)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)?\b",
+                // Single time: 9:00 AM, 2pm, 14:30
+                @"\b(\d{1,2})(?::(\d{2}))?\s*(am|pm|AM|PM)\b",
+                // 24-hour format: 14:30, 09:00
+                @"\b(\d{1,2}):(\d{2})\b"
+            };
+
+            bool TryParseTimeRange(string text, out TimeSpan? start, out TimeSpan? end, out string? matched)
+            {
+                start = null;
+                end = null;
+                matched = null;
+
+                foreach (var pat in timePatterns)
+                {
+                    foreach (Match m in Regex.Matches(text, pat, RegexOptions.IgnoreCase))
+                    {
+                        var token = m.Value;
+                        if (TryParseTimeToken(token, out var s, out var e))
+                        {
+                            start = s;
+                            end = e;
+                            matched = token;
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            // Check user messages first
+            foreach (var m in ordered.Where(x => x.Role.Equals("user", StringComparison.OrdinalIgnoreCase)))
+            {
+                var text = JoinParts(m);
+                if (TryParseTimeRange(text, out var start, out var end, out var matched))
+                    return (start, end, matched);
+            }
+
+            // Then check assistant messages
+            foreach (var m in ordered.Where(x => !x.Role.Equals("user", StringComparison.OrdinalIgnoreCase)))
+            {
+                var text = JoinParts(m);
+                if (TryParseTimeRange(text, out var start, out var end, out var matched))
+                    return (start, end, matched);
+            }
+
+            return (null, null, null);
+        }
+
+        private static bool TryParseTimeToken(string token, out TimeSpan? start, out TimeSpan? end)
+        {
+            start = null;
+            end = null;
+
+            // Clean the token
+            token = token.ToLowerInvariant().Replace(" ", "");
+
+            // Pattern 1: time1-time2 (e.g., "9am-5pm", "14:30-18:00")
+            var rangeMatch = Regex.Match(token, @"^(\d{1,2}(?::\d{2})?(?:am|pm)?)-(?:(\d{1,2}(?::\d{2})?(?:am|pm)?))$");
+            if (rangeMatch.Success)
+            {
+                if (TryParseSingleTime(rangeMatch.Groups[1].Value, out var s) &&
+                    TryParseSingleTime(rangeMatch.Groups[2].Value, out var e))
+                {
+                    start = s;
+                    end = e;
+                    return true;
+                }
+            }
+
+        // Pattern 2: single time (e.g., "9am", "14:30")
+        if (TryParseSingleTime(token, out var singleTime))
+        {
+            start = singleTime;
+            // For single times, assume a default duration (e.g., 2 hours)
+            end = singleTime.Add(TimeSpan.FromHours(2));
+            return true;
+        }
+
+            return false;
+        }
+
+        private static bool TryParseSingleTime(string timeStr, out TimeSpan result)
+        {
+            result = TimeSpan.Zero;
+
+            // Handle AM/PM formats
+            if (Regex.IsMatch(timeStr, @"^\d{1,2}(?::\d{2})?(?:am|pm)$"))
+            {
+                if (DateTime.TryParse(timeStr, out var dt))
+                {
+                    result = dt.TimeOfDay;
+                    return true;
+                }
+            }
+
+            // Handle 24-hour format
+            if (Regex.IsMatch(timeStr, @"^\d{1,2}:\d{2}$"))
+            {
+                if (TimeSpan.TryParse(timeStr, out result))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         public Dictionary<string, string> ExtractExpectedFields(IEnumerable<DisplayMessage> messages)
@@ -2082,82 +2143,23 @@ namespace MicrohireAgentChat.Services
 
         private async Task PostProcessAfterRunAsync(IEnumerable<DisplayMessage> messages, CancellationToken ct)
         {
-            // --- 1) Extract contact + org from the transcript ---
-            var ci = ExtractContactInfo(messages); // make sure this returns Position (string? Position)
-            var (orgName, orgAddr) = ExtractOrganisationFromTranscript(messages.ToList());
-
-            decimal? contactId = null;
-
-            // --- 2) Upsert contact (name is minimum; email/phone/position are optional) ---
-            if (!string.IsNullOrWhiteSpace(ci.Name))
+            // Delegate all contact/organization saving logic to the orchestration service
+            // It handles deduplication, proper linking, and follows the guide's patterns
+            try
             {
-                try
+                // Simple check: only save if we have meaningful contact info (email or phone)
+                var transcript = string.Join(" ", messages.Select(m => m.FullText ?? ""));
+                if (!transcript.Contains('@') && !Regex.IsMatch(transcript, @"\+?\d{10,}"))
                 {
-                    contactId = await UpsertContactByEmailAsync(
-                        _bookings,
-                        ci.Name!.Trim(),
-                        string.IsNullOrWhiteSpace(ci.Email) ? null : ci.Email!.Trim(),
-                        string.IsNullOrWhiteSpace(ci.PhoneE164) ? null : ci.PhoneE164!.Trim(),
-                        string.IsNullOrWhiteSpace(ci.Position) ? null : ci.Position!.Trim(), // NEW: position
-                        ct
-                    );
+                    return; // Wait for email or phone before saving
                 }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Contact upsert failed.");
-                }
+                
+                await _orchestration.SaveContactAndOrganizationAsync(messages, ct);
             }
-
-            // --- 3) Resolve organisation (existing or create) and get Customer_code ---
-            string? customerCode = null;
-            decimal? orgId = null;
-
-            if (!string.IsNullOrWhiteSpace(orgName))
+            catch (Exception ex)
             {
-                try
-                {
-                    var found = await FindOrganisationAsync(_bookings, orgName!, ct);
-                    if (found is not null)
-                    {
-                        orgId = found.Value.id;
-                        customerCode = found.Value.code;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "FindOrganisationAsync failed for '{Org}'.", orgName);
-                }
+                _logger.LogError(ex, "Post-processing failed");
             }
-
-            if (orgId is null && !string.IsNullOrWhiteSpace(orgName))
-            {
-                try
-                {
-                    orgId = await UpsertOrganisationAsync(_bookings, orgName!, orgAddr, ct);
-                    if (orgId is not null)
-                    {
-                        customerCode = await GetCustomerCodeByIdAsync(_bookings, orgId.Value, ct);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Organisation upsert failed for '{Org}'.", orgName);
-                }
-            }
-
-            // --- 4) Link contact <-> organisation (tblLinkCustContact) when both are known ---
-            if (contactId is not null && !string.IsNullOrWhiteSpace(customerCode))
-            {
-                try
-                {
-                    await LinkContactToOrganisationAsync(_bookings, customerCode!, contactId.Value, ct);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "LinkContactToOrganisationAsync failed for code '{Code}', contact {ContactId}.", customerCode, contactId);
-                }
-            }
-
         }
 
         private static string StripZeroWidth(string s)
@@ -3244,8 +3246,8 @@ public async Task<decimal?> UpsertOrganisationAsync(
                 // 1) Insert with a UNIQUE placeholder to satisfy the UNIQUE KEY
                 var row = new TblCust
                 {
-                    OrganisationV6 = Trunc(org, 120),
-                    Address_l1V6 = Trunc(addr, 200),
+                    OrganisationV6 = Trunc(org, 50),
+                    Address_l1V6 = Trunc(addr, 50),
                     Customer_code = MakeTempCustomerCode() // <— unique placeholder
                 };
 
@@ -3262,7 +3264,7 @@ public async Task<decimal?> UpsertOrganisationAsync(
             else
             {
                 if (!string.IsNullOrWhiteSpace(addr))
-                    existing.Address_l1V6 = Trunc(addr, 200);
+                    existing.Address_l1V6 = Trunc(addr, 50);
 
                 if (string.IsNullOrWhiteSpace(existing.Customer_code))
                     existing.Customer_code = MakeCustomerCodeFromId(existing.ID);
@@ -3453,6 +3455,41 @@ public async Task<decimal?> UpsertOrganisationAsync(
                         return (Clean(left), Clean(right));
                 }
 
+                // 5) Handle "X is the company. Y is the" pattern
+                var re5 = new Regex(@"^(?<org>.+?)\s+is\s+the\s+company\.?\s*(?<addr>.+?)\s+is\s+the",
+                    RegexOptions.IgnoreCase);
+                var m5 = re5.Match(t);
+                if (m5.Success) return (Clean(m5.Groups["org"].Value), Clean(m5.Groups["addr"].Value));
+
+                // 6) Handle "company is X. address is Y" pattern
+                var re6 = new Regex(@"company\s+is\s+(?<org>.+?)\.?\s+address\s+is\s+(?<addr>.+?)$",
+                    RegexOptions.IgnoreCase);
+                var m6 = re6.Match(t);
+                if (m6.Success) return (Clean(m6.Groups["org"].Value), Clean(m6.Groups["addr"].Value));
+
+                // 7) Very loose fallback: split on common separators
+                var separators = new[] { ". ", ", ", " and ", " & " };
+                foreach (var sep in separators)
+                {
+                    var sepIndex = t.IndexOf(sep, StringComparison.OrdinalIgnoreCase);
+                    if (sepIndex > 0)
+                    {
+                        var part1 = t[..sepIndex].Trim();
+                        var part2 = t[(sepIndex + sep.Length)..].Trim();
+
+                        // Check if part1 looks like a company name and part2 like an address
+                        if (part1.Length > 3 && part1.Length < 50 && part2.Length > 5 && part2.Length < 100)
+                        {
+                            // Simple heuristic: if part2 contains numbers or common address words
+                            var addrWords = new[] { "street", "st", "road", "rd", "avenue", "ave", "city", "nyc", "melbourne" };
+                            if (part2.Any(char.IsDigit) || addrWords.Any(w => part2.Contains(w, StringComparison.OrdinalIgnoreCase)))
+                            {
+                                return (Clean(part1), Clean(part2));
+                            }
+                        }
+                    }
+                }
+
                 return (null, null);
             }
 
@@ -3471,14 +3508,18 @@ public async Task<decimal?> UpsertOrganisationAsync(
             {
                 if (string.IsNullOrWhiteSpace(s)) return s;
                 var ti = System.Globalization.CultureInfo.CurrentCulture.TextInfo;
-                return ti.ToTitleCase(s.ToLowerInvariant());
+                var result = ti.ToTitleCase(s.ToLowerInvariant());
+                // Truncate to database column length (varchar(50))
+                return result.Length > 50 ? result[..50] : result;
             }
 
             static string? CleanAddr(string? s)
             {
                 if (string.IsNullOrWhiteSpace(s)) return s;
                 // trim trailing sentence punctuation that users often add
-                return s.Trim().TrimEnd('.', '!', ';');
+                var result = s.Trim().TrimEnd('.', '!', ';');
+                // Truncate to database column length (varchar(200))
+                return result.Length > 200 ? result[..200] : result;
             }
         }
 
@@ -3779,7 +3820,7 @@ public async Task<decimal?> UpsertOrganisationAsync(
                 .GroupBy(x => x.Code, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(g => g.Key, g => g.First().Rate, StringComparer.OrdinalIgnoreCase);
 
-            double GetUnitRate(string codeNorm) => rates.TryGetValue(codeNorm, out var r1) ? r1 : 0d;
+            double GetUnitRate(string codeNorm) => rates.TryGetValue(codeNorm, out var r1) ? r1 ?? 0d : 0d;
 
             // ---------- PERSIST (with package / component rules) ----------
             int NextSeqNo()
@@ -4030,10 +4071,19 @@ public async Task<decimal?> UpsertOrganisationAsync(
                             .Select(t => (int?)t.SeqNo).Max() ?? 0) + 1;
 
             // Add one crew line using proper data types for tblCrew
-            void AddCrew(string productCode, int task, int persons, double hours, double price)
+            // PER GUIDE:
+            // - techrateisHourorDay = "H" not "D"
+            // - Person field should be EMPTY (not the number of persons)
+            // - TransQty = number of people
+            // - Start time from del_time_hour/min (based on collected time)
+            // - End time = start + 1 hour for setup/packdown/rehearsal; event end for operate/tech
+            // - StraightTime = hours + mins
+            void AddCrew(string productCode, int task, int persons, double hours, double price, 
+                byte startHour, byte startMin, byte endHour, byte endMin)
             {
                 var (h, m) = Hm(hours);
-                //  var price = Math.Round(unitRate * persons * (h + m / 60.0), 2);
+                // Calculate S.T. (StraightTime) = hours + mins as decimal
+                var straightTime = h + (m / 60.0);
 
                 db.TblCrews.Add(new TblCrew
                 {
@@ -4043,64 +4093,102 @@ public async Task<decimal?> UpsertOrganisationAsync(
                     SeqNo = NextCrewSeqNo(),
                     SubSeqNo = 0,
 
-                    // Codes & timing copied from booking
+                    // PER GUIDE: Use "AVTECH" product code and get rate from tblInvmas_Labour_Rates
                     ProductCodeV42 = "AVTECH",
-                    DelTimeHour = booking.del_time_h ?? 0,
-                    DelTimeMin = booking.del_time_m ?? 0,
-                    ReturnTimeHour = booking.ret_time_h ?? 0,
-                    ReturnTimeMin = booking.ret_time_m ?? 0,
+                    
+                    // PER GUIDE: Start time (del_time) based on collected time
+                    DelTimeHour = startHour,
+                    DelTimeMin = startMin,
+                    // PER GUIDE: End time based on task type
+                    ReturnTimeHour = endHour,
+                    ReturnTimeMin = endMin,
 
-                    // Qty & pricing
-                    TransQty = 1,            // persons
-                    UnitRate = unitRate,           // float in DB
-                    Price = price,                 // float in DB
+                    // PER GUIDE: TransQty = number of people
+                    TransQty = persons,
+                    UnitRate = unitRate,
+                    Price = price,
 
                     // Duration (tinyint)
                     Hours = h,
                     Minutes = m,
 
-                    // Strings in table
-                    Person = persons.ToString(),   // char(30)
-                    Task = (byte?)task,                   // tinyint in your screenshot? -> You showed "task (tinyint, null)"; if it's actually tinyint, change this to cast a byte and map property type accordingly.
+                    // PER GUIDE: Person field should be EMPTY, not the number of people
+                    Person = null,
+                    Task = (byte?)task,
 
-                    // Required flags/fields
-                    // techrateIsHourorDay is char(1): 'H' for hourly, 'D' for day
+                    // PER GUIDE: techrateIsHourorDay = "H" not "D"
                     TechrateIsHourOrDay = "H",
 
                     // First/return dates
                     FirstDate = day,
                     RetnDate = day,
 
-                    // Grouping & time-classification
+                    // PER GUIDE: StraightTime = hours + mins worked
                     GroupSeqNo = 0,
-                    //StraightTime = 1.0,           // float column; 1.0 = straight time, leave OverTime/DoubleTime null or 0
+                    StraightTime = straightTime,
 
-                    //// Common NOT NULL defaults in tblCrew (per your schema)
+                    // Common NOT NULL defaults
                     MeetTechOnSite = false,
                     TechIsConfirmed = false,
-                    //UseCustomRate = false,
-                    //ShortTurnaround = false,
-                    //PrintOnQuote = false,
-                    //PrintOnInvoice = false,
 
-                    //// NOT NULL: HourlyRateID (decimal(10,0)) – safe default
+                    // NOT NULL: HourlyRateID (decimal(10,0)) – safe default
                     HourlyRateID = 0M,
                     UnpaidHours = 0,
-                    UnpaidMins =0
+                    UnpaidMins = 0
                 });
             }
             try
             {
+                // PER GUIDE: Calculate start/end times for each task type
+                // Setup time from booking, or default to 7:00
+                var setupStartH = booking.del_time_h ?? 7;
+                var setupStartM = booking.del_time_m ?? 0;
+                // PER GUIDE: End time = start + 1 hour for setup/packdown/rehearsal
+                var setupEndH = (byte)Math.Min(setupStartH + 1, 23);
+                var setupEndM = setupStartM;
+                
+                // Pack time from booking ret_time (strike time), or default based on event end
+                var packStartH = booking.ret_time_h ?? 18;
+                var packStartM = booking.ret_time_m ?? 0;
+                var packEndH = (byte)Math.Min(packStartH + 1, 23);
+                var packEndM = packStartM;
+                
+                // Event start/end times for operate/technical support
+                // Parse showStartTime and ShowEndTime (stored as "0930" format)
+                byte eventStartH = 10, eventStartM = 0, eventEndH = 17, eventEndM = 0;
+                if (!string.IsNullOrEmpty(booking.showStartTime) && booking.showStartTime.Length >= 4)
+                {
+                    byte.TryParse(booking.showStartTime[..2], out eventStartH);
+                    byte.TryParse(booking.showStartTime.Substring(2, 2), out eventStartM);
+                }
+                if (!string.IsNullOrEmpty(booking.ShowEndTime) && booking.ShowEndTime.Length >= 4)
+                {
+                    byte.TryParse(booking.ShowEndTime[..2], out eventEndH);
+                    byte.TryParse(booking.ShowEndTime.Substring(2, 2), out eventEndM);
+                }
+                
+                // Rehearsal time from booking
+                byte rehStartH = 9, rehStartM = 30;
+                if (!string.IsNullOrEmpty(booking.RehearsalTime) && booking.RehearsalTime.Length >= 4)
+                {
+                    byte.TryParse(booking.RehearsalTime[..2], out rehStartH);
+                    byte.TryParse(booking.RehearsalTime.Substring(2, 2), out rehStartM);
+                }
+                var rehEndH = (byte)Math.Min(rehStartH + 1, 23);
+                var rehEndM = rehStartM;
+
                 // Always add SETUP and PACKDOWN
-                AddCrew("SETUP", 2, personsSetup, setupHours, 110);
-                AddCrew("PACKDOWN", 4, personsPack, packHours, 110);
+                AddCrew("SETUP", 2, personsSetup, setupHours, 110, setupStartH, setupStartM, setupEndH, setupEndM);
+                AddCrew("PACKDOWN", 4, personsPack, packHours, 110, packStartH, packStartM, packEndH, packEndM);
 
                 // Optional rows
                 if (hasRehearsal)
-                    AddCrew("REHEARSAL", 7, personsReh, rehHours, 110);
+                    AddCrew("REHEARSAL", 7, personsReh, rehHours, 110, rehStartH, rehStartM, rehEndH, rehEndM);
 
+                // PER GUIDE: Hours for operate/technician = event duration (not fixed 1 hour)
+                // End time = event end time (not start + 1 hour)
                 if (wantTech)
-                    AddCrew("TECH", 3, personsTech, eventHours, 110);
+                    AddCrew("TECH", 3, personsTech, eventHours, 110, eventStartH, eventStartM, eventEndH, eventEndM);
 
 
                 await db.SaveChangesAsync(ct);
@@ -4394,6 +4482,14 @@ public async Task<decimal?> UpsertOrganisationAsync(
                 var setupTs = ParseTime(session.GetString("Draft:SetupTime"));
                 var rehearsalTs = ParseTime(session.GetString("Draft:RehearsalTime"));
                 var packTs = ParseTime(session.GetString("Draft:PackUpTime"));
+
+                // Fallback: extract times from conversation messages if session doesn't have them
+                if (startTs == null || endTs == null)
+                {
+                    var (extractedStart, extractedEnd, _) = ExtractEventTime(messages);
+                    if (startTs == null) startTs = extractedStart;
+                    if (endTs == null) endTs = extractedEnd;
+                }
 
                 // old logic: button-driven choice (often null for you)
                 var roomFromChoice = ExtractLastChoice(messages, "Choose room:");

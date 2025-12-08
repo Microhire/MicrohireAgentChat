@@ -17,13 +17,14 @@ namespace MicrohireAgentChat.Models
         public bool? bBookingIsComplete { get; set; }
 
         // Venue / room
-        public int? VenueID { get; set; }          // used if you can map Venue Name → ID
-        public string? VenueRoom { get; set; }     // “Room”
+        public int VenueID { get; set; }          // used if you can map Venue Name → ID
+        public string? VenueRoom { get; set; }     // "Room"
 
-        // Core dates
-        public DateTime? SDate { get; set; }       // “Show Start Date”
-        public DateTime? rDate { get; set; }       // “Show Finishes”
-        public DateTime? order_date { get; set; }
+        // Core dates (CRITICAL per guide)
+        public DateTime? dDate { get; set; }       // CRITICAL: "Delivery Date" (OUT date in UI)
+        public DateTime? rDate { get; set; }       // CRITICAL: "Return Date" (IN date in UI)
+        public DateTime? SDate { get; set; }       // "Show Start Date"
+        public DateTime? order_date { get; set; }  // CRITICAL: Order date (shows as 1980 if not set)
         public DateTime? ShowSDate { get; set; }
         public DateTime? ShowEdate { get; set; }
 

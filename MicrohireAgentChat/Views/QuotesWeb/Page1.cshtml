@@ -3,25 +3,167 @@
 @model QuoteAllFields
 @{
     Layout = "_LayoutQuote";
-    ViewData["Title"] = $"Overview";
+    ViewData["Title"] = $"Quote Cover";
     ViewData["HideHeader"] = true;
     ViewBag.Page = 1;
-
 }
-<div class="m-5 mt-2">
-    <div class="page1-top">
-        <div class="logo" style="text-align: right;">
-            <img src="/images/aHfZNBPMlVa1GSUumeOAfrclJp4azvJT.png" class="img object-contain">
-        </div>
-        <h1>@ViewData["Name"]</h1>
+
+<style>
+    .cover-page {
+        min-height: 80vh;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 3rem;
+        background: linear-gradient(135deg, #fff 0%, #f8f9fa 100%);
+    }
+    
+    .cover-header {
+        display: flex;
+        justify-content: flex-end;
+        margin-bottom: 2rem;
+    }
+    
+    .cover-logo {
+        max-width: 180px;
+        height: auto;
+    }
+    
+    .cover-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 2rem 0;
+    }
+    
+    .cover-title {
+        font-family: 'Montserrat', sans-serif;
+        font-size: 3.5rem;
+        font-weight: 700;
+        color: #1a1a2e;
+        line-height: 1.1;
+        margin-bottom: 1.5rem;
+        text-transform: uppercase;
+        letter-spacing: -1px;
+    }
+    
+    .cover-subtitle {
+        font-family: 'Inter', sans-serif;
+        font-size: 1.25rem;
+        color: #666;
+        margin-bottom: 0.5rem;
+    }
+    
+    .cover-accent {
+        width: 80px;
+        height: 4px;
+        background: linear-gradient(90deg, #E71E25 0%, #FF4757 100%);
+        margin: 2rem 0;
+    }
+    
+    .cover-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .cover-meta-item {
+        font-family: 'Inter', sans-serif;
+        font-size: 1rem;
+        color: #555;
+    }
+    
+    .cover-meta-value {
+        font-weight: 600;
+        color: #1a1a2e;
+    }
+    
+    .cover-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        padding-top: 2rem;
+        border-top: 1px solid #e0e0e0;
+    }
+    
+    .cover-footer-left {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    
+    .cover-footer-text {
+        font-family: 'Inter', sans-serif;
+        font-size: 0.875rem;
+        color: #888;
+    }
+    
+    .cover-reference {
+        font-family: 'Space Mono', monospace;
+        font-size: 0.875rem;
+        color: #E71E25;
+        font-weight: 600;
+        letter-spacing: 1px;
+    }
+    
+    .cover-footer-logo {
+        max-width: 120px;
+        opacity: 0.7;
+    }
+    
+    .proposal-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, #E71E25 0%, #c0392b 100%);
+        color: white;
+        padding: 0.5rem 1.5rem;
+        font-family: 'Montserrat', sans-serif;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        border-radius: 2px;
+        margin-bottom: 1.5rem;
+    }
+</style>
+
+<div class="cover-page">
+    <div class="cover-header">
+        <img src="/images/aHfZNBPMlVa1GSUumeOAfrclJp4azvJT.png" alt="Microhire" class="cover-logo">
     </div>
-    <div class="page1-bottom">
-        <div>
-            <p>@Model.EventStartDate</p>
-            <p>@Model.Reference</p>
+    
+    <div class="cover-content">
+        <div class="proposal-badge">Event Proposal</div>
+        <h1 class="cover-title">@Model.EventTitle</h1>
+        <div class="cover-accent"></div>
+        
+        <div class="cover-meta">
+            @if (!string.IsNullOrWhiteSpace(Model.Location))
+            {
+                <div class="cover-meta-item">
+                    <span>Venue:</span> <span class="cover-meta-value">@Model.Location</span>
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.EventStartDate))
+            {
+                <div class="cover-meta-item">
+                    <span>Date:</span> <span class="cover-meta-value">@Model.EventStartDate</span>
+                </div>
+            }
+            @if (!string.IsNullOrWhiteSpace(Model.Client))
+            {
+                <div class="cover-meta-item">
+                    <span>Prepared for:</span> <span class="cover-meta-value">@Model.Client</span>
+                </div>
+            }
         </div>
-        <div style="height: 50px;">
-            <img src="/images/aHfZNBPMlVa1GSUumeOAfrclJp4azvJT.png" class="img object-contain">
+    </div>
+    
+    <div class="cover-footer">
+        <div class="cover-footer-left">
+            <div class="cover-footer-text">Reference</div>
+            <div class="cover-reference">@Model.Reference</div>
         </div>
+        <img src="/images/aHfZNBPMlVa1GSUumeOAfrclJp4azvJT.png" alt="Microhire" class="cover-footer-logo">
     </div>
 </div>

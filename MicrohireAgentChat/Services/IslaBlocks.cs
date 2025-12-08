@@ -122,4 +122,35 @@ public static class IslaBlocks
         };
         return JsonSerializer.Serialize(payload, _json);
     }
+
+    // ---- Equipment picker/gallery builder ----
+    public sealed record EquipmentItem(
+        string ProductCode,
+        string Description,
+        string? Category,
+        string? ImageUrl
+    );
+
+    public static string BuildEquipmentGalleryBlock(
+        IEnumerable<EquipmentItem> items,
+        string title = "Choose equipment",
+        string? baseUrl = null,
+        int? max = null)
+    {
+        var galleryItems = items
+            .Where(e => !string.IsNullOrWhiteSpace(e.Description))
+            .Select(e => new
+            {
+                kind = "equipment",
+                label = Norm(e.Description),
+                url = string.IsNullOrWhiteSpace(e.ImageUrl) ? "" : Absolute(e.ImageUrl, baseUrl),
+                select = new { product_code = e.ProductCode, description = e.Description }
+            })
+            .ToList();
+
+        if (max is int m && m > 0) galleryItems = galleryItems.Take(m).ToList();
+
+        var payload = new { room = title, items = galleryItems };
+        return GalleryBlock(payload);
+    }
 }

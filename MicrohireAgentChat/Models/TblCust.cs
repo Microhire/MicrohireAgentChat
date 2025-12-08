@@ -19,10 +19,18 @@ namespace MicrohireAgentChat.Models
         [Column("Address_l1V6")]
         public string? Address_l1V6 { get; set; }
 
-        [MaxLength(200)]
-        [Column("Customer_code")]
-        public string? Customer_code { get; set; }
+    [MaxLength(200)]
+    [Column("Customer_code")]
+    public string? Customer_code { get; set; }
 
+    /// <summary>
+    /// CRITICAL: Link to tblContact.ID - must be set when creating customer
+    /// </summary>
+    [Column("iLink_ContactID")]
+    public decimal? ILink_ContactID { get; set; }
 
-    }
+    [Column("CustCDate")]
+    public DateTime? CustCDate { get; set; }
+
+}
 }

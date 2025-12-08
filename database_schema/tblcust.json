@@ -1,0 +1,1428 @@
+{
+  "name": "tblcust",
+  "schema": "dbo",
+  "description": "Customer/organization table - stores customer companies and organizations",
+  "row_count": 14422,
+  "columns": [
+    {
+      "name": "ID",
+      "data_type": "decimal(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": true,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Customer_code",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PostalAddress1",
+      "data_type": "char(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PostalAddress2",
+      "data_type": "char(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PostalAddress3",
+      "data_type": "char(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "postalPostCode",
+      "data_type": "char(12)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "currencyStr",
+      "data_type": "varchar(5)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "UsesPriceTableV71",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "post_code",
+      "data_type": "char(12)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "sales_tax_no",
+      "data_type": "char(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Account_type",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "industry_type",
+      "data_type": "varchar(8)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "insurance_type",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "hire_tax_exempt",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "TaxAuthority1",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Price_customer_pays",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "customer_number",
+      "data_type": "char(6)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "stop_credit",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Last_bk_seq",
+      "data_type": "varchar(5)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Credit_limit",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Current",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Seven_days",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Fourteen_days",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Twenty_one_days",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "payments_mtd",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "discount_rate",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "last_pmt_amt",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "account_is_zero",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Monthly_cycle_billing_basis",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "salesperson",
+      "data_type": "char(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "taxAuthority2",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "contactV6",
+      "data_type": "varchar(35)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "OrganisationV6",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Address_l1V6",
+      "data_type": "char(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Address_l2V6",
+      "data_type": "char(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Address_l3V6",
+      "data_type": "char(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "webAddress",
+      "data_type": "varchar(80)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "emailAddress",
+      "data_type": "varchar(80)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Paymethod",
+      "data_type": "varchar(16)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "lastTranDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "lastPmtDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "lastBalupDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "firstUnpayInvDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "SalesAssignEndDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CustCDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "FirstInvDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DisabledCust",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "AcctMgr",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "IndustryDescription",
+      "data_type": "varchar(35)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field1",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field2",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field3",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field4",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field5",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field6",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field7",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field8",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field9",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field10",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field11",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field12",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field13",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field14",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field15",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field16",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field17",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field18",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field19",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field20",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field21",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field22",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field23",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field24",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field25",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field26",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field27",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field28",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field29",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field30",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CreditCardName",
+      "data_type": "varchar(20)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CreditCardNumber",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "expMonth",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "expYear",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CardHolder",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CardStreet1",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CardStreet2",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CardCity",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CardState",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CardPostCode",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CreditCardIdNo",
+      "data_type": "varchar(250)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field31",
+      "data_type": "varchar(120)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Field32",
+      "data_type": "varchar(120)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Phone2Ext",
+      "data_type": "varchar(8)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "TwoWkDisc",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ThreeWkDisc",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "StreetCountry",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "StreetState",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PostalCountry",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PostalState",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "InsuranceCertificate",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "InsuredAmount",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "InsuredFromDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "InsuredToDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "iLink_ContactID",
+      "data_type": "decimal(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Phone1ID",
+      "data_type": "decimal(18,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Phone2ID",
+      "data_type": "decimal(18,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "FaxID",
+      "data_type": "decimal(18,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "bPONumRequired",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CustomerType",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CampaignID",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DefaultCustomerDivision",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "FaxCallType",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "FaxCountryCode",
+      "data_type": "varchar(10)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "FaxAreaCode",
+      "data_type": "varchar(10)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "FaxDigits",
+      "data_type": "varchar(16)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "FaxDialAreaCode",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Phone1CountryCode",
+      "data_type": "varchar(10)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Phone1AreaCode",
+      "data_type": "varchar(10)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Phone1Digits",
+      "data_type": "varchar(16)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Phone1Ext",
+      "data_type": "varchar(8)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Phone2CountryCode",
+      "data_type": "varchar(10)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Phone2AreaCode",
+      "data_type": "varchar(10)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Phone2Digits",
+      "data_type": "varchar(16)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "EnteredByOpID",
+      "data_type": "decimal(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "bCustomTemplateList",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "AREmailAddress",
+      "data_type": "varchar(80)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CustTypeForExporting",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Phone",
+      "data_type": "char(32)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "fax",
+      "data_type": "char(16)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CellCountryCode",
+      "data_type": "varchar(10)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CellAreaCode",
+      "data_type": "varchar(10)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CellDigits",
+      "data_type": "varchar(16)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PaymentContactID",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "QBO_id",
+      "data_type": "varchar(10)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "StripeID",
+      "data_type": "varchar(24)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "isVendor",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "MinPOAmount",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Vaccno",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "freightzone",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DefaultBookingContactID",
+      "data_type": "decimal(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "XeroId",
+      "data_type": "varchar(36)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    }
+  ],
+  "primary_keys": [
+    "ID"
+  ],
+  "foreign_keys": [],
+  "sample_data": [
+    {
+      "ID": "14415",
+      "Customer_code": null,
+      "PostalAddress1": null,
+      "PostalAddress2": null,
+      "PostalAddress3": null,
+      "postalPostCode": null,
+      "currencyStr": null,
+      "UsesPriceTableV71": null,
+      "post_code": null,
+      "sales_tax_no": null,
+      "Account_type": null,
+      "industry_type": null,
+      "insurance_type": null,
+      "hire_tax_exempt": null,
+      "TaxAuthority1": null,
+      "Price_customer_pays": null,
+      "customer_number": null,
+      "stop_credit": null,
+      "Last_bk_seq": null,
+      "Credit_limit": null,
+      "Current": null,
+      "Seven_days": null,
+      "Fourteen_days": null,
+      "Twenty_one_days": null,
+      "payments_mtd": null,
+      "discount_rate": null,
+      "last_pmt_amt": null,
+      "account_is_zero": null,
+      "Monthly_cycle_billing_basis": null,
+      "salesperson": null,
+      "taxAuthority2": null,
+      "contactV6": null,
+      "OrganisationV6": "Dhan Corp",
+      "Address_l1V6": "123 Fiesta St. Melbourne                          ",
+      "Address_l2V6": null,
+      "Address_l3V6": null,
+      "webAddress": null,
+      "emailAddress": null,
+      "Paymethod": null,
+      "lastTranDate": null,
+      "lastPmtDate": null,
+      "lastBalupDate": null,
+      "firstUnpayInvDate": null,
+      "SalesAssignEndDate": null,
+      "CustCDate": null,
+      "FirstInvDate": null,
+      "DisabledCust": null,
+      "AcctMgr": null,
+      "IndustryDescription": null,
+      "Field1": null,
+      "Field2": null,
+      "Field3": null,
+      "Field4": null,
+      "Field5": null,
+      "Field6": null,
+      "Field7": null,
+      "Field8": null,
+      "Field9": null,
+      "Field10": null,
+      "Field11": null,
+      "Field12": null,
+      "Field13": null,
+      "Field14": null,
+      "Field15": null,
+      "Field16": null,
+      "Field17": null,
+      "Field18": null,
+      "Field19": null,
+      "Field20": null,
+      "Field21": null,
+      "Field22": null,
+      "Field23": null,
+      "Field24": null,
+      "Field25": null,
+      "Field26": null,
+      "Field27": null,
+      "Field28": null,
+      "Field29": null,
+      "Field30": null,
+      "CreditCardName": null,
+      "CreditCardNumber": null,
+      "expMonth": null,
+      "expYear": null,
+      "CardHolder": null,
+      "CardStreet1": null,
+      "CardStreet2": null,
+      "CardCity": null,
+      "CardState": null,
+      "CardPostCode": null,
+      "CreditCardIdNo": null,
+      "Field31": null,
+      "Field32": null,
+      "Phone2Ext": null,
+      "TwoWkDisc": null,
+      "ThreeWkDisc": null,
+      "StreetCountry": null,
+      "StreetState": null,
+      "PostalCountry": null,
+      "PostalState": null,
+      "InsuranceCertificate": null,
+      "InsuredAmount": null,
+      "InsuredFromDate": null,
+      "InsuredToDate": null,
+      "iLink_ContactID": "0",
+      "Phone1ID": "-1",
+      "Phone2ID": "-1",
+      "FaxID": "-1",
+      "bPONumRequired": null,
+      "CustomerType": null,
+      "CampaignID": null,
+      "DefaultCustomerDivision": null,
+      "FaxCallType": null,
+      "FaxCountryCode": null,
+      "FaxAreaCode": null,
+      "FaxDigits": null,
+      "FaxDialAreaCode": null,
+      "Phone1CountryCode": null,
+      "Phone1AreaCode": null,
+      "Phone1Digits": null,
+      "Phone1Ext": null,
+      "Phone2CountryCode": null,
+      "Phone2AreaCode": null,
+      "Phone2Digits": null,
+      "EnteredByOpID": null,
+      "bCustomTemplateList": null,
+      "AREmailAddress": null,
+      "CustTypeForExporting": null,
+      "Phone": null,
+      "fax": null,
+      "CellCountryCode": null,
+      "CellAreaCode": null,
+      "CellDigits": null,
+      "PaymentContactID": 0,
+      "QBO_id": null,
+      "StripeID": null,
+      "isVendor": null,
+      "MinPOAmount": null,
+      "Vaccno": null,
+      "freightzone": null,
+      "DefaultBookingContactID": null,
+      "XeroId": null
+    },
+    {
+      "ID": "1",
+      "Customer_code": "C00001",
+      "PostalAddress1": "                                                  ",
+      "PostalAddress2": "                                                  ",
+      "PostalAddress3": "                                                  ",
+      "postalPostCode": "            ",
+      "currencyStr": "",
+      "UsesPriceTableV71": 0,
+      "post_code": "            ",
+      "sales_tax_no": "                         ",
+      "Account_type": 0,
+      "industry_type": "",
+      "insurance_type": 1,
+      "hire_tax_exempt": "N",
+      "TaxAuthority1": 0,
+      "Price_customer_pays": 3,
+      "customer_number": "      ",
+      "stop_credit": 0,
+      "Last_bk_seq": "00005",
+      "Credit_limit": 250.0,
+      "Current": 0.0,
+      "Seven_days": 0.0,
+      "Fourteen_days": 0.0,
+      "Twenty_one_days": 0.0,
+      "payments_mtd": 0.0,
+      "discount_rate": 0.0,
+      "last_pmt_amt": 0.0,
+      "account_is_zero": "N",
+      "Monthly_cycle_billing_basis": 0,
+      "salesperson": "                              ",
+      "taxAuthority2": 1,
+      "contactV6": "",
+      "OrganisationV6": "170 Productions",
+      "Address_l1V6": "                                                  ",
+      "Address_l2V6": "                                                  ",
+      "Address_l3V6": "                                                  ",
+      "webAddress": "",
+      "emailAddress": "",
+      "Paymethod": "",
+      "lastTranDate": "2025-03-19 00:00:00",
+      "lastPmtDate": "1980-01-01 00:00:00",
+      "lastBalupDate": "1980-01-01 00:00:00",
+      "firstUnpayInvDate": "1980-01-01 00:00:00",
+      "SalesAssignEndDate": "1980-01-01 00:00:00",
+      "CustCDate": "2018-05-28 00:00:00",
+      "FirstInvDate": "1980-01-01 00:00:00",
+      "DisabledCust": "N",
+      "AcctMgr": "",
+      "IndustryDescription": "",
+      "Field1": "",
+      "Field2": "",
+      "Field3": "",
+      "Field4": "",
+      "Field5": "",
+      "Field6": "",
+      "Field7": "",
+      "Field8": "",
+      "Field9": "",
+      "Field10": "",
+      "Field11": "",
+      "Field12": "",
+      "Field13": "",
+      "Field14": "",
+      "Field15": "1980-01-01 00:00:00",
+      "Field16": "1980-01-01 00:00:00",
+      "Field17": "N",
+      "Field18": "N",
+      "Field19": "N",
+      "Field20": "N",
+      "Field21": "N",
+      "Field22": "N",
+      "Field23": "N",
+      "Field24": "N",
+      "Field25": "N",
+      "Field26": "N",
+      "Field27": 0,
+      "Field28": 0,
+      "Field29": 0,
+      "Field30": 0,
+      "CreditCardName": "",
+      "CreditCardNumber": "",
+      "expMonth": "",
+      "expYear": "",
+      "CardHolder": "",
+      "CardStreet1": "",
+      "CardStreet2": "",
+      "CardCity": "",
+      "CardState": "",
+      "CardPostCode": "",
+      "CreditCardIdNo": "",
+      "Field31": "",
+      "Field32": "",
+      "Phone2Ext": "",
+      "TwoWkDisc": 0.0,
+      "ThreeWkDisc": 0.0,
+      "StreetCountry": "",
+      "StreetState": "",
+      "PostalCountry": "",
+      "PostalState": "",
+      "InsuranceCertificate": "",
+      "InsuredAmount": 0.0,
+      "InsuredFromDate": "1980-01-01 00:00:00",
+      "InsuredToDate": "1980-01-01 00:00:00",
+      "iLink_ContactID": "12129",
+      "Phone1ID": "0",
+      "Phone2ID": "0",
+      "FaxID": "0",
+      "bPONumRequired": false,
+      "CustomerType": 0,
+      "CampaignID": 0,
+      "DefaultCustomerDivision": 0,
+      "FaxCallType": 0,
+      "FaxCountryCode": "",
+      "FaxAreaCode": "",
+      "FaxDigits": "",
+      "FaxDialAreaCode": false,
+      "Phone1CountryCode": "",
+      "Phone1AreaCode": "",
+      "Phone1Digits": "",
+      "Phone1Ext": "",
+      "Phone2CountryCode": "",
+      "Phone2AreaCode": "",
+      "Phone2Digits": "",
+      "EnteredByOpID": "0",
+      "bCustomTemplateList": false,
+      "AREmailAddress": "",
+      "CustTypeForExporting": 0,
+      "Phone": "0                               ",
+      "fax": "0               ",
+      "CellCountryCode": "",
+      "CellAreaCode": "",
+      "CellDigits": "",
+      "PaymentContactID": 0,
+      "QBO_id": "",
+      "StripeID": null,
+      "isVendor": false,
+      "MinPOAmount": null,
+      "Vaccno": null,
+      "freightzone": null,
+      "DefaultBookingContactID": null,
+      "XeroId": null
+    }
+  ]
+}

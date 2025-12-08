@@ -1,0 +1,78 @@
+{
+  "name": "tbltask",
+  "schema": "dbo",
+  "description": "Labour tasks table - defines labour task types (setup, pack down, operate, etc.)",
+  "row_count": 26,
+  "columns": [
+    {
+      "name": "ID",
+      "data_type": "decimal(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": true,
+      "is_foreign_key": false
+    },
+    {
+      "name": "task_number",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DefDateTime",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "defaultDateandTime",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "task_name",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "TaskType",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    }
+  ],
+  "primary_keys": [
+    "ID"
+  ],
+  "foreign_keys": [],
+  "sample_data": [
+    {
+      "ID": "194",
+      "task_number": 0,
+      "DefDateTime": null,
+      "defaultDateandTime": 10,
+      "task_name": "Truck Load Up",
+      "TaskType": 1
+    },
+    {
+      "ID": "195",
+      "task_number": 1,
+      "DefDateTime": null,
+      "defaultDateandTime": 1,
+      "task_name": "Truck Unload on Arrival",
+      "TaskType": 1
+    }
+  ]
+}

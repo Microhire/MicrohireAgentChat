@@ -5,51 +5,267 @@
 
 @{
     Layout = "_LayoutQuote";
-    ViewData["Title"] = $"EQUIPMENT & SERVICES";
+    ViewData["Title"] = $"Equipment & Services";
     ViewBag.Page = 3;
 }
-<div class="m-5 mt-2">
-    <table class="table td-no-border">
-        <thead>
-            <tr>
-                <th scope="col" class="">Description</th>
-                <th scope="col" >Qty.</th>
-                <th scope="col" ></th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td class="fw-bold" colspan="3">@Model.RoomNoteHeader</td>
-            </tr>
-            <tr>
-                <td class="italic" colspan="3">@Model.RoomNoteStarts</td>
-            </tr>
-            <tr>
-                <td class="italic" colspan="3">@Model.RoomNoteEnds</td>
-            </tr>
-            <tr class=""></tr>
-            <tr>
-                <td class="fw-bold">@Model.RoomNoteHeader Total</td>
-                <td class="fw-bold">@Model.RoomNoteTotal</td>
-                <td></td>
-            </tr>
 
-            <tr class="" style="height:50px"></tr>
-            <tr>
-                <td class="fw-bold" colspan="3">Vision</td>
-            </tr>
-            @if(Model.VisionRows != null)
-            foreach (var data in Model.VisionRows)
-            {
-                <tr>
-                    <td class="italic">@data.Description</td>
-                    <td colspan="2">@data?.Qty</td>
-                </tr>
-            }
-            <tr>
-                <td class="fw-bold" colspan="2">Vision Total</td>
-                <td class="fw-bold">@(Model.VisionTotal)</td>
-            </tr>
-        </tbody>
-    </table>
+<style>
+    .equipment-page {
+        padding: 2rem;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .room-header {
+        background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
+        color: white;
+        padding: 1.5rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+    
+    .room-name {
+        font-size: 1.25rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .room-times {
+        display: flex;
+        gap: 2rem;
+        font-size: 0.875rem;
+        opacity: 0.9;
+    }
+    
+    .room-total {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(255,255,255,0.2);
+        display: flex;
+        justify-content: space-between;
+        font-weight: 600;
+    }
+    
+    .equipment-section {
+        margin-bottom: 2rem;
+    }
+    
+    .section-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #E71E25;
+    }
+    
+    .section-icon {
+        width: 32px;
+        height: 32px;
+        background: #E71E25;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 0.75rem;
+        color: white;
+        font-size: 1rem;
+    }
+    
+    .section-title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #1a1a2e;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .equipment-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .equipment-table th {
+        background: #f8f9fa;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #888;
+        padding: 0.75rem 1rem;
+        text-align: left;
+        border-bottom: 2px solid #e0e0e0;
+    }
+    
+    .equipment-table th:last-child {
+        text-align: right;
+    }
+    
+    .equipment-table td {
+        padding: 0.875rem 1rem;
+        font-size: 0.9rem;
+        border-bottom: 1px solid #f0f0f0;
+        vertical-align: top;
+    }
+    
+    .equipment-table tr:hover {
+        background: #fafafa;
+    }
+    
+    .equipment-description {
+        color: #1a1a2e;
+    }
+    
+    .equipment-qty {
+        text-align: center;
+        font-weight: 500;
+        color: #555;
+    }
+    
+    .equipment-price {
+        text-align: right;
+        font-weight: 600;
+        color: #1a1a2e;
+    }
+    
+    .group-row td {
+        background: #f0f0f0;
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: #555;
+        border-bottom: none;
+        padding: 0.5rem 1rem;
+    }
+    
+    .section-total {
+        display: flex;
+        justify-content: space-between;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        padding: 1rem 1.5rem;
+        border-radius: 4px;
+        margin-top: 0.5rem;
+        font-weight: 600;
+    }
+    
+    .section-total-label {
+        color: #555;
+    }
+    
+    .section-total-value {
+        color: #E71E25;
+        font-size: 1.1rem;
+    }
+    
+    .no-items {
+        padding: 2rem;
+        text-align: center;
+        color: #888;
+        font-style: italic;
+        background: #f8f9fa;
+        border-radius: 4px;
+    }
+</style>
+
+<div class="equipment-page">
+    <div class="room-header">
+        <div class="room-name">@Model.RoomNoteHeader</div>
+        <div class="room-times">
+            <span>@Model.RoomNoteStarts</span>
+            <span>@Model.RoomNoteEnds</span>
+        </div>
+        <div class="room-total">
+            <span>Equipment & Services Total</span>
+            <span>@Model.RoomNoteTotal</span>
+        </div>
+    </div>
+    
+    <!-- Vision Section -->
+    <div class="equipment-section">
+        <div class="section-header">
+            <div class="section-icon">📽</div>
+            <div class="section-title">Vision</div>
+        </div>
+        
+        @if (Model.VisionRows != null && Model.VisionRows.Any())
+        {
+            <table class="equipment-table">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th style="width: 80px; text-align: center;">Qty</th>
+                        <th style="width: 120px;">Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.VisionRows)
+                    {
+                        @if (item.IsGroup)
+                        {
+                            <tr class="group-row">
+                                <td colspan="3">@item.Description</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            <tr>
+                                <td class="equipment-description">@item.Description</td>
+                                <td class="equipment-qty">@item.Qty</td>
+                                <td class="equipment-price">@item.LineTotal</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+            <div class="section-total">
+                <span class="section-total-label">Vision Total</span>
+                <span class="section-total-value">@Model.VisionTotal</span>
+            </div>
+        }
+        else
+        {
+            <div class="no-items">No vision equipment included in this quote</div>
+        }
+    </div>
+    
+    <!-- Audio Section (if exists) -->
+    @if (Model.AudioRows != null && Model.AudioRows.Any())
+    {
+        <div class="equipment-section">
+            <div class="section-header">
+                <div class="section-icon">🔊</div>
+                <div class="section-title">Audio</div>
+            </div>
+            
+            <table class="equipment-table">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th style="width: 80px; text-align: center;">Qty</th>
+                        <th style="width: 120px;">Price</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.AudioRows)
+                    {
+                        @if (item.IsGroup)
+                        {
+                            <tr class="group-row">
+                                <td colspan="3">@item.Description</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            <tr>
+                                <td class="equipment-description">@item.Description</td>
+                                <td class="equipment-qty">@item.Qty</td>
+                                <td class="equipment-price">@item.LineTotal</td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+            <div class="section-total">
+                <span class="section-total-label">Audio Total</span>
+                <span class="section-total-value">@Model.AudioTotal</span>
+            </div>
+        </div>
+    }
 </div>

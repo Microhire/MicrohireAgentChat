@@ -360,4 +360,6 @@ MigrationBackup/
 .ionide/
 
 # Fody - auto-generated XML schema
-FodyWeavers.xsd
+FodyWeavers.xsddeploy.zip
+*.dump
+monacip_prod_copy.dump

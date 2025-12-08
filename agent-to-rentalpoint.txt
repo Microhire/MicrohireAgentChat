@@ -1,0 +1,77 @@
+
+CONTACT (tblcontact)
+Do not add the contact right away. I noticed that when I give my name, it automatically saves it to the database straight away which causes a duplicate record because it will add another contact again once the email and phone number is given.
+
+ 
+ 
+BOOKING (tblbookings)
+Format the time so RP can read it properly.
+For example: Put 0930 instead of 930
+
+ 
+Use 'SetDate' field instead 'SDate' for the setup date
+Update 'EntryDate' when a new booking is created so we know when was the quote generated
+ 
+ 
+EQUIPMENT (tblItemtran)
+Find the package components on vwProdsComponents Table view and insert them on the tblitemtran table.  Make sure the parent item is also included. This way, the system can fetch the update components. Just filter it using the parent_code and variable_part = 0
+For example for the PCLPRO code
+
+ 
+Input sequence no (seq_no) and subsequence (sub_seq_no). This is important in displaying the items in order especially the package items.
+
+ 
+Package and Component should only have 1 seq_no. We must put a sub_seq_no on the components which we can pull from the vwProdscomponents table
+This will ensure that the components are below the package name
+
+ 
+Set the itemtype of each item. This very important in the computation of the total amount. This is also the field that influence the collapsed/expand feature.
+Set the itemtype base on the following criteria:
+Package should have itemtype = 1 
+Components should have itemtype = 2 
+The rest should have itemtype = 0
+
+ 
+Components must have a parentcode
+
+ 
+ 
+LABOR (tblCrew)
+techrateisHourorDay field should be = H not D
+Person field should have empty values
+Start time and End Time should be filled out
+Fields:
+Start time (This will be based on the collected time)
+del_time_hour
+del_time_min
+ 
+End Time (Just add 1 hour on the collected time for (setup,packdown,rehearsal), for operate/technician on site, it would be based on the event end time)
+return_time_hour
+return_time_min
+
+ 
+Hours for technician on site/operate task should be based on the duration of the event and not fixed 1 hour. 
+
+
+Put S.T. values which is just equal to the hours + mins work
+Sample Data:
+
+
+Get the Rate from tblInvmas_Labour_Rates (Field is Labour_rate) by querying the table with the parameters below:
+tblinvmasID = 2939 (This is the ID of AVTECH)
+Locn = 20 (This is Microhire westin code)
+IsDefault = 1
+
+ 
+ 
+VENUE (tblbookings)
+The room should be filled out. Right now the system is not fetching the room name.
+The Region and Location are wrong. It should default to westin brisbane location
+Set it with the following information:
+From_locn = 20
+Return_to_locn = 20
+Trans_to_locn = 20
+ 
+ 
+
+

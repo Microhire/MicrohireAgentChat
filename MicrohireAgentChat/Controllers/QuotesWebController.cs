@@ -3,6 +3,7 @@ using MicrohireAgentChat.Data;
 using MicrohireAgentChat.Models;
 using MicrohireAgentChat.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 
 namespace MicrohireAgentChat.Controllers;
@@ -11,42 +12,15 @@ public sealed class QuotesWebController : Controller
 {
     private readonly AzureAgentChatService _chat;
     private readonly BookingDbContext _bookingDb;
+    private readonly ILogger<QuotesWebController> _logger;
 
-    // Detect: "Choose time: 09:00–10:30" (supports hyphen or en dash)
-    private static readonly Regex ChooseTimeRe =
-        new(@"^Choose\s*time:\s*(\d{1,2}:\d{2})\s*[–-]\s*(\d{1,2}:\d{2})\s*$",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-    // Detect: "Choose schedule: key=HH:mm; key=HH:mm; ..."
-    private static readonly Regex ChooseScheduleRe =
-        new(@"^\s*Choose\s+schedule\s*:\s*(.+)$",
-            RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
-    // Exact scripted greeting per your “Final Script for AI”
-    private const string GreetingText =
-        "Hello, my name is Isla from Microhire. What is your full name?";
-
-    public QuotesWebController(AzureAgentChatService chat, BookingDbContext bookingDb)
+    public QuotesWebController(AzureAgentChatService chat, BookingDbContext bookingDb, ILogger<QuotesWebController> logger)
     {
         _chat = chat;
         _bookingDb = bookingDb;
+        _logger = logger;
     }
 
-    [HttpGet]
-    // public async Task<IActionResult> Index()
-    // {
-    //     try
-    //     {
-    //         return View(quote);
-    //     }
-    //     catch (Exception ex)
-    //     {
-    //         ModelState.AddModelError(string.Empty, ex.Message);
-    //         return View(quote);
-    //     }
-    // }
-
-    
     [HttpGet]
     public async Task<IActionResult> Page1(int id, string type)
     {
@@ -214,171 +188,426 @@ public sealed class QuotesWebController : Controller
         }
     }
 
-       public async Task<QuoteAllFields?> ViewbagQuoteReport(int id, string type, int? skip, int? take, bool loadImage = false)
+    public async Task<QuoteAllFields?> ViewbagQuoteReport(int id, string type, int? skip, int? take, bool loadImage = false)
     {
         try
         {
             var quote = await GetCompileDataAsync(id);
             if (quote is not null)
             {
-                // Page1  - Cover
-                // Page2  - OVERVIEW
-                // Page3  -  EQUIPMENT Place + Vision
-                // Page4  -  EQUIPMENT AUDIO
-                // Page5  -  EQUIPMENT LIGHTING
-                // Page6  -  EQUIPMENT RECORDING
-                // Page7  -  EQUIPMENT DRAPE		
-                // Page8  -  TECHNICAL SERVICES		
-                // Page9  -  BUDGET SUMMARY		
-                // Page10  -  Contract		
-                
                 var skippedPages = new List<int>();
 
-                // if (quote.VisionRows is null) skippedPages.Add(3);
-                if (quote.AudioRows is null) skippedPages.Add(4);
-                if (quote.LightingRows is null) skippedPages.Add(5);
-                if (quote.RecordingRows is null) skippedPages.Add(6);
-                if (quote.DrapeRows is null) skippedPages.Add(7);
-                if (quote.LabourRows is null) skippedPages.Add(8);
+                if (quote.AudioRows is null || quote.AudioRows.Count == 0) skippedPages.Add(4);
+                if (quote.LightingRows is null || quote.LightingRows.Count == 0) skippedPages.Add(5);
+                if (quote.RecordingRows is null || quote.RecordingRows.Count == 0) skippedPages.Add(6);
+                if (quote.DrapeRows is null || quote.DrapeRows.Count == 0) skippedPages.Add(7);
+                if (quote.LabourRows is null || quote.LabourRows.Count == 0) skippedPages.Add(8);
 
                 ViewBag.SkippedPages = skippedPages;
             }
 
-            // ViewBag.YourQuote = yourQuote?.Sections;
-            // ViewBag.ContactId = yourQuote?.ContactId;
             ViewBag.Id = quote?.Reference;
-            // ViewBag.Type = type;
             ViewData["Name"] = quote?.EventTitle;
             return quote;
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Error loading quote for booking ID {Id}", id);
             TempData["Error"] = "Quote is not exists";
             return null;
         }
     }
+
+    /// <summary>
+    /// Fetches real data from the database for the given booking ID
+    /// </summary>
     public async Task<QuoteAllFields?> GetCompileDataAsync(int id)
     {
-        // var quote = await GetAsync(id);
-        // var yourQuoteSegment = await GetSectionsAsync(yourQuote?.id ?? id, 1, 100);
-        // if (yourQuote is not null && yourQuoteSegment?.Items is not null)
-        // {
-        //     yourQuote.Sections = yourQuoteSegment.Items.Where(x => x != null).ToList()!;
-        // }
+        try
+        {
+            // Load booking
+            var booking = await _bookingDb.TblBookings
+                .FirstOrDefaultAsync(b => b.ID == id);
 
+            if (booking == null)
+            {
+                _logger.LogWarning("Booking with ID {Id} not found", id);
+                return null;
+            }
 
-        var fields = new QuoteAllFields(
+            // Load venue
+            TblVenue? venue = null;
+            if (booking.VenueID > 0)
+            {
+                venue = await _bookingDb.TblVenues
+                    .FirstOrDefaultAsync(v => v.ID == booking.VenueID);
+            }
+
+            // Load contact
+            TblContact? contact = null;
+            if (booking.ContactID.HasValue)
+            {
+                contact = await _bookingDb.Contacts
+                    .FirstOrDefaultAsync(c => c.Id == booking.ContactID.Value);
+            }
+
+            // Load organization
+            TblCust? organization = null;
+            if (booking.CustID.HasValue)
+            {
+                organization = await _bookingDb.TblCusts
+                    .FirstOrDefaultAsync(c => c.ID == booking.CustID.Value);
+            }
+
+            // Load equipment items
+            var items = await _bookingDb.TblItemtrans
+                .Where(i => i.BookingNoV32 == booking.booking_no || i.BookingId == booking.ID)
+                .ToListAsync();
+
+            // Load inventory master data for descriptions and prices
+            var productCodes = items.Select(i => i.ProductCodeV42).Where(p => !string.IsNullOrEmpty(p)).Distinct().ToList();
+            var inventoryItems = await _bookingDb.TblInvmas
+                .Where(inv => productCodes.Contains(inv.product_code))
+                .ToDictionaryAsync(inv => inv.product_code ?? "");
+
+            // Load crew/labor
+            var crew = await _bookingDb.TblCrews
+                .Where(c => c.BookingNoV32 == booking.booking_no)
+                .ToListAsync();
+
+            // Build the quote fields
+            return BuildQuoteFields(booking, venue, contact, organization, items, inventoryItems, crew);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error compiling data for booking ID {Id}", id);
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Builds the complete QuoteAllFields from all the database entities
+    /// </summary>
+    private QuoteAllFields BuildQuoteFields(
+        TblBooking booking,
+        TblVenue? venue,
+        TblContact? contact,
+        TblCust? organization,
+        List<TblItemtran> items,
+        Dictionary<string, TblInvmas> inventoryLookup,
+        List<TblCrew> crew)
+    {
+        // Format dates
+        var eventDate = booking.dDate?.ToString("dddd d MMMM yyyy") ?? booking.ShowSDate?.ToString("dddd d MMMM yyyy") ?? "";
+        var setupDate = booking.SetDate?.ToString("dddd d MMMM yyyy") ?? eventDate;
+        var rehearsalDate = booking.RehDate?.ToString("dddd d MMMM yyyy") ?? eventDate;
+        var showStartDate = booking.ShowSDate?.ToString("dddd d MMMM yyyy") ?? eventDate;
+        var showEndDate = booking.ShowEdate?.ToString("dddd d MMMM yyyy") ?? eventDate;
+
+        // Format times
+        var setupTime = FormatTime(booking.setupTimeV61);
+        var rehearsalTime = FormatTime(booking.RehearsalTime);
+        var eventStartTime = FormatTime(booking.showStartTime);
+        var eventEndTime = FormatTime(booking.ShowEndTime);
+
+        // Build venue information
+        var venueName = venue?.VenueName ?? booking.VenueRoom ?? "Venue TBD";
+        var venueAddress = venue?.FullAddress ?? organization?.Address_l1V6 ?? "Address TBD";
+        var venueRoom = booking.VenueRoom ?? "Room TBD";
+
+        // Build equipment rows categorized by groupFld
+        var visionRows = new List<EquipmentRow>();
+        var audioRows = new List<EquipmentRow>();
+        var lightingRows = new List<EquipmentRow>();
+        var recordingRows = new List<EquipmentRow>();
+        var drapeRows = new List<EquipmentRow>();
+
+        decimal visionTotal = 0, audioTotal = 0, lightingTotal = 0, recordingTotal = 0, drapeTotal = 0;
+
+        foreach (var item in items)
+        {
+            // Get inventory info for better description and pricing
+            TblInvmas? invItem = null;
+            if (!string.IsNullOrEmpty(item.ProductCodeV42))
+            {
+                inventoryLookup.TryGetValue(item.ProductCodeV42, out invItem);
+            }
+
+            // Calculate line total
+            var qty = item.TransQty ?? 1;
+            var unitPrice = GetUnitPrice(item, invItem);
+            var lineTotal = qty * unitPrice;
+
+            // Get description
+            var description = GetBestDescription(item, invItem);
+
+            var row = new EquipmentRow(
+                Description: description,
+                Qty: qty > 0 ? qty.ToString("0") : "1",
+                LineTotal: lineTotal.ToString("C"),
+                IsGroup: false
+            );
+
+            // Categorize by groupFld from inventory
+            var group = (invItem?.groupFld ?? "").ToUpper().Trim();
+            
+            switch (group)
+            {
+                case "VISION":
+                case "VIDEO":
+                case "PROJECTOR":
+                case "COMPUTER":
+                    visionRows.Add(row);
+                    visionTotal += lineTotal;
+                    break;
+                case "AUDIO":
+                case "SOUND":
+                case "PA":
+                    audioRows.Add(row);
+                    audioTotal += lineTotal;
+                    break;
+                case "LIGHTING":
+                case "LIGHT":
+                case "LX":
+                    lightingRows.Add(row);
+                    lightingTotal += lineTotal;
+                    break;
+                case "RECORDING":
+                case "RECORD":
+                case "CAPTURE":
+                    recordingRows.Add(row);
+                    recordingTotal += lineTotal;
+                    break;
+                case "DRAPE":
+                case "STAGING":
+                case "SCENIC":
+                case "RIGGING":
+                    drapeRows.Add(row);
+                    drapeTotal += lineTotal;
+                    break;
+                default:
+                    // Use secondary classification based on description
+                    var desc = description.ToLower();
+                    if (desc.Contains("projector") || desc.Contains("screen") || desc.Contains("monitor") || 
+                        desc.Contains("laptop") || desc.Contains("display") || desc.Contains("vision"))
+                    {
+                        visionRows.Add(row);
+                        visionTotal += lineTotal;
+                    }
+                    else if (desc.Contains("mic") || desc.Contains("speaker") || desc.Contains("audio") || 
+                             desc.Contains("sound") || desc.Contains("mixer") || desc.Contains("amplifier"))
+                    {
+                        audioRows.Add(row);
+                        audioTotal += lineTotal;
+                    }
+                    else if (desc.Contains("light") || desc.Contains("led") || desc.Contains("spot") || desc.Contains("wash"))
+                    {
+                        lightingRows.Add(row);
+                        lightingTotal += lineTotal;
+                    }
+                    else if (desc.Contains("record") || desc.Contains("capture") || desc.Contains("stream"))
+                    {
+                        recordingRows.Add(row);
+                        recordingTotal += lineTotal;
+                    }
+                    else if (desc.Contains("drape") || desc.Contains("stage") || desc.Contains("riser") || desc.Contains("backdrop"))
+                    {
+                        drapeRows.Add(row);
+                        drapeTotal += lineTotal;
+                    }
+                    else
+                    {
+                        // Default to vision for uncategorized items
+                        visionRows.Add(row);
+                        visionTotal += lineTotal;
+                    }
+                    break;
+            }
+        }
+
+        // Build labor rows
+        var labourRows = new List<LaborRow>();
+        decimal labourTotal = 0;
+
+        foreach (var crewMember in crew)
+        {
+            var hours = crewMember.Hours ?? 1;
+            var minutes = crewMember.Minutes ?? 0;
+            var totalHours = hours + (minutes / 60.0);
+            var rate = (decimal)(crewMember.UnitRate ?? crewMember.Price ?? 0);
+            var lineTotal = (decimal)totalHours * rate;
+            labourTotal += lineTotal;
+
+            var taskName = GetTaskName(crewMember.Task);
+            var personName = crewMember.Person?.Trim() ?? "AV Technician";
+            
+            var startTime = crewMember.FirstDate?.ToString("dd/MM/yy HH:mm") ?? "";
+            var endTime = crewMember.RetnDate?.ToString("dd/MM/yy HH:mm") ?? "";
+            var hrsDisplay = $"{hours:00}:{minutes:00}";
+
+            labourRows.Add(new LaborRow(
+                Description: personName,
+                Task: taskName,
+                Qty: (crewMember.TransQty ?? 1).ToString(),
+                Start: startTime,
+                Finish: endTime,
+                Hrs: hrsDisplay,
+                Total: lineTotal.ToString("C")
+            ));
+        }
+
+        // Calculate totals
+        var equipmentSubtotal = visionTotal + audioTotal + lightingTotal + recordingTotal + drapeTotal;
+        var rentalTotal = equipmentSubtotal;
+        var serviceChargeRate = 0.10m;
+        var serviceCharge = rentalTotal * serviceChargeRate;
+        var subtotalExGst = rentalTotal + labourTotal + serviceCharge;
+        var gstRate = 0.10m;
+        var gst = subtotalExGst * gstRate;
+        var grandTotal = subtotalExGst + gst;
+
+        // Use booking prices if available
+        if (booking.price_quoted.HasValue && booking.price_quoted.Value > 0)
+        {
+            grandTotal = (decimal)booking.price_quoted.Value;
+            gst = grandTotal / 1.1m * 0.1m;
+            subtotalExGst = grandTotal - gst;
+        }
+
+        return new QuoteAllFields(
             // Overview header
-            Client: "ARCSOPT",
-            ContactName: "Megan Suurenbroek",
-            Email: "admin@arcsopt.org",
-            EventDate:"",
+            Client: organization?.OrganisationV6 ?? booking.OrganizationV6 ?? "Client",
+            ContactName: contact?.Contactname ?? booking.contact_nameV6 ?? "Contact",
+            Email: contact?.Email ?? "contact@email.com",
+            EventDate: eventDate,
+
             // Section headings
-            EventTitle: "ARCSOPT MEETING",
+            EventTitle: booking.showName ?? booking.OrganizationV6 ?? "Event",
 
-            // Location block (left column)
-            Location: "The Westin Brisbane",
-            Address: "111 Mary Street  Brisbane City QLD 4000",
-            Room: "Westin Ballroom I",
-            DateRange: "Friday 17 October 2025 to Friday 17 October 2025",
+            // Location block with proper venue data
+            Location: venueName,
+            Address: venueAddress,
+            Room: venueRoom,
+            DateRange: $"{showStartDate} to {showEndDate}",
 
-            // Right column contact block
-            DeliveryContact: "Tamara Lamb",
-            AccountMgrName: "Nishal Kumar",
+            // Contact block
+            DeliveryContact: contact?.Contactname ?? booking.contact_nameV6 ?? "Contact Name",
+            AccountMgrName: booking.Salesperson ?? "Nishal Kumar",
             AccountMgrMobile: "+61 04 84814633",
             AccountMgrEmail: "nishal.kumar@microhire.com.au",
 
             // Footer ref
-            Reference: "C1374000002 - 001",
+            Reference: booking.booking_no ?? $"BOOKING-{booking.ID}",
 
-            // “Please confirm dates and times are accurate”
-            SetupDate: "Friday 17 October 2025",
-            SetupTime: "07:30",
-            RehearsalDate: "Friday 17 October 2025",
-            RehearsalTime: "07:30",
-            EventStartDate: "Friday 17 October 2025",
-            EventStartTime: "08:00",
-            EventEndDate: "Friday 17 October 2025",
-            EventEndTime: "17:00",
+            // Schedule confirmation
+            SetupDate: setupDate,
+            SetupTime: setupTime,
+            RehearsalDate: rehearsalDate,
+            RehearsalTime: rehearsalTime,
+            EventStartDate: showStartDate,
+            EventStartTime: eventStartTime,
+            EventEndDate: showEndDate,
+            EventEndTime: eventEndTime,
 
-            // Page 2: header note for room
-            RoomNoteHeader: "Westin Ballroom 1",
-            RoomNoteStarts: "Event Starts - 0800",
-            RoomNoteEnds: "Event Ends - 1700",
-            RoomNoteTotal: "$0.00",
+            // Room header
+            RoomNoteHeader: venueRoom,
+            RoomNoteStarts: $"Event Starts - {eventStartTime}",
+            RoomNoteEnds: $"Event Ends - {eventEndTime}",
+            RoomNoteTotal: equipmentSubtotal.ToString("C"),
 
-            // Vision rows (with group headings)
-            VisionRows: new List<EquipmentRow> {
-            new("Single Screen & FHD Projector Package", null, null, IsGroup: true),
-            new("Includes:", null, null),
-            new("Full HD Digital Projector", null, null),
-            new("120' Motorised projection Screen - 16:9", null, null),
-            new("HDMI Input Cable", null, null),
-            new(">Client Supplied Laptop", null, null),
-            new(">Laptop to be operated from lectern", null, null),
-            new("Westin Ballroom Single Projector Package*", "1", ""),
-            new("Wireless Presenter/Clicker", null, null, IsGroup: true),
-            new("Logitech Wireless Presenter", "1", "")
-            },
-            VisionTotal: "$619.10",
+            // Equipment rows
+            VisionRows: visionRows.Count > 0 ? visionRows : new List<EquipmentRow>(),
+            AudioRows: audioRows.Count > 0 ? audioRows : null,
+            LightingRows: lightingRows.Count > 0 ? lightingRows : null,
+            RecordingRows: recordingRows.Count > 0 ? recordingRows : null,
+            DrapeRows: drapeRows.Count > 0 ? drapeRows : null,
 
-            // Audio rows
-            AudioRows: new List<EquipmentRow> {
-            new("PA Speaker System", null, null, IsGroup: true),
-            new("Westin Single Ballroom Ceiling Speaker System", "1", ""),
-            new("Audio Control Desk", null, null, IsGroup: true),
-            new("6 Channel Audio Mixer", "1", ""),
-            new("Microphones", null, null, IsGroup: true),
-            new("2 x Wireless Handheld Microphone", null, null),
-            new("SINGLE Radio Mic Receiver - Shure QLXD4 K52", "2", "")
-            },
-            AudioTotal: "$584.42",
+            // Totals
+            VisionTotal: visionTotal.ToString("C"),
+            AudioTotal: audioTotal.ToString("C"),
+            LightingTotal: lightingTotal.ToString("C"),
+            RecordingTotal: recordingTotal.ToString("C"),
+            DrapeTotal: drapeTotal.ToString("C"),
 
-            // Page 3: Technical Services table
-            LabourRows: new List<LaborRow> {
-            new("AV Technician", "Setup",          "1", "17/10/25 06:00", "17/10/25 07:30", "01:30", "$165.00"),
-            new("AV Technician", "Test & Connect", "1", "17/10/25 07:30", "17/10/25 08:30", "01:00", "$110.00"),
-            new("AV Technician", "Pack Down",      "1", "17/10/25 17:00", "17/10/25 18:00", "01:00", "$110.00")
-            },
-            LabourTotal: "$385.00",
+            // Labor
+            LabourRows: labourRows.Count > 0 ? labourRows : null,
+            LabourTotal: labourTotal.ToString("C"),
 
-            // Page 4: Budget Summary numbers
-            RentalTotal: "$1,203.52",
-            ServiceCharge: "$120.35",
-            SubTotalExGst: "$1,708.87",
-            Gst: "$170.89",
-            GrandTotalIncGst: "$1,879.76",
+            // Budget summary
+            RentalTotal: rentalTotal.ToString("C"),
+            ServiceCharge: serviceCharge.ToString("C"),
+            SubTotalExGst: subtotalExGst.ToString("C"),
+            Gst: gst.ToString("C"),
+            GrandTotalIncGst: grandTotal.ToString("C"),
 
-            // Page 4: body notes
+            // Budget notes
             BudgetNotesTopLine: "The team at Microhire look forward to working with you to make every aspect of your event a success.",
-            BudgetValidityLine: "To ensure that your event receives the best possible equipment and technical personnel, please confirm that all details are correct including dates, timing and quantities. Note that our pricing is valid until WED 7 MAY 2025 and our resources are subject to availability at the time of booking.",
+            BudgetValidityLine: "To ensure that your event receives the best possible equipment and technical personnel, please confirm that all details are correct including dates, timing and quantities. Note that our pricing is valid for 30 days and our resources are subject to availability at the time of booking.",
             BudgetConfirmLine: "Please confirm your acceptance of the proposal and its inclusions by returning a signed copy of the Confirmation of Services page, so we can proceed with your requirements.",
             BudgetContactLine: "However, if you wish to discuss any additions or updates regarding our proposal, please do not hesitate to contact me on the details below.",
             BudgetSignoffLine: "We look forward to working with you on a seamless and successful event.",
 
-            // Page 4: signature block address lines
-            FooterOfficeLine1: "Microhire | Westin Brisbane",
-            FooterOfficeLine2: "Microhire @ 111 Mary St, Brisbane City QLD 4000",
+            // Footer
+            FooterOfficeLine1: $"Microhire | {venueName}",
+            FooterOfficeLine2: $"Microhire @ {venueAddress}",
 
-            // Page 5: confirmation page text + terms URL
-            ConfirmP1: "On behalf of ARCSOPT, I accept this proposal and wish to proceed with the details that are confirmed to be correct.",
+            // Confirmation page
+            ConfirmP1: $"On behalf of {organization?.OrganisationV6 ?? "the client"}, I accept this proposal and wish to proceed with the details that are confirmed to be correct.",
             ConfirmP2: "Upon request, any additions or amendments will be updated to this proposal accordingly.",
             ConfirmP3: "We understand that equipment and personnel are not allocated until this document is signed and returned.",
             ConfirmP4: "This proposal and billing details are subject to Microhire's terms and conditions.",
-            ConfirmTermsUrl: "https://www.microhire.com.au/terms-conditions/",
-
-
-            // LightingRows: null,
-            LightingRows:  new List<EquipmentRow> (),
-            LightingTotal: "$0",
-            // RecordingRows: null,
-            RecordingRows:  new List<EquipmentRow> (),
-            RecordingTotal: "$0",
-            // DrapeRows: null,
-            DrapeRows:  new List<EquipmentRow> (),
-            DrapeTotal: "$0"
+            ConfirmTermsUrl: "https://www.microhire.com.au/terms-conditions/"
         );
-        return fields;
     }
 
+    private decimal GetUnitPrice(TblItemtran item, TblInvmas? invItem)
+    {
+        if (item.Price.HasValue && item.Price.Value > 0)
+            return (decimal)item.Price.Value;
+        if (item.UnitRate.HasValue && item.UnitRate.Value > 0)
+            return (decimal)item.UnitRate.Value;
+        if (invItem?.retail_price.HasValue == true && invItem.retail_price.Value > 0)
+            return (decimal)invItem.retail_price.Value;
+        return 0;
+    }
+
+    private string GetBestDescription(TblItemtran item, TblInvmas? invItem)
+    {
+        if (!string.IsNullOrWhiteSpace(item.CommentDescV42))
+            return item.CommentDescV42.Trim();
+        if (invItem != null)
+        {
+            if (!string.IsNullOrWhiteSpace(invItem.PrintedDesc))
+                return invItem.PrintedDesc.Trim();
+            if (!string.IsNullOrWhiteSpace(invItem.descriptionv6))
+                return invItem.descriptionv6.Trim();
+        }
+        return item.ProductCodeV42?.Trim() ?? "Equipment Item";
+    }
+
+    private string GetTaskName(byte? taskCode)
+    {
+        return taskCode switch
+        {
+            1 => "Setup",
+            2 => "Test & Connect",
+            3 => "Operation",
+            4 => "Pack Down",
+            5 => "Standby",
+            6 => "Rehearsal",
+            7 => "Bump In",
+            8 => "Bump Out",
+            _ => "Technical Services"
+        };
+    }
+
+    private string FormatTime(string? time)
+    {
+        if (string.IsNullOrWhiteSpace(time)) return "";
+        if (time.Length == 4 && int.TryParse(time, out _))
+        {
+            return $"{time.Substring(0, 2)}:{time.Substring(2, 2)}";
+        }
+        return time;
+    }
 }

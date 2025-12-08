@@ -1,0 +1,18 @@
+after the user tells the bot what equpment he wants, look at availabiluty and dont send a picker, user does not know exactlyu what he wantsd because tyhey are most of the time not tech savyy. what we have to do is get requirements and then look whats available and send mesasage to confirm not pick, like dont ask but say for your requiremtn this seems like best liost of p[products
+
+Laptop
+Dell G15 package
+
+Vision
+bla bla bla
+
+like that so on\
+
+make sure to get the proper product code and packages if its part of a package from db  and make sure when making the booking the equipmentr is also added to the db and make sutr the proper prices and proper equipment with packages if they are part of a package is included properlyt
+
+if you need to make a script and explore the db to understand how it is
+
+i need proper quote
+
+like the same way its being done now (when we ask user to selectwhat they want the proper stuff gets added to booking and to the quote with proper prices)
+

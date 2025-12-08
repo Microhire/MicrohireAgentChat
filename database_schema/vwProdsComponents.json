@@ -1,0 +1,196 @@
+{
+  "name": "vwProdsComponents",
+  "schema": "dbo",
+  "description": "View showing product components - displays what items/components make up package products",
+  "row_count": 6268,
+  "columns": [
+    {
+      "name": "ID",
+      "data_type": "decimal(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "parent_code",
+      "data_type": "char(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "product_code",
+      "data_type": "char(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "qty_v5",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "sub_seq_no",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "variable_part",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ContactID",
+      "data_type": "decimal(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "SelectComp",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "AccessoryDiscount",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "AutoResolve",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "nestedCompAcc",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CustomIcon",
+      "data_type": "varchar(60)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "product_type_v41",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DescriptionV6",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "OLInternalDesc",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CATID",
+      "data_type": "decimal(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "OLCatDesc",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "cat_descv6",
+      "data_type": "char(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    }
+  ],
+  "primary_keys": [],
+  "foreign_keys": [],
+  "sample_data": [
+    {
+      "ID": "10",
+      "parent_code": "13MBP-L2                      ",
+      "product_code": "SOFTCASE                      ",
+      "qty_v5": 1.0,
+      "sub_seq_no": 2,
+      "variable_part": 0,
+      "ContactID": "-1",
+      "SelectComp": "N",
+      "AccessoryDiscount": 0.0,
+      "AutoResolve": false,
+      "nestedCompAcc": true,
+      "CustomIcon": "PRODUCT",
+      "product_type_v41": 0,
+      "DescriptionV6": "Laptop Soft Carry Case                            ",
+      "OLInternalDesc": "",
+      "CATID": null,
+      "OLCatDesc": null,
+      "cat_descv6": null
+    },
+    {
+      "ID": "11",
+      "parent_code": "13MBP-L2                      ",
+      "product_code": "PC-MOUSE                      ",
+      "qty_v5": 1.0,
+      "sub_seq_no": 3,
+      "variable_part": 0,
+      "ContactID": "-1",
+      "SelectComp": "N",
+      "AccessoryDiscount": 0.0,
+      "AutoResolve": false,
+      "nestedCompAcc": true,
+      "CustomIcon": "#164",
+      "product_type_v41": 0,
+      "DescriptionV6": "Optical Mouse - USB                               ",
+      "OLInternalDesc": "",
+      "CATID": null,
+      "OLCatDesc": null,
+      "cat_descv6": null
+    }
+  ]
+}

@@ -1,0 +1,988 @@
+{
+  "name": "tblinvmas",
+  "schema": "dbo",
+  "description": "Products/inventory master table - master list of all products, packages, and equipment",
+  "row_count": 4795,
+  "columns": [
+    {
+      "name": "ID",
+      "data_type": "decimal(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": true,
+      "is_foreign_key": false
+    },
+    {
+      "name": "seq_no",
+      "data_type": "decimal(19,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "product_code",
+      "data_type": "char(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "groupFld",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "category",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "descriptionV6",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "first_trans",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "product_Config",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "product_type_v41",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "indiv_hire_sale",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "on_hand",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Ord_unit",
+      "data_type": "varchar(4)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "re_ord_level",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "lead_time",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "quantity_on_order",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "sales_tax_rate",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "cost_price",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "retail_price",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "wholesale_price",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "trade_price",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "webCatalog",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "unit_weight",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "unit_volume",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "suppress_from_del_sch",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "revenue_code",
+      "data_type": "varchar(6)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "components_del",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "components_inv",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "components_quote",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "asset_track",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Notes_exist",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "notes_on_quote",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "notes_on_del",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "notes_on_inv",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DisallowDisc",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PictureFilename",
+      "data_type": "varchar",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CountryOfOrigin",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "IsInTrashCan",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "prodRoadCase",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "person_required",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ContactID",
+      "data_type": "decimal(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "GLCode",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "UseWeeklyRate",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "isGenericItem",
+      "data_type": "char(1)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "MfctPartNumber",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "NonTrackedBarcode",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DefaultDiscount",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "PrintedDesc",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "VendorCode",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DefaultDayRateID",
+      "data_type": "tinyint(3,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DefaultHourlyRateID",
+      "data_type": "decimal(18,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "SubCategory",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "lastPurchasePrice",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "RegionNumber",
+      "data_type": "int(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "zColor",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "rLength",
+      "data_type": "float(53)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "rWidth",
+      "data_type": "float(53)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "rHeight",
+      "data_type": "float(53)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "zModelNo",
+      "data_type": "varchar(25)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "cyTurnCosts",
+      "data_type": "money(19,4)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "bCustomPrintouts",
+      "data_type": "bit",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CheckoutDoc",
+      "data_type": "bit",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "bTestEveryUnit",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "UnavailableUntilTested",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "TestRequired",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DisallowTransfer",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "Location",
+      "data_type": "int(10,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "EntryDate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "EnforceMinHours",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "MinimumHours",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "bDisallowRegionTransfer",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DontPrintOnCrossRentPO",
+      "data_type": "bit",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "RFIDTag",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "OLInternalDesc",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "OLExternalDesc",
+      "data_type": "varchar(50)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DefaultVendorCode",
+      "data_type": "varchar(30)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "iPictureSize",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "LastUpdate",
+      "data_type": "datetime",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "DefaultRateForUnassigned",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "bExpandWhenAdded",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "BinLocation",
+      "data_type": "varchar(100)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "bExcludeFromDataExport",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "iMonthsToDepreciate",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "rDailyCostOfOwning",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CustomIcon",
+      "data_type": "varchar(60)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "On_handInRack",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "MBowner",
+      "data_type": "tinyint(3,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "taxableExempt",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "bAutoCheckout",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "ImportTestResultsFrom",
+      "data_type": "int(10,0)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "WarehouseActive",
+      "data_type": "bit",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "OverridePriceChangeRestriction",
+      "data_type": "smallint(5,0)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "bProductIsFreight",
+      "data_type": "bit",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "BasedOnPurchCost",
+      "data_type": "float(53)",
+      "nullable": false,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CAPEXGLCode",
+      "data_type": "varchar(14)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "CrossHireGLCode",
+      "data_type": "varchar(14)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "HSCode",
+      "data_type": "varchar(20)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    },
+    {
+      "name": "AveKwHusage",
+      "data_type": "float(53)",
+      "nullable": true,
+      "default": null,
+      "is_primary_key": false,
+      "is_foreign_key": false
+    }
+  ],
+  "primary_keys": [
+    "ID"
+  ],
+  "foreign_keys": [],
+  "sample_data": [
+    {
+      "ID": "1245",
+      "seq_no": "1",
+      "product_code": "1.0MLADD                      ",
+      "groupFld": "TOOLS",
+      "category": "LADDER",
+      "descriptionV6": "1.0M Step Ladder                                  ",
+      "first_trans": null,
+      "product_Config": 0,
+      "product_type_v41": 0,
+      "indiv_hire_sale": "Y",
+      "on_hand": 6.0,
+      "Ord_unit": "    ",
+      "re_ord_level": 0.0,
+      "lead_time": 0.0,
+      "quantity_on_order": 0.0,
+      "sales_tax_rate": 0,
+      "cost_price": 99.32,
+      "retail_price": 0.0,
+      "wholesale_price": 0.0,
+      "trade_price": 0.0,
+      "webCatalog": "N",
+      "unit_weight": 0.0,
+      "unit_volume": 0.0,
+      "suppress_from_del_sch": "N",
+      "revenue_code": "",
+      "components_del": "N",
+      "components_inv": "N",
+      "components_quote": "N",
+      "asset_track": "Y",
+      "Notes_exist": "N",
+      "notes_on_quote": "N",
+      "notes_on_del": "N",
+      "notes_on_inv": "N",
+      "DisallowDisc": "N",
+      "PictureFilename": "",
+      "CountryOfOrigin": "",
+      "IsInTrashCan": "N",
+      "prodRoadCase": 0,
+      "person_required": null,
+      "ContactID": "0",
+      "GLCode": null,
+      "UseWeeklyRate": "N",
+      "isGenericItem": "N",
+      "MfctPartNumber": "",
+      "NonTrackedBarcode": "",
+      "DefaultDiscount": 0.0,
+      "PrintedDesc": "",
+      "VendorCode": "",
+      "DefaultDayRateID": 1,
+      "DefaultHourlyRateID": "1",
+      "SubCategory": "",
+      "lastPurchasePrice": 99.32,
+      "RegionNumber": 0,
+      "zColor": "",
+      "rLength": 0.0,
+      "rWidth": 0.0,
+      "rHeight": 0.0,
+      "zModelNo": "",
+      "cyTurnCosts": "0.0000",
+      "bCustomPrintouts": true,
+      "CheckoutDoc": false,
+      "bTestEveryUnit": false,
+      "UnavailableUntilTested": false,
+      "TestRequired": false,
+      "DisallowTransfer": false,
+      "Location": 0,
+      "EntryDate": "2020-06-01 00:00:00",
+      "EnforceMinHours": null,
+      "MinimumHours": null,
+      "bDisallowRegionTransfer": false,
+      "DontPrintOnCrossRentPO": false,
+      "RFIDTag": "",
+      "OLInternalDesc": "",
+      "OLExternalDesc": "",
+      "DefaultVendorCode": "",
+      "iPictureSize": 0,
+      "LastUpdate": "2025-06-25 09:50:48",
+      "DefaultRateForUnassigned": 0.0,
+      "bExpandWhenAdded": true,
+      "BinLocation": "",
+      "bExcludeFromDataExport": false,
+      "iMonthsToDepreciate": 0,
+      "rDailyCostOfOwning": 0.0,
+      "CustomIcon": "PRODUCT",
+      "On_handInRack": 0,
+      "MBowner": 0,
+      "taxableExempt": false,
+      "bAutoCheckout": false,
+      "ImportTestResultsFrom": 0,
+      "WarehouseActive": true,
+      "OverridePriceChangeRestriction": 0,
+      "bProductIsFreight": false,
+      "BasedOnPurchCost": 0.0,
+      "CAPEXGLCode": "",
+      "CrossHireGLCode": "",
+      "HSCode": "",
+      "AveKwHusage": 0.0
+    },
+    {
+      "ID": "1176",
+      "seq_no": "19",
+      "product_code": "1.2MDLEG                      ",
+      "groupFld": "STAGING",
+      "category": "STAGING",
+      "descriptionV6": "1200mm Megadeck Leg",
+      "first_trans": null,
+      "product_Config": 0,
+      "product_type_v41": 0,
+      "indiv_hire_sale": "Y",
+      "on_hand": 0.0,
+      "Ord_unit": "",
+      "re_ord_level": 0.0,
+      "lead_time": 0.0,
+      "quantity_on_order": 0.0,
+      "sales_tax_rate": 0,
+      "cost_price": 0.0,
+      "retail_price": 0.0,
+      "wholesale_price": 0.0,
+      "trade_price": 0.0,
+      "webCatalog": "N",
+      "unit_weight": 0.0,
+      "unit_volume": 0.0,
+      "suppress_from_del_sch": "N",
+      "revenue_code": "",
+      "components_del": "N",
+      "components_inv": "N",
+      "components_quote": "N",
+      "asset_track": "Y",
+      "Notes_exist": "N",
+      "notes_on_quote": "N",
+      "notes_on_del": "N",
+      "notes_on_inv": "N",
+      "DisallowDisc": "N",
+      "PictureFilename": "",
+      "CountryOfOrigin": "",
+      "IsInTrashCan": "N",
+      "prodRoadCase": 0,
+      "person_required": null,
+      "ContactID": "0",
+      "GLCode": null,
+      "UseWeeklyRate": "N",
+      "isGenericItem": "N",
+      "MfctPartNumber": "",
+      "NonTrackedBarcode": "",
+      "DefaultDiscount": 0.0,
+      "PrintedDesc": "1200mm Megadeck Leg",
+      "VendorCode": "",
+      "DefaultDayRateID": 1,
+      "DefaultHourlyRateID": "1",
+      "SubCategory": "STAGELEG",
+      "lastPurchasePrice": 0.0,
+      "RegionNumber": 0,
+      "zColor": "",
+      "rLength": 0.0,
+      "rWidth": 0.0,
+      "rHeight": 0.0,
+      "zModelNo": "",
+      "cyTurnCosts": "0.0000",
+      "bCustomPrintouts": true,
+      "CheckoutDoc": false,
+      "bTestEveryUnit": false,
+      "UnavailableUntilTested": false,
+      "TestRequired": false,
+      "DisallowTransfer": false,
+      "Location": 0,
+      "EntryDate": "2020-06-01 00:00:00",
+      "EnforceMinHours": null,
+      "MinimumHours": null,
+      "bDisallowRegionTransfer": false,
+      "DontPrintOnCrossRentPO": false,
+      "RFIDTag": "",
+      "OLInternalDesc": "",
+      "OLExternalDesc": "",
+      "DefaultVendorCode": "",
+      "iPictureSize": 0,
+      "LastUpdate": "1899-12-30 00:00:00",
+      "DefaultRateForUnassigned": 0.0,
+      "bExpandWhenAdded": true,
+      "BinLocation": "",
+      "bExcludeFromDataExport": false,
+      "iMonthsToDepreciate": 0,
+      "rDailyCostOfOwning": 0.0,
+      "CustomIcon": "",
+      "On_handInRack": 0,
+      "MBowner": 0,
+      "taxableExempt": false,
+      "bAutoCheckout": false,
+      "ImportTestResultsFrom": 0,
+      "WarehouseActive": true,
+      "OverridePriceChangeRestriction": 0,
+      "bProductIsFreight": false,
+      "BasedOnPurchCost": 0.0,
+      "CAPEXGLCode": "",
+      "CrossHireGLCode": "",
+      "HSCode": "",
+      "AveKwHusage": 0.0
+    }
+  ]
+}

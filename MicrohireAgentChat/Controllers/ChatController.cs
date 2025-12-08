@@ -1,10 +1,13 @@
 ﻿// Controllers/ChatController.cs
+using MicrohireAgentChat.Config;
 using MicrohireAgentChat.Data;
 using MicrohireAgentChat.Models; // for DisplayMessage if needed
 using MicrohireAgentChat.Services;
+using MicrohireAgentChat.Services.Orchestration;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
 using System.Globalization;
 using System.Text;
@@ -16,6 +19,11 @@ public sealed class ChatController : Controller
 {
     private readonly AzureAgentChatService _chat;
     private readonly BookingDbContext _bookingDb;
+    private readonly BookingOrchestrationService _orchestration;
+    private readonly QuoteGenerationService _quoteGen;
+    private readonly ConversationReplayService _replayService;
+    private readonly DevModeOptions _devOptions;
+    private readonly ILogger<ChatController> _logger;
 
     // Detect: "Choose time: 09:00–10:30" (supports hyphen or en dash)
     private static readonly Regex ChooseTimeRe =
@@ -27,14 +35,26 @@ public sealed class ChatController : Controller
         new(@"^\s*Choose\s+schedule\s*:\s*(.+)$",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    // Exact scripted greeting per your “Final Script for AI”
+    // Exact scripted greeting per your "Final Script for AI"
     private const string GreetingText =
         "Hello, my name is Isla from Microhire. What is your full name?";
 
-    public ChatController(AzureAgentChatService chat, BookingDbContext bookingDb)
+    public ChatController(
+        AzureAgentChatService chat,
+        BookingDbContext bookingDb,
+        BookingOrchestrationService orchestration,
+        QuoteGenerationService quoteGen,
+        ConversationReplayService replayService,
+        IOptions<DevModeOptions> devOptions,
+        ILogger<ChatController> logger)
     {
         _chat = chat;
         _bookingDb = bookingDb;
+        _orchestration = orchestration;
+        _quoteGen = quoteGen;
+        _replayService = replayService;
+        _devOptions = devOptions.Value;
+        _logger = logger;
     }
 
     // Small helper to pick a stable user key for persistence.
@@ -52,18 +72,46 @@ public sealed class ChatController : Controller
         return sid!;
     }
 
+    // Check if user has completed quote
+    private bool IsQuoteComplete()
+    {
+        return string.Equals(HttpContext.Session.GetString("Draft:QuoteComplete"), "1", StringComparison.Ordinal);
+    }
+
+    // Get quote URL if available
+    private string? GetQuoteUrl()
+    {
+        return HttpContext.Session.GetString("Draft:QuoteUrl");
+    }
+
     // Full page
     [HttpGet]
     public async Task<IActionResult> Index(CancellationToken ct)
     {
         try
         {
+            // Check for existing quote based on booking number in session
+            var bookingNo = HttpContext.Session.GetString("Draft:BookingNo");
+            if (!string.IsNullOrWhiteSpace(bookingNo))
+            {
+                var (exists, existingQuoteUrl) = _quoteGen.CheckExistingQuote(bookingNo);
+                if (exists && !string.IsNullOrWhiteSpace(existingQuoteUrl))
+                {
+                    // Mark as complete but don't redirect - allow continued chat
+                    HttpContext.Session.SetString("Draft:QuoteComplete", "1");
+                    HttpContext.Session.SetString("Draft:QuoteUrl", existingQuoteUrl);
+                    ViewData["ExistingQuoteUrl"] = existingQuoteUrl;
+                }
+            }
+
             var userKey = GetUserKey();
             var threadId = await _chat.EnsureThreadIdPersistedAsync(HttpContext.Session, userKey, ct);
             await _chat.EnsureGreetingAsync(HttpContext.Session, GreetingText, ct);
 
             var (_, messages) = _chat.GetTranscript(threadId);
             RedactPricesForUiInPlace(messages);
+            ViewData["DevModeEnabled"] = _devOptions.Enabled;
+            ViewData["QuoteComplete"] = false;
             return View(messages);
         }
         catch (Exception ex)
@@ -73,12 +121,28 @@ public sealed class ChatController : Controller
         }
     }
 
+    // Quote Complete Overlay
+    [HttpGet]
+    public IActionResult QuoteComplete(string quoteUrl)
+    {
+        // Redirect to chat interface - no longer using overlay
+        // This handles any direct links or legacy redirects
+        return RedirectToAction("Index");
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Send(string text, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(text))
             return RedirectToAction(nameof(Index));
+
+        // Clear quote completion state when user sends new message - allows continued conversation
+        if (IsQuoteComplete())
+        {
+            HttpContext.Session.Remove("Draft:QuoteComplete");
+            HttpContext.Session.Remove("Draft:QuoteUrl");
+        }
 
         try
         {
@@ -126,32 +190,53 @@ public sealed class ChatController : Controller
         }
     }
 
+    private static bool ContainsConfusingQuoteLanguage(IReadOnlyList<DisplayMessage> messages)
+    {
+        if (messages == null || messages.Count == 0) return false;
+
+        // Check the last assistant message for confusing quote language
+        for (int i = messages.Count - 1; i >= 0; i--)
+        {
+            var msg = messages[i];
+            if (!string.Equals(msg.Role, "assistant", StringComparison.OrdinalIgnoreCase)) continue;
+
+            var text = string.Join("\n\n", msg.Parts ?? Enumerable.Empty<string>()).ToLowerInvariant();
+            if (text.Contains("technical hiccup") ||
+                text.Contains("slight hitch") ||
+                text.Contains("unable to generate") ||
+                text.Contains("can't generate") ||
+                text.Contains("cannot generate") ||
+                text.Contains("having trouble") ||
+                text.Contains("refine this manually") ||
+                text.Contains("our team will follow up"))
+            {
+                return true;
+            }
+
+            // Only check the most recent assistant message
+            break;
+        }
+
+        return false;
+    }
+
     private static bool WasLastAssistantASummaryAsk(IReadOnlyList<DisplayMessage> messages)
     {
         if (messages == null || messages.Count < 2) return false;
 
-        // Find the last USER turn (the message you just posted)
-        int userIdx = -1;
-        for (int i = messages.Count - 1; i >= 0; i--)
+        // Look through the last 6 messages for any assistant summary confirmation
+        int messagesToCheck = Math.Min(6, messages.Count);
+        for (int i = messages.Count - 1; i >= messages.Count - messagesToCheck; i--)
         {
             var m = messages[i];
-            if (string.Equals(m.Role, "user", StringComparison.OrdinalIgnoreCase))
-            {
-                userIdx = i;
-                break;
-            }
-        }
-        if (userIdx <= 0) return false;
+            if (!string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase)) continue;
 
-        // Find the nearest ASSISTANT turn before that USER turn
-        for (int j = userIdx - 1; j >= 0; j--)
-        {
-            var a = messages[j];
-            if (!string.Equals(a.Role, "assistant", StringComparison.OrdinalIgnoreCase)) continue;
-
-            var raw = string.Join("\n\n", a.Parts ?? Enumerable.Empty<string>());
+            var raw = string.Join("\n\n", m.Parts ?? Enumerable.Empty<string>());
             var t = Normalize(raw);
-            return LooksLikeSummaryAsk(t);
+            if (LooksLikeSummaryAsk(t))
+            {
+                return true;
+            }
         }
         return false;
 
@@ -168,15 +253,110 @@ public sealed class ChatController : Controller
         // A "summary ask" = assistant showed the summary and asked to confirm before quoting
         static bool LooksLikeSummaryAsk(string t) =>
                t.Contains("here is your summary")
-            || t.Contains("here’s your summary")
+            || t.Contains("here's your summary")
             || t.Contains("here's what i have so far")
+            || t.Contains("here's a summary")
             || t.Contains("let me summarize")
             || t.Contains("does everything look correct")
             || t.Contains("does this look correct")
             || t.Contains("please confirm")
             || t.Contains("can you confirm")
+            || t.Contains("could you confirm")
             || t.Contains("before i create your quote")
-            || t.Contains("before creating your quote");
+            || t.Contains("before creating your quote")
+            || t.Contains("before generating your quote")
+            || t.Contains("before proceeding to your quote")
+            || t.Contains("before i proceed")
+            || t.Contains("before i generate your quote")
+            || t.Contains("before i proceed to generate the quote")
+            || t.Contains("are there any other details")
+            || t.Contains("anything else you'd like to add")
+            || t.Contains("would you like to add anything else")
+            || t.Contains("is there anything else")
+            || t.Contains("anything else to add")
+            || t.Contains("ready to create the quote")
+            || t.Contains("shall i create the quote")
+            || t.Contains("shall i generate the quote")
+            || t.Contains("shall we move ahead")
+            || t.Contains("shall we proceed")
+            || t.Contains("would you like me to create")
+            || t.Contains("would you like me to generate")
+            || t.Contains("finalize the quote")
+            || t.Contains("finalized equipment")
+            || t.Contains("equipment lineup")
+            || t.Contains("equipment selection")
+            || t.Contains("here's your finalized")
+            || t.Contains("here's the equipment");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> StartConversationReplay(CancellationToken ct)
+    {
+        if (!_devOptions.Enabled)
+        {
+            return BadRequest("Dev mode is not enabled");
+        }
+
+        try
+        {
+            // Generate a new test conversation with varied data
+            var messages = _replayService.GenerateTestConversation().ToList();
+
+            // Store the replay messages in session
+            HttpContext.Session.SetString("Dev:ReplayMessages", System.Text.Json.JsonSerializer.Serialize(messages));
+            HttpContext.Session.SetInt32("Dev:CurrentMessageIndex", 0);
+
+            return Json(new { success = true, messageCount = messages.Count });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to start conversation replay");
+            return Json(new { success = false, error = ex.Message });
+        }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> GetNextReplayMessage(CancellationToken ct)
+    {
+        if (!_devOptions.Enabled)
+        {
+            return BadRequest("Dev mode is not enabled");
+        }
+
+        try
+        {
+            var messagesJson = HttpContext.Session.GetString("Dev:ReplayMessages");
+            var currentIndex = HttpContext.Session.GetInt32("Dev:CurrentMessageIndex") ?? 0;
+
+            if (string.IsNullOrEmpty(messagesJson))
+            {
+                return Json(new { success = false, error = "No replay session active" });
+            }
+
+            var messages = System.Text.Json.JsonSerializer.Deserialize<List<string>>(messagesJson);
+            if (messages == null || currentIndex >= messages.Count)
+            {
+                return Json(new { success = false, error = "Replay completed" });
+            }
+
+            var nextMessage = messages[currentIndex];
+            HttpContext.Session.SetInt32("Dev:CurrentMessageIndex", currentIndex + 1);
+
+            return Json(new
+            {
+                success = true,
+                message = nextMessage,
+                remaining = messages.Count - currentIndex - 1,
+                completed = currentIndex + 1 >= messages.Count
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get next replay message");
+            return Json(new { success = false, error = ex.Message });
+        }
     }
 
     [HttpPost]
@@ -185,7 +365,15 @@ public sealed class ChatController : Controller
     {
         try
         {
+            // Clear quote completion state when resetting
             HttpContext.Session.Remove("AgentThreadId");
+            HttpContext.Session.Remove("Draft:QuoteComplete");
+            HttpContext.Session.Remove("Draft:QuoteUrl");
+            HttpContext.Session.Remove("Draft:BookingNo");
+            HttpContext.Session.Remove("Draft:ContactId");
+            HttpContext.Session.Remove("Draft:CustomerCode");
+            HttpContext.Session.Remove("Draft:PersistedSummaryKey");
+            HttpContext.Session.Remove("Draft:ShowedBookingNo");
 
             var newThreadId = _chat.EnsureThreadId(HttpContext.Session);
 
@@ -195,6 +383,7 @@ public sealed class ChatController : Controller
             await _chat.EnsureGreetingAsync(HttpContext.Session, GreetingText, ct);
 
             var (_, messages) = _chat.GetTranscript(newThreadId);
+            ViewData["QuoteComplete"] = false;
             return View("Index", messages);
         }
         catch (Exception ex)
@@ -209,6 +398,13 @@ public sealed class ChatController : Controller
     public async Task<IActionResult> SendPartial(string text, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(text)) return BadRequest("empty");
+
+        // Clear quote completion state when user sends new message - allows continued conversation
+        if (IsQuoteComplete())
+        {
+            HttpContext.Session.Remove("Draft:QuoteComplete");
+            HttpContext.Session.Remove("Draft:QuoteUrl");
+        }
 
         try
         {
@@ -249,17 +445,36 @@ public sealed class ChatController : Controller
 
             var msgList = messages is List<DisplayMessage> ml ? ml : messages.ToList();
 
-            // ---------- CONTACT UPSERT (only once per thread) ----------
+            // If the last AI message contains confusing quote language, we'll handle it in the consent logic
 
-            decimal? contactId = await TrySaveContactAsync(msgList, ct);
+            // Check if user confirmed a booking summary
+            // IMPORTANT: Only trigger if BOTH conditions are met:
+            // 1. User's message looks like explicit consent to create quote
+            // 2. The assistant was actually asking for confirmation (summary ask)
+            var isConsentToSummary = LooksLikeConsent(text) && WasLastAssistantASummaryAsk(msgList);
 
-            if (contactId.HasValue)
+            // Log consent detection for debugging
+            _logger.LogInformation("Consent detection: text='{Text}', isConsentToSummary={IsConsentToSummary}, wasSummaryAsk={WasSummaryAsk}",
+                text, isConsentToSummary, WasLastAssistantASummaryAsk(msgList));
+
+            // NOTE: Removed aggressive "isClearConsent" logic that was causing false triggers
+            // Quote generation should ONLY happen when assistant explicitly asked for confirmation
+
+            // If user confirmed booking and AI gave a confusing quote response, add clarification
+            if (isConsentToSummary && ContainsConfusingQuoteLanguage(msgList))
             {
-                HttpContext.Session.SetString(
-                    "Draft:ContactId",
-                    contactId.Value.ToString(CultureInfo.InvariantCulture));
+                var clarificationMessage = new DisplayMessage
+                {
+                    Role = "assistant",
+                    Timestamp = DateTimeOffset.UtcNow,
+                    Parts = new List<string> {
+                        "Perfect! I'll create your booking right away and automatically generate a professional quote PDF for you. You'll see a download link here once it's ready."
+                    },
+                    FullText = "Perfect! I'll create your booking right away and automatically generate a professional quote PDF for you. You'll see a download link here once it's ready.",
+                    Html = "<p>Perfect! I'll create your booking right away and automatically generate a professional quote PDF for you. You'll see a download link here once it's ready.</p>"
+                };
+                msgList = msgList.Concat(new[] { clarificationMessage }).ToList();
             }
-
 
             // if booking already exists, persist FULL transcript now
             var bookingNoAtStart = HttpContext.Session.GetString("Draft:BookingNo");
@@ -268,45 +483,13 @@ public sealed class ChatController : Controller
                 await _chat.SaveFullTranscriptToBooknoteAsync(_bookingDb, bookingNoAtStart!, msgList, ct);
             }
 
-            // -------- ORG / CONTACT LINKING DATA --------
-            var (orgName, orgAddr) = _chat.ExtractOrganisationFromTranscript(msgList);
-            string? customerCode = null;
-            decimal? orgId = null;
-
-            // build facts once
-            var facts = ExtractFactsForPersistence(msgList);
-
-            // persist only when user positively confirms summary
-            var isConsentToSummary = LooksLikeConsent(text) && WasLastAssistantASummaryAsk(msgList);
-
             if (isConsentToSummary)
             {
-                if (!string.IsNullOrWhiteSpace(orgName))
-                {
-                    var found = await _chat.FindOrganisationAsync(_bookingDb, orgName!, ct);
-                    if (found is not null)
-                    {
-                        orgId = found.Value.id;
-                        customerCode = found.Value.code;
-                    }
-                }
-
-                if (orgId is null && !string.IsNullOrWhiteSpace(orgName))
-                {
-                    orgId = await _chat.UpsertOrganisationAsync(_bookingDb, orgName!, orgAddr, ct);
-                    if (orgId is not null)
-                        customerCode = await _chat.GetCustomerCodeByIdAsync(_bookingDb, orgId.Value, ct);
-                }
-
-                if (contactId is not null && !string.IsNullOrWhiteSpace(customerCode))
-                {
-                    await _chat.LinkContactToOrganisationAsync(_bookingDb, customerCode!, contactId.Value, ct);
-                    HttpContext.Session.SetString("Draft:CustomerCode", customerCode!);
-                }
-
                 var summaryKey = ComputeSummaryKey(msgList);
                 var lastPersistedKey = HttpContext.Session.GetString("Draft:PersistedSummaryKey");
-                if (!string.IsNullOrEmpty(summaryKey) &&
+
+                // Skip duplicate processing if we already handled this exact summary
+                if (isConsentToSummary && !string.IsNullOrEmpty(summaryKey) &&
                     string.Equals(summaryKey, lastPersistedKey, StringComparison.Ordinal))
                 {
                     RedactPricesForUiInPlace(msgList);
@@ -314,33 +497,83 @@ public sealed class ChatController : Controller
                     return PartialView("_Messages", msgList);
                 }
 
-                await _chat.TrySaveBookingAsync(_bookingDb, HttpContext.Session, msgList, contactId, ct);
+                // ========== FORCE QUOTE GENERATION FOR ANY CONSENT ==========
+                var existingBookingNo = HttpContext.Session.GetString("Draft:BookingNo");
 
-                var bookingNo = HttpContext.Session.GetString("Draft:BookingNo");
-                if (!string.IsNullOrWhiteSpace(bookingNo))
+                // If we have a booking number, try to generate quote immediately
+                if (!string.IsNullOrWhiteSpace(existingBookingNo))
                 {
-                    var hasAnyItems = await _bookingDb.TblItemtrans.AnyAsync(x => x.BookingNoV32 == bookingNo, ct);
-                    var hasAnyCrew = await _bookingDb.TblCrews.AnyAsync(c => c.BookingNoV32 == bookingNo, ct);
+                    _logger.LogInformation("User consented - attempting quote generation for existing booking {BookingNo}", existingBookingNo);
+                    await GenerateQuoteForBookingAsync(existingBookingNo, msgList, ct);
 
-                    if (!hasAnyItems && !hasAnyCrew)
+                    // Mark as processed to avoid duplicates
+                    if (isConsentToSummary)
                     {
-                        await _chat.UpsertItemsFromSummaryAsync(_bookingDb, HttpContext.Session, msgList, facts, ct);
-                        await _chat.InsertCrewRowsAsync(_bookingDb, bookingNo, facts, ct);
+                        HttpContext.Session.SetString("Draft:PersistedSummaryKey", summaryKey ?? string.Empty);
                     }
+                }
+                else
+                {
+                    // No existing booking, try to create one first
+                    _logger.LogInformation("User consented but no existing booking - attempting to create booking first");
 
-                    if (string.IsNullOrWhiteSpace(bookingNoAtStart))
+                    var result = await _orchestration.ProcessConversationAsync(msgList, existingBookingNo, ct);
+
+                    if (result.Success && !string.IsNullOrWhiteSpace(result.BookingNo))
                     {
-                        await _chat.SaveFullTranscriptToBooknoteAsync(_bookingDb, bookingNo!, msgList, ct);
-                    }
+                        // Store results in session
+                        HttpContext.Session.SetString("Draft:BookingNo", result.BookingNo!);
+                        if (result.ContactId.HasValue)
+                            HttpContext.Session.SetString("Draft:ContactId", result.ContactId.Value.ToString());
+                        if (!string.IsNullOrWhiteSpace(result.CustomerCode))
+                            HttpContext.Session.SetString("Draft:CustomerCode", result.CustomerCode!);
 
-                    HttpContext.Session.SetString("Draft:PersistedSummaryKey", summaryKey ?? string.Empty);
-                    SetConsent(HttpContext.Session, false);
-                    HttpContext.Session.SetString("Draft:ShowedBookingNo", "1");
+                        HttpContext.Session.SetString("Draft:PersistedSummaryKey", summaryKey ?? string.Empty);
+                        SetConsent(HttpContext.Session, false);
+                        HttpContext.Session.SetString("Draft:ShowedBookingNo", "1");
+
+                        _logger.LogInformation("Booking created successfully: {BookingNo}", result.BookingNo);
+
+                        // Now generate the quote
+                        await GenerateQuoteForBookingAsync(result.BookingNo!, msgList, ct);
+                    }
+                    else if (result.Errors.Any())
+                    {
+                        _logger.LogError("Booking creation failed: {Errors}", string.Join("; ", result.Errors));
+
+                        // Even if booking creation failed, try to generate quote if we have a booking number
+                        if (!string.IsNullOrWhiteSpace(existingBookingNo))
+                        {
+                            _logger.LogInformation("Booking creation failed, but attempting quote generation for existing booking {BookingNo}", existingBookingNo);
+                            await GenerateQuoteForBookingAsync(existingBookingNo, msgList, ct);
+                        }
+                        else
+                        {
+                            // Add error message to conversation
+                            var errorMessage = new DisplayMessage
+                            {
+                                Role = "assistant",
+                                Timestamp = DateTimeOffset.UtcNow,
+                                Parts = new List<string> {
+                                    "I apologize, but there was an issue creating your booking. Our team will follow up with you to complete this process."
+                                },
+                                FullText = "I apologize, but there was an issue creating your booking. Our team will follow up with you to complete this process.",
+                                Html = "<p>I apologize, but there was an issue creating your booking. Our team will follow up with you to complete this process.</p>"
+                            };
+                            msgList = msgList.Concat(new[] { errorMessage }).ToList();
+                        }
+                    }
                 }
             }
 
             RedactPricesForUiInPlace(msgList);
             ViewData["ShowQuoteCta"] = WasLastAssistantASummaryAsk(msgList) ? "1" : "0";
+            
+            // Log final message count for debugging
+            _logger.LogInformation("Returning {Count} messages to view. Last message role: {LastRole}", 
+                msgList.Count, 
+                msgList.LastOrDefault()?.Role ?? "none");
+            
             return PartialView("_Messages", msgList);
         }
         catch (Exception ex)
@@ -441,20 +674,161 @@ public sealed class ChatController : Controller
 
     private const string GenerateQuoteFlag = "Draft:GenerateQuote";
 
+    private async Task GenerateQuoteForBookingAsync(string bookingNo, List<DisplayMessage> msgList, CancellationToken ct)
+    {
+        // ========== GENERATE QUOTE PDF ==========
+        try
+        {
+            _logger.LogInformation("Starting quote generation for booking {BookingNo}", bookingNo);
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(30)); // 30 second timeout
+            using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
+            try
+            {
+                var (quoteSuccess, quoteUrl, quoteError) = await _quoteGen.GenerateQuoteForBookingAsync(bookingNo, linkedCts.Token);
+                _logger.LogInformation("Quote generation completed for booking {BookingNo}, success: {Success}", bookingNo, quoteSuccess);
+
+                if (quoteSuccess && !string.IsNullOrWhiteSpace(quoteUrl))
+                {
+                    HttpContext.Session.SetString("Draft:QuoteUrl", quoteUrl);
+                    HttpContext.Session.SetString("Draft:QuoteComplete", "1"); // Mark quote as complete
+                    _logger.LogInformation("Quote generated for booking {BookingNo}: {QuoteUrl}", bookingNo, quoteUrl);
+
+                    // Check if the last AI message was confusing about quotes - if so, replace it
+                    var lastAssistantMessage = msgList.LastOrDefault(m => m.Role == "assistant");
+                    if (lastAssistantMessage != null && ContainsConfusingQuoteLanguage(new[] { lastAssistantMessage }))
+                    {
+                        _logger.LogInformation("Replacing confusing AI quote message with success message");
+                        // Remove the confusing message and add our success message
+                        msgList.Remove(lastAssistantMessage);
+                    }
+
+                    // Add success message directly to the conversation (bypass AI agent)
+                    var quoteMessage = new DisplayMessage
+                    {
+                        Role = "assistant",
+                        Timestamp = DateTimeOffset.UtcNow,
+                        Parts = new List<string> {
+                            $"Great news! I've successfully generated your quote for booking {bookingNo}. <a href=\"{quoteUrl}\" target=\"_blank\" class=\"btn btn-primary\">Download Quote PDF</a>"
+                        },
+                        FullText = $"Great news! I've successfully generated your quote for booking {bookingNo}. You can download it here: {quoteUrl}",
+                        Html = $"Great news! I've successfully generated your quote for booking {bookingNo}. <a href=\"{quoteUrl}\" target=\"_blank\" class=\"btn btn-primary\">Download Quote PDF</a>"
+                    };
+                    msgList.Add(quoteMessage);
+                    _logger.LogInformation("Success message added to msgList. Total messages: {Count}. Quote URL: {QuoteUrl}", msgList.Count, quoteUrl);
+                }
+                else
+                {
+                    _logger.LogWarning("Quote generation failed for booking {BookingNo}: {Error}", bookingNo, quoteError);
+
+                    // Add failure message directly to the conversation
+                    var failureMessage = new DisplayMessage
+                    {
+                        Role = "assistant",
+                        Timestamp = DateTimeOffset.UtcNow,
+                        Parts = new List<string> {
+                            "I apologize, but there was an issue generating your quote. Our team will follow up with you shortly to resolve this."
+                        },
+                        FullText = "I apologize, but there was an issue generating your quote. Our team will follow up with you shortly to resolve this.",
+                        Html = "<p>I apologize, but there was an issue generating your quote. Our team will follow up with you shortly to resolve this.</p>"
+                    };
+                    msgList.Add(failureMessage);
+                }
+            }
+            catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
+            {
+                _logger.LogWarning("Quote generation timed out for booking {BookingNo}", bookingNo);
+
+                // Check if quote was actually generated despite the timeout
+                var (quoteExists, existingQuoteUrl) = _quoteGen.CheckExistingQuote(bookingNo);
+
+                if (quoteExists && !string.IsNullOrWhiteSpace(existingQuoteUrl))
+                {
+                    // Quote was generated successfully despite timeout
+                    HttpContext.Session.SetString("Draft:QuoteUrl", existingQuoteUrl);
+                    HttpContext.Session.SetString("Draft:QuoteComplete", "1"); // Mark quote as complete
+                    _logger.LogInformation("Quote was actually generated despite timeout for booking {BookingNo}: {QuoteUrl}", bookingNo, existingQuoteUrl);
+
+                    var successMessage = new DisplayMessage
+                    {
+                        Role = "assistant",
+                        Timestamp = DateTimeOffset.UtcNow,
+                        Parts = new List<string> {
+                            $"Great news! I've successfully generated your quote for booking {bookingNo}. <a href=\"{existingQuoteUrl}\" target=\"_blank\" class=\"btn btn-primary\">Download Quote PDF</a>"
+                        },
+                        FullText = $"Great news! I've successfully generated your quote for booking {bookingNo}. You can download it here: {existingQuoteUrl}",
+                        Html = $"Great news! I've successfully generated your quote for booking {bookingNo}. <a href=\"{existingQuoteUrl}\" target=\"_blank\" class=\"btn btn-primary\">Download Quote PDF</a>"
+                    };
+                    msgList.Add(successMessage);
+                }
+                else
+                {
+                    // Add timeout message
+                    var timeoutMessage = new DisplayMessage
+                    {
+                        Role = "assistant",
+                        Timestamp = DateTimeOffset.UtcNow,
+                        Parts = new List<string> {
+                            $"Your quote for booking {bookingNo} is being generated. Please wait a moment and refresh the page, or contact our team if you need immediate assistance."
+                        },
+                        FullText = $"Your quote for booking {bookingNo} is being generated. Please wait a moment and refresh the page, or contact our team if you need immediate assistance.",
+                        Html = $"<p>Your quote for booking <strong>{bookingNo}</strong> is being generated. Please wait a moment and refresh the page, or contact our team if you need immediate assistance.</p>"
+                    };
+                    msgList.Add(timeoutMessage);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Exception during quote generation for booking {BookingNo}", bookingNo);
+        }
+    }
+
     private static bool LooksLikeConsent(string userText)
     {
         if (string.IsNullOrWhiteSpace(userText)) return false;
 
-        var t = userText.ToLowerInvariant();
-        string[] yesPhrases =
+        var t = userText.Trim().ToLowerInvariant();
+        
+        // Explicit quote/booking consent phrases (high confidence) - check these FIRST
+        // These are unambiguous and should match regardless of message length
+        string[] explicitConsent =
         {
-        "yes", "yep", "yeah", "please proceed", "proceed", "go ahead",
-        "generate the quote", "generate quote", "create the quote",
-        "prepare the quote", "make the quote", "send the quote",
-        "yes create quote", "yes please", "that’s ok", "thats ok", "this ok", "looks good"
+            "generate the quote", "generate quote", "create the quote", "create quote",
+            "prepare the quote", "make the quote", "send the quote",
+            "yes create quote", "yes, create the quote", "yes create the quote",
+            "make the booking", "create the booking", "place the booking",
+            "give me quote", "give me the quote", "give me a quote",
+            "get the quote", "get a quote", "get my quote",
+            "can i get the quote", "can i get a quote", "can i get my quote",
+            "can i have the quote", "can i have a quote", "can i have my quote",
+            "i want the quote", "want the quote", "i need the quote",
+            "finalize the booking", "finalize booking",
+            "yes please create", "yes generate", "go ahead and create",
+            "i'm ready for the quote", "ready for the quote", 
+            "create my quote", "finalize the quote",
+            "just create", "just make", "proceed with the quote", "proceed with quote"
         };
-
-        return yesPhrases.Any(p => t.Contains(p));
+        
+        if (explicitConsent.Any(p => t.Contains(p)))
+            return true;
+        
+        // For short messages only - check for simple affirmatives
+        // This prevents false positives like "yes there will be speeches"
+        if (t.Length > 50) return false;
+        
+        // Short affirmative responses (only if message is very short - likely just a "yes")
+        string[] shortAffirmatives =
+        {
+            "yes", "yep", "yeah", "yes please", "please proceed", "proceed", 
+            "go ahead", "confirmed", "confirm", "ok", "okay", "sure"
+        };
+        
+        // For short affirmatives, the message should be VERY short (just the affirmative itself)
+        // This prevents "yes there will be speeches" from matching
+        if (t.Length <= 20 && shortAffirmatives.Any(p => t == p || t == p + "!" || t == p + "."))
+            return true;
+            
+        return false;
     }
 
     private static bool HasFinalSummary(IReadOnlyList<DisplayMessage> messages, int lookback = 6)
@@ -593,7 +967,16 @@ public sealed class ChatController : Controller
     {
         try
         {
+            // Clear quote completion state when resetting
             HttpContext.Session.Remove("AgentThreadId");
+            HttpContext.Session.Remove("Draft:QuoteComplete");
+            HttpContext.Session.Remove("Draft:QuoteUrl");
+            HttpContext.Session.Remove("Draft:BookingNo");
+            HttpContext.Session.Remove("Draft:ContactId");
+            HttpContext.Session.Remove("Draft:CustomerCode");
+            HttpContext.Session.Remove("Draft:PersistedSummaryKey");
+            HttpContext.Session.Remove("Draft:ShowedBookingNo");
+
             var newThreadId = _chat.EnsureThreadId(HttpContext.Session);
 
             var userKey = GetUserKey();
@@ -605,6 +988,7 @@ public sealed class ChatController : Controller
 
             // Tell the view whether to show the Yes/No buttons
             ViewData["ShowQuoteCta"] = WasLastAssistantASummaryAsk(messages.ToList()) ? "1" : "0";
+            ViewData["QuoteComplete"] = false;
 
             return PartialView("_Messages", messages);
         }

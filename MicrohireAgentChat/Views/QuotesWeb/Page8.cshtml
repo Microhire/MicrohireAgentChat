@@ -1,44 +1,229 @@
 @using Microsoft.AspNetCore.Authorization
-@using Microsoft.AspNetCore.Components.Web
 @inject IAuthorizationService AuthorizationService
 @model QuoteAllFields
 
 @{
     Layout = "_LayoutQuote";
-    ViewData["Title"] = $"TECHNICAL SERVICES";
+    ViewData["Title"] = $"Equipment Summary";
     ViewBag.Page = 8;
 }
-<div class="m-5 mt-2">
-    <table class="table td-no-border">
-        <thead>
-            <tr>
-                <th scope="col" class="">Description</th>
-                <th scope="col" >Task</th>
-                <th scope="col" >Qty.</th>
-                <th scope="col" >Start Date/Time</th>
-                <th scope="col" >Finish</th>
-                <th scope="col" >Hrs</th>
-                <th scope="col" >Total ($)</th>
-            </tr>
-        </thead>
-        <tbody>
-            @if(Model.LabourRows != null)
-            foreach (var data in Model.LabourRows)
+
+<style>
+    .summary-page {
+        padding: 2rem;
+        font-family: 'Inter', sans-serif;
+    }
+    
+    .page-header {
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #E71E25;
+    }
+    
+    .page-title {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #1a1a2e;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 0.25rem;
+    }
+    
+    .page-subtitle {
+        font-size: 0.875rem;
+        color: #888;
+    }
+    
+    .summary-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .summary-title {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #E71E25;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1.5rem;
+    }
+    
+    .category-card {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    
+    .category-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+    }
+    
+    .category-icon.vision { background: #E71E25; }
+    .category-icon.audio { background: #3498db; }
+    .category-icon.lighting { background: #f39c12; }
+    .category-icon.recording { background: #9b59b6; }
+    .category-icon.drape { background: #1abc9c; }
+    .category-icon.labour { background: #2c3e50; }
+    
+    .category-details {
+        flex: 1;
+    }
+    
+    .category-name {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: #1a1a2e;
+        margin-bottom: 0.25rem;
+    }
+    
+    .category-items {
+        font-size: 0.75rem;
+        color: #888;
+    }
+    
+    .category-total {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: #1a1a2e;
+    }
+    
+    .grand-total-card {
+        background: linear-gradient(135deg, #1a1a2e 0%, #2d2d44 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .grand-total-label {
+        font-size: 1rem;
+        font-weight: 500;
+        opacity: 0.9;
+    }
+    
+    .grand-total-amount {
+        font-size: 2.5rem;
+        font-weight: 700;
+    }
+    
+    .grand-total-note {
+        font-size: 0.875rem;
+        opacity: 0.7;
+        margin-top: 0.5rem;
+    }
+</style>
+
+<div class="summary-page">
+    <div class="page-header">
+        <h1 class="page-title">Equipment Summary</h1>
+        <div class="page-subtitle">@Model.EventTitle</div>
+    </div>
+    
+    <div class="summary-card">
+        <div class="summary-title">Equipment by Category</div>
+        <div class="summary-grid">
+            @if (Model.VisionRows != null && Model.VisionRows.Any())
             {
-                <tr>
-                    <td >@data.Description</td>
-                    <td >@data.Task</td>
-                    <td >@data.Qty</td>
-                    <td >@data.Start</td>
-                    <td >@data.Finish</td>
-                    <td >@data.Hrs</td>
-                    <td >@data.Total</td>
-                </tr>
+                <div class="category-card">
+                    <div class="category-icon vision">📽</div>
+                    <div class="category-details">
+                        <div class="category-name">Vision</div>
+                        <div class="category-items">@Model.VisionRows.Count item(s)</div>
+                    </div>
+                    <div class="category-total">@Model.VisionTotal</div>
+                </div>
             }
-            <tr>
-                <td class="fw-bold" colspan="6" style="text-align: right;">Labour Total</td>
-                <td class="fw-bold">@(Model.LabourTotal)</td>
-            </tr>
-        </tbody>
-    </table>
+            
+            @if (Model.AudioRows != null && Model.AudioRows.Any())
+            {
+                <div class="category-card">
+                    <div class="category-icon audio">🔊</div>
+                    <div class="category-details">
+                        <div class="category-name">Audio</div>
+                        <div class="category-items">@Model.AudioRows.Count item(s)</div>
+                    </div>
+                    <div class="category-total">@Model.AudioTotal</div>
+                </div>
+            }
+            
+            @if (Model.LightingRows != null && Model.LightingRows.Any())
+            {
+                <div class="category-card">
+                    <div class="category-icon lighting">💡</div>
+                    <div class="category-details">
+                        <div class="category-name">Lighting</div>
+                        <div class="category-items">@Model.LightingRows.Count item(s)</div>
+                    </div>
+                    <div class="category-total">@Model.LightingTotal</div>
+                </div>
+            }
+            
+            @if (Model.RecordingRows != null && Model.RecordingRows.Any())
+            {
+                <div class="category-card">
+                    <div class="category-icon recording">🎬</div>
+                    <div class="category-details">
+                        <div class="category-name">Recording</div>
+                        <div class="category-items">@Model.RecordingRows.Count item(s)</div>
+                    </div>
+                    <div class="category-total">@Model.RecordingTotal</div>
+                </div>
+            }
+            
+            @if (Model.DrapeRows != null && Model.DrapeRows.Any())
+            {
+                <div class="category-card">
+                    <div class="category-icon drape">🎭</div>
+                    <div class="category-details">
+                        <div class="category-name">Staging & Drapes</div>
+                        <div class="category-items">@Model.DrapeRows.Count item(s)</div>
+                    </div>
+                    <div class="category-total">@Model.DrapeTotal</div>
+                </div>
+            }
+            
+            @if (Model.LabourRows != null && Model.LabourRows.Any())
+            {
+                <div class="category-card">
+                    <div class="category-icon labour">👤</div>
+                    <div class="category-details">
+                        <div class="category-name">Technical Services</div>
+                        <div class="category-items">@Model.LabourRows.Count service(s)</div>
+                    </div>
+                    <div class="category-total">@Model.LabourTotal</div>
+                </div>
+            }
+        </div>
+    </div>
+    
+    <div class="grand-total-card">
+        <div>
+            <div class="grand-total-label">Equipment & Services Total</div>
+            <div class="grand-total-note">Excluding GST</div>
+        </div>
+        <div class="grand-total-amount">@Model.RentalTotal</div>
+    </div>
 </div>
