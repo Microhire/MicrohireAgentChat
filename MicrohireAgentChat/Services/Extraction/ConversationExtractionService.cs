@@ -514,27 +514,92 @@ public sealed class ConversationExtractionService
     private static string? FindVenue(IEnumerable<string> lines, out string? matched)
     {
         matched = null;
+        
+        // Known venue names/keywords to look for
+        var knownVenues = new[] {
+            "westin", "hilton", "marriott", "sheraton", "hyatt", "intercontinental", "sofitel",
+            "novotel", "mercure", "ibis", "pullman", "crowne plaza", "rydges", "stamford",
+            "convention centre", "convention center", "expo", "exhibition", "conference centre",
+            "ballroom", "grand ballroom", "function room", "banquet hall"
+        };
 
+        // First, look for known venue names in the text
+        foreach (var line in lines)
+        {
+            var lineLower = line.ToLower();
+            
+            // Skip lines that look like questions (from assistant)
+            if (lineLower.Contains("what is your") || lineLower.Contains("could you") || 
+                lineLower.Contains("please provide") || lineLower.Contains("?"))
+                continue;
+                
+            foreach (var venue in knownVenues)
+            {
+                if (lineLower.Contains(venue))
+                {
+                    // Try to extract the full venue name with context
+                    // Pattern: "Westin Brisbane" or "The Westin Brisbane" or "at Westin Brisbane"
+                    var pattern = $@"(?:at\s+)?(?:the\s+)?({Regex.Escape(venue)}[A-Za-z\s&'-]{{0,40}})";
+                    var m = Regex.Match(line, pattern, RegexOptions.IgnoreCase);
+                    if (m.Success)
+                    {
+                        matched = m.Groups[1].Value.Trim();
+                        // Clean up trailing words that aren't part of venue
+                        matched = Regex.Replace(matched, @"\s+(?:in|for|with|style|would|be|perfect|please).*$", "", RegexOptions.IgnoreCase).Trim();
+                        if (matched.Length > 3) return matched;
+                    }
+                }
+            }
+        }
+
+        // Explicit patterns
         var venuePatterns = new[]
         {
-            @"(?:venue|location|at):\s*([A-Z][^\n,.]{3,60})",
-            @"at\s+(?:the\s+)?([A-Z][A-Za-z\s&'-]{3,60})\b"
+            @"(?:venue|location):\s*([A-Z][^\n,.]{3,60})",
+            @"(?:venue|location)\s+(?:is|will be|would be)\s+(?:the\s+)?([A-Z][A-Za-z\s&'-]{3,60})",
+            @"at\s+(?:the\s+)?([A-Z][A-Za-z\s&'-]{3,60})(?:\s+(?:hotel|centre|center|ballroom|room))",
+            @"(?:the\s+)?([A-Z][A-Za-z\s&'-]{3,40})\s+(?:hotel|convention|conference|ballroom)"
         };
 
         foreach (var line in lines)
         {
+            // Skip question lines
+            if (line.Contains("?")) continue;
+            
             foreach (var pat in venuePatterns)
             {
                 var m = Regex.Match(line, pat, RegexOptions.IgnoreCase);
                 if (m.Success)
                 {
-                    matched = m.Groups[1].Value.Trim();
-                    return matched;
+                    var candidate = m.Groups[1].Value.Trim();
+                    // Validate it's not a common word/phrase
+                    if (!IsCommonPhrase(candidate) && candidate.Length > 3)
+                    {
+                        matched = candidate;
+                        return matched;
+                    }
                 }
             }
         }
 
         return null;
+    }
+    
+    /// <summary>
+    /// Check if a string is a common phrase that shouldn't be extracted as venue/org
+    /// </summary>
+    private static bool IsCommonPhrase(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return true;
+        
+        var commonPhrases = new[] {
+            "what is your", "is your full", "full name", "your name", "your email", "your phone",
+            "could you", "please provide", "let me", "thank you", "hi there", "hello",
+            "how can", "i can", "we can", "i will", "we will"
+        };
+        
+        var lower = text.ToLower().Trim();
+        return commonPhrases.Any(p => lower.Contains(p)) || lower.Length < 4;
     }
 
     private static (string? name, string? email, string? phone) ParseIslaFields(IEnumerable<string> lines)
@@ -688,88 +753,229 @@ public sealed class ConversationExtractionService
     {
         if (string.IsNullOrWhiteSpace(text)) return (null, null);
 
-        // Normalize
-        text = text.Replace('\'', '\'').Replace('"', '"').Replace('"', '"');
+        // Normalize quotes to standard ASCII
+        text = text.Replace('\u2018', '\'').Replace('\u2019', '\'').Replace('\u201C', '"').Replace('\u201D', '"');
         text = Regex.Replace(text, @"\s+", " ").Trim();
-        text = Regex.Replace(text, @"\b(adress|addess|addres|addrss)\b", "address", RegexOptions.IgnoreCase);
+        text = Regex.Replace(text, @"\b(adress|addess|addres|addrss|adreess|addrees|adrress)\b", "address", RegexOptions.IgnoreCase);
+        
+        // Common Australian suburbs for location matching
+        var ausSuburbs = new[] { 
+            "ascot", "kelvin grove", "fortitude valley", "south bank", "southbank", "brisbane", 
+            "sydney", "melbourne", "perth", "adelaide", "hobart", "darwin", "canberra",
+            "parramatta", "chatswood", "bondi", "surry hills", "newtown", "redfern",
+            "st kilda", "richmond", "carlton", "fitzroy", "south yarra", "toorak"
+        };
+        
+        Match m;
+        string pattern;
 
-        // Pattern: "Organization, address: 123 Main St"
-        var pattern = @"^([^,]+),\s*address:\s*(.+)$";
-        var m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
+        // ============= NATURAL LANGUAGE PATTERNS (highest priority) =============
+        
+        // Pattern: "it's X, our office is in Y" / "it's X, we're in Y" / "it's X, we are in Y"
+        pattern = @"^(?:it'?s|its)\s+(.+?),\s*(?:our\s+)?(?:office|we(?:'re|'re| are)?)\s+(?:is\s+)?(?:in|at)\s+(.+)$";
+        m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
         if (m.Success)
         {
-            var org = m.Groups[1].Value.Trim();
+            var org = CleanOrgName(m.Groups[1].Value);
             var addr = m.Groups[2].Value.Trim();
-            return (org, addr);
+            if (IsValidOrgCandidate(org)) return (org, addr);
+        }
+        
+        // Pattern: "it's X, located in Y" / "it's X, based in Y"
+        pattern = @"^(?:it'?s|its)\s+(.+?),\s*(?:located|based|situated)\s+(?:in|at)\s+(.+)$";
+        m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
+        if (m.Success)
+        {
+            var org = CleanOrgName(m.Groups[1].Value);
+            var addr = m.Groups[2].Value.Trim();
+            if (IsValidOrgCandidate(org)) return (org, addr);
+        }
+        
+        // Pattern: "X, our office is in Y" (without "it's")
+        pattern = @"^(.+?),\s*(?:our\s+)?office\s+is\s+(?:in|at)\s+(.+)$";
+        m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
+        if (m.Success)
+        {
+            var org = CleanOrgName(m.Groups[1].Value);
+            var addr = m.Groups[2].Value.Trim();
+            if (IsValidOrgCandidate(org)) return (org, addr);
+        }
+        
+        // Pattern: "X, we're in Y" / "X, we are in Y" / "X, we're based in Y"
+        pattern = @"^(.+?),\s*we(?:'re|'re| are)\s+(?:based\s+|located\s+)?(?:in|at)\s+(.+)$";
+        m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
+        if (m.Success)
+        {
+            var org = CleanOrgName(m.Groups[1].Value);
+            var addr = m.Groups[2].Value.Trim();
+            if (IsValidOrgCandidate(org)) return (org, addr);
+        }
+        
+        // Pattern: "we're X, in Y" / "we are X, in Y"
+        pattern = @"^we(?:'re|'re| are)\s+(.+?),\s*(?:in|at|based in|located in)\s+(.+)$";
+        m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
+        if (m.Success)
+        {
+            var org = CleanOrgName(m.Groups[1].Value);
+            var addr = m.Groups[2].Value.Trim();
+            if (IsValidOrgCandidate(org)) return (org, addr);
         }
 
-        // Pattern: "Organization at 123 Main St"
+        // ============= EXPLICIT PATTERNS =============
+        
+        // Pattern: "Organization, address: 123 Main St"
+        pattern = @"^([^,]+),\s*address:\s*(.+)$";
+        m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
+        if (m.Success)
+        {
+            var org = CleanOrgName(m.Groups[1].Value);
+            var addr = m.Groups[2].Value.Trim();
+            if (IsValidOrgCandidate(org)) return (org, addr);
+        }
+
+        // Pattern: "Organization at 123 Main St" (requires digit or suburb in addr)
         pattern = @"^(.+?)\s+(?:at|@)\s+(.+)$";
         m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
         if (m.Success)
         {
-            var org = m.Groups[1].Value.Trim();
+            var org = CleanOrgName(m.Groups[1].Value);
+            var addr = m.Groups[2].Value.Trim().ToLower();
+            if (IsValidOrgCandidate(org) && (addr.Any(char.IsDigit) || ausSuburbs.Any(s => addr.Contains(s))))
+                return (org, m.Groups[2].Value.Trim());
+        }
+
+        // Pattern: "Organization headquartered in Location" or "Organization based in Location"
+        pattern = @"^(.+?)\s+(?:headquartered|based|located|situated)\s+(?:in|at)\s+(.+)$";
+        m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
+        if (m.Success)
+        {
+            var org = CleanOrgName(m.Groups[1].Value);
             var addr = m.Groups[2].Value.Trim();
-            if (addr.Any(char.IsDigit)) // likely an address
-                return (org, addr);
+            if (IsValidOrgCandidate(org)) return (org, addr);
         }
 
         // Pattern: "X is the name, address is Y" or "X is the organization, address is Y"
-        pattern = @"^(.+?)\s+is\s+the\s+(?:name|organization|company),\s*address\s+is\s+(.+)$";
+        pattern = @"^(.+?)\s+is\s+the\s+(?:name|organization|organisation|company),\s*(?:address|location)\s+is\s+(.+)$";
         m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
         if (m.Success)
         {
-            var org = m.Groups[1].Value.Trim();
+            var org = CleanOrgName(m.Groups[1].Value);
             var addr = m.Groups[2].Value.Trim();
-            return (org, addr);
+            if (IsValidOrgCandidate(org)) return (org, addr);
         }
 
         // Pattern: "Organization is X, address is Y"
-        pattern = @"^(?:organization|company|org)\s+is\s+([^,]+),\s*address\s+is\s+(.+)$";
+        pattern = @"^(?:organization|organisation|company|org)\s+(?:name\s+)?is\s+([^,]+),\s*(?:address|location)\s+is\s+(.+)$";
         m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
         if (m.Success)
         {
-            var org = m.Groups[1].Value.Trim();
+            var org = CleanOrgName(m.Groups[1].Value);
             var addr = m.Groups[2].Value.Trim();
-            return (org, addr);
+            if (IsValidOrgCandidate(org)) return (org, addr);
+        }
+
+        // Pattern: "Organization is X address is Y" (no comma)
+        pattern = @"^(?:organization|organisation|company|org)\s+(?:name\s+)?is\s+(.+?)\s+(?:address|location)\s+is\s+(.+)$";
+        m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
+        if (m.Success)
+        {
+            var org = CleanOrgName(m.Groups[1].Value);
+            var addr = m.Groups[2].Value.Trim();
+            if (IsValidOrgCandidate(org)) return (org, addr);
+        }
+
+        // Pattern: "X (organization), Y (address)" - flexible comma separation
+        pattern = @"^(?:organization|organisation|company|org|name)\s*(?:is|:)?\s*(.+?),\s*(?:address|location|based\s+(?:in|at))\s*(?:is|:)?\s*(.+)$";
+        m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
+        if (m.Success)
+        {
+            var org = CleanOrgName(m.Groups[1].Value);
+            var addr = m.Groups[2].Value.Trim();
+            if (IsValidOrgCandidate(org)) return (org, addr);
         }
 
         // Pattern: "X is the company. Y is the" pattern
         var re5 = new Regex(@"^(?<org>.+?)\s+is\s+the\s+company\.?\s*(?<addr>.+?)\s+is\s+the",
             RegexOptions.IgnoreCase);
         var m5 = re5.Match(text);
-        if (m5.Success) return (m5.Groups["org"].Value.Trim(), m5.Groups["addr"].Value.Trim());
+        if (m5.Success)
+        {
+            var org = CleanOrgName(m5.Groups["org"].Value);
+            if (IsValidOrgCandidate(org)) return (org, m5.Groups["addr"].Value.Trim());
+        }
 
         // Pattern: "company is X. address is Y"
         var re6 = new Regex(@"company\s+is\s+(?<org>.+?)\.?\s+address\s+is\s+(?<addr>.+?)$",
             RegexOptions.IgnoreCase);
         var m6 = re6.Match(text);
-        if (m6.Success) return (m6.Groups["org"].Value.Trim(), m6.Groups["addr"].Value.Trim());
-
-        // Fallback: split on common separators
-        var separators = new[] { ". ", ", ", " and ", " & " };
-        foreach (var sep in separators)
+        if (m6.Success)
         {
-            var idx = text.IndexOf(sep, StringComparison.OrdinalIgnoreCase);
-            if (idx > 0)
-            {
-                var part1 = text[..idx].Trim();
-                var part2 = text[(idx + sep.Length)..].Trim();
+            var org = CleanOrgName(m6.Groups["org"].Value);
+            if (IsValidOrgCandidate(org)) return (org, m6.Groups["addr"].Value.Trim());
+        }
 
-                // Check if part1 looks like a company name and part2 like an address
-                if (part1.Length > 3 && part1.Length < 50 && part2.Length > 5 && part2.Length < 100)
-                {
-                    // Simple heuristic: if part2 contains numbers or common address words
-                    var addrWords = new[] { "street", "st", "road", "rd", "avenue", "ave", "city", "nyc", "melbourne" };
-                    if (part2.Any(char.IsDigit) || addrWords.Any(w => part2.Contains(w, StringComparison.OrdinalIgnoreCase)))
-                    {
-                        return (part1, part2);
-                    }
-                }
+        // ============= SMART FALLBACK: comma-separated with location hint =============
+        // Pattern: "X, Y" where Y contains location words or is a known suburb
+        var commaIdx = text.IndexOf(',');
+        if (commaIdx > 3)
+        {
+            var part1 = text[..commaIdx].Trim();
+            var part2 = text[(commaIdx + 1)..].Trim();
+            
+            // Clean up part1 (remove "it's", "we're", etc.)
+            part1 = CleanOrgName(part1);
+            
+            // Check if part2 looks like a location
+            var part2Lower = part2.ToLower();
+            var locationWords = new[] { "in ", "at ", "office", "based", "located", "street", "st ", "road", "rd ", "avenue", "ave " };
+            var hasLocationWord = locationWords.Any(w => part2Lower.Contains(w));
+            var hasSuburb = ausSuburbs.Any(s => part2Lower.Contains(s));
+            
+            if (IsValidOrgCandidate(part1) && (hasLocationWord || hasSuburb))
+            {
+                // Extract just the location from part2
+                var addrMatch = Regex.Match(part2, @"(?:in|at)\s+(.+)$", RegexOptions.IgnoreCase);
+                var addr = addrMatch.Success ? addrMatch.Groups[1].Value.Trim() : part2;
+                return (part1, addr);
             }
         }
 
         return (null, null);
+    }
+    
+    /// <summary>
+    /// Clean organization name by removing common prefixes
+    /// </summary>
+    private static string CleanOrgName(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return name;
+        
+        name = name.Trim().TrimEnd(',', '.', ';');
+        
+        // Remove common prefixes
+        var prefixes = new[] { "it's ", "its ", "it is ", "we're ", "we are ", "i work for ", "i work at ", "from " };
+        foreach (var prefix in prefixes)
+        {
+            if (name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                name = name[prefix.Length..].Trim();
+        }
+        
+        return name;
+    }
+    
+    /// <summary>
+    /// Check if a string looks like a valid organization name candidate
+    /// </summary>
+    private static bool IsValidOrgCandidate(string? org)
+    {
+        if (string.IsNullOrWhiteSpace(org)) return false;
+        if (org.Length < 3 || org.Length > 60) return false;
+        
+        // Must not be common phrases
+        var invalidPhrases = new[] { "yes", "no", "ok", "okay", "sure", "thanks", "thank you", "please", "hello", "hi" };
+        if (invalidPhrases.Contains(org.ToLower())) return false;
+        
+        return true;
     }
 
     private static string? CleanAddress(string? addr)

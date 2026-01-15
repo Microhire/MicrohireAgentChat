@@ -172,7 +172,7 @@ JSON ONLY, no other text:";
             // Use Azure OpenAI via HTTP
             var endpoint = _config["AzureOpenAI:Endpoint"];
             var apiKey = _config["AzureOpenAI:ApiKey"];
-            var deployment = _config["AzureOpenAI:Deployment"] ?? "gpt-4o-mini";
+            var deployment = _config["AzureOpenAI:Deployment"] ?? "gpt-4o";
             
             if (string.IsNullOrEmpty(endpoint) || string.IsNullOrEmpty(apiKey))
             {

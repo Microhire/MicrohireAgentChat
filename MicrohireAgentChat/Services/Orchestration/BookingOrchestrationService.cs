@@ -45,7 +45,8 @@ public sealed class BookingOrchestrationService
     public async Task<BookingResult> ProcessConversationAsync(
         IEnumerable<DisplayMessage> messages,
         string? existingBookingNo,
-        CancellationToken ct)
+        CancellationToken ct,
+        Dictionary<string, string>? additionalFacts = null)
     {
         var result = new BookingResult();
 
@@ -57,6 +58,15 @@ public sealed class BookingOrchestrationService
             var contactInfo = _extractor.ExtractContactInfo(messages);
             var (orgName, orgAddress) = _extractor.ExtractOrganisationFromTranscript(messages);
             var facts = _extractor.ExtractExpectedFields(messages);
+            
+            // Merge any additional facts (e.g., equipment from session)
+            if (additionalFacts != null)
+            {
+                foreach (var kvp in additionalFacts)
+                {
+                    facts[kvp.Key] = kvp.Value;
+                }
+            }
 
             _logger.LogInformation("Extracted contact: {Name}, org: {Org}", contactInfo.Name, orgName);
 

@@ -1,4 +1,4 @@
-﻿// AzureAgentChatService.cs
+// AzureAgentChatService.cs
 using Azure;
 using Azure.AI.Agents.Persistent;
 using Azure.AI.Projects;
@@ -7,6 +7,7 @@ using Markdig;
 using MicrohireAgentChat.Config;
 using MicrohireAgentChat.Data;
 using MicrohireAgentChat.Models;
+using MicrohireAgentChat.Services.Extraction;
 using MicrohireAgentChat.Services.Orchestration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -39,6 +40,7 @@ namespace MicrohireAgentChat.Services
         private readonly AgentToolHandlerService _toolHandler;
         private readonly TimePickerService _timePicker;
         private readonly QuoteGenerationService _quoteGen;
+        private readonly HtmlQuoteGenerationService _htmlQuoteGen;
         
         private static readonly ConcurrentDictionary<string, SemaphoreSlim> _threadLocks = new();
         private static SemaphoreSlim GetThreadGate(string threadId)
@@ -54,7 +56,8 @@ namespace MicrohireAgentChat.Services
             BookingOrchestrationService orchestration,
             AgentToolHandlerService toolHandler,
             TimePickerService timePicker,
-            QuoteGenerationService quoteGen)
+            QuoteGenerationService quoteGen,
+            HtmlQuoteGenerationService htmlQuoteGen)
         {
             _projectClient = projectClient;
             _agentId = options.Value.AgentId ?? throw new ArgumentNullException(nameof(options.Value.AgentId));
@@ -66,6 +69,7 @@ namespace MicrohireAgentChat.Services
             _toolHandler = toolHandler;
             _timePicker = timePicker;
             _quoteGen = quoteGen;
+            _htmlQuoteGen = htmlQuoteGen;
         }
 
         private PersistentAgentsClient AgentsClient => _projectClient.GetPersistentAgentsClient();
@@ -297,7 +301,10 @@ namespace MicrohireAgentChat.Services
                                    textLower.Contains("schedule") ||
                                    textLower.Contains("timing") ||
                                    textLower.Contains("setup time") ||
-                                   textLower.Contains("pack");
+                                   textLower.Contains("pack") ||
+                                   textLower.Contains("time picker") ||
+                                   textLower.Contains("times for your") ||
+                                   textLower.Contains("choose") && textLower.Contains("time");
 
             if (!isAskingForTime)
                 return;
@@ -397,72 +404,52 @@ namespace MicrohireAgentChat.Services
 
                                         case "generate_quote":
                                             {
-                                                // SAFEGUARD: Check if user explicitly confirmed they're ready AND equipment is confirmed
-                                                bool userConfirmedReady = false;
-                                                bool equipmentConfirmed = false;
-                                                try
-                                                {
-                                                    using var doc = JsonDocument.Parse(argsJson ?? "{}");
-                                                    if (doc.RootElement.TryGetProperty("userConfirmedReady", out var ucr))
-                                                        userConfirmedReady = ucr.ValueKind == JsonValueKind.True;
-                                                    if (doc.RootElement.TryGetProperty("equipmentConfirmed", out var ec))
-                                                        equipmentConfirmed = ec.ValueKind == JsonValueKind.True;
-                                                }
-                                                catch { }
-
-                                                // If equipment hasn't been confirmed, reject the quote generation
-                                                if (!equipmentConfirmed)
-                                                {
-                                                    outputs.Add((toolCallId, JsonSerializer.Serialize(new
-                                                    {
-                                                        error = "Cannot generate quote - equipment has not been confirmed by the user.",
-                                                        instruction = "STOP! You must follow this flow BEFORE generating a quote:\n" +
-                                                            "1) Call 'get_equipment_recommendations' with the user's equipment requirements text.\n" +
-                                                            "2) Show the user the equipment recommendations with pricing. Mention any packages available.\n" +
-                                                            "3) Ask 'Does this equipment look correct? Any changes needed?'\n" +
-                                                            "4) Wait for user to confirm (e.g., 'yes', 'looks good', 'that's right').\n" +
-                                                            "5) Ask 'Shall I prepare your quote now?'\n" +
-                                                            "6) Only after user explicitly confirms, call generate_quote with equipmentConfirmed=true and userConfirmedReady=true.\n\n" +
-                                                            "You CANNOT skip showing equipment recommendations to the user!"
-                                                    })));
-                                                    break;
-                                                }
-
-                                                // If user hasn't confirmed ready, reject the quote generation
-                                                if (!userConfirmedReady)
-                                                {
-                                                    outputs.Add((toolCallId, JsonSerializer.Serialize(new
-                                                    {
-                                                        error = "Cannot generate quote yet - user has not confirmed they are ready.",
-                                                        instruction = "You showed equipment to the user but haven't asked if they're ready for the quote.\n" +
-                                                            "Ask: 'Is there anything else you need, or shall I create your quote now?'\n" +
-                                                            "Only call generate_quote with userConfirmedReady=true after user explicitly says yes."
-                                                    })));
-                                                    break;
-                                                }
-
-                                                // Get the booking number from session
+                                                // SIMPLIFIED FLOW: Generate HTML quote when equipment is confirmed
+                                                // Auto-create booking if one doesn't exist
+                                                
                                                 var session = _http.HttpContext?.Session;
                                                 var bookingNo = session?.GetString("Draft:BookingNo");
                                                 
+                                                // If no booking exists, create one on-the-fly using session data
                                                 if (string.IsNullOrWhiteSpace(bookingNo))
                                                 {
+                                                    _logger.LogInformation("No booking found, creating one on-the-fly for quote generation");
+                                                    try
+                                                    {
+                                                        // Create a new booking using session data
+                                                        bookingNo = await CreateBookingOnTheFlyAsync(session, ct);
+                                                        if (!string.IsNullOrWhiteSpace(bookingNo))
+                                                        {
+                                                            session?.SetString("Draft:BookingNo", bookingNo);
+                                                            _logger.LogInformation("Created booking {BookingNo} on-the-fly", bookingNo);
+                                                        }
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        _logger.LogError(ex, "Failed to create booking on-the-fly");
+                                                    }
+                                                }
+                                                
+                                                if (string.IsNullOrWhiteSpace(bookingNo))
+                                                {
+                                                    // Still no booking - return a friendly error
                                                     outputs.Add((toolCallId, JsonSerializer.Serialize(new
                                                     {
-                                                        error = "No booking found. Please ensure the booking has been created first.",
-                                                        instruction = "A booking must be created before generating a quote. Make sure all booking details (date, time, venue, equipment) have been confirmed."
+                                                        error = "Unable to create booking automatically.",
+                                                        instruction = "The booking could not be created. Please try confirming the schedule again."
                                                     })));
                                                     break;
                                                 }
 
-                                                // Use QuoteGenerationService to generate PDF from booking data
-                                                var (success, pdfUrl, error) = await _quoteGen.GenerateQuoteForBookingAsync(bookingNo, ct);
+                                                // Use HtmlQuoteGenerationService to generate HTML from booking data
+                                                var (success, htmlUrl, error) = await _htmlQuoteGen.GenerateHtmlQuoteForBookingAsync(bookingNo, ct);
                                                 
-                                                if (!success || string.IsNullOrEmpty(pdfUrl))
+                                                if (!success || string.IsNullOrEmpty(htmlUrl))
                                                 {
+                                                    _logger.LogError("HTML quote generation failed: {Error}", error);
                                                     outputs.Add((toolCallId, JsonSerializer.Serialize(new
                                                     {
-                                                        error = error ?? "Failed to generate quote PDF.",
+                                                        error = error ?? "Failed to generate quote.",
                                                         bookingNo
                                                     })));
                                                     break;
@@ -471,16 +458,19 @@ namespace MicrohireAgentChat.Services
                                                 // Build full URL
                                                 var req = _http.HttpContext?.Request;
                                                 var baseUrl = (req == null) ? "" : $"{req.Scheme}://{req.Host}";
-                                                var fullQuoteUrl = $"{baseUrl}{pdfUrl}";
+                                                var fullQuoteUrl = $"{baseUrl}{htmlUrl}";
+
+                                                _logger.LogInformation("HTML quote generated successfully for booking {BookingNo}: {Url}", bookingNo, fullQuoteUrl);
 
                                                 outputs.Add((toolCallId, JsonSerializer.Serialize(new
                                                 {
                                                     ui = new
                                                     {
                                                         quoteUrl = fullQuoteUrl,
-                                                        bookingNo
+                                                        bookingNo,
+                                                        isHtml = true
                                                     },
-                                                    message = $"Quote PDF generated successfully for booking {bookingNo}."
+                                                    message = $"Great news! I've successfully generated your quote for booking {bookingNo}."
                                                 })));
                                                 break;
                                             }
@@ -951,9 +941,15 @@ namespace MicrohireAgentChat.Services
             var monthNames = "jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december";
             var patterns = new[]
             {
+                // "15th of February 2024", "15 of February 2024"
+                $@"\b(\d{{1,2}})(st|nd|rd|th)?\s+of\s+({monthNames})\s+(\d{{4}})\b",
+                // "15th February 2024", "15 February 2024"
                 $@"\b(\d{{1,2}})(st|nd|rd|th)?\s+({monthNames})\s+(\d{{4}})\b",
+                // "February 15th, 2024", "February 15 2024"
                 $@"\b({monthNames})\s+(\d{{1,2}})(st|nd|rd|th)?(,?\s*(\d{{4}}))?\b",
+                // "15/02/2024", "15/2/24"
                 @"\b(\d{1,2})/(\d{1,2})/(\d{2,4})\b",
+                // "2024-02-15"
                 @"\b(\d{4})-(\d{2})-(\d{2})\b"
             };
 
@@ -995,7 +991,10 @@ namespace MicrohireAgentChat.Services
             static bool TryParseDateToken(string token, out DateTimeOffset dto)
             {
                 token = token.Trim();
+                // Remove ordinal suffixes: "15th" -> "15"
                 token = Regex.Replace(token, @"\b(\d{1,2})(st|nd|rd|th)\b", "$1", RegexOptions.IgnoreCase);
+                // Remove "of" between day and month: "15 of February" -> "15 February"
+                token = Regex.Replace(token, @"\b(\d{1,2})\s+of\s+", "$1 ", RegexOptions.IgnoreCase);
 
                 var cultures = new[]
                 {
@@ -1590,7 +1589,19 @@ namespace MicrohireAgentChat.Services
             {
                 var parts = s.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length == 0 || parts.Length > 3) return false;
-                return parts.All(p => Regex.IsMatch(p, @"^[A-Za-z][a-z]+$"));
+                if (!parts.All(p => Regex.IsMatch(p, @"^[A-Za-z][a-z]+$"))) return false;
+                
+                // Reject names starting with articles
+                var first = parts[0].ToLowerInvariant();
+                if (first is "the" or "a" or "an") return false;
+                
+                // Reject common job titles/roles that aren't names
+                var lower = s.ToLowerInvariant();
+                var jobTitles = new[] { "director", "manager", "engineer", "developer", "officer", "assistant", 
+                    "coordinator", "supervisor", "executive", "president", "owner", "founder", "ceo", "cto", "cfo" };
+                if (jobTitles.Any(t => lower.Contains(t))) return false;
+                
+                return true;
             }
 
             static string ToTitle(string s) =>
@@ -1873,7 +1884,19 @@ namespace MicrohireAgentChat.Services
             {
                 var parts = s.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 if (parts.Length == 0 || parts.Length > 3) return false;
-                return parts.All(p => Regex.IsMatch(p, @"^[A-Za-z][a-z]+$"));
+                if (!parts.All(p => Regex.IsMatch(p, @"^[A-Za-z][a-z]+$"))) return false;
+                
+                // Reject names starting with articles
+                var first = parts[0].ToLowerInvariant();
+                if (first is "the" or "a" or "an") return false;
+                
+                // Reject common job titles/roles that aren't names
+                var lower = s.ToLowerInvariant();
+                var jobTitles = new[] { "director", "manager", "engineer", "developer", "officer", "assistant", 
+                    "coordinator", "supervisor", "executive", "president", "owner", "founder", "ceo", "cto", "cfo" };
+                if (jobTitles.Any(t => lower.Contains(t))) return false;
+                
+                return true;
             }
             static string ToTitle(string s)
                 => CultureInfo.CurrentCulture.TextInfo.ToTitleCase(s.ToLowerInvariant());
@@ -3107,6 +3130,121 @@ namespace MicrohireAgentChat.Services
 
             // Compose: prefix + zero-padded 6-digit suffix
             return $"{prefix}{nextSeq.ToString().PadLeft(suffixWidth, '0')}";
+        }
+
+        /// <summary>
+        /// Creates a booking on-the-fly when generate_quote is called but no booking exists.
+        /// Uses session data for times/equipment and defaults for other fields.
+        /// </summary>
+        private async Task<string> CreateBookingOnTheFlyAsync(ISession? session, CancellationToken ct)
+        {
+            if (session == null) return "";
+            
+            try
+            {
+                // Generate a new booking number
+                var bookingNo = await GenerateNextBookingNoAsync(_bookings, ct);
+                _logger.LogInformation("Creating booking {BookingNo} on-the-fly", bookingNo);
+                
+                // Create the booking record
+                var booking = new TblBooking
+                {
+                    booking_no = bookingNo,
+                    EntryDate = DateTime.Now,
+                    booking_type_v32 = 2, // Quote
+                    BookingProgressStatus = 1, // Light Pencil
+                    From_locn = 20,
+                    return_to_locn = 20,
+                    Trans_to_locn = 20,
+                    CustCode = "C04518", // Default customer
+                    CustID = 13740,
+                    VenueID = 16, // Westin Brisbane
+                    VenueRoom = "Conference Room",
+                    contact_nameV6 = "Contact"
+                };
+                
+                // Set times from session if available
+                var startTime = session.GetString("Draft:StartTime");
+                var endTime = session.GetString("Draft:EndTime");
+                var setupTime = session.GetString("Draft:SetupTime");
+                var rehearsalTime = session.GetString("Draft:RehearsalTime");
+                var eventDateStr = session.GetString("Draft:EventDate");
+                
+                // Use event date from session, or extract from conversation, or default to 30 days ahead
+                DateTime eventDate;
+                if (!string.IsNullOrEmpty(eventDateStr) && DateTime.TryParse(eventDateStr, out var parsedDate))
+                {
+                    eventDate = parsedDate;
+                }
+                else
+                {
+                    // Try to extract from conversation as fallback
+                    var threadId = session.GetString(SessionKeyThreadId) ?? "";
+                    var (_, messages) = GetTranscript(threadId);
+                    var (dateDto, _) = ExtractEventDate(messages);
+                    eventDate = dateDto?.DateTime.Date ?? DateTime.Today.AddDays(30);
+                }
+                
+                booking.dDate = eventDate;
+                booking.rDate = eventDate;
+                booking.SetDate = eventDate;
+                booking.ShowSDate = eventDate;
+                booking.ShowEdate = eventDate;
+                booking.SDate = eventDate;
+                booking.RehDate = eventDate;
+                
+                if (!string.IsNullOrEmpty(startTime)) booking.showStartTime = startTime.Replace(":", "");
+                if (!string.IsNullOrEmpty(endTime)) booking.ShowEndTime = endTime.Replace(":", "");
+                if (!string.IsNullOrEmpty(setupTime)) booking.setupTimeV61 = setupTime.Replace(":", "");
+                if (!string.IsNullOrEmpty(rehearsalTime)) booking.RehearsalTime = rehearsalTime.Replace(":", "");
+                
+                _bookings.TblBookings.Add(booking);
+                await _bookings.SaveChangesAsync(ct);
+                
+                _logger.LogInformation("Booking {BookingNo} created with ID {BookingId}", bookingNo, booking.ID);
+                
+                // Now add equipment from session if available
+                var equipmentJson = session.GetString("Draft:SelectedEquipment");
+                if (!string.IsNullOrEmpty(equipmentJson))
+                {
+                    try
+                    {
+                        var equipment = JsonSerializer.Deserialize<List<SelectedEquipmentItem>>(equipmentJson);
+                        if (equipment != null && equipment.Count > 0)
+                        {
+                            _logger.LogInformation("Adding {Count} equipment items to booking {BookingNo}", equipment.Count, bookingNo);
+                            
+                            foreach (var item in equipment)
+                            {
+                                var itemTran = new TblItemtran
+                                {
+                                    BookingNoV32 = bookingNo,
+                                    BookingId = booking.ID,
+                                    ProductCodeV42 = item.ProductCode,
+                                    CommentDescV42 = item.Description,
+                                    TransQty = item.Quantity,
+                                    ItemType = 0 // Normal item
+                                };
+                                _bookings.TblItemtrans.Add(itemTran);
+                            }
+                            
+                            await _bookings.SaveChangesAsync(ct);
+                            _logger.LogInformation("Equipment items added to booking {BookingNo}", bookingNo);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to add equipment to booking {BookingNo}", bookingNo);
+                    }
+                }
+                
+                return bookingNo;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create booking on-the-fly");
+                return "";
+            }
         }
 
         private async Task<TblBooking> GetOrCreateBookingAsync(

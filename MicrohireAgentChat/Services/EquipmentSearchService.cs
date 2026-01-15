@@ -735,8 +735,18 @@ public class PackageComponent
 {
     public string ProductCode { get; set; } = "";
     public string Description { get; set; } = "";
-    public int Quantity { get; set; } = 1;
+    public double Quantity { get; set; } = 1;
     public bool IsVariable { get; set; }
+    public ComponentType ComponentType { get; set; } = ComponentType.Standard;
+    public bool IsSelectable { get; set; }
+    public double IndividualRate { get; set; }
+}
+
+public enum ComponentType
+{
+    Standard = 0,   // Always included in the package
+    Accessory = 1,  // Optional add-on
+    Alternative = 2 // Can be swapped for another item
 }
 
 public class EquipmentRecommendations
@@ -761,9 +771,14 @@ public class PackageRecommendation
 {
     public string PackageCode { get; set; } = "";
     public string PackageDescription { get; set; } = "";
+    public string? Category { get; set; }
     public double DayRate { get; set; }
+    public double ExtraDayRate { get; set; }
+    public double WeeklyRate { get; set; }
+    public string? PictureFileName { get; set; }
     public List<PackageComponent> Components { get; set; } = new();
     public string ReasonToRecommend { get; set; } = "";
+    public string RequestedComponent { get; set; } = ""; // For reverse lookup - the component that was searched for
 }
 
 #endregion

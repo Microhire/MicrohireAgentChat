@@ -29,5 +29,21 @@ namespace MicrohireAgentChat.Models
         
         [Column("on_hand")]
         public double? OnHand { get; set; }
+        
+        /// <summary>
+        /// SubCategory groups products within a category.
+        /// For LAPTOP category: LAPPACK (packages), SHOWLAP (high-end show laptops), MIDRLAP (mid-range), CONTL (control laptops)
+        /// For MACBOOK category: MBPPACK (packages), etc.
+        /// </summary>
+        [Column("SubCategory")]
+        public string? SubCategory { get; set; }
+        
+        /// <summary>
+        /// Product configuration type.
+        /// 0 = Individual product (e.g., DELL3580, PC-MOUSE)
+        /// 1 = Package (e.g., PCLPRO, PCLP-L1) - contains multiple components
+        /// </summary>
+        [Column("product_Config")]
+        public byte? ProductConfig { get; set; }
     }
 }

@@ -1095,6 +1095,93 @@ form#sendForm
             outline-offset: 2px;
         }
 
+    /* ================== Multi-time picker ================== */
+    .isla-multitime {
+        margin: 12px 0;
+        padding: 14px;
+        border: 1px solid #e8ecf2;
+        border-radius: 14px;
+        background: linear-gradient(180deg, #ffffff 0%, #fbfcfe 100%);
+        box-shadow: 0 6px 16px rgba(16, 24, 40, .06);
+    }
+
+    .isla-multitime-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 12px;
+        margin: 12px 0;
+    }
+
+    @media (min-width: 520px) {
+        .isla-multitime-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    .isla-mt-item {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .isla-mt-item label {
+        color: #334155;
+        font-weight: 550;
+        font-size: .95rem;
+    }
+
+    .isla-mt-item .mt-input {
+        width: 100%;
+        height: 42px;
+        padding: 8px 10px;
+        border: 1px solid #d9dee7;
+        border-radius: 10px;
+        background: #fff;
+        font-size: 1rem;
+        color: #0f172a;
+        box-shadow: inset 0 1px 2px rgba(16,24,40,.04);
+        transition: border-color .15s ease, box-shadow .15s ease;
+    }
+
+    .isla-mt-item .mt-input:hover {
+        border-color: #cfd7e6;
+    }
+
+    .isla-mt-item .mt-input:focus {
+        outline: none;
+        border-color: #7aa7ff;
+        box-shadow: 0 0 0 4px rgba(122,167,255,.20);
+    }
+
+    .isla-multitime .btn-apply-multitime {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 8px;
+        padding: 10px 14px;
+        border-radius: 10px;
+        background: #2563eb;
+        color: #fff;
+        border: 1px solid #1d4ed8;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform .05s ease, box-shadow .15s ease, background .15s ease;
+    }
+
+    .isla-multitime .btn-apply-multitime:hover {
+        background: #1e53d8;
+        box-shadow: 0 8px 18px rgba(29,78,216,.20);
+    }
+
+    .isla-multitime .btn-apply-multitime:active {
+        transform: translateY(1px);
+    }
+
+    .isla-multitime .btn-apply-multitime:focus-visible {
+        outline: 3px solid rgba(37,99,235,.35);
+        outline-offset: 2px;
+    }
+
 
 /* --- inline loading feedback on UI buttons --- */
 .isla-busy {

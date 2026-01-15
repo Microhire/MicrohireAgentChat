@@ -91,18 +91,46 @@ public sealed class BookingPersistenceService
             var status = GetFact(facts, "booking_status") ?? "Enquiry";
             var bookingType = ParseByte(GetFact(facts, "booking_type")) ?? (byte)2; // 2 = Quote/Booking
 
-            // Venue lookup
+            // Venue lookup - check tblVenues for venue ID
             int? venueId = null; // null means don't change existing venue
             if (!string.IsNullOrWhiteSpace(venueName))
             {
-                var venue = await _db.TblCusts
-                    .Where(c => c.OrganisationV6 != null && c.OrganisationV6.ToLower() == venueName.ToLower())
-                    .Select(c => new { c.ID })
-                    .FirstOrDefaultAsync(ct);
-                venueId = venue != null ? (int)venue.ID : 1; // Default venue ID if not found
+                // Check if it's Westin Brisbane (our primary supported venue)
+                var normalizedVenue = venueName.ToLower().Trim();
+                if (normalizedVenue.Contains("westin") && normalizedVenue.Contains("brisbane"))
+                {
+                    // Use Westin Brisbane ID directly - this is our primary partner venue
+                    venueId = 20; // The Westin Brisbane ID
+                }
+                else
+                {
+                    // Look up in tblVenues by name
+                    var venue = await _db.TblVenues
+                        .Where(v => v.VenueName != null && v.VenueName.ToLower().Contains(normalizedVenue))
+                        .Select(v => new { v.ID })
+                        .FirstOrDefaultAsync(ct);
+                    
+                    if (venue != null)
+                    {
+                        venueId = (int)venue.ID;
+                    }
+                    else
+                    {
+                        // Fallback: check tblCusts for venue
+                        var custVenue = await _db.TblCusts
+                            .Where(c => c.OrganisationV6 != null && c.OrganisationV6.ToLower().Contains(normalizedVenue))
+                            .Select(c => new { c.ID })
+                            .FirstOrDefaultAsync(ct);
+                        venueId = custVenue != null ? (int)custVenue.ID : 20; // Default to Westin Brisbane
+                    }
+                }
             }
 
             var existing = await _db.TblBookings.FirstOrDefaultAsync(b => b.booking_no == bookingNo, ct);
+
+            // CRITICAL: CustID is required by the database - get default if not provided
+            var finalCustId = organizationId ?? await GetDefaultCustomerIdAsync(ct);
+            var finalCustCode = customerCode ?? (finalCustId.HasValue ? await GetCustomerCodeByIdAsync(finalCustId.Value, ct) : null);
 
             if (existing == null)
             {
@@ -154,13 +182,13 @@ public sealed class BookingPersistenceService
                     Tax2 = (double?)tax2,
                     days_using = 1,
                     
-                    // Customer/Contact
-                    CustID = organizationId,
-                    CustCode = customerCode,
+                    // Customer/Contact (CRITICAL: CustID cannot be NULL)
+                    CustID = finalCustId,
+                    CustCode = finalCustCode,
                     ContactID = contactId,
                     contact_nameV6 = Trunc(contactName, 35),
-                    OrganizationV6 = organizationId.HasValue
-                        ? await GetOrganizationNameAsync(organizationId.Value, ct)
+                    OrganizationV6 = finalCustId.HasValue
+                        ? await GetOrganizationNameAsync(finalCustId.Value, ct)
                         : null,
                     Salesperson = Trunc(salesperson, 50),
                     
@@ -225,11 +253,11 @@ public sealed class BookingPersistenceService
 
                 if (contactId.HasValue) existing.ContactID = contactId;
                 if (!string.IsNullOrWhiteSpace(contactName)) existing.contact_nameV6 = Trunc(contactName, 35);
-                if (!string.IsNullOrWhiteSpace(customerCode)) existing.CustCode = customerCode;
-                if (organizationId.HasValue)
+                if (!string.IsNullOrWhiteSpace(finalCustCode)) existing.CustCode = finalCustCode;
+                if (finalCustId.HasValue)
                 {
-                    existing.CustID = organizationId;
-                    existing.OrganizationV6 = await GetOrganizationNameAsync(organizationId.Value, ct);
+                    existing.CustID = finalCustId;
+                    existing.OrganizationV6 = await GetOrganizationNameAsync(finalCustId.Value, ct);
                 }
                 if (venueId.HasValue) existing.VenueID = venueId.Value;
             }
@@ -310,6 +338,46 @@ public sealed class BookingPersistenceService
             .Select(c => c.OrganisationV6)
             .FirstOrDefaultAsync(ct);
         return org;
+    }
+
+    /// <summary>
+    /// Get a default customer ID for bookings without organization.
+    /// First tries to find "General Enquiry" or similar, falls back to ID 1.
+    /// </summary>
+    private async Task<decimal?> GetDefaultCustomerIdAsync(CancellationToken ct)
+    {
+        // Try to find a general/default customer
+        var defaultOrg = await _db.TblCusts
+            .Where(c => c.OrganisationV6 != null && 
+                   (c.OrganisationV6.ToLower().Contains("general") ||
+                    c.OrganisationV6.ToLower().Contains("enquiry") ||
+                    c.OrganisationV6.ToLower().Contains("walk-in") ||
+                    c.OrganisationV6.ToLower().Contains("default")))
+            .Select(c => c.ID)
+            .FirstOrDefaultAsync(ct);
+
+        if (defaultOrg != 0)
+            return defaultOrg;
+
+        // Fall back to first customer ID or 1
+        var firstCust = await _db.TblCusts
+            .OrderBy(c => c.ID)
+            .Select(c => c.ID)
+            .FirstOrDefaultAsync(ct);
+
+        return firstCust != 0 ? firstCust : 1;
+    }
+
+    /// <summary>
+    /// Get customer code by ID
+    /// </summary>
+    private async Task<string?> GetCustomerCodeByIdAsync(decimal custId, CancellationToken ct)
+    {
+        var code = await _db.TblCusts
+            .Where(c => c.ID == custId)
+            .Select(c => c.Customer_code)
+            .FirstOrDefaultAsync(ct);
+        return code;
     }
 
     private static string? GetFact(Dictionary<string, string> facts, string key)

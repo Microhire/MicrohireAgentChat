@@ -17,6 +17,7 @@ public sealed class AgentToolHandlerService
     private readonly IHttpContextAccessor _http;
     private readonly ILogger<AgentToolHandlerService> _logger;
     private readonly EquipmentSearchService _equipmentSearch;
+    private readonly SmartEquipmentRecommendationService _smartEquipment;
 
     public AgentToolHandlerService(
         BookingDbContext db,
@@ -24,7 +25,8 @@ public sealed class AgentToolHandlerService
         IBookingDraftStore? drafts,
         IHttpContextAccessor http,
         ILogger<AgentToolHandlerService> logger,
-        EquipmentSearchService equipmentSearch)
+        EquipmentSearchService equipmentSearch,
+        SmartEquipmentRecommendationService smartEquipment)
     {
         _db = db;
         _roomCatalog = roomCatalog;
@@ -32,6 +34,7 @@ public sealed class AgentToolHandlerService
         _http = http;
         _logger = logger;
         _equipmentSearch = equipmentSearch;
+        _smartEquipment = smartEquipment;
     }
 
     /// <summary>
@@ -57,6 +60,7 @@ public sealed class AgentToolHandlerService
                 "build_equipment_picker" => HandleBuildEquipmentPicker(argsJson),
                 "search_equipment" => await HandleSearchEquipmentAsync(argsJson, ct),
                 "get_equipment_recommendations" => await HandleGetEquipmentRecommendationsAsync(argsJson, ct),
+                "recommend_equipment_for_event" => await HandleSmartEquipmentRecommendationAsync(argsJson, ct),
                 "get_package_details" => await HandleGetPackageDetailsAsync(argsJson, ct),
                 _ => JsonSerializer.Serialize(new { error = $"Unknown tool: {toolName}" })
             };
@@ -140,17 +144,34 @@ public sealed class AgentToolHandlerService
         int stepMinutes = doc.RootElement.TryGetProperty("stepMinutes", out var sm) && sm.ValueKind == JsonValueKind.Number
                             ? sm.GetInt32() : 30;
 
-        var payload = new
+        // Build the UI JSON that needs to be embedded in the response
+        var uiPayload = new
         {
             ui = new
             {
-                type = "timepicker",
-                title = title,
+                type = "multitime",
+                title = $"Confirm your schedule for {(string.IsNullOrEmpty(dateIso) ? "your event" : dateIso)}",
                 date = dateIso,
-                defaultStart = defStart,
-                defaultEnd = defEnd,
-                stepMinutes = stepMinutes
+                pickers = new[]
+                {
+                    new { name = "setup", label = "Room setup by (optional)", @default = "07:00" },
+                    new { name = "rehearsal", label = "Rehearsal time (optional)", @default = "09:30" },
+                    new { name = "start", label = "Event start time", @default = "10:00" },
+                    new { name = "end", label = "Event end time", @default = "16:00" },
+                    new { name = "packup", label = "Pack up time from (Optional)", @default = "18:00" }
+                },
+                stepMinutes = stepMinutes,
+                submitLabel = "Submit"
             }
+        };
+        
+        var jsonToEmbed = JsonSerializer.Serialize(uiPayload);
+
+        var payload = new
+        {
+            success = true,
+            outputToUser = $"Here's a time picker for you. Please confirm your schedule for {(string.IsNullOrEmpty(dateIso) ? "your event" : dateIso)}:\n\n{jsonToEmbed}",
+            instruction = "OUTPUT THE 'outputToUser' VALUE EXACTLY AS-IS in your response. This creates a time picker widget for the user. DO NOT say you've 'generated' a time picker - just output the text and the picker will appear."
         };
 
         return JsonSerializer.Serialize(payload);
@@ -615,6 +636,197 @@ public sealed class AgentToolHandlerService
             summary_message = responseMessage,
             instruction = "Present these recommendations to the user. Ask them to confirm if they want these items or if they'd like to see alternatives. If a package option is available, mention it as a value-add option."
         });
+    }
+
+    /// <summary>
+    /// Smart equipment recommendation - automatically selects best equipment based on event context
+    /// NO technical questions asked - the AI figures out appropriate specs
+    /// </summary>
+    private async Task<string> HandleSmartEquipmentRecommendationAsync(string argsJson, CancellationToken ct)
+    {
+        using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(argsJson) ? "{}" : argsJson);
+
+        // Parse event context
+        var eventContext = new EventContext
+        {
+            EventType = doc.RootElement.TryGetProperty("event_type", out var et) ? et.GetString() ?? "" : "",
+            ExpectedAttendees = doc.RootElement.TryGetProperty("expected_attendees", out var ea) && ea.ValueKind == JsonValueKind.Number ? ea.GetInt32() : 50,
+            VenueName = doc.RootElement.TryGetProperty("venue_name", out var vn) ? vn.GetString() : null,
+            RoomName = doc.RootElement.TryGetProperty("room_name", out var rn) ? rn.GetString() : null,
+            DurationDays = doc.RootElement.TryGetProperty("duration_days", out var dd) && dd.ValueKind == JsonValueKind.Number ? dd.GetInt32() : 1
+        };
+
+        // Parse equipment requests
+        if (doc.RootElement.TryGetProperty("equipment_requests", out var eqArray) && eqArray.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var item in eqArray.EnumerateArray())
+            {
+                var request = new EquipmentRequest
+                {
+                    EquipmentType = item.TryGetProperty("equipment_type", out var eqt) ? eqt.GetString() ?? "" : "",
+                    Quantity = item.TryGetProperty("quantity", out var qty) && qty.ValueKind == JsonValueKind.Number ? qty.GetInt32() : 1,
+                    Preference = item.TryGetProperty("preference", out var pref) ? pref.GetString() : null,
+                    MicrophoneType = item.TryGetProperty("microphone_type", out var mt) ? mt.GetString() : null
+                };
+                
+                if (!string.IsNullOrWhiteSpace(request.EquipmentType))
+                {
+                    eventContext.EquipmentRequests.Add(request);
+                }
+            }
+        }
+
+        if (eventContext.EquipmentRequests.Count == 0)
+        {
+            return JsonSerializer.Serialize(new
+            {
+                error = "No equipment requests provided",
+                message = "Please specify what equipment is needed (e.g., laptops, projectors, screens, microphones)"
+            });
+        }
+
+        _logger.LogInformation("Smart equipment recommendation for {EventType} with {Attendees} attendees, {Count} equipment types",
+            eventContext.EventType, eventContext.ExpectedAttendees, eventContext.EquipmentRequests.Count);
+
+        // Get smart recommendations
+        var recommendations = await _smartEquipment.GetRecommendationsAsync(eventContext, ct);
+
+        // Log what we found
+        _logger.LogInformation("Smart recommendations returned {Count} items:", recommendations.Items.Count);
+        foreach (var item in recommendations.Items)
+        {
+            _logger.LogInformation("  - {Qty}x {Desc} (Code: {Code}) @ ${Price}/day - {Reason}", 
+                item.Quantity, item.Description, item.ProductCode, item.UnitPrice, item.RecommendationReason);
+        }
+
+        // Build response with full component breakdown
+        var recommendedItems = recommendations.Items.Select(item => new
+        {
+            product_code = item.ProductCode,
+            description = item.Description,
+            category = item.Category,
+            quantity = item.Quantity,
+            unit_price = item.UnitPrice,
+            extra_day_rate = item.ExtraDayRate,
+            weekly_rate = item.WeeklyRate,
+            total_price = item.UnitPrice * item.Quantity,
+            picture = item.PictureFileName,
+            recommendation_reason = item.RecommendationReason,
+            is_package = item.IsPackage,
+            components = item.Components.Select(c => new
+            {
+                product_code = c.ProductCode,
+                description = c.Description,
+                component_type = c.ComponentType.ToString().ToLower(),
+                quantity = c.Quantity,
+                is_selectable = c.IsSelectable,
+                individual_rate = c.IndividualRate
+            }).ToList()
+        }).ToList();
+
+        // Build COMPLETE booking summary with event details AND equipment
+        // This summary triggers the quote confirmation buttons in the UI
+        var summaryLines = new List<string>();
+        
+        // Header - complete quote summary
+        summaryLines.Add("## 📋 Quote Summary\n");
+        
+        // Event Details Section
+        summaryLines.Add("### Event Details");
+        if (!string.IsNullOrWhiteSpace(eventContext.VenueName))
+            summaryLines.Add($"**Venue:** {eventContext.VenueName}");
+        if (!string.IsNullOrWhiteSpace(eventContext.RoomName))
+            summaryLines.Add($"**Room:** {eventContext.RoomName}");
+        summaryLines.Add($"**Event Type:** {eventContext.EventType}");
+        summaryLines.Add($"**Attendees:** {eventContext.ExpectedAttendees}");
+        if (eventContext.DurationDays > 1)
+            summaryLines.Add($"**Duration:** {eventContext.DurationDays} days");
+        summaryLines.Add("");
+        
+        // Equipment Section
+        summaryLines.Add("### Recommended Equipment\n");
+        foreach (var item in recommendations.Items)
+        {
+            // All info on ONE line so AI must show it together
+            summaryLines.Add($"• **{item.Quantity}x {item.Description}** — ${item.UnitPrice * item.Quantity:F0}/day");
+            
+            // If it's a package, show what's included
+            if (item.IsPackage && item.Components.Count > 0)
+            {
+                var standardComponents = item.Components.Where(c => c.ComponentType == ComponentType.Standard).ToList();
+                var accessories = item.Components.Where(c => c.ComponentType == ComponentType.Accessory).ToList();
+                
+                if (standardComponents.Count > 0)
+                {
+                    summaryLines.Add("  *Includes:* " + string.Join(", ", standardComponents.Select(c => c.Description)));
+                }
+                if (accessories.Count > 0)
+                {
+                    summaryLines.Add("  *Available accessories:* " + string.Join(", ", accessories.Take(3).Select(c => c.Description)));
+                }
+            }
+            summaryLines.Add(""); // Empty line between items
+        }
+        
+        // Total - CRITICAL: this triggers "Estimated total" detection
+        summaryLines.Add($"---");
+        summaryLines.Add($"**Estimated Total: ${recommendations.TotalDayRate:F0}/day**");
+        summaryLines.Add("");
+        
+        // CRITICAL: This phrase triggers the quote confirmation buttons
+        // The UI detects "create your quote" or "create the quote" to show Yes/No buttons
+        summaryLines.Add("If this equipment looks correct, I can **create your quote** now.");
+
+        var summaryMessage = string.Join("\n", summaryLines);
+        
+        _logger.LogInformation("outputToUser content:\n{Content}", summaryMessage);
+
+        // Build response - includes phrase to trigger quote confirmation buttons
+        var response = JsonSerializer.Serialize(new
+        {
+            success = true,
+            event_context = new
+            {
+                event_type = eventContext.EventType,
+                attendees = eventContext.ExpectedAttendees,
+                venue = eventContext.VenueName,
+                room = eventContext.RoomName,
+                duration_days = eventContext.DurationDays
+            },
+            recommendations = recommendedItems,
+            total_day_rate = recommendations.TotalDayRate,
+            outputToUser = summaryMessage,
+            instruction = "OUTPUT the 'outputToUser' EXACTLY AS-IS. This shows the complete quote summary. The system will automatically show Yes/No confirmation buttons after your response."
+        });
+        
+        _logger.LogInformation("Full tool response JSON:\n{Response}", response);
+        
+        // Store equipment in session for later use when creating booking/quote
+        try
+        {
+            var session = _http.HttpContext?.Session;
+            if (session != null)
+            {
+                // Store as selected_equipment in format matching SelectedEquipmentItem class
+                var selectedEquipment = recommendations.Items.Select(item => new
+                {
+                    ProductCode = item.ProductCode,
+                    Description = item.Description,
+                    Quantity = item.Quantity
+                }).ToList();
+                
+                session.SetString("Draft:SelectedEquipment", JsonSerializer.Serialize(selectedEquipment));
+                session.SetString("Draft:TotalDayRate", recommendations.TotalDayRate.ToString("F2"));
+                
+                _logger.LogInformation("Stored {Count} equipment items in session for booking", recommendations.Items.Count);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to store equipment in session");
+        }
+        
+        return response;
     }
 
     /// <summary>

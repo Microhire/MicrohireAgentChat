@@ -1,4 +1,4 @@
-﻿// Controllers/ChatController.cs
+// Controllers/ChatController.cs
 using MicrohireAgentChat.Config;
 using MicrohireAgentChat.Data;
 using MicrohireAgentChat.Models; // for DisplayMessage if needed
@@ -20,7 +20,7 @@ public sealed class ChatController : Controller
     private readonly AzureAgentChatService _chat;
     private readonly BookingDbContext _bookingDb;
     private readonly BookingOrchestrationService _orchestration;
-    private readonly QuoteGenerationService _quoteGen;
+    private readonly HtmlQuoteGenerationService _htmlQuoteGen;
     private readonly ConversationReplayService _replayService;
     private readonly DevModeOptions _devOptions;
     private readonly ILogger<ChatController> _logger;
@@ -43,7 +43,7 @@ public sealed class ChatController : Controller
         AzureAgentChatService chat,
         BookingDbContext bookingDb,
         BookingOrchestrationService orchestration,
-        QuoteGenerationService quoteGen,
+        HtmlQuoteGenerationService htmlQuoteGen,
         ConversationReplayService replayService,
         IOptions<DevModeOptions> devOptions,
         ILogger<ChatController> logger)
@@ -51,7 +51,7 @@ public sealed class ChatController : Controller
         _chat = chat;
         _bookingDb = bookingDb;
         _orchestration = orchestration;
-        _quoteGen = quoteGen;
+        _htmlQuoteGen = htmlQuoteGen;
         _replayService = replayService;
         _devOptions = devOptions.Value;
         _logger = logger;
@@ -94,9 +94,17 @@ public sealed class ChatController : Controller
             var bookingNo = HttpContext.Session.GetString("Draft:BookingNo");
             if (!string.IsNullOrWhiteSpace(bookingNo))
             {
-                var (exists, existingQuoteUrl) = _quoteGen.CheckExistingQuote(bookingNo);
-                if (exists && !string.IsNullOrWhiteSpace(existingQuoteUrl))
+                // Check for existing HTML quotes
+                var webRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
+                var quotesDir = Path.Combine(webRoot, "files", "quotes");
+                var existingQuoteFile = Directory.Exists(quotesDir) 
+                    ? Directory.GetFiles(quotesDir, $"Quote-{bookingNo}-*.html")
+                        .OrderByDescending(f => System.IO.File.GetCreationTimeUtc(f))
+                        .FirstOrDefault()
+                    : null;
+                if (!string.IsNullOrEmpty(existingQuoteFile))
                 {
+                    var existingQuoteUrl = $"/files/quotes/{Path.GetFileName(existingQuoteFile)}";
                     // Mark as complete but don't redirect - allow continued chat
                     HttpContext.Session.SetString("Draft:QuoteComplete", "1");
                     HttpContext.Session.SetString("Draft:QuoteUrl", existingQuoteUrl);
@@ -111,6 +119,7 @@ public sealed class ChatController : Controller
             var (_, messages) = _chat.GetTranscript(threadId);
             RedactPricesForUiInPlace(messages);
             ViewData["DevModeEnabled"] = _devOptions.Enabled;
+            _logger.LogInformation("DevMode enabled: {_devOptions.Enabled}", _devOptions.Enabled);
             ViewData["QuoteComplete"] = false;
             return View(messages);
         }
@@ -155,9 +164,9 @@ public sealed class ChatController : Controller
                 SaveTimeSelectionToSession(start, end);
                 text = $"Choose time: {start:hh\\:mm}–{end:hh\\:mm}";
             }
-            if (TryCaptureScheduleSelection(text, out var set, out var reh, out var showStart, out var showEnd, out var pack))
+            if (TryCaptureScheduleSelection(text, out var set, out var reh, out var showStart, out var showEnd, out var pack, out var eventDate))
             {
-                SaveScheduleToSession(set, reh, showStart, showEnd, pack);
+                SaveScheduleToSession(set, reh, showStart, showEnd, pack, eventDate);
                 var pretty = $"Schedule selected: Setup {Pretty12(set)}; Rehearsal {Pretty12(reh)}; "
                            + (showStart.HasValue ? $"Start {Pretty12(showStart)}; " : "")
                            + (showEnd.HasValue ? $"End {Pretty12(showEnd)}; " : "")
@@ -208,7 +217,12 @@ public sealed class ChatController : Controller
                 text.Contains("cannot generate") ||
                 text.Contains("having trouble") ||
                 text.Contains("refine this manually") ||
-                text.Contains("our team will follow up"))
+                text.Contains("our team will follow up") ||
+                text.Contains("there's an issue") ||
+                text.Contains("there is an issue") ||
+                text.Contains("issue with generating") ||
+                text.Contains("notify our team") ||
+                text.Contains("sales team immediately"))
             {
                 return true;
             }
@@ -286,7 +300,14 @@ public sealed class ChatController : Controller
             || t.Contains("equipment lineup")
             || t.Contains("equipment selection")
             || t.Contains("here's your finalized")
-            || t.Contains("here's the equipment");
+            || t.Contains("here's the equipment")
+            // New summary format from smart equipment recommendation
+            || t.Contains("quote summary")
+            || t.Contains("recommended equipment")
+            || t.Contains("equipment looks correct")
+            || t.Contains("i can create your quote")
+            || t.Contains("create your quote now")
+            || t.Contains("estimated total");
     }
 
     [HttpPost]
@@ -300,14 +321,111 @@ public sealed class ChatController : Controller
 
         try
         {
-            // Generate a new test conversation with varied data
-            var messages = _replayService.GenerateTestConversation().ToList();
+            // Randomly select a test scenario for comprehensive coverage
+            var random = new Random();
+            var scenarioType = random.Next(20); // 20 different scenario weights for better distribution
+            
+            IEnumerable<string> messages;
+            string scenarioName;
+            
+            switch (scenarioType)
+            {
+                case 0: // Small intimate event
+                    messages = _replayService.GenerateSmallEventConversation();
+                    scenarioName = "Small Event (15-25 people)";
+                    break;
+                    
+                case 1: // Large conference
+                    messages = _replayService.GenerateLargeConferenceConversation();
+                    scenarioName = "Large Conference (300-500 people)";
+                    break;
+                    
+                case 2: // Hackathon
+                    messages = _replayService.GenerateHackathonConversation();
+                    scenarioName = "Hackathon Event";
+                    break;
+                    
+                case 3: // Social/Gala event
+                    messages = _replayService.GenerateSocialEventConversation();
+                    scenarioName = "Social/Gala Event";
+                    break;
+                    
+                case 4: // Minimal info user
+                    messages = _replayService.GenerateMinimalInfoConversation();
+                    scenarioName = "Minimal Info User";
+                    break;
+                    
+                case 5: // Very detailed user
+                    messages = _replayService.GenerateDetailedConversation();
+                    scenarioName = "Detailed/Verbose User";
+                    break;
+                    
+                case 6: // Complex with changes
+                    messages = _replayService.GenerateComplexTestConversation();
+                    scenarioName = "Complex with Follow-ups";
+                    break;
+                    
+                case 7: // Urgent/rush booking
+                    messages = _replayService.GenerateUrgentBookingConversation();
+                    scenarioName = "Urgent/Rush Booking";
+                    break;
+                    
+                case 8: // Multi-day event
+                    messages = _replayService.GenerateMultiDayEventConversation();
+                    scenarioName = "Multi-Day Event";
+                    break;
+                    
+                case 9: // Panel discussion at Westin Brisbane
+                    messages = _replayService.GenerateEquipmentOnlyConversation();
+                    scenarioName = "Panel Discussion";
+                    break;
+                    
+                case 10: // All info at once
+                    messages = _replayService.GenerateAllAtOnceConversation();
+                    scenarioName = "All Info At Once";
+                    break;
+                    
+                case 11: // Training workshop
+                    messages = _replayService.GenerateTrainingWorkshopConversation();
+                    scenarioName = "Training Workshop";
+                    break;
+                    
+                case 12: // Mac-focused tech company
+                    messages = _replayService.GenerateMacTechConversation();
+                    scenarioName = "Mac/Creative Tech Company";
+                    break;
+                    
+                case 13: // Boardroom meeting
+                    messages = _replayService.GenerateBoardroomMeetingConversation();
+                    scenarioName = "Corporate Boardroom Meeting";
+                    break;
+                    
+                case 14: // Product launch
+                    messages = _replayService.GenerateProductLaunchConversation();
+                    scenarioName = "Product Launch Event";
+                    break;
+                    
+                default: // 25% - Standard random (most common case)
+                    messages = _replayService.GenerateTestConversation();
+                    scenarioName = "Standard Random Event";
+                    break;
+            }
+
+            var messageList = messages.ToList();
+            
+            _logger.LogInformation("Starting test replay: {Scenario} with {Count} messages", 
+                scenarioName, messageList.Count);
 
             // Store the replay messages in session
-            HttpContext.Session.SetString("Dev:ReplayMessages", System.Text.Json.JsonSerializer.Serialize(messages));
+            HttpContext.Session.SetString("Dev:ReplayMessages", System.Text.Json.JsonSerializer.Serialize(messageList));
             HttpContext.Session.SetInt32("Dev:CurrentMessageIndex", 0);
+            HttpContext.Session.SetString("Dev:ScenarioName", scenarioName);
 
-            return Json(new { success = true, messageCount = messages.Count });
+            return Json(new { 
+                success = true, 
+                messageCount = messageList.Count,
+                scenario = scenarioName
+            });
         }
         catch (Exception ex)
         {
@@ -420,9 +538,9 @@ public sealed class ChatController : Controller
                 text = $"Choose time: {start:hh\\:mm}–{end:hh\\:mm}";
             }
 
-            if (TryCaptureScheduleSelection(text, out var set, out var reh, out var showStart, out var showEnd, out var pack))
+            if (TryCaptureScheduleSelection(text, out var set, out var reh, out var showStart, out var showEnd, out var pack, out var eventDate))
             {
-                SaveScheduleToSession(set, reh, showStart, showEnd, pack);
+                SaveScheduleToSession(set, reh, showStart, showEnd, pack, eventDate);
                 var pretty = $"Schedule selected: Setup {Pretty12(set)}; Rehearsal {Pretty12(reh)}; "
                            + (showStart.HasValue ? $"Start {Pretty12(showStart)}; " : "")
                            + (showEnd.HasValue ? $"End {Pretty12(showEnd)}; " : "")
@@ -517,7 +635,21 @@ public sealed class ChatController : Controller
                     // No existing booking, try to create one first
                     _logger.LogInformation("User consented but no existing booking - attempting to create booking first");
 
-                    var result = await _orchestration.ProcessConversationAsync(msgList, existingBookingNo, ct);
+                    // Get equipment from session if available (stored by smart equipment recommendation tool)
+                    var additionalFacts = new Dictionary<string, string>();
+                    var selectedEquipment = HttpContext.Session.GetString("Draft:SelectedEquipment");
+                    if (!string.IsNullOrWhiteSpace(selectedEquipment))
+                    {
+                        additionalFacts["selected_equipment"] = selectedEquipment;
+                        _logger.LogInformation("Adding stored equipment to booking: {Equipment}", selectedEquipment);
+                    }
+                    var totalDayRate = HttpContext.Session.GetString("Draft:TotalDayRate");
+                    if (!string.IsNullOrWhiteSpace(totalDayRate))
+                    {
+                        additionalFacts["price_quoted"] = totalDayRate;
+                    }
+
+                    var result = await _orchestration.ProcessConversationAsync(msgList, existingBookingNo, ct, additionalFacts);
 
                     if (result.Success && !string.IsNullOrWhiteSpace(result.BookingNo))
                     {
@@ -676,22 +808,22 @@ public sealed class ChatController : Controller
 
     private async Task GenerateQuoteForBookingAsync(string bookingNo, List<DisplayMessage> msgList, CancellationToken ct)
     {
-        // ========== GENERATE QUOTE PDF ==========
+        // ========== GENERATE QUOTE HTML ==========
         try
         {
-            _logger.LogInformation("Starting quote generation for booking {BookingNo}", bookingNo);
+            _logger.LogInformation("Starting HTML quote generation for booking {BookingNo}", bookingNo);
             using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(30)); // 30 second timeout
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
             try
             {
-                var (quoteSuccess, quoteUrl, quoteError) = await _quoteGen.GenerateQuoteForBookingAsync(bookingNo, linkedCts.Token);
-                _logger.LogInformation("Quote generation completed for booking {BookingNo}, success: {Success}", bookingNo, quoteSuccess);
+                var (quoteSuccess, quoteUrl, quoteError) = await _htmlQuoteGen.GenerateHtmlQuoteForBookingAsync(bookingNo, linkedCts.Token);
+                _logger.LogInformation("HTML quote generation completed for booking {BookingNo}, success: {Success}", bookingNo, quoteSuccess);
 
                 if (quoteSuccess && !string.IsNullOrWhiteSpace(quoteUrl))
                 {
                     HttpContext.Session.SetString("Draft:QuoteUrl", quoteUrl);
                     HttpContext.Session.SetString("Draft:QuoteComplete", "1"); // Mark quote as complete
-                    _logger.LogInformation("Quote generated for booking {BookingNo}: {QuoteUrl}", bookingNo, quoteUrl);
+                    _logger.LogInformation("HTML quote generated for booking {BookingNo}: {QuoteUrl}", bookingNo, quoteUrl);
 
                     // Check if the last AI message was confusing about quotes - if so, replace it
                     var lastAssistantMessage = msgList.LastOrDefault(m => m.Role == "assistant");
@@ -708,17 +840,17 @@ public sealed class ChatController : Controller
                         Role = "assistant",
                         Timestamp = DateTimeOffset.UtcNow,
                         Parts = new List<string> {
-                            $"Great news! I've successfully generated your quote for booking {bookingNo}. <a href=\"{quoteUrl}\" target=\"_blank\" class=\"btn btn-primary\">Download Quote PDF</a>"
+                            $"Great news! I've successfully generated your quote for booking {bookingNo}. <a href=\"{quoteUrl}\" target=\"_blank\" class=\"btn btn-primary\">View Quote</a>"
                         },
-                        FullText = $"Great news! I've successfully generated your quote for booking {bookingNo}. You can download it here: {quoteUrl}",
-                        Html = $"Great news! I've successfully generated your quote for booking {bookingNo}. <a href=\"{quoteUrl}\" target=\"_blank\" class=\"btn btn-primary\">Download Quote PDF</a>"
+                        FullText = $"Great news! I've successfully generated your quote for booking {bookingNo}. You can view it here: {quoteUrl}",
+                        Html = $"Great news! I've successfully generated your quote for booking {bookingNo}. <a href=\"{quoteUrl}\" target=\"_blank\" class=\"btn btn-primary\">View Quote</a>"
                     };
                     msgList.Add(quoteMessage);
                     _logger.LogInformation("Success message added to msgList. Total messages: {Count}. Quote URL: {QuoteUrl}", msgList.Count, quoteUrl);
                 }
                 else
                 {
-                    _logger.LogWarning("Quote generation failed for booking {BookingNo}: {Error}", bookingNo, quoteError);
+                    _logger.LogWarning("HTML quote generation failed for booking {BookingNo}: {Error}", bookingNo, quoteError);
 
                     // Add failure message directly to the conversation
                     var failureMessage = new DisplayMessage
@@ -736,27 +868,34 @@ public sealed class ChatController : Controller
             }
             catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
             {
-                _logger.LogWarning("Quote generation timed out for booking {BookingNo}", bookingNo);
+                _logger.LogWarning("HTML quote generation timed out for booking {BookingNo}", bookingNo);
 
-                // Check if quote was actually generated despite the timeout
-                var (quoteExists, existingQuoteUrl) = _quoteGen.CheckExistingQuote(bookingNo);
+                // Check if quote was actually generated despite the timeout by looking for existing HTML files
+                var webRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
+                var quotesDir = Path.Combine(webRoot, "files", "quotes");
+                var existingQuoteFile = Directory.Exists(quotesDir) 
+                    ? Directory.GetFiles(quotesDir, $"Quote-{bookingNo}-*.html")
+                        .OrderByDescending(f => System.IO.File.GetCreationTimeUtc(f))
+                        .FirstOrDefault()
+                    : null;
 
-                if (quoteExists && !string.IsNullOrWhiteSpace(existingQuoteUrl))
+                if (!string.IsNullOrEmpty(existingQuoteFile))
                 {
+                    var existingQuoteUrl = $"/files/quotes/{Path.GetFileName(existingQuoteFile)}";
                     // Quote was generated successfully despite timeout
                     HttpContext.Session.SetString("Draft:QuoteUrl", existingQuoteUrl);
                     HttpContext.Session.SetString("Draft:QuoteComplete", "1"); // Mark quote as complete
-                    _logger.LogInformation("Quote was actually generated despite timeout for booking {BookingNo}: {QuoteUrl}", bookingNo, existingQuoteUrl);
+                    _logger.LogInformation("HTML quote was actually generated despite timeout for booking {BookingNo}: {QuoteUrl}", bookingNo, existingQuoteUrl);
 
                     var successMessage = new DisplayMessage
                     {
                         Role = "assistant",
                         Timestamp = DateTimeOffset.UtcNow,
                         Parts = new List<string> {
-                            $"Great news! I've successfully generated your quote for booking {bookingNo}. <a href=\"{existingQuoteUrl}\" target=\"_blank\" class=\"btn btn-primary\">Download Quote PDF</a>"
+                            $"Great news! I've successfully generated your quote for booking {bookingNo}. <a href=\"{existingQuoteUrl}\" target=\"_blank\" class=\"btn btn-primary\">View Quote</a>"
                         },
-                        FullText = $"Great news! I've successfully generated your quote for booking {bookingNo}. You can download it here: {existingQuoteUrl}",
-                        Html = $"Great news! I've successfully generated your quote for booking {bookingNo}. <a href=\"{existingQuoteUrl}\" target=\"_blank\" class=\"btn btn-primary\">Download Quote PDF</a>"
+                        FullText = $"Great news! I've successfully generated your quote for booking {bookingNo}. You can view it here: {existingQuoteUrl}",
+                        Html = $"Great news! I've successfully generated your quote for booking {bookingNo}. <a href=\"{existingQuoteUrl}\" target=\"_blank\" class=\"btn btn-primary\">View Quote</a>"
                     };
                     msgList.Add(successMessage);
                 }
@@ -1029,13 +1168,15 @@ public sealed class ChatController : Controller
         out TimeSpan rehearsal,
         out TimeSpan? showStart,
         out TimeSpan? showEnd,
-        out TimeSpan packup)
+        out TimeSpan packup,
+        out DateTime? eventDate)
     {
         setup = default;
         rehearsal = default;
         showStart = null;
         showEnd = null;
         packup = default;
+        eventDate = null;
 
         var m = ChooseScheduleRe.Match(text);
         if (!m.Success) return false;
@@ -1053,6 +1194,14 @@ public sealed class ChatController : Controller
 
             var key = parts[0].ToLowerInvariant();
             var val = parts[1];
+
+            // Handle date separately (ISO format like 2026-04-28)
+            if (key == "date")
+            {
+                if (DateTime.TryParse(val, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
+                    eventDate = dt;
+                continue;
+            }
 
             if (!TimeSpan.TryParse(val, CultureInfo.InvariantCulture, out ts)) continue;
 
@@ -1085,13 +1234,15 @@ public sealed class ChatController : Controller
         TimeSpan rehearsal,
         TimeSpan? showStart,
         TimeSpan? showEnd,
-        TimeSpan packup)
+        TimeSpan packup,
+        DateTime? eventDate)
     {
         HttpContext.Session.SetString("Draft:SetupTime", setup.ToString(@"hh\:mm"));
         HttpContext.Session.SetString("Draft:RehearsalTime", rehearsal.ToString(@"hh\:mm"));
         if (showStart.HasValue) HttpContext.Session.SetString("Draft:StartTime", showStart.Value.ToString(@"hh\:mm"));
         if (showEnd.HasValue) HttpContext.Session.SetString("Draft:EndTime", showEnd.Value.ToString(@"hh\:mm"));
         HttpContext.Session.SetString("Draft:PackupTime", packup.ToString(@"hh\:mm"));
+        if (eventDate.HasValue) HttpContext.Session.SetString("Draft:EventDate", eventDate.Value.ToString("yyyy-MM-dd"));
     }
 
     private static string Pretty12(TimeSpan? ts)

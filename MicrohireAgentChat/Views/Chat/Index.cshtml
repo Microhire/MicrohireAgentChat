@@ -1,4 +1,4 @@
-﻿@using MicrohireAgentChat.Services
+@using MicrohireAgentChat.Services
 @model IEnumerable<DisplayMessage>
 
 @{
@@ -90,8 +90,7 @@
                 <i class="ph ph-caret-right"></i>
             </button>
 
-            @if (ViewData["DevModeEnabled"] as bool? == true)
-            {
+            @{
                 <button id="startReplayBtn" type="button" class="btn btn-outline-primary ms-2" title="Start Test Conversation">
                     <i class="ph ph-play"></i> Test
                 </button>
@@ -149,7 +148,7 @@
           }
           function removeTypingBubble() { const t = document.getElementById('typing-bubble'); if (t) t.remove(); }
 
-          // ----- Hydrate agent UI JSON blocks (imageGallery, timePicker) -----
+          // ----- Hydrate agent UI JSON blocks (imageGallery, timePicker, multitime) -----
           function hydrateUiBlocks(root) {
             const nodes = (root || messagesWrap).querySelectorAll('script.ui-json[type="application/json"]');
             nodes.forEach(node => {
@@ -157,7 +156,10 @@
               try { payload = JSON.parse(node.textContent.trim() || "{}"); } catch { return; }
               const holder = document.createElement('div');
 
-              (payload.ui || []).forEach(item => {
+              // Handle both array format and object format for payload.ui
+              const uiItems = Array.isArray(payload.ui) ? payload.ui : (payload.ui ? [payload.ui] : []);
+
+              uiItems.forEach(item => {
                 // image gallery -> cards from your theme
                 if (item.type === 'imageGallery') {
                   const wrap = document.createElement('div');
@@ -209,10 +211,66 @@
                   holder.appendChild(wrap);
                   holder.appendChild(done);
                 }
+
+                // multitime picker -> matches server-side structure
+                if (item.type === 'multitime') {
+                  const wrap = document.createElement('div');
+                  wrap.className = 'isla-multitime';
+                  const stepMinutes = item.stepMinutes || 15;
+                  const dateIso = item.date || '';
+                  wrap.setAttribute('data-step', stepMinutes);
+                  wrap.setAttribute('data-date', dateIso);
+
+                  // Title
+                  if (item.title) {
+                    const title = document.createElement('div');
+                    title.className = 'isla-timepicker-title';
+                    title.textContent = item.title;
+                    wrap.appendChild(title);
+                  }
+
+                  // Grid container
+                  const grid = document.createElement('div');
+                  grid.className = 'isla-multitime-grid';
+
+                  // Create picker inputs
+                  const pickers = item.pickers || [];
+                  pickers.forEach(picker => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'isla-mt-item';
+
+                    const label = document.createElement('label');
+                    label.textContent = picker.label || picker.name || '';
+                    itemDiv.appendChild(label);
+
+                    const input = document.createElement('input');
+                    input.type = 'time';
+                    input.className = 'mt-input';
+                    input.setAttribute('data-name', picker.name || '');
+                    input.step = stepMinutes * 60;
+                    input.value = picker.default || picker.value || '09:00';
+                    itemDiv.appendChild(input);
+
+                    grid.appendChild(itemDiv);
+                  });
+
+                  wrap.appendChild(grid);
+
+                  // Submit button
+                  const submitBtn = document.createElement('button');
+                  submitBtn.type = 'button';
+                  submitBtn.className = 'btn-apply-multitime';
+                  submitBtn.textContent = item.submitLabel || 'Submit';
+                  wrap.appendChild(submitBtn);
+
+                  holder.appendChild(wrap);
+                }
               });
 
-              node.insertAdjacentElement('afterend', holder);
-              node.remove(); // hide raw JSON
+              if (holder.children.length > 0) {
+                node.insertAdjacentElement('afterend', holder);
+                node.remove(); // hide raw JSON
+              }
             });
           }
 

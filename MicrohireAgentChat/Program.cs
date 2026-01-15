@@ -1,4 +1,4 @@
-﻿using Azure.AI.Projects;
+using Azure.AI.Projects;
 using Azure.Identity;
 using MicrohireAgentChat.Config;
 using MicrohireAgentChat.Data;
@@ -71,10 +71,12 @@ builder.Services.AddHttpClient();
 // Register new modular services (extracted from AzureAgentChatService)
 builder.Services.AddScoped<EquipmentSearchService>();
 builder.Services.AddScoped<AIEquipmentQueryService>(); // AI-powered dynamic equipment search
+builder.Services.AddScoped<SmartEquipmentRecommendationService>(); // Smart equipment selection based on event context - no technical questions!
 builder.Services.AddScoped<AgentToolHandlerService>();
 builder.Services.AddScoped<BookingQueryService>();
 builder.Services.AddScoped<TimePickerService>();
 builder.Services.AddScoped<QuoteGenerationService>();
+builder.Services.AddScoped<HtmlQuoteGenerationService>();
 builder.Services.AddScoped<ConversationReplayService>();
 builder.Services.AddControllersWithViews();
 builder.Services.AddSession(options =>

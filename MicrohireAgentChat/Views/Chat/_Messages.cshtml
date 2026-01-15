@@ -1,4 +1,4 @@
-﻿@using MicrohireAgentChat.Services
+@using MicrohireAgentChat.Services
 @using Markdig
 @using System.Text.Json
 @model IEnumerable<DisplayMessage>
@@ -166,10 +166,37 @@ else
 
                             // --------------- INLINE UI (timepicker, multitime, etc.) ---------------
                             var uiIdx = part.IndexOf("{\"ui\":", StringComparison.Ordinal);
+                            if (uiIdx < 0)
+                            {
+                                // Also try without quotes in case of formatting differences
+                                uiIdx = part.IndexOf("{ \"ui\"", StringComparison.Ordinal);
+                            }
+                            if (uiIdx < 0)
+                            {
+                                // Try case-insensitive search
+                                var lowerPart = part.ToLowerInvariant();
+                                var lowerIdx = lowerPart.IndexOf("{\"ui\":");
+                                if (lowerIdx < 0) lowerIdx = lowerPart.IndexOf("{ \"ui\"");
+                                if (lowerIdx >= 0) uiIdx = lowerIdx;
+                            }
+                            
                             if (uiIdx >= 0)
                             {
                                 var textBefore = part.Substring(0, uiIdx).TrimEnd();
-                                var jsonBlock = part.Substring(uiIdx).Trim();
+                                // Extract complete JSON object by matching braces
+                                var jsonBlock = ExtractCompleteJson(part, uiIdx);
+                                
+                                // Fallback to old method if extraction failed
+                                if (string.IsNullOrWhiteSpace(jsonBlock))
+                                {
+                                    jsonBlock = part.Substring(uiIdx).Trim();
+                                    // Try to find the end of the JSON object
+                                    var endIdx = jsonBlock.LastIndexOf('}');
+                                    if (endIdx > 0)
+                                    {
+                                        jsonBlock = jsonBlock.Substring(0, endIdx + 1);
+                                    }
+                                }
 
                                 if (!string.IsNullOrWhiteSpace(textBefore))
                                 {
@@ -236,6 +263,7 @@ else
                                             var title = uiEl.TryGetProperty("title", out var tTitle) ? tTitle.GetString() : "Select your schedule";
                                             var stepMinutes = uiEl.TryGetProperty("stepMinutes", out var sm) ? sm.GetInt32() : 15;
                                             var submit = uiEl.TryGetProperty("submitLabel", out var sLbl) ? sLbl.GetString() : "Submit";
+                                            var dateIso = uiEl.TryGetProperty("date", out var dEl) ? dEl.GetString() : null;
 
                                             var pickers = new List<(string name, string label, string value)>();
                                             if (uiEl.TryGetProperty("pickers", out var pArr) && pArr.ValueKind == JsonValueKind.Array)
@@ -250,7 +278,7 @@ else
                                                 }
                                             }
 
-                                            <div class="isla-multitime" data-step="@stepMinutes">
+                                            <div class="isla-multitime" data-step="@stepMinutes" data-date="@(dateIso ?? "")">
                                                 @if (!string.IsNullOrWhiteSpace(title))
                                                 {
                                                     <div class="isla-timepicker-title">@title</div>
@@ -272,6 +300,7 @@ else
                                         {
                                             var quoteUrlValue = qUrlEl.GetString() ?? "";
                                             var bookingNum = uiEl.TryGetProperty("bookingNo", out var bn) ? bn.GetString() : null;
+                                            var isHtmlQuote = uiEl.TryGetProperty("isHtml", out var isHtml) && isHtml.ValueKind == JsonValueKind.True;
                                             
                                             <div class="isla-quote-ready">
                                                 <div class="isla-quote-icon">
@@ -284,18 +313,18 @@ else
                                                     </svg>
                                                 </div>
                                                 <div class="isla-quote-title">Quote Ready!</div>
-                                                <p class="isla-quote-message">Your professional quote has been generated and is ready for download.</p>
+                                                <p class="isla-quote-message">Your professional quote has been generated and is ready to view.</p>
                                                 @if (!string.IsNullOrWhiteSpace(bookingNum))
                                                 {
                                                     <p class="isla-quote-ref">Reference: @bookingNum</p>
                                                 }
                                                 <a href="@quoteUrlValue" target="_blank" class="isla-quote-download-btn">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                                        <polyline points="7 10 12 15 17 10"></polyline>
-                                                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                                                        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                                                        <polyline points="15 3 21 3 21 9"></polyline>
+                                                        <line x1="10" y1="14" x2="21" y2="3"></line>
                                                     </svg>
-                                                    Download Quote PDF
+                                                    View Quote
                                                 </a>
                                             </div>
                                         }
@@ -355,57 +384,96 @@ else
         return s.Contains("\"ui\"");
     }
 
-    // Broader detector so CTA shows for more phrasing styles
+    // Extract complete JSON object starting from a given index
+    // Handles nested braces to find the complete object
+    string ExtractCompleteJson(string text, int startIndex){
+        if (startIndex < 0 || startIndex >= text.Length) return string.Empty;
+        
+        int braceCount = 0;
+        int jsonStart = -1;
+        
+        // Find the opening brace
+        for (int i = startIndex; i < text.Length; i++)
+        {
+            if (text[i] == '{')
+            {
+                jsonStart = i;
+                braceCount = 1;
+                i++;
+                // Now count braces to find the matching closing brace
+                while (i < text.Length && braceCount > 0)
+                {
+                    if (text[i] == '{') braceCount++;
+                    else if (text[i] == '}') braceCount--;
+                    i++;
+                }
+                if (braceCount == 0)
+                {
+                    // Found complete JSON object
+                    return text.Substring(jsonStart, i - jsonStart);
+                }
+                break;
+            }
+        }
+        
+        return string.Empty;
+    }
+
+    // Strict detector - only show quote CTA after equipment has been confirmed
     bool IsFinalSummaryAskBubble(string rawLower){
         if (string.IsNullOrWhiteSpace(rawLower)) return false;
 
-        bool hasSummaryLabels =
-            rawLower.Contains("date and time") ||
-            rawLower.Contains("room:") ||
-            rawLower.Contains("layout:") ||
-            rawLower.Contains("setup style") ||
-            rawLower.Contains("event type") ||
-            rawLower.Contains("equipment:") ||
-            rawLower.Contains("audio visual:") ||
-            rawLower.Contains("ceiling sound system") ||
-            rawLower.Contains("technical support") ||
-            rawLower.Contains("rehearsal") ||
-            rawLower.Contains("number of speakers") ||
-            rawLower.Contains("number of presenters") ||
-            rawLower.Contains("attendees") ||
-            rawLower.Contains("guests:") ||
-            rawLower.Contains("purpose") ||
-            rawLower.Contains("goal:") ||
+        // MUST have equipment-specific content (not just venue/attendee info)
+        bool hasEquipmentConfirmation =
+            rawLower.Contains("quote summary") ||          // Our new summary format
+            rawLower.Contains("recommended equipment") ||  // Section header
             rawLower.Contains("equipment selection") ||
             rawLower.Contains("equipment lineup") ||
             rawLower.Contains("finalized equipment") ||
             rawLower.Contains("here's the equipment") ||
+            rawLower.Contains("your equipment") ||
+            rawLower.Contains("selected equipment") ||
+            rawLower.Contains("equipment includes") ||
+            rawLower.Contains("equipment confirmed") ||
             rawLower.Contains("laptops:") ||
             rawLower.Contains("projectors:") ||
             rawLower.Contains("screens:") ||
-            rawLower.Contains("microphones:");
+            rawLower.Contains("microphones:") ||
+            rawLower.Contains("audio equipment") ||
+            rawLower.Contains("av equipment") ||
+            rawLower.Contains("/day") ||
+            rawLower.Contains("estimated total") ||
+            (rawLower.Contains("equipment") && rawLower.Contains("correct"));
 
-        bool asksToConfirm =
-            rawLower.Contains("does this look correct") ||
-            rawLower.Contains("does everything look correct") ||
-            rawLower.Contains("can you confirm") ||
-            rawLower.Contains("please confirm") ||
-            rawLower.Contains("before i create your quote") ||
-            rawLower.Contains("before creating your quote") ||
-            rawLower.Contains("before i prepare your quote") ||
-            rawLower.Contains("ready for me to create the quote") ||
-            rawLower.Contains("should i create the quote") ||
-            rawLower.Contains("would you like me to create the quote") ||
-            rawLower.Contains("shall we move ahead") ||
-            rawLower.Contains("shall we proceed") ||
+        // Must explicitly ask about proceeding or creating quote
+        bool asksAboutQuote =
+            rawLower.Contains("create your quote") ||
+            rawLower.Contains("create the quote") ||
+            rawLower.Contains("prepare your quote") ||
+            rawLower.Contains("prepare the quote") ||
+            rawLower.Contains("generate your quote") ||
+            rawLower.Contains("generate the quote") ||
             rawLower.Contains("finalize the quote") ||
-            rawLower.Contains("is there anything else") ||
-            rawLower.Contains("anything else you'd like to add") ||
-            rawLower.Contains("would you like to add anything");
+            rawLower.Contains("ready for the quote") ||
+            rawLower.Contains("shall i prepare your quote") ||
+            rawLower.Contains("would you like me to create the quote") ||
+            rawLower.Contains("proceed with this equipment") ||
+            rawLower.Contains("equipment looks correct") ||   // Our new phrase
+            rawLower.Contains("yes, create quote") ||
+            rawLower.Contains("click **yes") ||
+            rawLower.Contains("no, i need changes");
 
-        // Show CTA if both conditions are met, OR if it's clearly asking to finalize
-        return (hasSummaryLabels && asksToConfirm) || 
-               (rawLower.Contains("shall we move ahead") && rawLower.Contains("finalize"));
+        // Exclude venue-only messages (these should NOT trigger quote buttons)
+        bool isVenueOnly =
+            (rawLower.Contains("venue") || rawLower.Contains("room") || rawLower.Contains("ballroom")) &&
+            (rawLower.Contains("reservation") || rawLower.Contains("available") || rawLower.Contains("proceed with this venue")) &&
+            !hasEquipmentConfirmation;
+
+        // Only show CTA if:
+        // 1. Equipment has been confirmed AND asking about quote/proceed, OR
+        // 2. Explicitly asking about creating a quote (without venue-only content)
+        return (hasEquipmentConfirmation && asksAboutQuote) || 
+               (asksAboutQuote && !isVenueOnly);
     }
 
     // Shapes for galleries
@@ -492,7 +560,10 @@ else
     const vals={}; inputs.forEach(i=>{ const n=(i.getAttribute('data-name')||'').trim().toLowerCase(); const v=(i.value||'').trim(); if(n&&v) vals[n]=v; });
     const setup=vals['setup']||'', rehearsal=vals['rehearsal']||'', start=vals['start']||'', end=vals['end']||'';
     const packup=vals['packup']||vals['pack_down']||vals['packdown']||'';
-    const parts=[]; if(setup)parts.push(`setup=${setup}`); if(rehearsal)parts.push(`rehearsal=${rehearsal}`);
+    const dateIso=wrap.getAttribute('data-date')||'';
+    const parts=[]; 
+    if(dateIso)parts.push(`date=${dateIso}`);
+    if(setup)parts.push(`setup=${setup}`); if(rehearsal)parts.push(`rehearsal=${rehearsal}`);
     if(start)parts.push(`start=${start}`); if(end)parts.push(`end=${end}`); if(packup)parts.push(`packup=${packup}`);
     if(parts.length) postChat(`Choose schedule: ${parts.join('; ')}`,btn);
   },{passive:false});

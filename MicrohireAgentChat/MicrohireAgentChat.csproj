@@ -54,12 +54,12 @@
 
 	<!-- Restore local dotnet tools using the manifest at the solution (or project) dir -->
 	<Target Name="PlaywrightToolRestore" AfterTargets="Restore" Condition="Exists('$(DotNetToolsManifest)')">
-		<Exec Command="/home/nitwit/.dotnet/dotnet tool restore --tool-manifest &quot;$(DotNetToolsManifest)&quot;" WorkingDirectory="$(DotNetToolsDir)" />
+		<Exec Command="dotnet tool restore --tool-manifest &quot;$(DotNetToolsManifest)&quot;" WorkingDirectory="$(DotNetToolsDir)" />
 	</Target>
 
 	<!-- Try CLI first -->
 	<Target Name="PlaywrightInstallOnBuildTarget" AfterTargets="Build" DependsOnTargets="PlaywrightToolRestore" Condition="'$(PlaywrightInstallOnBuild)'=='true'">
-		<Exec Command="/home/nitwit/.dotnet/dotnet tool run playwright install" WorkingDirectory="$(DotNetToolsDir)" ContinueOnError="true">
+		<Exec Command="dotnet tool run playwright install" WorkingDirectory="$(DotNetToolsDir)" ContinueOnError="true">
 			<Output TaskParameter="ExitCode" PropertyName="PlaywrightExitCode" />
 		</Exec>
 		<Message Text="Playwright (CLI) install exit code: $(PlaywrightExitCode)" Importance="high" />
@@ -72,7 +72,7 @@
 
 	<!-- Publish: skip Playwright install for Azure deployment (set SkipPlaywrightInstall=true) -->
 	<Target Name="PlaywrightInstallOnPublishTarget" AfterTargets="Publish" DependsOnTargets="PlaywrightToolRestore" Condition="'$(SkipPlaywrightInstall)'!='true'">
-		<Exec Command="/home/nitwit/.dotnet/dotnet tool run playwright install" WorkingDirectory="$(DotNetToolsDir)" ContinueOnError="true">
+		<Exec Command="dotnet tool run playwright install" WorkingDirectory="$(DotNetToolsDir)" ContinueOnError="true">
 			<Output TaskParameter="ExitCode" PropertyName="PlaywrightPublishExitCode" />
 		</Exec>
 		<Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(TargetDir)playwright.ps1&quot; install" Condition="'$(PlaywrightPublishExitCode)'!='0' or !Exists('$(DotNetToolsManifest)')" ContinueOnError="true" />
