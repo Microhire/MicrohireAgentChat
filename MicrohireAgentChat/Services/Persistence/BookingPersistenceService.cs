@@ -3,6 +3,7 @@ using MicrohireAgentChat.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using MicrohireAgentChat.Services;
 
 namespace MicrohireAgentChat.Services.Persistence;
 
@@ -56,11 +57,29 @@ public sealed class BookingPersistenceService
         decimal? organizationId,
         string? customerCode,
         string? contactName,
+        MultiDayEventDetails? multiDayDetails,
         CancellationToken ct)
     {
         try
         {
             var now = NowAest();
+
+            // Handle multi-day events by creating multiple booking records
+            if (multiDayDetails != null && multiDayDetails.DurationDays > 1)
+            {
+                return await SaveMultiDayBookingAsync(
+                    existingBookingNo,
+                    facts,
+                    contactId,
+                    organizationId,
+                    customerCode,
+                    contactName,
+                    multiDayDetails,
+                    now,
+                    ct);
+            }
+
+            // Single-day booking (existing logic)
             var bookingNo = existingBookingNo ?? await GenerateBookingNumberAsync(ct);
 
             // Extract structured data from facts
@@ -270,6 +289,234 @@ public sealed class BookingPersistenceService
             var detail = ex.InnerException?.Message ?? ex.Message;
             throw new InvalidOperationException($"Failed to save booking: {detail}", ex);
         }
+    }
+
+    /// <summary>
+    /// Save multi-day booking by creating multiple booking records
+    /// </summary>
+    private async Task<string?> SaveMultiDayBookingAsync(
+        string? existingBookingNo,
+        Dictionary<string, string> facts,
+        decimal? contactId,
+        decimal? organizationId,
+        string? customerCode,
+        string? contactName,
+        MultiDayEventDetails multiDayDetails,
+        DateTime now,
+        CancellationToken ct)
+    {
+        // Generate base booking number for the first day
+        var baseBookingNo = existingBookingNo ?? await GenerateBookingNumberAsync(ct);
+        var firstDayBookingNo = baseBookingNo;
+
+        // Extract common data that applies to all days
+        var venueName = GetFact(facts, "venue_name");
+        var venueRoom = GetFact(facts, "venue_room");
+        var eventType = GetFact(facts, "event_type");
+        var showName = GetFact(facts, "show_name") ?? GetFact(facts, "event_type");
+        var salesperson = GetFact(facts, "salesperson") ?? "Isla";
+        var attendees = ParseInt(GetFact(facts, "expected_attendees"));
+
+        // Financial fields (shared across all days)
+        var priceQuoted = ParseDecimal(GetFact(facts, "price_quoted"));
+        var hirePrice = ParseDecimal(GetFact(facts, "hire_price"));
+        var labour = ParseDecimal(GetFact(facts, "labour"));
+        var insurance = ParseDecimal(GetFact(facts, "insurance"));
+        var tax2 = ParseDecimal(GetFact(facts, "gst"));
+
+        var status = GetFact(facts, "booking_status") ?? "Enquiry";
+        var bookingType = ParseByte(GetFact(facts, "booking_type")) ?? (byte)2;
+
+        // Venue lookup
+        int? venueId = null;
+        if (!string.IsNullOrWhiteSpace(venueName))
+        {
+            var normalizedVenue = venueName.ToLower().Trim();
+            if (normalizedVenue.Contains("westin") && normalizedVenue.Contains("brisbane"))
+            {
+                venueId = 20; // The Westin Brisbane ID
+            }
+            else
+            {
+                var venue = await _db.TblVenues
+                    .Where(v => v.VenueName != null && v.VenueName.ToLower().Contains(normalizedVenue))
+                    .Select(v => new { v.ID })
+                    .FirstOrDefaultAsync(ct);
+
+                if (venue != null)
+                {
+                    venueId = (int)venue.ID;
+                }
+                else
+                {
+                    var custVenue = await _db.TblCusts
+                        .Where(c => c.OrganisationV6 != null && c.OrganisationV6.ToLower().Contains(normalizedVenue))
+                        .Select(c => new { c.ID })
+                        .FirstOrDefaultAsync(ct);
+                    venueId = custVenue != null ? (int)custVenue.ID : 20;
+                }
+            }
+        }
+
+        // CRITICAL: CustID is required
+        var finalCustId = organizationId ?? await GetDefaultCustomerIdAsync(ct);
+        var finalCustCode = customerCode ?? (finalCustId.HasValue ? await GetCustomerCodeByIdAsync(finalCustId.Value, ct) : null);
+
+        // Create booking record for each day
+        for (int dayNumber = 1; dayNumber <= multiDayDetails.DurationDays; dayNumber++)
+        {
+            var dayBookingNo = dayNumber == 1 ? firstDayBookingNo : $"{baseBookingNo}-D{dayNumber}";
+            var dayDetails = multiDayDetails.GetDayDetails(dayNumber);
+
+            // Extract day-specific data
+            var dayDate = multiDayDetails.StartDate.AddDays(dayNumber - 1);
+            var daySetupStyle = dayDetails?.SetupStyle;
+            var dayStartTime = dayDetails?.StartTime;
+            var dayEndTime = dayDetails?.EndTime;
+            var daySpecialNotes = dayDetails?.SpecialNotes;
+
+            // For multi-day events, distribute financial amounts across days
+            var dayPriceQuoted = priceQuoted.HasValue ? (decimal?)(priceQuoted.Value / multiDayDetails.DurationDays) : null;
+            var dayHirePrice = hirePrice.HasValue ? (decimal?)(hirePrice.Value / multiDayDetails.DurationDays) : null;
+            var dayLabour = labour.HasValue ? (decimal?)(labour.Value / multiDayDetails.DurationDays) : null;
+            var dayInsurance = insurance.HasValue ? (decimal?)(insurance.Value / multiDayDetails.DurationDays) : null;
+            var dayTax2 = tax2.HasValue ? (decimal?)(tax2.Value / multiDayDetails.DurationDays) : null;
+
+            var existing = await _db.TblBookings.FirstOrDefaultAsync(b => b.booking_no == dayBookingNo, ct);
+
+            if (existing == null)
+            {
+                // CREATE new booking for this day
+                var booking = new TblBooking
+                {
+                    booking_no = dayBookingNo,
+                    order_no = dayBookingNo,
+                    booking_type_v32 = bookingType,
+                    status = 0,
+                    BookingProgressStatus = (byte)TryParseStatus(status),
+                    bBookingIsComplete = false,
+
+                    // Dates for this specific day
+                    dDate = dayDate,
+                    rDate = dayDate,
+                    SDate = dayDate,
+                    SetDate = dayDate,
+                    ShowSDate = dayStartTime.HasValue ? dayDate.Date.Add(dayStartTime.Value) : dayDate,
+                    ShowEdate = dayEndTime.HasValue ? dayDate.Date.Add(dayEndTime.Value) : dayDate,
+                    RehDate = dayDate,
+                    order_date = now,
+                    EntryDate = now,
+
+                    // Times
+                    showStartTime = ToHHmmString(dayStartTime),
+                    ShowEndTime = ToHHmmString(dayEndTime),
+                    setupTimeV61 = ToHHmmString(dayStartTime), // Use start time as setup time
+                    RehearsalTime = ToHHmmString(dayStartTime),
+                    StrikeTime = ToHHmmString(dayEndTime),
+                    del_time_h = dayStartTime.HasValue ? (byte?)dayStartTime.Value.Hours : null,
+                    del_time_m = dayStartTime.HasValue ? (byte?)dayStartTime.Value.Minutes : null,
+                    ret_time_h = dayEndTime.HasValue ? (byte?)dayEndTime.Value.Hours : null,
+                    ret_time_m = dayEndTime.HasValue ? (byte?)dayEndTime.Value.Minutes : null,
+
+                    // Venue & Event
+                    VenueRoom = Trunc($"{venueRoom} - Day {dayNumber}", 50),
+                    EventType = Trunc($"{eventType} (Day {dayNumber})", 35),
+                    showName = Trunc($"{showName} - Day {dayNumber}", 100),
+                    expAttendees = attendees,
+                    VenueID = venueId ?? 1,
+
+                    // Financial (distributed across days)
+                    price_quoted = (double?)dayPriceQuoted,
+                    hire_price = (double?)dayHirePrice,
+                    labour = (double?)dayLabour,
+                    insurance_v5 = (double?)dayInsurance,
+                    sundry_total = (double?)dayInsurance,
+                    Tax2 = (double?)dayTax2,
+                    days_using = 1, // Each day booking uses 1 day
+
+                    // Customer/Contact
+                    CustID = finalCustId,
+                    CustCode = finalCustCode,
+                    ContactID = contactId,
+                    contact_nameV6 = Trunc(contactName, 35),
+                    OrganizationV6 = finalCustId.HasValue
+                        ? await GetOrganizationNameAsync(finalCustId.Value, ct)
+                        : null,
+                    Salesperson = Trunc(salesperson, 50),
+
+                    // Defaults
+                    From_locn = 20,
+                    Trans_to_locn = 20,
+                    return_to_locn = 20,
+                    invoiced = "N",
+                    perm_casual = "Y",
+                    TaxAuthority1 = 0,
+                    TaxAuthority2 = 1
+                };
+
+                _db.TblBookings.Add(booking);
+                _logger.LogInformation("Created multi-day booking for day {Day}: {BookingNo}", dayNumber, dayBookingNo);
+            }
+            else
+            {
+                // UPDATE existing booking for this day
+                existing.dDate = dayDate;
+                existing.rDate = dayDate;
+                existing.SDate = dayDate;
+                existing.SetDate = dayDate;
+                existing.RehDate = dayDate;
+
+                if (dayStartTime.HasValue) existing.ShowSDate = dayDate.Date.Add(dayStartTime.Value);
+                if (dayEndTime.HasValue) existing.ShowEdate = dayDate.Date.Add(dayEndTime.Value);
+
+                if (dayStartTime.HasValue)
+                {
+                    existing.showStartTime = ToHHmmString(dayStartTime);
+                    existing.setupTimeV61 = ToHHmmString(dayStartTime);
+                    existing.RehearsalTime = ToHHmmString(dayStartTime);
+                    existing.del_time_h = (byte?)dayStartTime.Value.Hours;
+                    existing.del_time_m = (byte?)dayStartTime.Value.Minutes;
+                }
+
+                if (dayEndTime.HasValue)
+                {
+                    existing.ShowEndTime = ToHHmmString(dayEndTime);
+                    existing.StrikeTime = ToHHmmString(dayEndTime);
+                    existing.ret_time_h = (byte?)dayEndTime.Value.Hours;
+                    existing.ret_time_m = (byte?)dayEndTime.Value.Minutes;
+                }
+
+                existing.VenueRoom = Trunc($"{venueRoom} - Day {dayNumber}", 50);
+                existing.EventType = Trunc($"{eventType} (Day {dayNumber})", 35);
+                existing.showName = Trunc($"{showName} - Day {dayNumber}", 100);
+
+                if (dayPriceQuoted.HasValue) existing.price_quoted = (double?)dayPriceQuoted;
+                if (dayHirePrice.HasValue) existing.hire_price = (double?)dayHirePrice;
+                if (dayLabour.HasValue) existing.labour = (double?)dayLabour;
+                if (dayInsurance.HasValue)
+                {
+                    existing.insurance_v5 = (double?)dayInsurance;
+                    existing.sundry_total = (double?)dayInsurance;
+                }
+                if (dayTax2.HasValue) existing.Tax2 = (double?)dayTax2;
+
+                if (contactId.HasValue) existing.ContactID = contactId;
+                if (!string.IsNullOrWhiteSpace(contactName)) existing.contact_nameV6 = Trunc(contactName, 35);
+                if (!string.IsNullOrWhiteSpace(finalCustCode)) existing.CustCode = finalCustCode;
+                if (finalCustId.HasValue)
+                {
+                    existing.CustID = finalCustId;
+                    existing.OrganizationV6 = await GetOrganizationNameAsync(finalCustId.Value, ct);
+                }
+                if (venueId.HasValue) existing.VenueID = venueId.Value;
+
+                _logger.LogInformation("Updated multi-day booking for day {Day}: {BookingNo}", dayNumber, dayBookingNo);
+            }
+        }
+
+        await _db.SaveChangesAsync(ct);
+        _logger.LogInformation("Saved multi-day booking with {Days} days: {BaseBookingNo}", multiDayDetails.DurationDays, baseBookingNo);
+        return firstDayBookingNo;
     }
 
     /// <summary>

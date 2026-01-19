@@ -214,6 +214,54 @@ public sealed class EquipmentSearchService
             "speaker", "camera", "ipad", "tablet", "lectern", "podium"
         };
 
+        // Special handling for Microsoft Teams and video conferencing
+        var teamsPatterns = new[] { "teams", "microsoft teams", "ms teams", "video conference", "video conferencing" };
+        foreach (var pattern in teamsPatterns)
+        {
+            if (text.Contains(pattern, StringComparison.OrdinalIgnoreCase))
+            {
+                // Microsoft Teams requires: laptop (if not provided), webcam, microphone/speaker, internet
+                if (!requirements.Any(r => r.NormalizedType.Contains("laptop")))
+                {
+                    requirements.Add(new EquipmentRequirement
+                    {
+                        OriginalText = "Microsoft Teams",
+                        NormalizedType = "laptop",
+                        Quantity = 1
+                    });
+                }
+                if (!requirements.Any(r => r.NormalizedType.Contains("webcam") || r.NormalizedType.Contains("camera")))
+                {
+                    requirements.Add(new EquipmentRequirement
+                    {
+                        OriginalText = "Microsoft Teams",
+                        NormalizedType = "webcam",
+                        Quantity = 1
+                    });
+                }
+                if (!requirements.Any(r => r.NormalizedType.Contains("microphone") || r.NormalizedType.Contains("mic")))
+                {
+                    requirements.Add(new EquipmentRequirement
+                    {
+                        OriginalText = "Microsoft Teams",
+                        NormalizedType = "microphone",
+                        Quantity = 1
+                    });
+                }
+                if (!requirements.Any(r => r.NormalizedType.Contains("speaker")))
+                {
+                    requirements.Add(new EquipmentRequirement
+                    {
+                        OriginalText = "Microsoft Teams",
+                        NormalizedType = "speaker",
+                        Quantity = 1
+                    });
+                }
+                // Note: Internet connection is typically assumed to be available
+                break; // Only add once even if multiple patterns match
+            }
+        }
+
         foreach (var equip in implicitPatterns)
         {
             if (text.Contains(equip) && !requirements.Any(r => r.NormalizedType == equip))

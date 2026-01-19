@@ -415,7 +415,7 @@ public class ConversationReplayService
             
             // More formal/detailed
             $"We are organizing a {eventType} scheduled for {dateString}. We expect approximately {attendeeCount} attendees and require {roomType} at the Westin Brisbane in a {roomSetup} arrangement.",
-            $"I need to book for a {eventType}. The event date is {dateString}, we're expecting {attendeeCount} guests, and we'd like {roomType} at the Westin Brisbane configured in {roomSetup}.",
+            $"I need to book for a {eventType}. The event date is {dateString}, we're expecting {attendeeCount} attendees, and we'd like {roomType} at the Westin Brisbane configured in {roomSetup}.",
             
             // With additional context
             $"{eventType} on {dateString}. It's for our team of {attendeeCount} people. Westin Brisbane {roomType} in {roomSetup} would be perfect",
@@ -688,7 +688,7 @@ public class ConversationReplayService
             "no, this is my first time using Microhire",
             $"{companyName}, based in {suburb}",
             $"04{_random.Next(10000000, 99999999)}, {firstName.ToLower()}{lastName.ToLower()}@gmail.com, I'm the event coordinator",
-            $"gala dinner at Westin Brisbane ballroom, banquet style for 200 guests, {eventDate:MMMM d, yyyy}",
+            $"gala dinner at Westin Brisbane ballroom, banquet style for 200 attendees, {eventDate:MMMM d, yyyy}",
             // Event-focused responses for social event:
             "yes we'll have 2 speeches",
             "no, just speeches no slides",
@@ -948,12 +948,41 @@ public class ConversationReplayService
             "new customer for this event",
             $"{company}, we're headquartered in Brisbane",
             $"04{_random.Next(10000000, 99999999)}, {firstName.ToLower()}@startup.io, head of marketing",
-            $"product launch event at Westin Brisbane grand ballroom, {eventDate:d MMMM yyyy}. Expecting 300 guests plus media. Theater style with a stage",
+            $"product launch event at Westin Brisbane grand ballroom, {eventDate:d MMMM yyyy}. Expecting 300 attendees plus media. Theater style with a stage",
             // Event-focused responses for product launch:
             "yes we have 4 speakers including our CEO doing the main presentation",
             "absolutely, we need impressive visuals - product videos and live demos",
             "yes please provide laptops for the demos, high-end Windows machines",
             "we want professional stage lighting to make this look impressive for the media"
+        };
+    }
+
+    /// <summary>
+    /// Generates a test case specifically for time picker validation testing
+    /// This includes scenarios that will trigger the time picker and test validation
+    /// </summary>
+    public IEnumerable<string> GenerateTimePickerValidationConversation()
+    {
+        var firstName = _firstNames[_random.Next(_firstNames.Length)];
+        var lastName = _lastNames[_random.Next(_lastNames.Length)];
+        var fullName = $"{firstName} {lastName}";
+        var company = $"{_companyNames[_random.Next(_companyNames.Length)]}{_companySuffixes[_random.Next(_companySuffixes.Length)]}";
+        var eventDate = DateTime.Now.AddDays(_random.Next(14, 60));
+
+        // This conversation will trigger the time picker, and we can test validation
+        return new[]
+        {
+            $"hi, I'm {fullName}",
+            "new customer",
+            $"{company}, Brisbane CBD",
+            $"04{_random.Next(10000000, 99999999)}, {firstName.ToLower()}@test.com, event coordinator",
+            $"boardroom meeting at Westin Brisbane on {eventDate:d MMMM yyyy}. We expect 20 attendees",
+            // Event-focused responses:
+            "yes there will be 2 presentations",
+            "yes we need to show slides",
+            "yes please provide a laptop, Windows is fine",
+            // This will trigger the time picker - user provides start/end times
+            "start time at 9am and finish time at 5pm"
         };
     }
 

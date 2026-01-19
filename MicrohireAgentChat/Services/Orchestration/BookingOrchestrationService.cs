@@ -58,6 +58,9 @@ public sealed class BookingOrchestrationService
             var contactInfo = _extractor.ExtractContactInfo(messages);
             var (orgName, orgAddress) = _extractor.ExtractOrganisationFromTranscript(messages);
             var facts = _extractor.ExtractExpectedFields(messages);
+
+            // Check for multi-day events
+            var multiDayDetails = _extractor.ExtractMultiDayEventDetails(messages);
             
             // Merge any additional facts (e.g., equipment from session)
             if (additionalFacts != null)
@@ -155,6 +158,7 @@ public sealed class BookingOrchestrationService
                     orgId,
                     customerCode,
                     contactInfo.Name,
+                    multiDayDetails,
                     ct);
 
                 result.BookingNo = bookingNo;

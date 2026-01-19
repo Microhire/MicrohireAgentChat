@@ -331,14 +331,34 @@ public sealed class ConversationExtractionService
         // Pattern: "Schedule selected: Setup 7:00 AM; Rehearsal 9:30 AM; Start 10:00 AM; End 4:00 PM; Pack Up 6:00 PM"
         var schedulePattern = @"Schedule selected:\s*(.+)";
         
-        // Individual time patterns within the schedule
+        // Individual time patterns within the schedule - enhanced to distinguish semantic meaning
         var timePatterns = new Dictionary<string, string[]>
         {
-            ["setup_time"] = new[] { @"Setup\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)", @"Set[- ]?up\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)" },
-            ["rehearsal_time"] = new[] { @"Rehearsal\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)" },
-            ["show_start_time"] = new[] { @"Start\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)", @"Event\s+Start\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)" },
-            ["show_end_time"] = new[] { @"End\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)", @"Event\s+End\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)" },
-            ["strike_time"] = new[] { @"Pack[- ]?Up\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)", @"Pack\s+Up\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)" }
+            ["setup_time"] = new[] {
+                @"Setup\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)",
+                @"Set[- ]?up\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)"
+            },
+            ["rehearsal_time"] = new[] {
+                @"Rehearsal\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)",
+                @"Rehearsal\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)"
+            },
+            ["show_start_time"] = new[] {
+                @"(?:Event\s+)?Start\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)",
+                @"(?:Event\s+)?Start\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)",
+                @"Event\s+Start\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)",
+                @"Start\s+time\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)"
+            },
+            ["show_end_time"] = new[] {
+                @"(?:Event\s+)?(?:End|Finish)\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)",
+                @"(?:Event\s+)?(?:End|Finish)\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)",
+                @"Event\s+End\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)",
+                @"Finish\s+time\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)"
+            },
+            ["strike_time"] = new[] {
+                @"Pack[- ]?Up\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)",
+                @"Pack\s+Up\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)",
+                @"Pack\s+down\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)"
+            }
         };
 
         foreach (var msg in messages)
@@ -408,6 +428,330 @@ public sealed class ConversationExtractionService
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Extract event type from conversation messages (interviews, meetings, conferences, etc.)
+    /// </summary>
+    public (string? EventType, string? Match) ExtractEventType(IEnumerable<DisplayMessage> messages)
+    {
+        var ordered = messages.OrderBy(m => m.Timestamp).ToList();
+        static string JoinParts(DisplayMessage m) => string.Join(" ", m.Parts ?? Enumerable.Empty<string>());
+
+        // Common event types and their patterns
+        var eventTypePatterns = new Dictionary<string, string[]>
+        {
+            ["interviews"] = new[] {
+                @"running\s+interviews",
+                @"interview\s+process",
+                @"conducting\s+interviews",
+                @"holding\s+interviews",
+                @"interview\s+session",
+                @"interviews\s+for"
+            },
+            ["meeting"] = new[] {
+                @"(?:running|holding|organizing)\s+a?\s?meeting",
+                @"meeting\s+(?:with|for)",
+                @"business\s+meeting",
+                @"team\s+meeting"
+            },
+            ["conference"] = new[] {
+                @"conference\s+(?:call|meeting|session)",
+                @"running\s+a\s+conference",
+                @"conference\s+event"
+            },
+            ["seminar"] = new[] {
+                @"seminar\s+(?:session|event)",
+                @"running\s+a\s+seminar",
+                @"seminar\s+presentation"
+            },
+            ["workshop"] = new[] {
+                @"workshop\s+(?:session|event)",
+                @"running\s+a\s+workshop",
+                @"hands-on\s+workshop"
+            },
+            ["presentation"] = new[] {
+                @"presentation\s+(?:session|event)",
+                @"giving\s+a\s+presentation",
+                @"presentation\s+to"
+            },
+            ["training"] = new[] {
+                @"training\s+(?:session|program|course)",
+                @"conducting\s+training",
+                @"training\s+event"
+            },
+            ["ceremony"] = new[] {
+                @"ceremony\s+event",
+                @"award\s+ceremony",
+                @"graduation\s+ceremony"
+            },
+            ["wedding"] = new[] {
+                @"wedding\s+(?:ceremony|reception)",
+                @"wedding\s+event"
+            },
+            ["party"] = new[] {
+                @"party\s+event",
+                @"celebration\s+party",
+                @"birthday\s+party"
+            },
+            ["webinar"] = new[] {
+                @"webinar\s+(?:session|event)",
+                @"online\s+webinar",
+                @"virtual\s+webinar"
+            },
+            ["interview"] = new[] {
+                @"(?:conducting|doing|having)\s+an?\s+interview",
+                @"interview\s+(?:with|for)"
+            }
+        };
+
+        // Check user messages first (more reliable than assistant responses)
+        foreach (var m in ordered.Where(x => x.Role.Equals("user", StringComparison.OrdinalIgnoreCase)))
+        {
+            var text = JoinParts(m).ToLowerInvariant();
+
+            foreach (var kvp in eventTypePatterns)
+            {
+                foreach (var pattern in kvp.Value)
+                {
+                    if (Regex.IsMatch(text, pattern, RegexOptions.IgnoreCase))
+                    {
+                        return (kvp.Key, Regex.Match(JoinParts(m), pattern, RegexOptions.IgnoreCase).Value);
+                    }
+                }
+            }
+        }
+
+        // Also check assistant messages for confirmation
+        foreach (var m in ordered.Where(x => !x.Role.Equals("user", StringComparison.OrdinalIgnoreCase)))
+        {
+            var text = JoinParts(m).ToLowerInvariant();
+
+            // Look for confirmation patterns like "I see you mentioned interviews"
+            foreach (var kvp in eventTypePatterns)
+            {
+                foreach (var pattern in kvp.Value)
+                {
+                    if (Regex.IsMatch(text, pattern, RegexOptions.IgnoreCase))
+                    {
+                        return (kvp.Key, Regex.Match(JoinParts(m), pattern, RegexOptions.IgnoreCase).Value);
+                    }
+                }
+            }
+        }
+
+        return (null, null);
+    }
+
+    /// <summary>
+    /// Extract all event information from conversation messages
+    /// </summary>
+    public EventInformation ExtractAllEventInformation(IEnumerable<DisplayMessage> messages)
+    {
+        var ordered = messages.OrderBy(m => m.Timestamp).ToList();
+        static string JoinParts(DisplayMessage m) => string.Join(" ", m.Parts ?? Enumerable.Empty<string>());
+
+        var info = new EventInformation();
+
+        // Combine all user messages for comprehensive extraction
+        var userText = string.Join(" ", ordered
+            .Where(m => m.Role.Equals("user", StringComparison.OrdinalIgnoreCase))
+            .Select(JoinParts));
+
+        if (string.IsNullOrWhiteSpace(userText)) return info;
+
+        userText = userText.ToLowerInvariant();
+
+        // Extract budget
+        var budgetMatch = Regex.Match(userText, @"(?:\$|budget\s+(?:of\s+)?)(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:dollars?|budget)", RegexOptions.IgnoreCase);
+        if (budgetMatch.Success && decimal.TryParse(budgetMatch.Groups[1].Value.Replace(",", ""), out var budget))
+        {
+            info.Budget = budget;
+            info.BudgetMatch = budgetMatch.Value;
+        }
+
+        // Extract attendees count
+        var attendeesMatch = Regex.Match(userText, @"(\d{1,4})\s+(?:people|attendees|pax|participants|guests)", RegexOptions.IgnoreCase);
+        if (attendeesMatch.Success && int.TryParse(attendeesMatch.Groups[1].Value, out var attendees))
+        {
+            info.Attendees = attendees;
+            info.AttendeesMatch = attendeesMatch.Value;
+        }
+
+        // Extract setup style
+        var setupPatterns = new[] {
+            @"(?:setup|style|layout)\s+(?:is|will\s+be|should\s+be)?\s+(?:a\s+)?(?:classroom|theater|boardroom|banquet|u-shape|u\s+shape|reception|cocktail|dinner)",
+            @"(?:classroom|theater|boardroom|banquet|u-shape|u\s+shape|reception|cocktail|dinner)\s+(?:setup|style|layout)"
+        };
+
+        foreach (var pattern in setupPatterns)
+        {
+            var match = Regex.Match(userText, pattern, RegexOptions.IgnoreCase);
+            if (match.Success)
+            {
+                var setup = match.Value.ToLower()
+                    .Replace("setup", "").Replace("style", "").Replace("layout", "")
+                    .Replace("is", "").Replace("will be", "").Replace("should be", "")
+                    .Replace("a", "").Trim();
+
+                if (!string.IsNullOrWhiteSpace(setup))
+                {
+                    info.SetupStyle = setup;
+                    info.SetupMatch = match.Value;
+                    break;
+                }
+            }
+        }
+
+        // Extract venue/room information
+        var venueMatch = Regex.Match(userText, @"(?:at|in)\s+(?:the\s+)?([A-Za-z\s]+?)\s+(?:room|venue|ballroom|hall)", RegexOptions.IgnoreCase);
+        if (venueMatch.Success)
+        {
+            info.Venue = venueMatch.Groups[1].Value.Trim();
+            info.VenueMatch = venueMatch.Value;
+        }
+
+        // Extract special requests - look for phrases after keywords
+        var specialRequestPatterns = new[] {
+            @"(?:also|additionally|plus|furthermore| moreover)\s+(.+?)(?:\s+(?:that's|that is|and that's|etc|etc\.|$))",
+            @"(?:need|want|require)\s+(.+?)(?:\s+(?:as well|also|too|etc|etc\.|$))",
+            @"special\s+requests?\s*(?:include|are|is)?\s*(.+?)(?:\s+(?:that's|that is|$))"
+        };
+
+        foreach (var pattern in specialRequestPatterns)
+        {
+            var match = Regex.Match(userText, pattern, RegexOptions.IgnoreCase);
+            if (match.Success)
+            {
+                var request = match.Groups[1].Value.Trim();
+                if (request.Length > 5 && !string.IsNullOrWhiteSpace(request))
+                {
+                    info.SpecialRequests = request;
+                    info.SpecialRequestsMatch = match.Value;
+                    break;
+                }
+            }
+        }
+
+        // Extract all dates mentioned (for multi-day events)
+        var dateMatches = Regex.Matches(userText, @"(\d{1,2})(st|nd|rd|th)?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december)\s+(\d{4})", RegexOptions.IgnoreCase);
+        if (dateMatches.Count > 0)
+        {
+            info.Dates = new List<string>();
+            foreach (Match match in dateMatches)
+            {
+                info.Dates.Add(match.Value);
+            }
+        }
+
+        return info;
+    }
+
+    /// <summary>
+    /// Extract multi-day event details from conversation messages
+    /// </summary>
+    public MultiDayEventDetails? ExtractMultiDayEventDetails(IEnumerable<DisplayMessage> messages)
+    {
+        var ordered = messages.OrderBy(m => m.Timestamp).ToList();
+        static string JoinParts(DisplayMessage m) => string.Join(" ", m.Parts ?? Enumerable.Empty<string>());
+
+        var fullText = string.Join(" ", ordered.Select(JoinParts)).ToLowerInvariant();
+
+        // Check if this is a multi-day event
+        var dayCountMatch = Regex.Match(fullText, @"(\d+)\s+(?:day|days?)\s+(?:event|conference|meeting|seminar)", RegexOptions.IgnoreCase);
+        if (!dayCountMatch.Success)
+        {
+            // Check for specific day references
+            var dayRefs = Regex.Matches(fullText, @"\b(?:first|second|third|fourth|fifth|1st|2nd|3rd|4th|5th|day\s+\d+)\b", RegexOptions.IgnoreCase);
+            if (dayRefs.Count < 2) return null; // Need at least 2 day references for multi-day
+        }
+
+        var details = new MultiDayEventDetails();
+
+        // Extract start date
+        var (eventDate, _) = ExtractEventDate(messages);
+        if (eventDate.HasValue)
+        {
+            details.StartDate = eventDate.Value.DateTime;
+        }
+
+        // Determine duration
+        var durationMatch = Regex.Match(fullText, @"(\d+)\s+(?:day|days?)\s+(?:event|conference|meeting|seminar)", RegexOptions.IgnoreCase);
+        if (durationMatch.Success && int.TryParse(durationMatch.Groups[1].Value, out var days))
+        {
+            details.DurationDays = days;
+        }
+        else
+        {
+            // Count unique day references
+            var dayRefs = Regex.Matches(fullText, @"\b(?:first|second|third|fourth|fifth|1st|2nd|3rd|4th|5th)\b", RegexOptions.IgnoreCase);
+            details.DurationDays = Math.Max(dayRefs.Count, 1);
+        }
+
+        // Parse day-specific information
+        var dayPatterns = new Dictionary<string, int>
+        {
+            ["first"] = 1, ["1st"] = 1, ["day 1"] = 1,
+            ["second"] = 2, ["2nd"] = 2, ["day 2"] = 2,
+            ["third"] = 3, ["3rd"] = 3, ["day 3"] = 3,
+            ["fourth"] = 4, ["4th"] = 4, ["day 4"] = 4,
+            ["fifth"] = 5, ["5th"] = 5, ["day 5"] = 5
+        };
+
+        foreach (var kvp in dayPatterns)
+        {
+            var dayNumber = kvp.Value;
+            var dayDetails = new DayEventDetails
+            {
+                DayNumber = dayNumber,
+                Date = details.StartDate.AddDays(dayNumber - 1)
+            };
+
+            // Extract setup style for this day
+            var setupPattern = $@"(?:on|for|during)\s+(?:the\s+)?{Regex.Escape(kvp.Key)}\s+(?:day)?\s*(?:is|will\s+be|should\s+be)?\s*(?:a\s+)?(?:classroom|theater|boardroom|banquet|u-shape|u\s+shape|reception|cocktail|dinner)\s+(?:setup|style|layout)";
+            var setupMatch = Regex.Match(fullText, setupPattern, RegexOptions.IgnoreCase);
+            if (setupMatch.Success)
+            {
+                var setupText = setupMatch.Value.ToLower()
+                    .Replace("on", "").Replace("for", "").Replace("during", "").Replace("the", "")
+                    .Replace(kvp.Key, "").Replace("day", "").Replace("is", "").Replace("will be", "").Replace("should be", "")
+                    .Replace("a", "").Replace("setup", "").Replace("style", "").Replace("layout", "").Trim();
+
+                dayDetails.SetupStyle = setupText;
+            }
+
+            // Extract time information for this day
+            var timePattern = $@"(?:on|for|during)\s+(?:the\s+)?{Regex.Escape(kvp.Key)}\s+(?:day)?\s*(?:starts?|begins?|from)\s+(\d{{1,2}}(?::\d{{2}})?\s*(?:AM|PM)?)";
+            var timeMatch = Regex.Match(fullText, timePattern, RegexOptions.IgnoreCase);
+            if (timeMatch.Success)
+            {
+                // Parse time - simplified for now
+                dayDetails.StartTime = TimeSpan.TryParse(timeMatch.Groups[1].Value, out var time) ? time : null;
+            }
+
+            // Extract special notes for this day
+            var notesPattern = $@"(?:on|for|during)\s+(?:the\s+)?{Regex.Escape(kvp.Key)}\s+(?:day)?\s*(.+?)(?:\s+(?:on|for|during|day|$))";
+            var notesMatch = Regex.Match(fullText, notesPattern, RegexOptions.IgnoreCase);
+            if (notesMatch.Success)
+            {
+                var notes = notesMatch.Groups[1].Value.Trim();
+                if (notes.Length > 10 && !notes.Contains("setup") && !notes.Contains("style"))
+                {
+                    dayDetails.SpecialNotes = notes;
+                }
+            }
+
+            // Only add if we have some information for this day
+            if (!string.IsNullOrWhiteSpace(dayDetails.SetupStyle) ||
+                dayDetails.StartTime.HasValue ||
+                !string.IsNullOrWhiteSpace(dayDetails.SpecialNotes))
+            {
+                details.SetDayDetails(dayNumber, dayDetails);
+            }
+        }
+
+        // If we found day-specific information, return the details
+        return details.Days.Count > 0 ? details : null;
     }
 
     /// <summary>
@@ -758,6 +1102,13 @@ public sealed class ConversationExtractionService
         text = Regex.Replace(text, @"\s+", " ").Trim();
         text = Regex.Replace(text, @"\b(adress|addess|addres|addrss|adreess|addrees|adrress)\b", "address", RegexOptions.IgnoreCase);
         
+        // Preprocess: Strip leading verbs like "Called", "Named", "Is", etc. from the entire text
+        // This handles cases like "Called THE gully, located in winston glades"
+        var verbPrefixPattern = new Regex(@"^(?:called|named|is|are|company\s+is|business\s+is|organisation\s+is|organization\s+is|org\s+is|the\s+company\s+is|the\s+business\s+is)\s+(.+)$", RegexOptions.IgnoreCase);
+        var verbMatch = verbPrefixPattern.Match(text);
+        if (verbMatch.Success)
+            text = verbMatch.Groups[1].Value.Trim();
+        
         // Common Australian suburbs for location matching
         var ausSuburbs = new[] { 
             "ascot", "kelvin grove", "fortitude valley", "south bank", "southbank", "brisbane", 
@@ -952,13 +1303,23 @@ public sealed class ConversationExtractionService
         
         name = name.Trim().TrimEnd(',', '.', ';');
         
-        // Remove common prefixes
-        var prefixes = new[] { "it's ", "its ", "it is ", "we're ", "we are ", "i work for ", "i work at ", "from " };
+        // Remove common prefixes - including verbs like "called", "named", "is", etc.
+        var prefixes = new[] { 
+            "it's ", "its ", "it is ", "we're ", "we are ", "i work for ", "i work at ", "from ",
+            "called ", "named ", "is ", "are ", "company is ", "business is ", "organisation is ", 
+            "organization is ", "org is ", "the company is ", "the business is "
+        };
         foreach (var prefix in prefixes)
         {
             if (name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
                 name = name[prefix.Length..].Trim();
         }
+        
+        // Also handle patterns like "called THE gully" -> "THE gully"
+        var verbPattern = new Regex(@"^(?:called|named|is|are|company\s+is|business\s+is|organisation\s+is|organization\s+is|org\s+is|the\s+company\s+is|the\s+business\s+is)\s+(.+)$", RegexOptions.IgnoreCase);
+        var match = verbPattern.Match(name);
+        if (match.Success)
+            name = match.Groups[1].Value.Trim();
         
         return name;
     }
@@ -1017,4 +1378,32 @@ public class SelectedEquipmentItem
     public string ProductCode { get; set; } = "";
     public string Description { get; set; } = "";
     public int Quantity { get; set; } = 1;
+}
+
+/// <summary>
+/// Comprehensive event information extracted from conversation
+/// </summary>
+public class EventInformation
+{
+    public decimal? Budget { get; set; }
+    public string? BudgetMatch { get; set; }
+    public int? Attendees { get; set; }
+    public string? AttendeesMatch { get; set; }
+    public string? SetupStyle { get; set; }
+    public string? SetupMatch { get; set; }
+    public string? Venue { get; set; }
+    public string? VenueMatch { get; set; }
+    public string? SpecialRequests { get; set; }
+    public string? SpecialRequestsMatch { get; set; }
+    public List<string>? Dates { get; set; }
+
+    /// <summary>
+    /// Check if any information was extracted
+    /// </summary>
+    public bool HasInformation()
+    {
+        return Budget.HasValue || Attendees.HasValue || !string.IsNullOrWhiteSpace(SetupStyle) ||
+               !string.IsNullOrWhiteSpace(Venue) || !string.IsNullOrWhiteSpace(SpecialRequests) ||
+               (Dates != null && Dates.Count > 0);
+    }
 }

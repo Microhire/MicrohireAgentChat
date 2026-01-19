@@ -43,5 +43,15 @@
     ],
     "FullText": "Thanks Michael! Now for the logistics:\n\n- Setup time: 8:00 AM\n- Show start: 6:00 PM\n- Show end: 10:00 PM\n- Strike time: 11:00 PM\n\nDoes this work for you?",
     "Html": "<p>Thanks Michael! Now for the logistics:</p><ul><li>Setup time: 8:00 AM</li><li>Show start: 6:00 PM</li><li>Show end: 10:00 PM</li><li>Strike time: 11:00 PM</li></ul><p>Does this work for you?</p>"
+  },
+  {
+    "Role": "user",
+    "Timestamp": "2025-11-20T17:52:56.025927+00:00",
+    "Parts": [
+      "start time at 9am and finish time at 5pm"
+    ],
+    "FullText": "start time at 9am and finish time at 5pm",
+    "Html": "<p>start time at 9am and finish time at 5pm</p>",
+    "Note": "This message triggers the time picker. To test validation, try submitting invalid times like: Setup 8:00, Rehearsal 9:30, Start 9:00, End 5:00, Pack Up 6:00 (rehearsal after start - should show validation error)"
   }
 ]

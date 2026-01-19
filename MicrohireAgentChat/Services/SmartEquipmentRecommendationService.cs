@@ -7,7 +7,7 @@ namespace MicrohireAgentChat.Services;
 /// <summary>
 /// Intelligently recommends equipment PACKAGES based on event context WITHOUT asking technical questions.
 /// 
-/// KEY CONCEPT: Equipment items are organized in packages. When a user asks for a "laptop",
+/// KEY CONCEPT: Equipment items are organised in packages. When a user asks for a "laptop",
 /// we recommend the appropriate PACKAGE (e.g., PCLPRO, PCLP-L1) which includes:
 /// - Components (standard items included in the package)
 /// - Accessories (optional add-ons)  

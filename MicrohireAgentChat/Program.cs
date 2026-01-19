@@ -65,6 +65,11 @@ builder.Services.AddScoped<ItemPersistenceService>();
 builder.Services.AddScoped<CrewPersistenceService>();
 builder.Services.AddScoped<BookingOrchestrationService>();
 
+// Register bug fix services
+builder.Services.AddScoped<ConversationStateService>();
+builder.Services.AddScoped<AcknowledgmentService>();
+builder.Services.AddScoped<QuestionDetectionService>();
+
 // HTTP client for AI services
 builder.Services.AddHttpClient();
 

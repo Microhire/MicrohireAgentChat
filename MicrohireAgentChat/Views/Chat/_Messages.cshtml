@@ -179,6 +179,16 @@ else
                                 if (lowerIdx < 0) lowerIdx = lowerPart.IndexOf("{ \"ui\"");
                                 if (lowerIdx >= 0) uiIdx = lowerIdx;
                             }
+                            if (uiIdx < 0)
+                            {
+                                // Try flexible search for whitespace/newlines between { and "ui"
+                                var uiRegex = new System.Text.RegularExpressions.Regex(@"\{\s*""ui""\s*:", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                                var uiMatch = uiRegex.Match(part);
+                                if (uiMatch.Success)
+                                {
+                                    uiIdx = uiMatch.Index;
+                                }
+                            }
                             
                             if (uiIdx >= 0)
                             {
@@ -429,7 +439,7 @@ else
             rawLower.Contains("recommended equipment") ||  // Section header
             rawLower.Contains("equipment selection") ||
             rawLower.Contains("equipment lineup") ||
-            rawLower.Contains("finalized equipment") ||
+            rawLower.Contains("finalised equipment") || rawLower.Contains("finalized equipment") ||  // Support both AUS and US spelling
             rawLower.Contains("here's the equipment") ||
             rawLower.Contains("your equipment") ||
             rawLower.Contains("selected equipment") ||
@@ -453,7 +463,7 @@ else
             rawLower.Contains("prepare the quote") ||
             rawLower.Contains("generate your quote") ||
             rawLower.Contains("generate the quote") ||
-            rawLower.Contains("finalize the quote") ||
+            rawLower.Contains("finalise the quote") || rawLower.Contains("finalize the quote") ||  // Support both AUS and US spelling
             rawLower.Contains("ready for the quote") ||
             rawLower.Contains("shall i prepare your quote") ||
             rawLower.Contains("would you like me to create the quote") ||
@@ -483,9 +493,14 @@ else
 
 <script id="isla-chat-binder">
 (function(){
+  console.log('isla-chat-binder script starting execution');
   // prevent double-binding if this partial gets swapped repeatedly
-  if (window.__islaChatBound) return;
+  if (window.__islaChatBound) {
+    console.log('isla-chat-binder already bound, skipping');
+    return;
+  }
   window.__islaChatBound = true;
+  console.log('isla-chat-binder binding started');
 
   function getCsrf(){
     const el=document.querySelector('input[name="__RequestVerificationToken"]');
@@ -553,20 +568,347 @@ else
     if(!s||!e) return; postChat(`Choose time: ${s}–${e}`,btn);
   },{passive:false}); // need cancelability for buttons
 
-  document.addEventListener('click',(ev)=>{
-    const wrap=ev.target.closest('.isla-multitime'); if(!wrap) return;
-    const btn=ev.target.closest('.btn-apply-multitime'); if(!btn) return;
-    const inputs=wrap.querySelectorAll('.mt-input'); if(!inputs||inputs.length===0) return;
-    const vals={}; inputs.forEach(i=>{ const n=(i.getAttribute('data-name')||'').trim().toLowerCase(); const v=(i.value||'').trim(); if(n&&v) vals[n]=v; });
-    const setup=vals['setup']||'', rehearsal=vals['rehearsal']||'', start=vals['start']||'', end=vals['end']||'';
+  // Validate schedule times are in chronological order
+  // Expose globally to ensure it's always available
+  window.validateScheduleTimes = function(vals){
+    console.log('validateScheduleTimes called with:', vals);
+    const errors=[];
+    const invalidInputs=new Set();
+
+    // Helper to convert HH:mm to minutes for comparison
+    function timeToMinutes(timeStr){
+      if(!timeStr) return null;
+      const parts=timeStr.split(':');
+      if(parts.length!==2) return null;
+      const hours=parseInt(parts[0],10);
+      const mins=parseInt(parts[1],10);
+      if(isNaN(hours)||isNaN(mins)) return null;
+      return hours*60+mins;
+    }
+    
+    const setup=vals['setup']||'';
+    const rehearsal=vals['rehearsal']||'';
+    const start=vals['start']||'';
+    const end=vals['end']||'';
     const packup=vals['packup']||vals['pack_down']||vals['packdown']||'';
-    const dateIso=wrap.getAttribute('data-date')||'';
-    const parts=[]; 
-    if(dateIso)parts.push(`date=${dateIso}`);
-    if(setup)parts.push(`setup=${setup}`); if(rehearsal)parts.push(`rehearsal=${rehearsal}`);
-    if(start)parts.push(`start=${start}`); if(end)parts.push(`end=${end}`); if(packup)parts.push(`packup=${packup}`);
-    if(parts.length) postChat(`Choose schedule: ${parts.join('; ')}`,btn);
-  },{passive:false});
+    
+    const setupMins=timeToMinutes(setup);
+    const rehearsalMins=timeToMinutes(rehearsal);
+    const startMins=timeToMinutes(start);
+    const endMins=timeToMinutes(end);
+    const packupMins=timeToMinutes(packup);
+    
+    // Validate: setup < rehearsal (if both provided)
+    if(setupMins!==null && rehearsalMins!==null){
+      if(rehearsalMins<=setupMins){
+        errors.push('Rehearsal time must be after Setup time');
+        invalidInputs.add('rehearsal');
+        invalidInputs.add('setup');
+      }
+    }
+    
+    // Validate: rehearsal < start (if both provided) - CRITICAL
+    if(rehearsalMins!==null && startMins!==null){
+      if(startMins<=rehearsalMins){
+        errors.push('Rehearsal time must be before Event Start time');
+        invalidInputs.add('rehearsal');
+        invalidInputs.add('start');
+      }
+    }
+    
+    // Validate: start < end (if both provided)
+    if(startMins!==null && endMins!==null){
+      if(endMins<=startMins){
+        errors.push('Event End time must be after Event Start time');
+        invalidInputs.add('start');
+        invalidInputs.add('end');
+      }
+    }
+    
+    // Validate: end < packup (if both provided)
+    if(endMins!==null && packupMins!==null){
+      if(packupMins<=endMins){
+        errors.push('Pack Up time must be after Event End time');
+        invalidInputs.add('end');
+        invalidInputs.add('packup');
+      }
+    }
+    
+    // Validate: setup < start (if both provided, and no rehearsal)
+    if(setupMins!==null && startMins!==null && rehearsalMins===null){
+      if(startMins<=setupMins){
+        errors.push('Event Start time must be after Setup time');
+        invalidInputs.add('setup');
+        invalidInputs.add('start');
+      }
+    }
+    
+    // Validate: rehearsal < packup (if both provided, and no end)
+    if(rehearsalMins!==null && packupMins!==null && endMins===null){
+      if(packupMins<=rehearsalMins){
+        errors.push('Pack Up time must be after Rehearsal time');
+        invalidInputs.add('rehearsal');
+        invalidInputs.add('packup');
+      }
+    }
+    
+    return {valid:errors.length===0,errors,invalidInputs};
+  };
+  
+  // Display validation errors
+  // Expose globally to ensure it's always available
+  window.showValidationErrors = function(wrap,validation){
+    console.log('showValidationErrors called with validation:', validation);
+    if(!wrap) {
+      console.error('showValidationErrors: wrap element is null');
+      return;
+    }
+    // Remove existing error messages
+    const existingErrors=wrap.querySelectorAll('.isla-validation-error');
+    existingErrors.forEach(el=>el.remove());
+    console.log('Removed', existingErrors.length, 'existing error messages');
+
+    // Remove error classes from inputs
+    wrap.querySelectorAll('.mt-input.isla-error').forEach(input=>{
+      input.classList.remove('isla-error');
+    });
+    
+    if(validation.valid) {
+      // Clear errors and enable submit button when valid
+      const btn=wrap.querySelector('.btn-apply-multitime');
+      if(btn) btn.disabled=false;
+      return;
+    }
+    
+    // Add error class to invalid inputs
+    wrap.querySelectorAll('.mt-input').forEach(input=>{
+      const name=(input.getAttribute('data-name')||'').trim().toLowerCase();
+      if(validation.invalidInputs.has(name)){
+        input.classList.add('isla-error');
+      }
+    });
+    
+    // Create error message container
+    const errorDiv=document.createElement('div');
+    errorDiv.className='isla-validation-error';
+    validation.errors.forEach(err=>{
+      const errP=document.createElement('p');
+      errP.textContent=err;
+      errorDiv.appendChild(errP);
+    });
+    
+    // Insert error message before submit button
+    const btn=wrap.querySelector('.btn-apply-multitime');
+    if(btn) {
+      wrap.insertBefore(errorDiv,btn);
+      // Disable submit button when validation fails
+      btn.disabled=true;
+    } else {
+      wrap.appendChild(errorDiv);
+    }
+  };
+
+  // Real-time validation function - collects values and validates
+  function validateTimePickerRealtime(wrap){
+    console.log('validateTimePickerRealtime called');
+    if(!wrap) {
+      console.error('validateTimePickerRealtime: wrap is null');
+      return;
+    }
+    const inputs=wrap.querySelectorAll('.mt-input');
+    console.log('Found', inputs.length, 'mt-input elements');
+    if(!inputs||inputs.length===0) return;
+    
+    const vals={};
+    inputs.forEach(i=>{
+      const n=(i.getAttribute('data-name')||'').trim().toLowerCase();
+      // Read value directly - for time inputs, value should be in HH:mm format
+      let v=(i.value||'').trim();
+      // Fallback: if value is empty but input exists, try reading from valueAsDate
+      if(!v&&i.valueAsDate){
+        const date=i.valueAsDate;
+        v=String(date.getHours()).padStart(2,'0')+':'+String(date.getMinutes()).padStart(2,'0');
+      }
+      if(n&&v) vals[n]=v;
+    });
+    
+    // Run validation
+    const validation=window.validateScheduleTimes ? window.validateScheduleTimes(vals) : {valid:true,errors:[],invalidInputs:new Set()};
+    
+    // Display validation errors
+    if(window.showValidationErrors){
+      window.showValidationErrors(wrap,validation);
+    }
+  }
+
+  // Attach multitime validation handler - ensure it's always bound
+  if(!window.__multitimeValidationBound){
+    window.__multitimeValidationBound=true;
+    
+    // Real-time validation on input change - use event delegation
+    document.addEventListener('input',(ev)=>{
+      const input=ev.target;
+      if(!input.classList.contains('mt-input')) return;
+      const wrap=input.closest('.isla-multitime');
+      if(!wrap) return;
+      // Use requestAnimationFrame to debounce and ensure value is updated
+      requestAnimationFrame(()=>{
+        validateTimePickerRealtime(wrap);
+      });
+    },{passive:true});
+    
+    // Also validate on change event (for when user selects from picker)
+    document.addEventListener('change',(ev)=>{
+      const input=ev.target;
+      if(!input.classList.contains('mt-input')) return;
+      const wrap=input.closest('.isla-multitime');
+      if(!wrap) return;
+      validateTimePickerRealtime(wrap);
+    },{passive:true});
+    
+    // Validate on blur to catch any final value changes
+    document.addEventListener('blur',(ev)=>{
+      const input=ev.target;
+      if(!input.classList.contains('mt-input')) return;
+      const wrap=input.closest('.isla-multitime');
+      if(!wrap) return;
+      // Small delay to ensure value is committed
+      setTimeout(()=>{
+        validateTimePickerRealtime(wrap);
+      },10);
+    },{passive:true,capture:true});
+    
+    // Submit button click handler
+    document.addEventListener('click',(ev)=>{
+      console.log('Multitime click detected, target:', ev.target, 'closest multitime:', ev.target.closest('.isla-multitime'), 'closest button:', ev.target.closest('.btn-apply-multitime'));
+      const wrap=ev.target.closest('.isla-multitime'); if(!wrap) return;
+      const btn=ev.target.closest('.btn-apply-multitime'); if(!btn) return;
+      const inputs=wrap.querySelectorAll('.mt-input'); if(!inputs||inputs.length===0) return;
+      console.log('Multitime submission starting, inputs found:', inputs.length);
+      
+      // Safety check: prevent submission if button is disabled
+      if(btn.disabled){
+        ev.preventDefault();
+        ev.stopPropagation();
+        return;
+      }
+      
+      // Force blur on active input to ensure value is committed
+      // This is critical for HTML5 time inputs that may not update value until blur
+      if(document.activeElement&&document.activeElement.classList.contains('mt-input')){
+        document.activeElement.blur();
+        // Use requestAnimationFrame to ensure blur has processed
+        requestAnimationFrame(()=>{
+          processTimeSubmission(wrap,btn,inputs,ev);
+        });
+      } else {
+        // No active input, process immediately
+        processTimeSubmission(wrap,btn,inputs,ev);
+      }
+      
+      ev.preventDefault();
+      ev.stopPropagation();
+    },{passive:false});
+    
+    // Extract submission logic to reusable function
+    function processTimeSubmission(wrap,btn,inputs,ev){
+      console.log('processTimeSubmission called');
+      const vals={};
+      inputs.forEach(i=>{
+        const n=(i.getAttribute('data-name')||'').trim().toLowerCase();
+        // Read value directly - for time inputs, value should be in HH:mm format
+        let v=(i.value||'').trim();
+        console.log('Input', n, 'raw value:', v, 'valueAsDate:', i.valueAsDate);
+        // Fallback: if value is empty but input exists, try reading from valueAsDate
+        if(!v&&i.valueAsDate){
+          const date=i.valueAsDate;
+          v=String(date.getHours()).padStart(2,'0')+':'+String(date.getMinutes()).padStart(2,'0');
+        }
+        if(n&&v) vals[n]=v;
+      });
+      console.log('Collected values:', vals);
+      
+      const setup=vals['setup']||'', rehearsal=vals['rehearsal']||'', start=vals['start']||'', end=vals['end']||'';
+      const packup=vals['packup']||vals['pack_down']||vals['packdown']||'';
+      
+      // Debug logging to help identify issues (can be removed in production)
+      console.log('Time picker values collected:',{setup,rehearsal,start,end,packup,allVals:vals});
+      
+      console.log('About to validate before submission');
+      console.log('window.validateScheduleTimes available:', typeof window.validateScheduleTimes);
+      console.log('window.showValidationErrors available:', typeof window.showValidationErrors);
+      // Validate before submitting - use global function to ensure it's available
+      const validation=window.validateScheduleTimes ? window.validateScheduleTimes(vals) : {valid:true,errors:[],invalidInputs:new Set()};
+      console.log('Validation result:', validation);
+      if(!validation.valid){
+        console.log('Validation failed, showing errors');
+        if(window.showValidationErrors){
+          window.showValidationErrors(wrap,validation);
+        } else {
+          console.error('showValidationErrors function not available');
+          alert('Validation error: ' + validation.errors.join(', '));
+        }
+        return; // Prevent submission
+      }
+      
+      // Clear any previous errors
+      if(window.showValidationErrors){
+        window.showValidationErrors(wrap,{valid:true,errors:[],invalidInputs:new Set()});
+      }
+      
+      const dateIso=wrap.getAttribute('data-date')||'';
+      const parts=[];
+      if(dateIso)parts.push(`date=${dateIso}`);
+      // Always include all time values if they exist - don't skip start/end
+      if(setup)parts.push(`setup=${setup}`);
+      if(rehearsal)parts.push(`rehearsal=${rehearsal}`);
+      if(start)parts.push(`start=${start}`);
+      if(end)parts.push(`end=${end}`);
+      if(packup)parts.push(`packup=${packup}`);
+
+      const message = `Choose schedule: ${parts.join('; ')}`;
+      console.log('About to call postChat with message:', message);
+      if(parts.length) postChat(message,btn);
+    }
+    
+    // Run initial validation on all existing time pickers when DOM is ready
+    function initializeTimePickerValidation(){
+      console.log('initializeTimePickerValidation called');
+      document.querySelectorAll('.isla-multitime').forEach(wrap=>{
+        console.log('Found existing multitime picker, validating...');
+        validateTimePickerRealtime(wrap);
+      });
+    }
+    
+    // Run validation when DOM is ready
+    if(document.readyState==='loading'){
+      document.addEventListener('DOMContentLoaded',initializeTimePickerValidation);
+    } else {
+      // DOM already loaded
+      initializeTimePickerValidation();
+    }
+    
+    // Also validate when new time pickers are added to the DOM (for dynamically added pickers)
+    if(window.MutationObserver){
+      const observer=new MutationObserver(mutations=>{
+        mutations.forEach(mutation=>{
+          mutation.addedNodes.forEach(node=>{
+            if(node.nodeType===1){ // Element node
+              // Check if the added node is a time picker or contains one
+              const timePicker=node.classList&&node.classList.contains('isla-multitime') ? node : node.querySelector?.('.isla-multitime');
+              if(timePicker){
+                // Small delay to ensure inputs are fully rendered
+                setTimeout(()=>{
+                  validateTimePickerRealtime(timePicker);
+                },10);
+              }
+            }
+          });
+        });
+      });
+      observer.observe(document.body,{childList:true,subtree:true});
+    }
+  }
 
   document.addEventListener('click',(ev)=>{
     const yes=ev.target.closest('.isla-quote-yes'); if(!yes) return;

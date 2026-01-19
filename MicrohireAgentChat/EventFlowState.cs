@@ -7,13 +7,13 @@ public sealed class EventFlowState
     {
         Start,
         AskEventType,
-        AskOrganizedBefore,
+        AskOrganisedBefore,
         AskHappyLastTime,
         AskDate,
         AskVenue,
         ClarifyWestin,      // user said just “Brisbane”
         AskBallroom,        // Westin Brisbane confirmed
-        AskGuestCount,
+        AskAttendeeCount,
         AskTheme,
         AskSpeakersCount,
         AskOneFileOrMultiple,
@@ -43,8 +43,8 @@ public sealed class EventFlowState
         switch (Current)
         {
             case Step.Start: Current = Step.AskEventType; break;
-            case Step.AskEventType: Current = Step.AskOrganizedBefore; break;
-            case Step.AskOrganizedBefore: Current = Step.AskHappyLastTime; break;
+            case Step.AskEventType: Current = Step.AskOrganisedBefore; break;
+            case Step.AskOrganisedBefore: Current = Step.AskHappyLastTime; break;
             case Step.AskHappyLastTime: Current = Step.AskDate; break;
             case Step.AskDate: Current = Step.AskVenue; break;
 
@@ -58,8 +58,8 @@ public sealed class EventFlowState
                 Current = LooksWestinBrisbane(userText) ? Step.AskBallroom : Step.AskTheme;
                 break;
 
-            case Step.AskBallroom: Current = Step.AskGuestCount; break;
-            case Step.AskGuestCount: Current = Step.AskTheme; break;
+            case Step.AskBallroom: Current = Step.AskAttendeeCount; break;
+            case Step.AskAttendeeCount: Current = Step.AskTheme; break;
             case Step.AskTheme: Current = Step.AskSpeakersCount; break;
             case Step.AskSpeakersCount: Current = Step.AskOneFileOrMultiple; break;
             case Step.AskOneFileOrMultiple: Current = Step.AskTimes; break;
@@ -72,13 +72,13 @@ public sealed class EventFlowState
     public string NextQuestion() => Current switch
     {
         Step.AskEventType => "What type of event are you planning?",
-        Step.AskOrganizedBefore => "Have you organized this type of event before?",
+        Step.AskOrganisedBefore => "Have you organised this type of event before?",
         Step.AskHappyLastTime => "Were you happy with how it turned out last time?",
         Step.AskDate => "What date would you like to hold the event?",
         Step.AskVenue => "What venue do you have in mind for the event?",
         Step.ClarifyWestin => "Is the venue The Westin Brisbane?",
         Step.AskBallroom => "Will you be hosting it in the Westin Ballroom?",
-        Step.AskGuestCount => "How many people will be attending?",
+        Step.AskAttendeeCount => "How many attendees are you expecting at the event?",
         Step.AskTheme => "Do you have a theme or objective for the night?",
         Step.AskSpeakersCount => "How many people will speak in addition to the CEO?",
         Step.AskOneFileOrMultiple => "Will presentations be in one file or multiple files?",

@@ -9,6 +9,7 @@ using MicrohireAgentChat.Data;
 using MicrohireAgentChat.Models;
 using MicrohireAgentChat.Services.Extraction;
 using MicrohireAgentChat.Services.Orchestration;
+using MicrohireAgentChat.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using System;
@@ -41,6 +42,10 @@ namespace MicrohireAgentChat.Services
         private readonly TimePickerService _timePicker;
         private readonly QuoteGenerationService _quoteGen;
         private readonly HtmlQuoteGenerationService _htmlQuoteGen;
+        private readonly ConversationStateService _conversationState;
+        private readonly AcknowledgmentService _acknowledgment;
+        private readonly QuestionDetectionService _questionDetection;
+        private readonly ConversationExtractionService _extraction;
         
         private static readonly ConcurrentDictionary<string, SemaphoreSlim> _threadLocks = new();
         private static SemaphoreSlim GetThreadGate(string threadId)
@@ -57,7 +62,11 @@ namespace MicrohireAgentChat.Services
             AgentToolHandlerService toolHandler,
             TimePickerService timePicker,
             QuoteGenerationService quoteGen,
-            HtmlQuoteGenerationService htmlQuoteGen)
+            HtmlQuoteGenerationService htmlQuoteGen,
+            ConversationStateService conversationState,
+            AcknowledgmentService acknowledgment,
+            QuestionDetectionService questionDetection,
+            ConversationExtractionService extraction)
         {
             _projectClient = projectClient;
             _agentId = options.Value.AgentId ?? throw new ArgumentNullException(nameof(options.Value.AgentId));
@@ -70,6 +79,10 @@ namespace MicrohireAgentChat.Services
             _timePicker = timePicker;
             _quoteGen = quoteGen;
             _htmlQuoteGen = htmlQuoteGen;
+            _conversationState = conversationState;
+            _acknowledgment = acknowledgment;
+            _questionDetection = questionDetection;
+            _extraction = extraction;
         }
 
         private PersistentAgentsClient AgentsClient => _projectClient.GetPersistentAgentsClient();
@@ -199,6 +212,36 @@ namespace MicrohireAgentChat.Services
 
                 await WaitForNoActiveRunAsync(threadId, ct, TimeSpan.FromSeconds(15));
 
+                // INTEGRATION: Check for questions, comprehensive information, and state before agent execution
+                var (_, currentMessages) = GetTranscript(threadId);
+                var questionInfo = _questionDetection.DetectQuestion(userText);
+                var eventInfo = _extraction.ExtractAllEventInformation(currentMessages);
+                var conversationState = _conversationState.GetConversationState(currentMessages);
+
+                // Handle questions first (Bug #5)
+                if (questionInfo != null)
+                {
+                    var response = await HandleQuestionAsync(threadId, questionInfo, ct);
+                    if (!string.IsNullOrWhiteSpace(response))
+                    {
+                        AgentsClient.Messages.CreateMessage(threadId, Azure.AI.Agents.Persistent.MessageRole.Agent, response);
+                        var (_, questionMessages) = GetTranscript(threadId);
+                        return questionMessages;
+                    }
+                }
+
+                // Handle comprehensive information acknowledgment (Bug #8)
+                if (eventInfo.HasInformation())
+                {
+                    var acknowledgment = _acknowledgment.GenerateAcknowledgment(eventInfo);
+                    if (!string.IsNullOrWhiteSpace(acknowledgment))
+                    {
+                        AgentsClient.Messages.CreateMessage(threadId, Azure.AI.Agents.Persistent.MessageRole.Agent, acknowledgment);
+                        var (_, ackMessages) = GetTranscript(threadId);
+                        return ackMessages;
+                    }
+                }
+
                 try
                 {
                     AgentsClient.Messages.CreateMessage(threadId, Azure.AI.Agents.Persistent.MessageRole.User, userText.Trim());
@@ -236,6 +279,52 @@ namespace MicrohireAgentChat.Services
             }
         }
 
+        /// <summary>
+        /// Handle user questions before proceeding with normal flow
+        /// </summary>
+        private async Task<string?> HandleQuestionAsync(string threadId, QuestionInfo questionInfo, CancellationToken ct)
+        {
+            switch (questionInfo.QuestionType)
+            {
+                case QuestionType.RoomSetup:
+                    if (!string.IsNullOrWhiteSpace(questionInfo.Context.RoomName))
+                    {
+                        // Get room information and provide recommendation
+                        try
+                        {
+                            var roomInfo = await _toolHandler.HandleToolCallAsync("list_westin_rooms", "{}", threadId, ct);
+                            var rooms = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(roomInfo);
+                            if (rooms != null && rooms.ContainsKey("rooms"))
+                            {
+                                var roomList = rooms["rooms"] as IEnumerable<object>;
+                                var room = roomList?.FirstOrDefault(r =>
+                                {
+                                    if (r is System.Text.Json.JsonElement elem &&
+                                        elem.TryGetProperty("name", out var name) &&
+                                        name.GetString()?.Contains(questionInfo.Context.RoomName, StringComparison.OrdinalIgnoreCase) == true)
+                                        return true;
+                                    return false;
+                                });
+
+                                if (room != null)
+                                {
+                                    return _acknowledgment.GenerateRoomSetupAcknowledgment(
+                                        questionInfo.Context.RoomName,
+                                        "classroom setup with capacity for presentations");
+                                }
+                            }
+                        }
+                        catch { /* Fall through to default */ }
+                    }
+                    return $"For room setup suggestions, I can help you choose the optimal configuration. What room will you be using?";
+
+                case QuestionType.Equipment:
+                    return $"For equipment recommendations, I can suggest the best setup for your event. Let me ask a few questions about your needs first.";
+
+                default:
+                    return $"I'd be happy to help answer your question. Let me gather some information about your event first.";
+            }
+        }
 
 
         #endregion
@@ -1098,6 +1187,70 @@ namespace MicrohireAgentChat.Services
             }
 
             return (null, null, null);
+        }
+
+        /// <summary>
+        /// Extract event times with semantic context - distinguishes between event start, rehearsal, and finish times
+        /// </summary>
+        public (TimeSpan? eventStart, TimeSpan? eventEnd, TimeSpan? rehearsal, string context) ExtractEventTimesWithContext(IEnumerable<DisplayMessage> messages)
+        {
+            var ordered = messages.OrderBy(m => m.Timestamp).ToList();
+            static string JoinParts(DisplayMessage m) => string.Join(" ", m.Parts ?? Enumerable.Empty<string>());
+
+            TimeSpan? eventStart = null;
+            TimeSpan? eventEnd = null;
+            TimeSpan? rehearsal = null;
+            var context = "";
+
+            // Check user messages for semantic time references
+            foreach (var m in ordered.Where(x => x.Role.Equals("user", StringComparison.OrdinalIgnoreCase)))
+            {
+                var text = JoinParts(m).ToLowerInvariant();
+
+                // Look for event start time: "start 9am", "event starts at 9am", "starts 9am"
+                var startMatch = Regex.Match(text, @"(?:event\s+)?(?:start|starts|beginning|begins)(?:\s+at)?\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))", RegexOptions.IgnoreCase);
+                if (startMatch.Success && TimeSpan.TryParse(startMatch.Groups[1].Value.Trim(), out var startTime))
+                {
+                    eventStart = startTime;
+                    context += $"Event starts at {startTime:hh\\:mm}; ";
+                }
+
+                // Look for event end time: "finish 5pm", "end at 5pm", "ends 5pm"
+                var endMatch = Regex.Match(text, @"(?:event\s+)?(?:finish|end|ends|finishes)(?:\s+at)?\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))", RegexOptions.IgnoreCase);
+                if (endMatch.Success && TimeSpan.TryParse(endMatch.Groups[1].Value.Trim(), out var endTime))
+                {
+                    eventEnd = endTime;
+                    context += $"Event ends at {endTime:hh\\:mm}; ";
+                }
+
+                // Look for rehearsal time: "rehearsal at 8am", "rehearsal 8am"
+                var rehearsalMatch = Regex.Match(text, @"rehearsal(?:\s+at)?\s+(\d{1,2}(?::\d{2})?\s*(?:am|pm))", RegexOptions.IgnoreCase);
+                if (rehearsalMatch.Success && TimeSpan.TryParse(rehearsalMatch.Groups[1].Value.Trim(), out var rehearsalTime))
+                {
+                    rehearsal = rehearsalTime;
+                    context += $"Rehearsal at {rehearsalTime:hh\\:mm}; ";
+                }
+
+                // Look for relative rehearsal: "1 hour before", "2 hours before rehearsal"
+                var relativeMatch = Regex.Match(text, @"(\d+)\s+hour(?:s)?\s+before(?:\s+(?:for\s+)?rehearsal)?", RegexOptions.IgnoreCase);
+                if (relativeMatch.Success && int.TryParse(relativeMatch.Groups[1].Value, out var hoursBefore))
+                {
+                    if (eventStart.HasValue && !rehearsal.HasValue)
+                    {
+                        rehearsal = eventStart.Value.Subtract(TimeSpan.FromHours(hoursBefore));
+                        context += $"Rehearsal {hoursBefore} hour(s) before event start; ";
+                    }
+                }
+            }
+
+            // If we have event start but no rehearsal, default to 1 hour before
+            if (eventStart.HasValue && !rehearsal.HasValue)
+            {
+                rehearsal = eventStart.Value.Subtract(TimeSpan.FromHours(1));
+                context += "Default rehearsal 1 hour before event start; ";
+            }
+
+            return (eventStart, eventEnd, rehearsal, context.Trim());
         }
 
         private static bool TryParseTimeToken(string token, out TimeSpan? start, out TimeSpan? end)
@@ -3542,6 +3695,13 @@ public async Task<decimal?> UpsertOrganisationAsync(
                 t = Regex.Replace(t, @"\b(adress|addess|addres|addrss)\b", "address", RegexOptions.IgnoreCase);
                 // optional punctuation normalization
                 t = t.Replace(" ,", ",").Replace(" ;", ";");
+                
+                // Preprocess: Strip leading verbs like "Called", "Named", "Is", etc. from the entire text
+                // This handles cases like "Called THE gully, located in winston glades"
+                var verbPrefixPattern = new Regex(@"^(?:called|named|is|are|company\s+is|business\s+is|organisation\s+is|organization\s+is|org\s+is|the\s+company\s+is|the\s+business\s+is)\s+(.+)$", RegexOptions.IgnoreCase);
+                var verbMatch = verbPrefixPattern.Match(t);
+                if (verbMatch.Success)
+                    t = verbMatch.Groups[1].Value.Trim();
 
                 // --- helpers ---
                 static string Clean(string s) => s.Trim().Trim(',', ';', ':');
@@ -3634,6 +3794,8 @@ public async Task<decimal?> UpsertOrganisationAsync(
             static string CleanupOrgLeft(string left)
             {
                 // Strip common leading/trailing helper words from the organisation side.
+                // First, remove leading verbs like "called", "named", "is", "are", etc.
+                left = Regex.Replace(left, @"^\s*(?:called|named|is|are|company\s+is|business\s+is|organisation\s+is|organization\s+is|org\s+is|the\s+company\s+is|the\s+business\s+is)\s+", "", RegexOptions.IgnoreCase);
                 left = Regex.Replace(left, @"^\s*(my|the)\s+", "", RegexOptions.IgnoreCase); // leading
                 left = Regex.Replace(left,
                     @"\s+(?:and|,)?\s*(?:company|organisation|organization|name)?\s*$",

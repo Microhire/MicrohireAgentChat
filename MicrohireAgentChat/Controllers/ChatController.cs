@@ -167,11 +167,44 @@ public sealed class ChatController : Controller
             if (TryCaptureScheduleSelection(text, out var set, out var reh, out var showStart, out var showEnd, out var pack, out var eventDate))
             {
                 SaveScheduleToSession(set, reh, showStart, showEnd, pack, eventDate);
-                var pretty = $"Schedule selected: Setup {Pretty12(set)}; Rehearsal {Pretty12(reh)}; "
-                           + (showStart.HasValue ? $"Start {Pretty12(showStart)}; " : "")
-                           + (showEnd.HasValue ? $"End {Pretty12(showEnd)}; " : "")
-                           + $"Pack Up {Pretty12(pack)}.";
+
+                // DEBUG: Log the raw parsed times before formatting
+                _logger.LogInformation("SEND METHOD - RAW PARSED TIMES: Setup={Setup}, Rehearsal={Rehearsal}, Start={Start}, End={End}, PackUp={PackUp}",
+                    set, reh, showStart, showEnd, pack);
+                _logger.LogInformation("SEND METHOD - RAW TimeSpan values: Setup.TotalHours={SetupHours}, Rehearsal.TotalHours={RehearsalHours}, Start.TotalHours={StartHours}, End.TotalHours={EndHours}, PackUp.TotalHours={PackUpHours}",
+                    set.TotalHours, reh.TotalHours, showStart?.TotalHours, showEnd?.TotalHours, pack.TotalHours);
+
+                // Build summary with all times - always include Start/End if they were provided
+                _logger.LogInformation("FORMATTING TIMES: Setup={Setup}, Rehearsal={Rehearsal}, Start={Start}, End={End}, PackUp={PackUp}",
+                    set, reh, showStart, showEnd, pack);
+
+                var summaryParts = new List<string>
+                {
+                    $"Setup {Pretty12(set)}",
+                    $"Rehearsal {Pretty12(reh)}"
+                };
+
+                if (showStart.HasValue)
+                {
+                    summaryParts.Add($"Start {Pretty12(showStart)}");
+                }
+
+                if (showEnd.HasValue)
+                {
+                    summaryParts.Add($"End {Pretty12(showEnd)}");
+                }
+
+                summaryParts.Add($"Pack Up {Pretty12(pack)}");
+
+                _logger.LogInformation("FORMATTED TIMES: Setup={Setup}, Rehearsal={Rehearsal}, Start={Start}, End={End}, PackUp={PackUp}",
+                    Pretty12(set), Pretty12(reh), showStart.HasValue ? Pretty12(showStart) : "null",
+                    showEnd.HasValue ? Pretty12(showEnd) : "null", Pretty12(pack));
+
+                var pretty = $"Schedule selected: {string.Join("; ", summaryParts)}.";
                 text = pretty.Trim();
+
+                _logger.LogInformation("Schedule summary generated: Setup={Setup}, Rehearsal={Rehearsal}, Start={Start}, End={End}, PackUp={PackUp}",
+                    set, reh, showStart, showEnd, pack);
             }
 
             // —— rate-limit safe send ——
@@ -270,7 +303,7 @@ public sealed class ChatController : Controller
             || t.Contains("here's your summary")
             || t.Contains("here's what i have so far")
             || t.Contains("here's a summary")
-            || t.Contains("let me summarize")
+            || t.Contains("let me summarise") || t.Contains("let me summarize")  // Support both AUS and US spelling
             || t.Contains("does everything look correct")
             || t.Contains("does this look correct")
             || t.Contains("please confirm")
@@ -295,11 +328,11 @@ public sealed class ChatController : Controller
             || t.Contains("shall we proceed")
             || t.Contains("would you like me to create")
             || t.Contains("would you like me to generate")
-            || t.Contains("finalize the quote")
-            || t.Contains("finalized equipment")
+            || t.Contains("finalise the quote") || t.Contains("finalize the quote")  // Support both AUS and US spelling
+            || t.Contains("finalised equipment") || t.Contains("finalized equipment")  // Support both AUS and US spelling
             || t.Contains("equipment lineup")
             || t.Contains("equipment selection")
-            || t.Contains("here's your finalized")
+            || t.Contains("here's your finalised") || t.Contains("here's your finalized")  // Support both AUS and US spelling
             || t.Contains("here's the equipment")
             // New summary format from smart equipment recommendation
             || t.Contains("quote summary")
@@ -323,7 +356,7 @@ public sealed class ChatController : Controller
         {
             // Randomly select a test scenario for comprehensive coverage
             var random = new Random();
-            var scenarioType = random.Next(20); // 20 different scenario weights for better distribution
+            var scenarioType = random.Next(21); // 21 different scenario weights for better distribution
             
             IEnumerable<string> messages;
             string scenarioName;
@@ -405,7 +438,12 @@ public sealed class ChatController : Controller
                     scenarioName = "Product Launch Event";
                     break;
                     
-                default: // 25% - Standard random (most common case)
+                case 15: // Time picker validation test
+                    messages = _replayService.GenerateTimePickerValidationConversation();
+                    scenarioName = "Time Picker Validation Test";
+                    break;
+                    
+                default: // 20% - Standard random (most common case)
                     messages = _replayService.GenerateTestConversation();
                     scenarioName = "Standard Random Event";
                     break;
@@ -541,11 +579,44 @@ public sealed class ChatController : Controller
             if (TryCaptureScheduleSelection(text, out var set, out var reh, out var showStart, out var showEnd, out var pack, out var eventDate))
             {
                 SaveScheduleToSession(set, reh, showStart, showEnd, pack, eventDate);
-                var pretty = $"Schedule selected: Setup {Pretty12(set)}; Rehearsal {Pretty12(reh)}; "
-                           + (showStart.HasValue ? $"Start {Pretty12(showStart)}; " : "")
-                           + (showEnd.HasValue ? $"End {Pretty12(showEnd)}; " : "")
-                           + $"Pack Up {Pretty12(pack)}.";
+
+                // DEBUG: Log the raw parsed times before formatting
+                _logger.LogInformation("SENDPARTIAL METHOD - RAW PARSED TIMES: Setup={Setup}, Rehearsal={Rehearsal}, Start={Start}, End={End}, PackUp={PackUp}",
+                    set, reh, showStart, showEnd, pack);
+                _logger.LogInformation("SENDPARTIAL METHOD - RAW TimeSpan values: Setup.TotalHours={SetupHours}, Rehearsal.TotalHours={RehearsalHours}, Start.TotalHours={StartHours}, End.TotalHours={EndHours}, PackUp.TotalHours={PackUpHours}",
+                    set.TotalHours, reh.TotalHours, showStart?.TotalHours, showEnd?.TotalHours, pack.TotalHours);
+
+                // Build summary with all times - always include Start/End if they were provided
+                _logger.LogInformation("FORMATTING TIMES: Setup={Setup}, Rehearsal={Rehearsal}, Start={Start}, End={End}, PackUp={PackUp}",
+                    set, reh, showStart, showEnd, pack);
+
+                var summaryParts = new List<string>
+                {
+                    $"Setup {Pretty12(set)}",
+                    $"Rehearsal {Pretty12(reh)}"
+                };
+
+                if (showStart.HasValue)
+                {
+                    summaryParts.Add($"Start {Pretty12(showStart)}");
+                }
+
+                if (showEnd.HasValue)
+                {
+                    summaryParts.Add($"End {Pretty12(showEnd)}");
+                }
+
+                summaryParts.Add($"Pack Up {Pretty12(pack)}");
+
+                _logger.LogInformation("FORMATTED TIMES: Setup={Setup}, Rehearsal={Rehearsal}, Start={Start}, End={End}, PackUp={PackUp}",
+                    Pretty12(set), Pretty12(reh), showStart.HasValue ? Pretty12(showStart) : "null",
+                    showEnd.HasValue ? Pretty12(showEnd) : "null", Pretty12(pack));
+
+                var pretty = $"Schedule selected: {string.Join("; ", summaryParts)}.";
                 text = pretty.Trim();
+
+                _logger.LogInformation("Schedule summary generated: Setup={Setup}, Rehearsal={Rehearsal}, Start={Start}, End={End}, PackUp={PackUp}",
+                    set, reh, showStart, showEnd, pack);
             }
 
             // —— safe send ——
@@ -757,8 +828,8 @@ public sealed class ChatController : Controller
         static bool LooksLikeSummaryText(string t) =>
                t.Contains("final summary")
             || t.Contains("here is your summary")
-            || t.Contains("here’s your summary")
-            || t.Contains("let me summarize")
+            || t.Contains("here's your summary")
+            || t.Contains("let me summarise") || t.Contains("let me summarize")  // Support both AUS and US spelling
             || t.Contains("does this look correct")
             || t.Contains("before i create your quote")
             || t.Contains("before creating your quote")
@@ -941,10 +1012,10 @@ public sealed class ChatController : Controller
             "can i get the quote", "can i get a quote", "can i get my quote",
             "can i have the quote", "can i have a quote", "can i have my quote",
             "i want the quote", "want the quote", "i need the quote",
-            "finalize the booking", "finalize booking",
+            "finalise the booking", "finalise booking", "finalize the booking", "finalize booking",  // Support both AUS and US spelling
             "yes please create", "yes generate", "go ahead and create",
             "i'm ready for the quote", "ready for the quote", 
-            "create my quote", "finalize the quote",
+            "create my quote", "finalise the quote", "finalize the quote",  // Support both AUS and US spelling
             "just create", "just make", "proceed with the quote", "proceed with quote"
         };
         
@@ -1002,8 +1073,8 @@ public sealed class ChatController : Controller
             || t.Contains("here is your final summary")
             || t.Contains("quote")
             || t.Contains("here's your final summary")
-            || t.Contains("let me summarize")
-            || t.Contains("here’s your summary")
+            || t.Contains("let me summarise") || t.Contains("let me summarize")  // Support both AUS and US spelling
+            || t.Contains("here's your summary")
             || t.Contains("here is your summary")
             || t.Contains("does this look correct")
             || t.Contains("before creating your quote")
@@ -1182,6 +1253,7 @@ public sealed class ChatController : Controller
         if (!m.Success) return false;
 
         var blob = m.Groups[1].Value;
+        // Note: Cannot log here as this is a static method
         var kvs = blob.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         TimeSpan ts;
@@ -1194,6 +1266,7 @@ public sealed class ChatController : Controller
 
             var key = parts[0].ToLowerInvariant();
             var val = parts[1];
+            // Note: Cannot log here as this is a static method
 
             // Handle date separately (ISO format like 2026-04-28)
             if (key == "date")
@@ -1203,7 +1276,37 @@ public sealed class ChatController : Controller
                 continue;
             }
 
-            if (!TimeSpan.TryParse(val, CultureInfo.InvariantCulture, out ts)) continue;
+            // Parse time value - HTML5 time inputs send "HH:mm" format (e.g., "10:00", "16:00")
+            // TimeSpan.TryParse can handle "HH:mm" format directly
+            if (!TimeSpan.TryParse(val, CultureInfo.InvariantCulture, out ts))
+            {
+                // Fallback: try parsing as "HH:mm" explicitly if standard parse fails
+                if (val.Contains(':') && val.Length >= 4)
+                {
+                    var timeParts = val.Split(':');
+                    if (timeParts.Length == 2 &&
+                        int.TryParse(timeParts[0], out var hours) &&
+                        int.TryParse(timeParts[1], out var minutes))
+                    {
+                        ts = new TimeSpan(hours, minutes, 0);
+                        // Note: Cannot log here as this is a static method
+                    }
+                    else
+                    {
+                        // Note: Cannot log here as this is a static method
+                        continue; // Skip invalid time format
+                    }
+                }
+                else
+                {
+                    // Note: Cannot log here as this is a static method
+                    continue; // Skip invalid time format
+                }
+            }
+            else
+            {
+                // Note: Cannot log here as this is a static method
+            }
 
             switch (key)
             {
@@ -1226,7 +1329,49 @@ public sealed class ChatController : Controller
             }
         }
 
+        // Validate chronological order before returning
+        if (!ValidateScheduleOrder(setup, rehearsal, showStart, showEnd, packup))
+        {
+            return false;
+        }
+
         return gotSetup && gotReh && gotPack;
+    }
+
+    /// <summary>
+    /// Validates that schedule times are in chronological order: Setup < Rehearsal < Start < End < Pack Up
+    /// </summary>
+    private static bool ValidateScheduleOrder(
+        TimeSpan setup,
+        TimeSpan rehearsal,
+        TimeSpan? showStart,
+        TimeSpan? showEnd,
+        TimeSpan packup)
+    {
+        // Validate: setup < rehearsal
+        if (rehearsal <= setup)
+            return false;
+
+        // Validate: rehearsal < start (CRITICAL - main issue from screenshot)
+        if (showStart.HasValue && showStart.Value <= rehearsal)
+            return false;
+
+        // Validate: start < end
+        if (showStart.HasValue && showEnd.HasValue && showEnd.Value <= showStart.Value)
+            return false;
+
+        // Validate: end < packup
+        if (showEnd.HasValue && packup <= showEnd.Value)
+            return false;
+
+        // Validate: setup < start (if rehearsal not provided, but this shouldn't happen per business logic)
+        // Note: This case is handled by the rehearsal check above since rehearsal is required
+
+        // Validate: rehearsal < packup (if end not provided)
+        if (!showEnd.HasValue && packup <= rehearsal)
+            return false;
+
+        return true;
     }
 
     private void SaveScheduleToSession(
@@ -1248,8 +1393,16 @@ public sealed class ChatController : Controller
     private static string Pretty12(TimeSpan? ts)
     {
         if (!ts.HasValue) return "";
-        var dummy = DateTime.Today.Add(ts.Value);
-        return dummy.ToString("h:mm tt", CultureInfo.InvariantCulture);
+
+        var time = ts.Value;
+        var hours = time.Hours;
+        var minutes = time.Minutes;
+
+        // Convert to 12-hour format
+        var period = hours >= 12 ? "PM" : "AM";
+        var hour12 = hours == 0 ? 12 : (hours > 12 ? hours - 12 : hours);
+
+        return $"{hour12}:{minutes:D2} {period}";
     }
 
     private async Task<decimal?> TrySaveContactAsync(IEnumerable<DisplayMessage> messages, CancellationToken ct)

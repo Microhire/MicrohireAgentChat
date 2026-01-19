@@ -1,6 +1,7 @@
 using Azure.AI.Agents.Persistent;
 using MicrohireAgentChat.Data;
 using MicrohireAgentChat.Models;
+using MicrohireAgentChat.Services.Extraction;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 
@@ -18,6 +19,7 @@ public sealed class AgentToolHandlerService
     private readonly ILogger<AgentToolHandlerService> _logger;
     private readonly EquipmentSearchService _equipmentSearch;
     private readonly SmartEquipmentRecommendationService _smartEquipment;
+    private readonly ConversationExtractionService _extraction;
 
     public AgentToolHandlerService(
         BookingDbContext db,
@@ -26,7 +28,8 @@ public sealed class AgentToolHandlerService
         IHttpContextAccessor http,
         ILogger<AgentToolHandlerService> logger,
         EquipmentSearchService equipmentSearch,
-        SmartEquipmentRecommendationService smartEquipment)
+        SmartEquipmentRecommendationService smartEquipment,
+        ConversationExtractionService extraction)
     {
         _db = db;
         _roomCatalog = roomCatalog;
@@ -35,6 +38,7 @@ public sealed class AgentToolHandlerService
         _logger = logger;
         _equipmentSearch = equipmentSearch;
         _smartEquipment = smartEquipment;
+        _extraction = extraction;
     }
 
     /// <summary>
@@ -53,7 +57,7 @@ public sealed class AgentToolHandlerService
                 "check_date_availability" => await HandleCheckAvailabilityAsync(argsJson, threadId, ct),
                 "get_now_aest" => HandleGetNowAest(),
                 "list_westin_rooms" => await HandleListRoomsAsync(ct),
-                "build_time_picker" => HandleBuildTimePicker(argsJson),
+                "build_time_picker" => HandleBuildTimePicker(argsJson, threadId),
                 "get_room_images" => await HandleGetRoomImagesAsync(argsJson, ct),
                 "get_product_info" => await HandleGetProductInfoAsync(argsJson, ct),
                 "get_product_images" => await HandleGetProductImagesAsync(argsJson, ct),
@@ -131,14 +135,45 @@ public sealed class AgentToolHandlerService
         return JsonSerializer.Serialize(new { rooms });
     }
 
-    private string HandleBuildTimePicker(string argsJson)
+    private string HandleBuildTimePicker(string argsJson, string threadId)
     {
         using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(argsJson) ? "{}" : argsJson);
 
-        string title = doc.RootElement.TryGetProperty("title", out var t) 
-            ? (t.GetString() ?? "Select start and end time") 
+        string title = doc.RootElement.TryGetProperty("title", out var t)
+            ? (t.GetString() ?? "Select start and end time")
             : "Select start and end time";
         string? dateIso = doc.RootElement.TryGetProperty("date", out var d) ? d.GetString() : null;
+
+        // If date not provided by AI, try to get it from draft or extract from conversation
+        if (string.IsNullOrEmpty(dateIso))
+        {
+            // First try to get from draft
+            var draft = _drafts?.TryGet(threadId);
+            if (draft != null && draft.Date is DateOnly draftDate)
+            {
+                dateIso = draftDate.ToString("yyyy-MM-dd");
+                title = $"Confirm your schedule for {draftDate.ToString("d MMMM yyyy")}";
+            }
+            else
+            {
+                // Try to extract from conversation
+                var session = _http.HttpContext?.Session;
+                if (session != null)
+                {
+                    var chatService = _http.HttpContext?.RequestServices.GetService(typeof(AzureAgentChatService)) as AzureAgentChatService;
+                    if (chatService != null)
+                    {
+                        var (_, messages) = chatService.GetTranscript(threadId);
+                        var (dateDto, _) = _extraction.ExtractEventDate(messages);
+                        if (dateDto.HasValue)
+                        {
+                            dateIso = dateDto.Value.ToString("yyyy-MM-dd");
+                            title = $"Confirm your schedule for {dateDto.Value.ToString("d MMMM yyyy")}";
+                        }
+                    }
+                }
+            }
+        }
         string? defStart = doc.RootElement.TryGetProperty("defaultStart", out var ds) ? ds.GetString() : "09:00";
         string? defEnd = doc.RootElement.TryGetProperty("defaultEnd", out var de) ? de.GetString() : "10:00";
         int stepMinutes = doc.RootElement.TryGetProperty("stepMinutes", out var sm) && sm.ValueKind == JsonValueKind.Number

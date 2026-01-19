@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Validation Logic</title>
+</head>
+<body>
+    <h1>Test Time Picker Validation</h1>
+    <div id="test-results"></div>
+
+    <script>
+        // Copy the validation functions from the main script
+        function timeToMinutes(timeStr){
+            if(!timeStr) return null;
+            const parts=timeStr.split(':');
+            if(parts.length!==2) return null;
+            const hours=parseInt(parts[0],10);
+            const mins=parseInt(parts[1],10);
+            if(isNaN(hours)||isNaN(mins)) return null;
+            return hours*60+mins;
+        }
+
+        function validateScheduleTimes(vals){
+            console.log('Testing validateScheduleTimes with:', vals);
+            const errors=[];
+            const invalidInputs=new Set();
+
+            const setup=vals['setup']||'';
+            const rehearsal=vals['rehearsal']||'';
+            const start=vals['start']||'';
+            const end=vals['end']||'';
+            const packup=vals['packup']||vals['pack_down']||vals['packdown']||'';
+
+            const setupMins=timeToMinutes(setup);
+            const rehearsalMins=timeToMinutes(rehearsal);
+            const startMins=timeToMinutes(start);
+            const endMins=timeToMinutes(end);
+            const packupMins=timeToMinutes(packup);
+
+            console.log('Converted times:', {setupMins, rehearsalMins, startMins, endMins, packupMins});
+
+            // Validate: setup < rehearsal (if both provided)
+            if(setupMins!==null && rehearsalMins!==null){
+                if(rehearsalMins<=setupMins){
+                    errors.push('Rehearsal time must be after Setup time');
+                    invalidInputs.add('rehearsal');
+                    invalidInputs.add('setup');
+                }
+            }
+
+            // Validate: rehearsal < start (if both provided) - CRITICAL
+            if(rehearsalMins!==null && startMins!==null){
+                if(startMins<=rehearsalMins){
+                    errors.push('Rehearsal time must be before Event Start time');
+                    invalidInputs.add('rehearsal');
+                    invalidInputs.add('start');
+                }
+            }
+
+            // Validate: start < end (if both provided)
+            if(startMins!==null && endMins!==null){
+                if(endMins<=startMins){
+                    errors.push('Event End time must be after Event Start time');
+                    invalidInputs.add('start');
+                    invalidInputs.add('end');
+                }
+            }
+
+            // Validate: end < packup (if both provided)
+            if(endMins!==null && packupMins!==null){
+                if(packupMins<=endMins){
+                    errors.push('Pack Up time must be after Event End time');
+                    invalidInputs.add('end');
+                    invalidInputs.add('packup');
+                }
+            }
+
+            // Validate: setup < start (if both provided, and no rehearsal)
+            if(setupMins!==null && startMins!==null && rehearsalMins===null){
+                if(startMins<=setupMins){
+                    errors.push('Event Start time must be after Setup time');
+                    invalidInputs.add('setup');
+                    invalidInputs.add('start');
+                }
+            }
+
+            // Validate: rehearsal < packup (if both provided, and no end)
+            if(rehearsalMins!==null && packupMins!==null && endMins===null){
+                if(packupMins<=rehearsalMins){
+                    errors.push('Pack Up time must be after Rehearsal time');
+                    invalidInputs.add('rehearsal');
+                    invalidInputs.add('packup');
+                }
+            }
+
+            const result = {valid:errors.length===0,errors,invalidInputs};
+            console.log('Validation result:', result);
+            return result;
+        }
+
+        // Test with production data
+        console.log('=== TESTING PRODUCTION DATA ===');
+        const productionVals = {
+            setup: '07:00',
+            rehearsal: '04:30',
+            start: '10:00',
+            end: '16:00',
+            packup: '18:00'
+        };
+        const productionResult = validateScheduleTimes(productionVals);
+
+        // Test with localhost data
+        console.log('=== TESTING LOCALHOST DATA ===');
+        const localhostVals = {
+            setup: '07:00',
+            rehearsal: '12:30',
+            start: '12:00',
+            end: '18:00',
+            packup: '18:00'
+        };
+        const localhostResult = validateScheduleTimes(localhostVals);
+
+        // Display results
+        const resultsDiv = document.getElementById('test-results');
+        resultsDiv.innerHTML = `
+            <h2>Production Data Test (Should FAIL)</h2>
+            <p>Input: ${JSON.stringify(productionVals)}</p>
+            <p>Result: ${JSON.stringify(productionResult)}</p>
+
+            <h2>Localhost Data Test (Should PASS)</h2>
+            <p>Input: ${JSON.stringify(localhostVals)}</p>
+            <p>Result: ${JSON.stringify(localhostResult)}</p>
+        `;
+    </script>
+</body>
+</html>
