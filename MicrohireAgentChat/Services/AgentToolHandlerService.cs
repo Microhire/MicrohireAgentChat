@@ -143,6 +143,7 @@ public sealed class AgentToolHandlerService
             ? (t.GetString() ?? "Select start and end time")
             : "Select start and end time";
         string? dateIso = doc.RootElement.TryGetProperty("date", out var d) ? d.GetString() : null;
+        DateTimeOffset? normalizedDate = null;
 
         // If date not provided by AI, try to get it from draft or extract from conversation
         if (string.IsNullOrEmpty(dateIso))
@@ -151,14 +152,15 @@ public sealed class AgentToolHandlerService
             var draft = _drafts?.TryGet(threadId);
             if (draft != null && draft.Date is DateOnly draftDate)
             {
-                dateIso = draftDate.ToString("yyyy-MM-dd");
-                title = $"Confirm your schedule for {draftDate.ToString("d MMMM yyyy")}";
+                var dto = new DateTimeOffset(draftDate.ToDateTime(TimeOnly.MinValue));
+                normalizedDate = dto;
+                dateIso = dto.ToString("yyyy-MM-dd");
             }
             else
             {
                 // Try to extract from conversation
-                var session = _http.HttpContext?.Session;
-                if (session != null)
+                var httpSession = _http.HttpContext?.Session;
+                if (httpSession != null)
                 {
                     var chatService = _http.HttpContext?.RequestServices.GetService(typeof(AzureAgentChatService)) as AzureAgentChatService;
                     if (chatService != null)
@@ -167,17 +169,36 @@ public sealed class AgentToolHandlerService
                         var (dateDto, _) = _extraction.ExtractEventDate(messages);
                         if (dateDto.HasValue)
                         {
+                            normalizedDate = dateDto.Value;
                             dateIso = dateDto.Value.ToString("yyyy-MM-dd");
-                            title = $"Confirm your schedule for {dateDto.Value.ToString("d MMMM yyyy")}";
                         }
                     }
                 }
             }
         }
+
+        // Normalize provided date string (including explicit dates in argsJson) and use a user-friendly title
+        if (normalizedDate is null && !string.IsNullOrWhiteSpace(dateIso) && DateTimeOffset.TryParse(dateIso, out var parsed))
+        {
+            normalizedDate = parsed;
+            dateIso = parsed.ToString("yyyy-MM-dd");
+        }
+        var titleDateText = normalizedDate.HasValue
+            ? normalizedDate.Value.ToString("d MMMM yyyy")
+            : (string.IsNullOrEmpty(dateIso) ? "your event" : dateIso);
+        title = $"Confirm your schedule for {titleDateText}";
         string? defStart = doc.RootElement.TryGetProperty("defaultStart", out var ds) ? ds.GetString() : "09:00";
         string? defEnd = doc.RootElement.TryGetProperty("defaultEnd", out var de) ? de.GetString() : "10:00";
         int stepMinutes = doc.RootElement.TryGetProperty("stepMinutes", out var sm) && sm.ValueKind == JsonValueKind.Number
                             ? sm.GetInt32() : 30;
+
+        // Read schedule times from session, fallback to defaults if not found
+        var session = _http.HttpContext?.Session;
+        var setupTime = session?.GetString("Draft:SetupTime") ?? "07:00";
+        var rehearsalTime = session?.GetString("Draft:RehearsalTime") ?? "09:30";
+        var startTime = session?.GetString("Draft:StartTime") ?? "10:00";
+        var endTime = session?.GetString("Draft:EndTime") ?? "16:00";
+        var packupTime = session?.GetString("Draft:PackupTime") ?? "18:00";
 
         // Build the UI JSON that needs to be embedded in the response
         var uiPayload = new
@@ -185,15 +206,15 @@ public sealed class AgentToolHandlerService
             ui = new
             {
                 type = "multitime",
-                title = $"Confirm your schedule for {(string.IsNullOrEmpty(dateIso) ? "your event" : dateIso)}",
+                title = title,
                 date = dateIso,
                 pickers = new[]
                 {
-                    new { name = "setup", label = "Room setup by (optional)", @default = "07:00" },
-                    new { name = "rehearsal", label = "Rehearsal time (optional)", @default = "09:30" },
-                    new { name = "start", label = "Event start time", @default = "10:00" },
-                    new { name = "end", label = "Event end time", @default = "16:00" },
-                    new { name = "packup", label = "Pack up time from (Optional)", @default = "18:00" }
+                    new { name = "setup", label = "Room setup by (optional)", @default = setupTime },
+                    new { name = "rehearsal", label = "Rehearsal time (optional)", @default = rehearsalTime },
+                    new { name = "start", label = "Event start time", @default = startTime },
+                    new { name = "end", label = "Event end time", @default = endTime },
+                    new { name = "packup", label = "Pack up time from (Optional)", @default = packupTime }
                 },
                 stepMinutes = stepMinutes,
                 submitLabel = "Submit"
@@ -205,7 +226,7 @@ public sealed class AgentToolHandlerService
         var payload = new
         {
             success = true,
-            outputToUser = $"Here's a time picker for you. Please confirm your schedule for {(string.IsNullOrEmpty(dateIso) ? "your event" : dateIso)}:\n\n{jsonToEmbed}",
+            outputToUser = $"Here's a time picker for you. Please confirm your schedule for {titleDateText}:\n\n{jsonToEmbed}",
             instruction = "OUTPUT THE 'outputToUser' VALUE EXACTLY AS-IS in your response. This creates a time picker widget for the user. DO NOT say you've 'generated' a time picker - just output the text and the picker will appear."
         };
 

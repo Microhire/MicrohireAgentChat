@@ -801,26 +801,81 @@ public sealed class ConversationExtractionService
     private static bool TryParseDateToken(string token, out DateTimeOffset dto)
     {
         dto = default;
+        if (string.IsNullOrWhiteSpace(token)) return false;
 
-        // Try standard formats
-        var formats = new[]
+        token = token.Trim();
+        // Remove ordinal suffixes and "of" to normalize tokens like "15th of February"
+        token = Regex.Replace(token, @"\b(\d{1,2})(st|nd|rd|th)\b", "$1", RegexOptions.IgnoreCase);
+        token = Regex.Replace(token, @"\b(\d{1,2})\s+of\s+", "$1 ", RegexOptions.IgnoreCase);
+
+        var now = DateTimeOffset.Now;
+        // Consider the token missing a year if no 4-digit year is present
+        var hasExplicitYear = Regex.IsMatch(token, @"\b\d{4}\b");
+
+        var cultures = new[]
         {
-            "d MMMM yyyy", "MMMM d yyyy", "d MMM yyyy", "MMM d yyyy",
-            "dd/MM/yyyy", "d/M/yyyy", "yyyy-MM-dd"
+            CultureInfo.GetCultureInfo("en-US"),
+            CultureInfo.GetCultureInfo("en-GB"),
+            CultureInfo.InvariantCulture
         };
 
-        foreach (var fmt in formats)
+        // If the year is missing, try parsing with the current year appended first
+        var candidates = hasExplicitYear
+            ? new[] { token }
+            : new[] { $"{token} {now.Year}", token };
+
+        foreach (var candidate in candidates)
         {
-            if (DateTimeOffset.TryParseExact(token, fmt, CultureInfo.InvariantCulture,
-                DateTimeStyles.None, out dto))
-                return true;
+            // ISO (yyyy-MM-dd)
+            if (Regex.IsMatch(candidate, @"^\d{4}-\d{2}-\d{2}$") &&
+                DateTime.TryParseExact(candidate, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var isoDt))
+            {
+                dto = new DateTimeOffset(isoDt);
+                break;
+            }
+
+            // Slash formats (dd/MM/yyyy, etc.)
+            if (Regex.IsMatch(candidate, @"^\d{1,2}/\d{1,2}/\d{2,4}$"))
+            {
+                var fmts = new[] { "dd/MM/yyyy", "d/M/yyyy", "dd/MM/yy", "d/M/yy", "MM/dd/yyyy", "M/d/yyyy" };
+                foreach (var fmt in fmts)
+                {
+                    if (DateTime.TryParseExact(candidate, fmt, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var dmy))
+                    {
+                        dto = new DateTimeOffset(dmy);
+                        break;
+                    }
+                }
+                if (dto != default) break;
+            }
+
+            // General parsing with culture fallbacks
+            foreach (var c in cultures)
+            {
+                if (DateTime.TryParse(candidate, c, DateTimeStyles.AssumeLocal, out var dt))
+                {
+                    dto = new DateTimeOffset(dt);
+                    break;
+                }
+            }
+
+            if (dto != default) break;
         }
 
-        // Try general parse
-        if (DateTimeOffset.TryParse(token, CultureInfo.InvariantCulture, DateTimeStyles.None, out dto))
-            return true;
+        if (dto == default)
+            return false;
 
-        return false;
+        // If no explicit year was provided, roll forward to next year when the inferred date is in the past
+        if (!hasExplicitYear)
+        {
+            var dateOnly = dto.Date;
+            var normalized = new DateTimeOffset(dateOnly, dto.Offset);
+            if (normalized.Date < now.Date)
+                normalized = normalized.AddYears(1);
+            dto = normalized;
+        }
+
+        return true;
     }
 
     private static DateTimeOffset? FindEventDate(IEnumerable<string> lines, int? yearHint, out string? matched)

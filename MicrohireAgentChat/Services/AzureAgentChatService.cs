@@ -205,6 +205,18 @@ namespace MicrohireAgentChat.Services
                     return finalNow;
                 }
 
+                // Track if this is a schedule selection to skip acknowledgment generation
+                bool isScheduleSelection = userText.Trim().StartsWith("Choose schedule:", StringComparison.OrdinalIgnoreCase);
+                
+                // Handle multi-part schedule selection - parse it and reformat for AI agent
+                if (_timePicker.TryParseMultiScheduleSelection(userText.Trim(), out var multiSchedule))
+                {
+                    isScheduleSelection = true;
+                    // Reformat the message to be more natural for the AI agent
+                    var readableSchedule = _timePicker.BuildMultiScheduleConfirmation(multiSchedule);
+                    userText = $"I've selected this schedule: {readableSchedule.Replace("✅ Perfect! I've confirmed your schedule", "").Replace(".", "")}. Please confirm this schedule and ask about AV equipment requirements.";
+                }
+
                 // Normal flow for free-text / other UI messages
                 var priorRunId = session.GetString(SessionKeyActiveRunId);
                 if (!string.IsNullOrWhiteSpace(priorRunId))
@@ -231,7 +243,8 @@ namespace MicrohireAgentChat.Services
                 }
 
                 // Handle comprehensive information acknowledgment (Bug #8)
-                if (eventInfo.HasInformation())
+                // SKIP acknowledgment generation if this is a schedule selection - let AI agent handle it
+                if (!isScheduleSelection && eventInfo.HasInformation())
                 {
                     var acknowledgment = _acknowledgment.GenerateAcknowledgment(eventInfo);
                     if (!string.IsNullOrWhiteSpace(acknowledgment))
@@ -369,11 +382,45 @@ namespace MicrohireAgentChat.Services
                     .Any(p => p.StartsWith("Choose schedule:", StringComparison.OrdinalIgnoreCase)));
             if (scheduleChosen) return;
 
-            // 3) Do we know the date?
-            var (dateDto, _) = ExtractEventDate(messages);
+            // 3) Extract and validate the date
+            var (dateDto, matchedText) = ExtractEventDate(messages);
             if (dateDto is null) return;
+
+            // Log what we extracted for debugging
+            _logger.LogInformation("TIME PICKER: Extracted date: {Date} from text: '{Text}'", dateDto.Value, matchedText);
+            _logger.LogInformation("TIME PICKER: Current date/time: {Now}, date only: {NowDate}", DateTimeOffset.Now, DateTimeOffset.Now.Date);
+            _logger.LogInformation("TIME PICKER: Is extracted date in past? {IsPast}", dateDto.Value.Date < DateTimeOffset.Now.Date);
+
+            // Validate the date is reasonable (not more than 2 years in the future, not in the past)
+            var now = DateTimeOffset.Now;
+            var twoYearsFromNow = now.AddYears(2);
+            if (dateDto.Value.Date < now.Date || dateDto.Value.Date > twoYearsFromNow.Date)
+            {
+                _logger.LogWarning("Invalid date extracted: {Date} (current: {Now}, max: {Max})", dateDto.Value, now.Date, twoYearsFromNow.Date);
+                // Try to fix it with smart detection
+                var correctedDate = dateDto.Value;
+                while (correctedDate.Date < now.Date)
+                {
+                    correctedDate = correctedDate.AddYears(1);
+                }
+                while (correctedDate.Date > twoYearsFromNow.Date)
+                {
+                    correctedDate = correctedDate.AddYears(-1);
+                }
+                dateDto = correctedDate;
+                _logger.LogInformation("Corrected date to: {Date}", dateDto.Value);
+            }
+
             var dateIso = dateDto.Value.ToString("yyyy-MM-dd");
             var prettyDate = dateDto.Value.ToString("d MMMM yyyy");
+
+            // Final date sanity check
+            var finalCheck = DateTimeOffset.Now;
+            if (dateDto.Value.Date <= finalCheck.Date)
+            {
+                _logger.LogError("CRITICAL: Date validation failed! Date {Date} is not in the future. Current time: {Now}", dateDto.Value, finalCheck);
+                return; // Don't show time picker with invalid date
+            }
 
             // 4) Did Isla just ask for the time?
             var lastAssistant = messages.LastOrDefault(m => string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase));
@@ -398,7 +445,19 @@ namespace MicrohireAgentChat.Services
             if (!isAskingForTime)
                 return;
 
-            // 5) Build the inline MULTI timepicker JSON (Setup, Rehearsal, Pack Up)
+            // 5) Send loading message first
+            var loadingMessage = "I'm preparing a time picker for your event schedule. One moment please...";
+            AgentsClient.Messages.CreateMessage(threadId, Azure.AI.Agents.Persistent.MessageRole.Agent, loadingMessage);
+
+            // 6) Read schedule times from session, fallback to defaults if not found
+            var session = _http.HttpContext?.Session;
+            var setupTime = session?.GetString("Draft:SetupTime") ?? "07:00";
+            var rehearsalTime = session?.GetString("Draft:RehearsalTime") ?? "09:30";
+            var startTime = session?.GetString("Draft:StartTime") ?? "10:00";
+            var endTime = session?.GetString("Draft:EndTime") ?? "16:00";
+            var packupTime = session?.GetString("Draft:PackupTime") ?? "18:00";
+
+            // Build the inline MULTI timepicker JSON (Setup, Rehearsal, Pack Up)
             var uiPayload = new
             {
                 ui = new
@@ -408,18 +467,18 @@ namespace MicrohireAgentChat.Services
                     date = dateIso,
                     pickers = new[]
                     {
-                new { name = "setup",     label = "Setup Time",     @default = "07:00" },
-                new { name = "rehearsal", label = "Rehearsal Time", @default = "09:30" },
-                new { name = "start",     label = "Event Start Time", @default = "10:00" },
-                new { name = "end",       label = "Event End Time",   @default = "16:00" },
-                new { name = "packup",    label = "Pack Up Time",   @default = "18:00" },
+                new { name = "setup",     label = "Setup Time",     @default = setupTime },
+                new { name = "rehearsal", label = "Rehearsal Time", @default = rehearsalTime },
+                new { name = "start",     label = "Event Start Time", @default = startTime },
+                new { name = "end",       label = "Event End Time",   @default = endTime },
+                new { name = "packup",    label = "Pack Up Time",   @default = packupTime },
             },
                     submitLabel = "Submit"
                 }
             };
             var uiJson = JsonSerializer.Serialize(uiPayload);
 
-            var text = $"Here’s a time picker for you. Please confirm your schedule for **{prettyDate}**:\n\n" + uiJson;
+            var text = $"Perfect! I've confirmed your event date as **{prettyDate}**. Here’s the time picker for you to confirm your schedule:\n\n" + uiJson;
 
             AgentsClient.Messages.CreateMessage(threadId, Azure.AI.Agents.Persistent.MessageRole.Agent, text);
             await Task.CompletedTask;
@@ -1028,6 +1087,15 @@ namespace MicrohireAgentChat.Services
             static string JoinParts(DisplayMessage m) => string.Join(" ", m.Parts ?? Enumerable.Empty<string>());
 
             var monthNames = "jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december";
+
+            // Also support common abbreviations and partial matches
+            var monthAbbreviations = new Dictionary<string, string>
+            {
+                ["ja"] = "jan", ["f"] = "feb", ["mar"] = "mar", ["ap"] = "apr", ["may"] = "may", ["jun"] = "jun",
+                ["jul"] = "jul", ["au"] = "aug", ["s"] = "sep", ["o"] = "oct", ["n"] = "nov", ["d"] = "dec",
+                ["jan"] = "jan", ["feb"] = "feb", ["mar"] = "mar", ["apr"] = "apr", ["may"] = "may", ["jun"] = "jun",
+                ["jul"] = "jul", ["aug"] = "aug", ["sep"] = "sep", ["oct"] = "oct", ["nov"] = "nov", ["dec"] = "dec"
+            };
             var patterns = new[]
             {
                 // "15th of February 2024", "15 of February 2024"
@@ -1045,6 +1113,8 @@ namespace MicrohireAgentChat.Services
             bool TryParseMatch(string text, out DateTimeOffset dto, out string? matched)
             {
                 matched = null;
+
+                // First try with original text
                 foreach (var pat in patterns)
                 {
                     foreach (Match m in Regex.Matches(text, pat, RegexOptions.IgnoreCase))
@@ -1057,6 +1127,29 @@ namespace MicrohireAgentChat.Services
                         }
                     }
                 }
+
+                // If no match, try expanding month abbreviations
+                var expandedText = text;
+                foreach (var abbr in monthAbbreviations)
+                {
+                    // Use word boundaries to avoid partial matches in middle of words
+                    expandedText = Regex.Replace(expandedText, $@"\b{Regex.Escape(abbr.Key)}\b", abbr.Value, RegexOptions.IgnoreCase);
+                }
+
+                // Try again with expanded text
+                foreach (var pat in patterns)
+                {
+                    foreach (Match m in Regex.Matches(expandedText, pat, RegexOptions.IgnoreCase))
+                    {
+                        var token = m.Value;
+                        if (TryParseDateToken(token, out dto))
+                        {
+                            matched = token;
+                            return true;
+                        }
+                    }
+                }
+
                 dto = default;
                 return false;
             }
@@ -1079,11 +1172,16 @@ namespace MicrohireAgentChat.Services
 
             static bool TryParseDateToken(string token, out DateTimeOffset dto)
             {
+                dto = default;
+                if (string.IsNullOrWhiteSpace(token)) return false;
+
                 token = token.Trim();
-                // Remove ordinal suffixes: "15th" -> "15"
+                // Normalize ordinals and "of" phrasing
                 token = Regex.Replace(token, @"\b(\d{1,2})(st|nd|rd|th)\b", "$1", RegexOptions.IgnoreCase);
-                // Remove "of" between day and month: "15 of February" -> "15 February"
                 token = Regex.Replace(token, @"\b(\d{1,2})\s+of\s+", "$1 ", RegexOptions.IgnoreCase);
+
+                var now = DateTimeOffset.Now;
+                var hasExplicitYear = Regex.IsMatch(token, @"\b\d{4}\b");
 
                 var cultures = new[]
                 {
@@ -1092,37 +1190,61 @@ namespace MicrohireAgentChat.Services
                     CultureInfo.InvariantCulture
                 };
 
-                if (Regex.IsMatch(token, @"^\d{4}-\d{2}-\d{2}$") &&
-                    DateTime.TryParseExact(token, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var isoDt))
-                {
-                    dto = new DateTimeOffset(isoDt);
-                    return true;
-                }
+                var candidates = hasExplicitYear
+                    ? new[] { token }
+                    : new[] { $"{token} {now.Year}", token };
 
-                if (Regex.IsMatch(token, @"^\d{1,2}/\d{1,2}/\d{2,4}$"))
+                foreach (var candidate in candidates)
                 {
-                    var fmts = new[] { "dd/MM/yyyy", "d/M/yyyy", "dd/MM/yy", "d/M/yy", "MM/dd/yyyy", "M/d/yyyy" };
-                    foreach (var fmt in fmts)
+                    if (Regex.IsMatch(candidate, @"^\d{4}-\d{2}-\d{2}$") &&
+                        DateTime.TryParseExact(candidate, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var isoDt))
                     {
-                        if (DateTime.TryParseExact(token, fmt, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var dmy))
+                        dto = new DateTimeOffset(isoDt);
+                        break;
+                    }
+
+                    if (dto == default && Regex.IsMatch(candidate, @"^\d{1,2}/\d{1,2}/\d{2,4}$"))
+                    {
+                        var fmts = new[] { "dd/MM/yyyy", "d/M/yyyy", "dd/MM/yy", "d/M/yy", "MM/dd/yyyy", "M/d/yyyy" };
+                        foreach (var fmt in fmts)
                         {
-                            dto = new DateTimeOffset(dmy);
-                            return true;
+                            if (DateTime.TryParseExact(candidate, fmt, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var dmy))
+                            {
+                                dto = new DateTimeOffset(dmy);
+                                break;
+                            }
                         }
                     }
-                }
 
-                foreach (var c in cultures)
-                {
-                    if (DateTime.TryParse(token, c, DateTimeStyles.AssumeLocal, out var dt))
+                    if (dto == default)
                     {
-                        dto = new DateTimeOffset(dt);
-                        return true;
+                        foreach (var c in cultures)
+                        {
+                            if (DateTime.TryParse(candidate, c, DateTimeStyles.AssumeLocal, out var dt))
+                            {
+                                dto = new DateTimeOffset(dt);
+                                break;
+                            }
+                        }
                     }
+
+                    if (dto != default)
+                        break;
                 }
 
-                dto = default;
-                return false;
+                if (dto == default)
+                    return false;
+
+                // Always apply smart date detection: roll forward until the date is in the future
+                // This handles both cases: explicit years that are wrong, and implicit years
+                var normalized = new DateTimeOffset(dto.Date, dto.Offset);
+                while (normalized.Date < now.Date)
+                {
+                    normalized = normalized.AddYears(1);
+                }
+                dto = normalized;
+
+                return true;
             }
         }
 
@@ -1566,37 +1688,69 @@ namespace MicrohireAgentChat.Services
 
             static bool TryParseDateToken(string token, int? yearHint, out DateTimeOffset dto)
             {
+                dto = default;
+                if (string.IsNullOrWhiteSpace(token)) return false;
+
                 token = token.Trim();
                 token = Regex.Replace(token, @"\b(\d{1,2})(st|nd|rd|th)\b", "$1", RegexOptions.IgnoreCase);
+                var hasExplicitYear = Regex.IsMatch(token, @"\b\d{4}\b");
 
                 if (Regex.IsMatch(token, @"^\d{4}-\d{2}-\d{2}$") &&
                     DateTime.TryParseExact(token, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var iso))
-                { dto = new DateTimeOffset(iso); return true; }
-
-                var fmts = new[] { "dd/MM/yyyy", "d/M/yyyy", "MM/dd/yyyy", "M/d/yyyy", "dd/MM/yy", "M/d/yy" };
-                foreach (var f in fmts)
-                    if (DateTime.TryParseExact(token, f, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var d1))
-                    { dto = new DateTimeOffset(d1); return true; }
-
-                foreach (var c in new[] { "en-AU", "en-GB", "en-US" })
-                    if (DateTime.TryParse(token, CultureInfo.GetCultureInfo(c), DateTimeStyles.AssumeLocal, out var d2))
-                    { dto = new DateTimeOffset(d2); return true; }
-
-                var m = Regex.Match(token, @"^(?<day>\d{1,2})\s+(?<mon>[A-Za-z]{3,9})(?:\s+(?<yr>\d{4}))?$", RegexOptions.IgnoreCase);
-                if (m.Success)
                 {
-                    var day = int.Parse(m.Groups["day"].Value);
-                    var mon = DateTime.ParseExact(m.Groups["mon"].Value.Substring(0, 3), "MMM", CultureInfo.InvariantCulture, DateTimeStyles.None).Month;
-                    var yr = m.Groups["yr"].Success ? int.Parse(m.Groups["yr"].Value) : InferYearFor(day, mon, yearHint);
-                    if (yr > 0 && day >= 1 && day <= DateTime.DaysInMonth(yr, mon))
+                    dto = new DateTimeOffset(iso);
+                }
+                else
+                {
+                    var fmts = new[] { "dd/MM/yyyy", "d/M/yyyy", "MM/dd/yyyy", "M/d/yyyy", "dd/MM/yy", "M/d/yy" };
+                    foreach (var f in fmts)
                     {
-                        dto = new DateTimeOffset(new DateTime(yr, mon, day));
-                        return true;
+                        if (DateTime.TryParseExact(token, f, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var d1))
+                        {
+                            dto = new DateTimeOffset(d1);
+                            break;
+                        }
                     }
                 }
 
-                dto = default;
-                return false;
+                if (dto == default)
+                {
+                    foreach (var c in new[] { "en-AU", "en-GB", "en-US" })
+                    {
+                        if (DateTime.TryParse(token, CultureInfo.GetCultureInfo(c), DateTimeStyles.AssumeLocal, out var d2))
+                        {
+                            dto = new DateTimeOffset(d2);
+                            break;
+                        }
+                    }
+                }
+
+                if (dto == default)
+                {
+                    var m = Regex.Match(token, @"^(?<day>\d{1,2})\s+(?<mon>[A-Za-z]{3,9})(?:\s+(?<yr>\d{4}))?$", RegexOptions.IgnoreCase);
+                    if (m.Success)
+                    {
+                        var day = int.Parse(m.Groups["day"].Value);
+                        var mon = DateTime.ParseExact(m.Groups["mon"].Value.Substring(0, 3), "MMM", CultureInfo.InvariantCulture, DateTimeStyles.None).Month;
+                        var yr = m.Groups["yr"].Success ? int.Parse(m.Groups["yr"].Value) : InferYearFor(day, mon, yearHint);
+                        if (yr > 0 && day >= 1 && day <= DateTime.DaysInMonth(yr, mon))
+                        {
+                            dto = new DateTimeOffset(new DateTime(yr, mon, day));
+                        }
+                    }
+                }
+
+                if (dto == default)
+                    return false;
+
+                if (!hasExplicitYear)
+                {
+                    var targetYear = yearHint ?? InferYearFor(dto.Day, dto.Month, yearHint);
+                    var adjustedDay = Math.Min(dto.Day, DateTime.DaysInMonth(targetYear, dto.Month));
+                    dto = new DateTimeOffset(new DateTime(targetYear, dto.Month, adjustedDay), dto.Offset);
+                }
+
+                return true;
             }
 
             static int InferYearFor(int day, int month, int? yearHint)

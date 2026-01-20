@@ -211,6 +211,16 @@ public sealed class AgentToolInstaller : IHostedService
                 "- Number of attendees\n" +
                 "- Room setup style\n\n" +
                 "After venue is confirmed, call build_time_picker and OUTPUT the outputToUser EXACTLY AS-IS so the picker appears.\n\n" +
+                "### STEP 2.5: HANDLE SCHEDULE SELECTION\n" +
+                "When user selects times from the time picker, they will send a message like:\n" +
+                "'Choose schedule: date=2026-03-09; setup=09:00; rehearsal=09:30; start=10:00; end=16:00; packup=20:00'\n" +
+                "\n" +
+                "When you receive this message:\n" +
+                "1. Parse the schedule times from the message\n" +
+                "2. Convert times to readable 12-hour format (e.g., 9:00 AM, 4:00 PM)\n" +
+                "3. Confirm the schedule back to the user in a friendly way\n" +
+                "4. Example response: 'Perfect! I've confirmed your schedule for March 9th, 2026: Setup at 9:00 AM, Rehearsal at 9:30 AM, Event from 10:00 AM to 4:00 PM, and Pack up at 8:00 PM.'\n" +
+                "5. Then proceed to Step 3 to collect AV requirements\n\n" +
                 "### STEP 3: COLLECT AV REQUIREMENTS (ASK THESE QUESTIONS)\n" +
                 "1. Will there be speeches or presentations? How many speakers?\n" +
                 "2. Will you need to show slides or videos? (means projector + screen)\n" +

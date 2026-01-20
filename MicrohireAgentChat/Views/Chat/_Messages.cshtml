@@ -275,6 +275,13 @@ else
                                             var submit = uiEl.TryGetProperty("submitLabel", out var sLbl) ? sLbl.GetString() : "Submit";
                                             var dateIso = uiEl.TryGetProperty("date", out var dEl) ? dEl.GetString() : null;
 
+                                            // Get schedule times from ViewData (previously submitted values)
+                                            var viewDataSetup = ViewData["ScheduleSetupTime"] as string;
+                                            var viewDataRehearsal = ViewData["ScheduleRehearsalTime"] as string;
+                                            var viewDataStart = ViewData["ScheduleStartTime"] as string;
+                                            var viewDataEnd = ViewData["ScheduleEndTime"] as string;
+                                            var viewDataPackup = ViewData["SchedulePackupTime"] as string;
+
                                             var pickers = new List<(string name, string label, string value)>();
                                             if (uiEl.TryGetProperty("pickers", out var pArr) && pArr.ValueKind == JsonValueKind.Array)
                                             {
@@ -283,8 +290,27 @@ else
                                                     var nm = p.TryGetProperty("name", out var pn) ? pn.GetString() : null;
                                                     var lb = p.TryGetProperty("label", out var pl) ? pl.GetString() : nm;
                                                     var dv = p.TryGetProperty("default", out var pd) ? pd.GetString() : "09:00";
+                                                    
+                                                    // Use ViewData value if available, otherwise use JSON default
+                                                    string? finalValue = null;
                                                     if (!string.IsNullOrWhiteSpace(nm))
-                                                        pickers.Add((nm!, lb ?? nm!, dv ?? "09:00"));
+                                                    {
+                                                        var nameLower = nm.ToLowerInvariant();
+                                                        if (nameLower == "setup" && !string.IsNullOrWhiteSpace(viewDataSetup))
+                                                            finalValue = viewDataSetup;
+                                                        else if (nameLower == "rehearsal" && !string.IsNullOrWhiteSpace(viewDataRehearsal))
+                                                            finalValue = viewDataRehearsal;
+                                                        else if (nameLower == "start" && !string.IsNullOrWhiteSpace(viewDataStart))
+                                                            finalValue = viewDataStart;
+                                                        else if (nameLower == "end" && !string.IsNullOrWhiteSpace(viewDataEnd))
+                                                            finalValue = viewDataEnd;
+                                                        else if ((nameLower == "packup" || nameLower == "pack_up" || nameLower == "packdown") && !string.IsNullOrWhiteSpace(viewDataPackup))
+                                                            finalValue = viewDataPackup;
+                                                        else
+                                                            finalValue = dv ?? "09:00";
+                                                        
+                                                        pickers.Add((nm!, lb ?? nm!, finalValue));
+                                                    }
                                                 }
                                             }
 

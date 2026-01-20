@@ -90,7 +90,8 @@
                 <i class="ph ph-caret-right"></i>
             </button>
 
-            @{
+            @if (ViewData["DevModeEnabled"] as bool? == true)
+            {
                 <button id="startReplayBtn" type="button" class="btn btn-outline-primary ms-2" title="Start Test Conversation">
                     <i class="ph ph-play"></i> Test
                 </button>
@@ -380,6 +381,7 @@
           const nextReplayBtn = document.getElementById('nextReplayBtn');
           const replayStatus = document.getElementById('replayStatus');
 
+          // Only add dev mode event listeners if buttons exist (dev mode enabled)
           if (startReplayBtn) {
             startReplayBtn.addEventListener('click', async () => {
               try {

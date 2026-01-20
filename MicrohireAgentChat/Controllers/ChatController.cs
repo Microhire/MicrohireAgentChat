@@ -121,6 +121,7 @@ public sealed class ChatController : Controller
             ViewData["DevModeEnabled"] = _devOptions.Enabled;
             _logger.LogInformation("DevMode enabled: {_devOptions.Enabled}", _devOptions.Enabled);
             ViewData["QuoteComplete"] = false;
+            SetScheduleTimesInViewData();
             return View(messages);
         }
         catch (Exception ex)
@@ -218,6 +219,7 @@ public sealed class ChatController : Controller
                     ct);
 
                 RedactPricesForUiInPlace(messages);
+                SetScheduleTimesInViewData();
                 return View("Index", messages);
             }
             finally { sem.Release(); }
@@ -228,6 +230,7 @@ public sealed class ChatController : Controller
             var threadId = _chat.EnsureThreadId(HttpContext.Session);
             var (_, messages) = _chat.GetTranscript(threadId);
             RedactPricesForUiInPlace(messages);
+            SetScheduleTimesInViewData();
             return View("Index", messages);
         }
     }
@@ -540,6 +543,7 @@ public sealed class ChatController : Controller
 
             var (_, messages) = _chat.GetTranscript(newThreadId);
             ViewData["QuoteComplete"] = false;
+            SetScheduleTimesInViewData();
             return View("Index", messages);
         }
         catch (Exception ex)
@@ -576,7 +580,9 @@ public sealed class ChatController : Controller
                 text = $"Choose time: {start:hh\\:mm}–{end:hh\\:mm}";
             }
 
-            if (TryCaptureScheduleSelection(text, out var set, out var reh, out var showStart, out var showEnd, out var pack, out var eventDate))
+            // SKIP schedule parsing for "Choose schedule:" messages from time picker - let AzureAgentChatService handle them
+            if (!text.Trim().StartsWith("Choose schedule:", StringComparison.OrdinalIgnoreCase) &&
+                TryCaptureScheduleSelection(text, out var set, out var reh, out var showStart, out var showEnd, out var pack, out var eventDate))
             {
                 SaveScheduleToSession(set, reh, showStart, showEnd, pack, eventDate);
 
@@ -683,6 +689,7 @@ public sealed class ChatController : Controller
                 {
                     RedactPricesForUiInPlace(msgList);
                     ViewData["ShowQuoteCta"] = WasLastAssistantASummaryAsk(msgList) ? "1" : "0";
+                    SetScheduleTimesInViewData();
                     return PartialView("_Messages", msgList);
                 }
 
@@ -771,6 +778,7 @@ public sealed class ChatController : Controller
 
             RedactPricesForUiInPlace(msgList);
             ViewData["ShowQuoteCta"] = WasLastAssistantASummaryAsk(msgList) ? "1" : "0";
+            SetScheduleTimesInViewData();
             
             // Log final message count for debugging
             _logger.LogInformation("Returning {Count} messages to view. Last message role: {LastRole}", 
@@ -1160,6 +1168,7 @@ public sealed class ChatController : Controller
 
             // Tell the view whether to show the Yes/No buttons
             ViewData["ShowQuoteCta"] = WasLastAssistantASummaryAsk(messages.ToList()) ? "1" : "0";
+            SetScheduleTimesInViewData();
 
             RedactPricesForUiInPlace(messages);
             return PartialView("_Messages", messages);
@@ -1199,6 +1208,7 @@ public sealed class ChatController : Controller
             // Tell the view whether to show the Yes/No buttons
             ViewData["ShowQuoteCta"] = WasLastAssistantASummaryAsk(messages.ToList()) ? "1" : "0";
             ViewData["QuoteComplete"] = false;
+            SetScheduleTimesInViewData();
 
             return PartialView("_Messages", messages);
         }
@@ -1388,6 +1398,35 @@ public sealed class ChatController : Controller
         if (showEnd.HasValue) HttpContext.Session.SetString("Draft:EndTime", showEnd.Value.ToString(@"hh\:mm"));
         HttpContext.Session.SetString("Draft:PackupTime", packup.ToString(@"hh\:mm"));
         if (eventDate.HasValue) HttpContext.Session.SetString("Draft:EventDate", eventDate.Value.ToString("yyyy-MM-dd"));
+    }
+
+    /// <summary>
+    /// Reads schedule times from session and returns them as a dictionary with default fallbacks.
+    /// Returns null values for keys that don't exist in session.
+    /// </summary>
+    private Dictionary<string, string?> GetScheduleTimesFromSession()
+    {
+        return new Dictionary<string, string?>
+        {
+            { "setup", HttpContext.Session.GetString("Draft:SetupTime") },
+            { "rehearsal", HttpContext.Session.GetString("Draft:RehearsalTime") },
+            { "start", HttpContext.Session.GetString("Draft:StartTime") },
+            { "end", HttpContext.Session.GetString("Draft:EndTime") },
+            { "packup", HttpContext.Session.GetString("Draft:PackupTime") }
+        };
+    }
+
+    /// <summary>
+    /// Sets schedule times from session into ViewData for use by the view.
+    /// </summary>
+    private void SetScheduleTimesInViewData()
+    {
+        var scheduleTimes = GetScheduleTimesFromSession();
+        ViewData["ScheduleSetupTime"] = scheduleTimes["setup"];
+        ViewData["ScheduleRehearsalTime"] = scheduleTimes["rehearsal"];
+        ViewData["ScheduleStartTime"] = scheduleTimes["start"];
+        ViewData["ScheduleEndTime"] = scheduleTimes["end"];
+        ViewData["SchedulePackupTime"] = scheduleTimes["packup"];
     }
 
     private static string Pretty12(TimeSpan? ts)
