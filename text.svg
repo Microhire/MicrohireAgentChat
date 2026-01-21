@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="900" viewBox="0 0 1400 900">
+  <defs>
+    <style>
+      .title{font:700 34px Arial, Helvetica, sans-serif; fill:#0f172a}
+      .h{font:700 26px Arial, Helvetica, sans-serif; fill:#0f172a}
+      .p{font:400 18px Arial, Helvetica, sans-serif; fill:#334155}
+      .box{fill:#ffffff; stroke-width:4; rx:18; ry:18}
+      .shadow{filter: drop-shadow(0px 6px 10px rgba(0,0,0,.18));}
+      .arrow{stroke:#111827; stroke-width:4; fill:none}
+    </style>
+    <marker id="arrowhead" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto">
+      <path d="M 0 0 L 12 6 L 0 12 z" fill="#111827"/>
+    </marker>
+  </defs>
+
+  <text x="70" y="70" class="title">Conceptual Framework: VAT Collection Performance</text>
+
+  <!-- POLICY -->
+  <rect x="250" y="110" width="900" height="120" class="box shadow" stroke="#f59e0b"/>
+  <text x="700" y="160" text-anchor="middle" class="h">POLICY FACTORS</text>
+  <text x="700" y="195" text-anchor="middle" class="p">Stability • Frequent Amendments • Regulatory Clarity</text>
+
+  <!-- ADMIN + COMPLIANCE -->
+  <rect x="210" y="300" width="450" height="130" class="box shadow" stroke="#22c1c3"/>
+  <text x="435" y="350" text-anchor="middle" class="h">ADMINISTRATIVE FACTORS</text>
+  <text x="435" y="385" text-anchor="middle" class="p">Capacity • Technology • Staffing</text>
+
+  <rect x="740" y="300" width="450" height="130" class="box shadow" stroke="#22c1c3"/>
+  <text x="965" y="350" text-anchor="middle" class="h">COMPLIANCE FACTORS</text>
+  <text x="965" y="385" text-anchor="middle" class="p">Taxpayer Knowledge • Voluntary Cooperation</text>
+
+  <!-- VAT PERFORMANCE -->
+  <rect x="360" y="500" width="680" height="140" class="box shadow" stroke="#1d4ed8"/>
+  <text x="700" y="565" text-anchor="middle" class="h">VAT COLLECTION PERFORMANCE</text>
+  <text x="700" y="600" text-anchor="middle" class="p">Effectiveness of VAT revenue collection relative to potential</text>
+
+  <!-- ORGANIZATIONAL GROWTH -->
+  <rect x="360" y="710" width="680" height="130" class="box shadow" stroke="#22c55e"/>
+  <text x="700" y="770" text-anchor="middle" class="h">ORGANIZATIONAL GROWTH</text>
+  <text x="700" y="805" text-anchor="middle" class="p">Business Formalization • Investment</text>
+
+  <!-- ARROWS -->
+  <path class="arrow" marker-end="url(#arrowhead)" d="M700 230 L435 300"/>
+  <path class="arrow" marker-end="url(#arrowhead)" d="M700 230 L965 300"/>
+
+  <path class="arrow" marker-end="url(#arrowhead)" d="M435 430 L620 500"/>
+  <path class="arrow" marker-end="url(#arrowhead)" d="M965 430 L780 500"/>
+
+  <path class="arrow" marker-end="url(#arrowhead)" d="M700 640 L700 710"/>
+</svg>

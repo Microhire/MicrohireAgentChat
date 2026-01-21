@@ -207,7 +207,7 @@ public sealed class AgentToolInstaller : IHostedService
                 "### STEP 2: COLLECT EVENT DETAILS\n" +
                 "- Event type (conference, wedding, etc.)\n" +
                 "- Venue and room (call check_date_availability)\n" +
-                "- Date\n" +
+                "- Date: CRITICAL - When user mentions ANY date, immediately call get_now_aest, calculate the correct year, then confirm with user\n" +
                 "- Number of attendees\n" +
                 "- Room setup style\n\n" +
                 "After venue is confirmed, call build_time_picker and OUTPUT the outputToUser EXACTLY AS-IS so the picker appears.\n\n" +
@@ -268,6 +268,19 @@ public sealed class AgentToolInstaller : IHostedService
                 "### STEP 5: GENERATE QUOTE\n" +
                 "When user clicks 'Yes, create quote' or says yes/looks good/perfect, IMMEDIATELY call generate_quote.\n" +
                 "DO NOT ask 'Shall I create the quote now?' - the summary already asks that.\n\n" +
+                "## DATE PARSING RULES:\n" +
+                "- CRITICAL: For ANY date mentioned by user, you MUST call get_now_aest FIRST to get current date\n" +
+                "- Then apply this exact logic for dates without years:\n" +
+                "  * If the month/day has already passed in the current year, use next year\n" +
+                "  * If the month/day is still upcoming in the current year, use current year\n" +
+                "  * NEVER assume a year - calculate it based on current date from get_now_aest\n" +
+                "- EXAMPLES (assuming today is January 20, 2026):\n" +
+                "  * User says 'Jan 1' → Jan 1, 2026 has passed → use January 1, 2027\n" +
+                "  * User says 'Feb 2' → Feb 2, 2026 is future → use February 2, 2026\n" +
+                "  * User says 'Jan 25' → Jan 25, 2026 is future → use January 25, 2026\n" +
+                "- ALWAYS display the calculated year in confirmations\n" +
+                "- NEVER say things like 'since X has already passed this year' - calculate the correct year first\n" +
+                "- When calling build_time_picker, use the same calculated date\n\n" +
                 "## CRITICAL RULES:\n" +
                 "- When a tool returns outputToUser, OUTPUT IT EXACTLY AS-IS in your response\n" +
                 "- recommend_equipment_for_event returns a COMPLETE quote summary - output it without modification\n" +

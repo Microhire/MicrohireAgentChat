@@ -83,10 +83,11 @@ echo ""
 
 # Step 4: Enable Dev Mode via App Settings
 print_info "Step 4/5: Configuring App Settings (Dev Mode enabled)..."
+# Use colon notation for .NET Core nested configuration binding
 az webapp config appsettings set \
     --resource-group $RESOURCE_GROUP \
     --name $APP_NAME \
-    --settings "DevMode__Enabled=true" \
+    --settings "DevMode:Enabled=true" \
     > /dev/null
 print_success "Dev Mode enabled in App Settings"
 echo ""
@@ -116,11 +117,11 @@ echo ""
 # Display success information
 print_success "===== Deployment Summary ====="
 echo "App Service: https://$APP_NAME.azurewebsites.net"
-echo "Dev Mode: ENABLED"
+echo "Dev Mode: ENABLED (DevMode:Enabled=true)"
 echo "Deployment Time: $(date)"
 echo ""
 print_info "Next steps:"
-echo "1. Visit https://$APP_NAME.azurewebsites.net to test the application"
+echo "1. Visit https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/Chat to test the application"
 echo "2. The Test button should be visible (Dev Mode enabled)"
 echo "3. Use the test scenarios to verify the bug reproduction flows"
 echo ""

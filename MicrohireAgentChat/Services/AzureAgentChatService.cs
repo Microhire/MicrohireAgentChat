@@ -188,33 +188,27 @@ namespace MicrohireAgentChat.Services
             await gate.WaitAsync(ct);
             try
             {
-                // Handle schedule selection using TimePickerService
+                // Handle schedule selection using TimePickerService - reformat for AI agent to continue the conversation
                 if (_timePicker.TryParseScheduleSelection(userText.Trim(), out var schedule))
                 {
                     _timePicker.SaveScheduleToDraft(threadId, schedule);
-
+                    
                     // Find the date from current transcript
                     var (_, current) = GetTranscript(threadId);
                     var (dateDto, _) = ExtractEventDate(current);
 
-                    // Post confirmation
+                    // Reformat the message for AI agent to continue the conversation
                     var confirmation = _timePicker.BuildScheduleConfirmation(schedule, dateDto);
-                    AgentsClient.Messages.CreateMessage(threadId, Azure.AI.Agents.Persistent.MessageRole.Agent, confirmation);
-
-                    var (_, finalNow) = GetTranscript(threadId);
-                    return finalNow;
+                    userText = $"I've selected this schedule: {confirmation.Replace("✅ Perfect! I've confirmed your schedule", "").Replace(".", "")}. Please confirm this schedule and ask about AV equipment requirements.";
+                    _logger.LogInformation("Schedule selection reformatted for AI agent: {UserText}", userText);
                 }
-
-                // Track if this is a schedule selection to skip acknowledgment generation
-                bool isScheduleSelection = userText.Trim().StartsWith("Choose schedule:", StringComparison.OrdinalIgnoreCase);
-                
                 // Handle multi-part schedule selection - parse it and reformat for AI agent
-                if (_timePicker.TryParseMultiScheduleSelection(userText.Trim(), out var multiSchedule))
+                else if (_timePicker.TryParseMultiScheduleSelection(userText.Trim(), out var multiSchedule))
                 {
-                    isScheduleSelection = true;
                     // Reformat the message to be more natural for the AI agent
                     var readableSchedule = _timePicker.BuildMultiScheduleConfirmation(multiSchedule);
                     userText = $"I've selected this schedule: {readableSchedule.Replace("✅ Perfect! I've confirmed your schedule", "").Replace(".", "")}. Please confirm this schedule and ask about AV equipment requirements.";
+                    _logger.LogInformation("Multi-schedule selection reformatted for AI agent: {UserText}", userText);
                 }
 
                 // Normal flow for free-text / other UI messages
@@ -224,54 +218,58 @@ namespace MicrohireAgentChat.Services
 
                 await WaitForNoActiveRunAsync(threadId, ct, TimeSpan.FromSeconds(15));
 
-                // INTEGRATION: Check for questions, comprehensive information, and state before agent execution
-                var (_, currentMessages) = GetTranscript(threadId);
-                var questionInfo = _questionDetection.DetectQuestion(userText);
-                var eventInfo = _extraction.ExtractAllEventInformation(currentMessages);
-                var conversationState = _conversationState.GetConversationState(currentMessages);
-
-                // Handle questions first (Bug #5)
-                if (questionInfo != null)
-                {
-                    var response = await HandleQuestionAsync(threadId, questionInfo, ct);
-                    if (!string.IsNullOrWhiteSpace(response))
-                    {
-                        AgentsClient.Messages.CreateMessage(threadId, Azure.AI.Agents.Persistent.MessageRole.Agent, response);
-                        var (_, questionMessages) = GetTranscript(threadId);
-                        return questionMessages;
-                    }
-                }
-
-                // Handle comprehensive information acknowledgment (Bug #8)
-                // SKIP acknowledgment generation if this is a schedule selection - let AI agent handle it
-                if (!isScheduleSelection && eventInfo.HasInformation())
-                {
-                    var acknowledgment = _acknowledgment.GenerateAcknowledgment(eventInfo);
-                    if (!string.IsNullOrWhiteSpace(acknowledgment))
-                    {
-                        AgentsClient.Messages.CreateMessage(threadId, Azure.AI.Agents.Persistent.MessageRole.Agent, acknowledgment);
-                        var (_, ackMessages) = GetTranscript(threadId);
-                        return ackMessages;
-                    }
-                }
-
+                // CRITICAL: Always add user message FIRST before any processing
+                // This ensures the user's message appears in the conversation
                 try
                 {
                     AgentsClient.Messages.CreateMessage(threadId, Azure.AI.Agents.Persistent.MessageRole.User, userText.Trim());
+                    _logger.LogInformation("User message added to thread: {UserText}", userText.Trim().Substring(0, Math.Min(100, userText.Trim().Length)));
                 }
                 catch (RequestFailedException ex) when (ex.Status == 400 && ex.Message.Contains("run") && ex.Message.Contains("active"))
                 {
+                    _logger.LogWarning("Active run detected, waiting and retrying message creation");
                     await WaitForNoActiveRunAsync(threadId, ct, TimeSpan.FromSeconds(15));
                     AgentsClient.Messages.CreateMessage(threadId, Azure.AI.Agents.Persistent.MessageRole.User, userText.Trim());
                 }
 
+                // ALWAYS RUN THE AI AGENT - No more early returns that skip the agent!
+                // The AI agent should ALWAYS respond to user messages
+                _logger.LogInformation("Running AI agent for thread {ThreadId}", threadId);
                 var agent = AgentsClient.Administration.GetAgent(_agentId).Value;
-                var run = await RunAgentAndHandleToolsAsync(threadId, agent.Id, ct);
-
-                if (run.Status != Azure.AI.Agents.Persistent.RunStatus.Completed)
+                
+                Azure.AI.Agents.Persistent.ThreadRun? run = null;
+                bool agentResponded = false;
+                
+                try
                 {
-                    var err = run.LastError?.Message ?? run.Status.ToString();
-                    throw new InvalidOperationException($"Run did not complete: {err}");
+                    run = await RunAgentAndHandleToolsAsync(threadId, agent.Id, ct);
+                    agentResponded = run.Status == Azure.AI.Agents.Persistent.RunStatus.Completed;
+                    
+                    if (!agentResponded)
+                    {
+                        var err = run.LastError?.Message ?? run.Status.ToString();
+                        _logger.LogWarning("AI agent run did not complete normally: {Status} - {Error}", run.Status, err);
+                    }
+                }
+                catch (Exception agentEx)
+                {
+                    _logger.LogError(agentEx, "AI agent run failed for thread {ThreadId}", threadId);
+                    // Don't throw - we'll add a fallback message below
+                }
+                
+                // If agent didn't respond, add a fallback message so the user isn't left hanging
+                if (!agentResponded)
+                {
+                    try
+                    {
+                        var fallbackMessage = "I'm sorry, I encountered a brief delay. Could you please repeat your last message or let me know how I can help you?";
+                        AgentsClient.Messages.CreateMessage(threadId, Azure.AI.Agents.Persistent.MessageRole.Agent, fallbackMessage);
+                        _logger.LogInformation("Added fallback message to thread {ThreadId}", threadId);
+                    }
+                    catch (Exception fallbackEx)
+                    {
+                        _logger.LogError(fallbackEx, "Failed to add fallback message to thread {ThreadId}", threadId);
+                    }
                 }
 
                 var (_, messages) = GetTranscript(threadId);
@@ -284,6 +282,7 @@ namespace MicrohireAgentChat.Services
                 catch (Exception ex) { _logger.LogError(ex, "Post-processing (contact/booking) failed."); }
 
                 var (_, finalMessages) = GetTranscript(threadId);
+                _logger.LogInformation("Returning {Count} messages from SendAsync for thread {ThreadId}", finalMessages.Count(), threadId);
                 return finalMessages;
             }
             finally
@@ -339,6 +338,123 @@ namespace MicrohireAgentChat.Services
             }
         }
 
+        /// <summary>
+        /// Check if user message is asking a question (not providing new information)
+        /// </summary>
+        private bool IsUserAskingQuestion(string userText)
+        {
+            if (string.IsNullOrWhiteSpace(userText)) return false;
+            
+            var text = userText.Trim().ToLowerInvariant();
+            
+            // Check for question words and patterns
+            return text.Contains("?") ||
+                   text.StartsWith("what ") || text.StartsWith("how ") || text.StartsWith("when ") ||
+                   text.StartsWith("where ") || text.StartsWith("why ") || text.StartsWith("which ") ||
+                   text.StartsWith("who ") || text.StartsWith("can you ") || text.StartsWith("could you ") ||
+                   text.StartsWith("have you ") || text.StartsWith("did you ") || text.StartsWith("do you ") ||
+                   text.StartsWith("will you ") || text.StartsWith("would you ") || text.StartsWith("should ") ||
+                   text.Contains("confirm") && text.Contains("?");
+        }
+
+        /// <summary>
+        /// Get previously acknowledged event information from session
+        /// </summary>
+        private EventInformation GetPreviouslyAcknowledgedInfo(ISession session)
+        {
+            var info = new EventInformation();
+            
+            // Retrieve previously acknowledged values from session
+            var budgetStr = session.GetString("Ack:Budget");
+            if (!string.IsNullOrWhiteSpace(budgetStr) && decimal.TryParse(budgetStr, out var budget))
+                info.Budget = budget;
+            
+            var attendeesStr = session.GetString("Ack:Attendees");
+            if (!string.IsNullOrWhiteSpace(attendeesStr) && int.TryParse(attendeesStr, out var attendees))
+                info.Attendees = attendees;
+            
+            info.SetupStyle = session.GetString("Ack:SetupStyle");
+            info.Venue = session.GetString("Ack:Venue");
+            info.SpecialRequests = session.GetString("Ack:SpecialRequests");
+            
+            var datesJson = session.GetString("Ack:Dates");
+            if (!string.IsNullOrWhiteSpace(datesJson))
+            {
+                try
+                {
+                    info.Dates = System.Text.Json.JsonSerializer.Deserialize<List<string>>(datesJson);
+                }
+                catch { /* ignore */ }
+            }
+            
+            return info;
+        }
+
+        /// <summary>
+        /// Check if current event information contains NEW information compared to previously acknowledged
+        /// </summary>
+        private bool HasNewInformation(EventInformation current, EventInformation previous)
+        {
+            // Check each field - if current has a value that previous doesn't, it's new
+            if (current.Budget.HasValue && !previous.Budget.HasValue)
+                return true;
+            
+            if (current.Attendees.HasValue && !previous.Attendees.HasValue)
+                return true;
+            
+            if (!string.IsNullOrWhiteSpace(current.SetupStyle) && string.IsNullOrWhiteSpace(previous.SetupStyle))
+                return true;
+            
+            if (!string.IsNullOrWhiteSpace(current.Venue) && string.IsNullOrWhiteSpace(previous.Venue))
+                return true;
+            
+            if (!string.IsNullOrWhiteSpace(current.SpecialRequests) && string.IsNullOrWhiteSpace(previous.SpecialRequests))
+                return true;
+            
+            // Check for new dates
+            if (current.Dates != null && current.Dates.Count > 0)
+            {
+                if (previous.Dates == null || previous.Dates.Count == 0)
+                    return true;
+                
+                // Check if any date in current is not in previous
+                foreach (var date in current.Dates)
+                {
+                    if (!previous.Dates.Contains(date))
+                        return true;
+                }
+            }
+            
+            return false;
+        }
+
+        /// <summary>
+        /// Save acknowledged event information to session to prevent duplicate acknowledgments
+        /// </summary>
+        private void SaveAcknowledgedInfo(ISession session, EventInformation info)
+        {
+            if (info.Budget.HasValue)
+                session.SetString("Ack:Budget", info.Budget.Value.ToString());
+            
+            if (info.Attendees.HasValue)
+                session.SetString("Ack:Attendees", info.Attendees.Value.ToString());
+            
+            if (!string.IsNullOrWhiteSpace(info.SetupStyle))
+                session.SetString("Ack:SetupStyle", info.SetupStyle);
+            
+            if (!string.IsNullOrWhiteSpace(info.Venue))
+                session.SetString("Ack:Venue", info.Venue);
+            
+            if (!string.IsNullOrWhiteSpace(info.SpecialRequests))
+                session.SetString("Ack:SpecialRequests", info.SpecialRequests);
+            
+            if (info.Dates != null && info.Dates.Count > 0)
+            {
+                var datesJson = System.Text.Json.JsonSerializer.Serialize(info.Dates);
+                session.SetString("Ack:Dates", datesJson);
+            }
+        }
+
 
         #endregion
 
@@ -383,44 +499,68 @@ namespace MicrohireAgentChat.Services
             if (scheduleChosen) return;
 
             // 3) Extract and validate the date
+            _logger.LogInformation("TIME PICKER: Starting date extraction from {MessageCount} messages", messages.Count());
             var (dateDto, matchedText) = ExtractEventDate(messages);
-            if (dateDto is null) return;
+            if (dateDto is null)
+            {
+                _logger.LogInformation("TIME PICKER: No date extracted from messages, returning early");
+                return;
+            }
 
             // Log what we extracted for debugging
             _logger.LogInformation("TIME PICKER: Extracted date: {Date} from text: '{Text}'", dateDto.Value, matchedText);
             _logger.LogInformation("TIME PICKER: Current date/time: {Now}, date only: {NowDate}", DateTimeOffset.Now, DateTimeOffset.Now.Date);
-            _logger.LogInformation("TIME PICKER: Is extracted date in past? {IsPast}", dateDto.Value.Date < DateTimeOffset.Now.Date);
+            _logger.LogInformation("TIME PICKER: Is extracted date in past? {IsPast} (extracted: {Extracted}, current: {Current})",
+                dateDto.Value.Date < DateTimeOffset.Now.Date, dateDto.Value.Date, DateTimeOffset.Now.Date);
 
             // Validate the date is reasonable (not more than 2 years in the future, not in the past)
             var now = DateTimeOffset.Now;
             var twoYearsFromNow = now.AddYears(2);
+            _logger.LogInformation("TIME PICKER: Validation bounds - Now: {Now}, TwoYearsFromNow: {TwoYears}", now.Date, twoYearsFromNow.Date);
+
             if (dateDto.Value.Date < now.Date || dateDto.Value.Date > twoYearsFromNow.Date)
             {
-                _logger.LogWarning("Invalid date extracted: {Date} (current: {Now}, max: {Max})", dateDto.Value, now.Date, twoYearsFromNow.Date);
+                _logger.LogWarning("TIME PICKER: Date validation failed - extracted: {Extracted}, is_past: {IsPast}, is_too_far_future: {IsTooFar}",
+                    dateDto.Value.Date, dateDto.Value.Date < now.Date, dateDto.Value.Date > twoYearsFromNow.Date);
+
                 // Try to fix it with smart detection
                 var correctedDate = dateDto.Value;
+                int forwardRolls = 0;
+                int backwardRolls = 0;
+
+                _logger.LogInformation("TIME PICKER: Starting correction from {OriginalDate}", correctedDate.Date);
                 while (correctedDate.Date < now.Date)
                 {
+                    var beforeCorrection = correctedDate;
                     correctedDate = correctedDate.AddYears(1);
+                    forwardRolls++;
+                    _logger.LogInformation("TIME PICKER: Forward correction {Count}: {Before} -> {After}", forwardRolls, beforeCorrection.Date, correctedDate.Date);
                 }
                 while (correctedDate.Date > twoYearsFromNow.Date)
                 {
+                    var beforeCorrection = correctedDate;
                     correctedDate = correctedDate.AddYears(-1);
+                    backwardRolls++;
+                    _logger.LogInformation("TIME PICKER: Backward correction {Count}: {Before} -> {After}", backwardRolls, beforeCorrection.Date, correctedDate.Date);
                 }
                 dateDto = correctedDate;
-                _logger.LogInformation("Corrected date to: {Date}", dateDto.Value);
+                _logger.LogInformation("TIME PICKER: Final corrected date: {CorrectedDate} (forward rolls: {Forward}, backward rolls: {Backward})",
+                    dateDto.Value, forwardRolls, backwardRolls);
             }
 
             var dateIso = dateDto.Value.ToString("yyyy-MM-dd");
             var prettyDate = dateDto.Value.ToString("d MMMM yyyy");
+            _logger.LogInformation("TIME PICKER: Formatted date - ISO: '{Iso}', Pretty: '{Pretty}'", dateIso, prettyDate);
 
             // Final date sanity check
             var finalCheck = DateTimeOffset.Now;
             if (dateDto.Value.Date <= finalCheck.Date)
             {
-                _logger.LogError("CRITICAL: Date validation failed! Date {Date} is not in the future. Current time: {Now}", dateDto.Value, finalCheck);
+                _logger.LogError("TIME PICKER: CRITICAL: Final validation failed! Date {Date} is not in the future. Current time: {Now}. Aborting time picker.", dateDto.Value, finalCheck);
                 return; // Don't show time picker with invalid date
             }
+
+            _logger.LogInformation("TIME PICKER: Date validation passed. Proceeding to show time picker for {Date}", prettyDate);
 
             // 4) Did Isla just ask for the time?
             var lastAssistant = messages.LastOrDefault(m => string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase));
@@ -521,9 +661,24 @@ namespace MicrohireAgentChat.Services
 
                         if (toolCalls == null)
                         {
-                            _logger.LogWarning($"RequiredAction present but ToolCalls not found. Type={action.GetType().FullName}");
+                            _logger.LogWarning($"RequiredAction present but ToolCalls not found. Type={action.GetType().FullName}. Cancelling run to prevent hang.");
+                            
+                            // Cancel the run to prevent it from hanging indefinitely
+                            try
+                            {
+                                AgentsClient.Runs.CancelRun(threadId, run.Id);
+                                _logger.LogInformation("Cancelled stuck run {RunId} for thread {ThreadId}", run.Id, threadId);
+                            }
+                            catch (Exception cancelEx)
+                            {
+                                _logger.LogWarning(cancelEx, "Failed to cancel stuck run {RunId}", run.Id);
+                            }
+                            
+                            // Return the run so caller can handle appropriately
+                            return run;
                         }
-                        else
+
+                        // toolCalls is not null, process them
                         {
                             var outputs = new List<(string Id, string Output)>();
 
@@ -968,27 +1123,27 @@ namespace MicrohireAgentChat.Services
 
         public async Task ReplacePersistedThreadAsync(string userKey, string newThreadId, CancellationToken ct)
         {
-            //var row = await _appDb.AgentThreads.FirstOrDefaultAsync(x => x.UserKey == userKey, ct);
-            //var now = DateTime.UtcNow;
+            var row = await _bookings.AgentThreads.FirstOrDefaultAsync(x => x.UserKey == userKey, ct);
+            var now = DateTime.UtcNow;
 
-            //if (row is null)
-            //{
-            //    _appDb.AgentThreads.Add(new AgentThread
-            //    {
-            //        UserKey = userKey,
-            //        ThreadId = newThreadId,
-            //        CreatedUtc = now,
-            //        LastSeenUtc = now
-            //    });
-            //}
-            //else
-            //{
-            //    row.ThreadId = newThreadId;
-            //    row.LastSeenUtc = now;
-            //    _appDb.AgentThreads.Update(row);
-            //}
+            if (row is null)
+            {
+                _bookings.AgentThreads.Add(new AgentThread
+                {
+                    UserKey = userKey,
+                    ThreadId = newThreadId,
+                    CreatedUtc = now,
+                    LastSeenUtc = now
+                });
+            }
+            else
+            {
+                row.ThreadId = newThreadId;
+                row.LastSeenUtc = now;
+                _bookings.AgentThreads.Update(row);
+            }
 
-            //await _appDb.SaveChangesAsync(ct);
+            await _bookings.SaveChangesAsync(ct);
         }
 
         public async Task<string> EnsureThreadIdPersistedAsync(
@@ -996,75 +1151,74 @@ namespace MicrohireAgentChat.Services
             string userKey,
             CancellationToken ct)
         {
-            //var saved = await _appDb.AgentThreads
-            //    .AsNoTracking()
-            //    .Where(t => t.UserKey == userKey)
-            //    .Select(t => t.ThreadId)
-            //    .FirstOrDefaultAsync(ct);
+            var saved = await _bookings.AgentThreads
+                .AsNoTracking()
+                .Where(t => t.UserKey == userKey)
+                .Select(t => t.ThreadId)
+                .FirstOrDefaultAsync(ct);
 
-            //if (!string.IsNullOrWhiteSpace(saved))
-            //{
-            //    session.SetString(SessionKeyThreadId, saved);
-            //    await TouchLastSeenAsync(userKey, ct);
-            //    return saved;
-            //}
+            if (!string.IsNullOrWhiteSpace(saved))
+            {
+                session.SetString(SessionKeyThreadId, saved);
+                await TouchLastSeenAsync(userKey, ct);
+                return saved;
+            }
 
             var threadId = EnsureThreadId(session);
 
             var now = DateTime.UtcNow;
-            //var existing = await _appDb.AgentThreads
-            //    .Where(t => t.UserKey == userKey || t.ThreadId == threadId)
-            //    .FirstOrDefaultAsync(ct);
+            var existing = await _bookings.AgentThreads
+                .Where(t => t.UserKey == userKey || t.ThreadId == threadId)
+                .FirstOrDefaultAsync(ct);
 
-            //if (existing is null)
-            //{
-            //    _appDb.AgentThreads.Add(new AgentThread
-            //    {
-            //        UserKey = userKey,
-            //        ThreadId = threadId,
-            //        CreatedUtc = now,
-            //        LastSeenUtc = now
-            //    });
-            //}
-            //else
-            //{
-            //    existing.UserKey = userKey;
-            //    existing.ThreadId = threadId;
-            //    existing.LastSeenUtc = now;
-            //    _appDb.AgentThreads.Update(existing);
-            //}
+            if (existing is null)
+            {
+                _bookings.AgentThreads.Add(new AgentThread
+                {
+                    UserKey = userKey,
+                    ThreadId = threadId,
+                    CreatedUtc = now,
+                    LastSeenUtc = now
+                });
+            }
+            else
+            {
+                existing.UserKey = userKey;
+                existing.ThreadId = threadId;
+                existing.LastSeenUtc = now;
+                _bookings.AgentThreads.Update(existing);
+            }
 
-            //await _appDb.SaveChangesAsync(ct);
+            await _bookings.SaveChangesAsync(ct);
             return threadId;
         }
 
         private async Task TouchLastSeenAsync(string userKey, CancellationToken ct)
         {
-            //var row = await _appDb.AgentThreads
-            //    .Where(t => t.UserKey == userKey)
-            //    .FirstOrDefaultAsync(ct);
+            var row = await _bookings.AgentThreads
+                .Where(t => t.UserKey == userKey)
+                .FirstOrDefaultAsync(ct);
 
-            //if (row is not null)
-            //{
-            //    row.LastSeenUtc = DateTime.UtcNow;
-            //    _appDb.AgentThreads.Update(row);
-            //    await _appDb.SaveChangesAsync(ct);
-            //}
+            if (row is not null)
+            {
+                row.LastSeenUtc = DateTime.UtcNow;
+                _bookings.AgentThreads.Update(row);
+                await _bookings.SaveChangesAsync(ct);
+            }
         }
 
         public async Task<string?> GetSavedThreadIdAsync(string userKey, CancellationToken ct)
         {
-            //var t = await _appDb.AgentThreads
-            //    .AsNoTracking()
-            //    .Where(x => x.UserKey == userKey)
-            //    .Select(x => x.ThreadId)
-            //    .FirstOrDefaultAsync(ct);
+            var t = await _bookings.AgentThreads
+                .AsNoTracking()
+                .Where(x => x.UserKey == userKey)
+                .Select(x => x.ThreadId)
+                .FirstOrDefaultAsync(ct);
 
-            //if (!string.IsNullOrWhiteSpace(t))
-            //    await TouchLastSeenAsync(userKey, ct);
+            if (!string.IsNullOrWhiteSpace(t))
+                await TouchLastSeenAsync(userKey, ct);
 
-            //return t;
-            return string.Empty;
+            return t;
         }
 
         public async Task<(string ThreadId, IEnumerable<DisplayMessage> Messages)?>
@@ -1104,6 +1258,8 @@ namespace MicrohireAgentChat.Services
                 $@"\b(\d{{1,2}})(st|nd|rd|th)?\s+({monthNames})\s+(\d{{4}})\b",
                 // "February 15th, 2024", "February 15 2024"
                 $@"\b({monthNames})\s+(\d{{1,2}})(st|nd|rd|th)?(,?\s*(\d{{4}}))?\b",
+                // "1st Jan", "15 January", "1 Feb" (day-first without year)
+                $@"\b(\d{{1,2}})(st|nd|rd|th)?\s+({monthNames})\b",
                 // "15/02/2024", "15/2/24"
                 @"\b(\d{1,2})/(\d{1,2})/(\d{2,4})\b",
                 // "2024-02-15"
@@ -1170,7 +1326,7 @@ namespace MicrohireAgentChat.Services
 
             return (null, null);
 
-            static bool TryParseDateToken(string token, out DateTimeOffset dto)
+            bool TryParseDateToken(string token, out DateTimeOffset dto)
             {
                 dto = default;
                 if (string.IsNullOrWhiteSpace(token)) return false;
@@ -1183,6 +1339,9 @@ namespace MicrohireAgentChat.Services
                 var now = DateTimeOffset.Now;
                 var hasExplicitYear = Regex.IsMatch(token, @"\b\d{4}\b");
 
+                // LOGGING: Initial parsing attempt
+                _logger.LogInformation("DATE PARSING: Starting to parse token '{Token}'. Has explicit year: {HasYear}, Current time: {Now}", token, hasExplicitYear, now);
+
                 var cultures = new[]
                 {
                     CultureInfo.GetCultureInfo("en-US"),
@@ -1194,12 +1353,17 @@ namespace MicrohireAgentChat.Services
                     ? new[] { token }
                     : new[] { $"{token} {now.Year}", token };
 
+                _logger.LogInformation("DATE PARSING: Candidates to try: {Candidates}", string.Join(", ", candidates));
+
                 foreach (var candidate in candidates)
                 {
+                    _logger.LogInformation("DATE PARSING: Trying candidate '{Candidate}'", candidate);
+
                     if (Regex.IsMatch(candidate, @"^\d{4}-\d{2}-\d{2}$") &&
                         DateTime.TryParseExact(candidate, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var isoDt))
                     {
                         dto = new DateTimeOffset(isoDt);
+                        _logger.LogInformation("DATE PARSING: Parsed ISO format '{Candidate}' to {ParsedDate}", candidate, dto);
                         break;
                     }
 
@@ -1211,6 +1375,7 @@ namespace MicrohireAgentChat.Services
                             if (DateTime.TryParseExact(candidate, fmt, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var dmy))
                             {
                                 dto = new DateTimeOffset(dmy);
+                                _logger.LogInformation("DATE PARSING: Parsed slash format '{Candidate}' with format '{Format}' to {ParsedDate}", candidate, fmt, dto);
                                 break;
                             }
                         }
@@ -1223,6 +1388,7 @@ namespace MicrohireAgentChat.Services
                             if (DateTime.TryParse(candidate, c, DateTimeStyles.AssumeLocal, out var dt))
                             {
                                 dto = new DateTimeOffset(dt);
+                                _logger.LogInformation("DATE PARSING: Parsed with culture '{Culture}' '{Candidate}' to {ParsedDate}", c.Name, candidate, dto);
                                 break;
                             }
                         }
@@ -1233,16 +1399,32 @@ namespace MicrohireAgentChat.Services
                 }
 
                 if (dto == default)
+                {
+                    _logger.LogWarning("DATE PARSING: Failed to parse token '{Token}' with any method", token);
                     return false;
+                }
+
+                _logger.LogInformation("DATE PARSING: Initial parse result for '{Token}': {ParsedDate}", token, dto);
 
                 // Always apply smart date detection: roll forward until the date is in the future
                 // This handles both cases: explicit years that are wrong, and implicit years
+                var originalDate = dto;
                 var normalized = new DateTimeOffset(dto.Date, dto.Offset);
+
+                _logger.LogInformation("DATE PARSING: Before roll-forward - Original: {Original}, Normalized: {Normalized}, Current time: {Now}", originalDate, normalized, now);
+
+                int rollForwardCount = 0;
                 while (normalized.Date < now.Date)
                 {
+                    var beforeRoll = normalized;
                     normalized = normalized.AddYears(1);
+                    rollForwardCount++;
+                    _logger.LogInformation("DATE PARSING: Rolled forward from {Before} to {After} (iteration {Count})", beforeRoll.Date, normalized.Date, rollForwardCount);
                 }
+
                 dto = normalized;
+
+                _logger.LogInformation("DATE PARSING: Final result for '{Token}': {FinalDate} (rolled forward {Count} times)", token, dto, rollForwardCount);
 
                 return true;
             }

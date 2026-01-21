@@ -1,0 +1,865 @@
+2025-12-08 05:06:40.434 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ModelBinderFactory: Registered model binder providers, in the following order: Microsoft.AspNetCore.Mvc.ModelBinding.Binders.BinderTypeModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.ServicesModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.BodyModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.HeaderModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.FloatingPointTypeModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.EnumTypeModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.DateTimeModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.SimpleTypeModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.TryParseModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.CancellationTokenModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.ByteArrayModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.FormFileModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.FormCollectionModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.KeyValuePairModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.DictionaryModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.ArrayModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.CollectionModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.ComplexObjectModelBinderProvider
+2025-12-08 05:06:40.970 +00:00 [Debug] Microsoft.Extensions.Hosting.Internal.Host: Hosting starting
+2025-12-08 05:06:41.025 +00:00 [Information] Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager: Azure Web Sites environment detected. Using 'C:\home\ASP.NET\DataProtection-Keys' as key repository; keys will not be encrypted at rest.
+2025-12-08 05:06:43.314 +00:00 [Information] AgentToolInstaller: Installing tools on agent asst_uwAJjoHGdHJz5pUS93cJbMAC (TestMicroHire)
+2025-12-08 05:06:44.442 +00:00 [Information] AgentToolInstaller: Tools installed. Agent: asst_uwAJjoHGdHJz5pUS93cJbMAC. Status: 200
+2025-12-08 05:06:44.462 +00:00 [Debug] Microsoft.AspNetCore.DataProtection.Repositories.FileSystemXmlRepository: Reading data from file 'C:\home\ASP.NET\DataProtection-Keys\key-65fb97fa-b417-4970-9777-1532b4a88726.xml'.
+2025-12-08 05:06:44.613 +00:00 [Debug] Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager: Found key {65fb97fa-b417-4970-9777-1532b4a88726}.
+2025-12-08 05:06:44.665 +00:00 [Debug] Microsoft.AspNetCore.DataProtection.KeyManagement.DefaultKeyResolver: Considering key {65fb97fa-b417-4970-9777-1532b4a88726} with expiration date 2025-12-22 05:45:51Z as default key.
+2025-12-08 05:06:44.685 +00:00 [Debug] Microsoft.AspNetCore.DataProtection.TypeForwardingActivator: Forwarded activator type request from Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel.AuthenticatedEncryptorDescriptorDeserializer, Microsoft.AspNetCore.DataProtection, Version=8.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60 to Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel.AuthenticatedEncryptorDescriptorDeserializer, Microsoft.AspNetCore.DataProtection, Culture=neutral, PublicKeyToken=adb9793829ddae60
+2025-12-08 05:06:44.694 +00:00 [Debug] Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.CngCbcAuthenticatedEncryptorFactory: Opening CNG algorithm 'AES' from provider '(null)' with chaining mode CBC.
+2025-12-08 05:06:44.702 +00:00 [Debug] Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.CngCbcAuthenticatedEncryptorFactory: Opening CNG algorithm 'SHA256' from provider '(null)' with HMAC.
+2025-12-08 05:06:44.703 +00:00 [Debug] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingProvider: Using key {65fb97fa-b417-4970-9777-1532b4a88726} as the default key.
+2025-12-08 05:06:44.704 +00:00 [Debug] Microsoft.AspNetCore.DataProtection.Internal.DataProtectionHostedService: Key ring with default key {65fb97fa-b417-4970-9777-1532b4a88726} was loaded during application startup.
+2025-12-08 05:06:44.932 +00:00 [Debug] Microsoft.AspNetCore.Hosting.Diagnostics: Loaded hosting startup assembly MicrohireAgentChat
+2025-12-08 05:06:44.932 +00:00 [Debug] Microsoft.AspNetCore.Hosting.Diagnostics: Loaded hosting startup assembly Microsoft.ApplicationInsights.StartupBootstrapper
+2025-12-08 05:06:44.932 +00:00 [Debug] Microsoft.AspNetCore.Hosting.Diagnostics: Loaded hosting startup assembly DiagnosticServices.HostingStartup
+2025-12-08 05:06:44.932 +00:00 [Debug] Microsoft.AspNetCore.Hosting.Diagnostics: Loaded hosting startup assembly Microsoft.AspNetCore.AzureAppServices.HostingStartup
+2025-12-08 05:06:44.932 +00:00 [Information] Microsoft.Hosting.Lifetime: Application started. Press Ctrl+C to shut down.
+2025-12-08 05:06:44.932 +00:00 [Information] Microsoft.Hosting.Lifetime: Hosting environment: Production
+2025-12-08 05:06:44.939 +00:00 [Information] Microsoft.Hosting.Lifetime: Content root path: C:\home\site\wwwroot
+2025-12-08 05:06:44.939 +00:00 [Debug] Microsoft.Extensions.Hosting.Internal.Host: Hosting started
+2025-12-08 05:06:45.110 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/ - - -
+2025-12-08 05:06:45.120 +00:00 [Debug] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: Wildcard detected, all requests with hosts will be allowed.
+2025-12-08 05:06:45.121 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:06:45.152 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:06:45.153 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: The request path / does not match a supported file type
+2025-12-08 05:06:45.283 +00:00 [Debug] Microsoft.AspNetCore.Routing.Matching.DfaMatcher: 1 candidate(s) found for the request path '/'
+2025-12-08 05:06:45.299 +00:00 [Debug] Microsoft.AspNetCore.Routing.Matching.DfaMatcher: Endpoint 'MicrohireAgentChat.Controllers.ChatController.Index (MicrohireAgentChat)' with route pattern '{controller=Chat}/{action=Index}/{id?}' is valid for the request path '/'
+2025-12-08 05:06:45.300 +00:00 [Debug] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware: Request matched endpoint 'MicrohireAgentChat.Controllers.ChatController.Index (MicrohireAgentChat)'
+2025-12-08 05:06:45.332 +00:00 [Trace] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware: The endpoint does not specify the IRequestSizeLimitMetadata.
+2025-12-08 05:06:45.398 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing protect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'SessionMiddleware').
+2025-12-08 05:06:45.438 +00:00 [Information] Microsoft.AspNetCore.Routing.EndpointMiddleware: Executing endpoint 'MicrohireAgentChat.Controllers.ChatController.Index (MicrohireAgentChat)'
+2025-12-08 05:06:45.532 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Route matched with {action = "Index", controller = "Chat"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Index(System.Threading.CancellationToken) on controller MicrohireAgentChat.Controllers.ChatController (MicrohireAgentChat).
+2025-12-08 05:06:45.538 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of authorization filters (in the following order): None
+2025-12-08 05:06:45.539 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of resource filters (in the following order): Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter
+2025-12-08 05:06:45.539 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of action filters (in the following order): Microsoft.AspNetCore.Mvc.Filters.ControllerActionFilter (Order: -2147483648), Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter (Order: -3000)
+2025-12-08 05:06:45.540 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of exception filters (in the following order): None
+2025-12-08 05:06:45.540 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of result filters (in the following order): Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter
+2025-12-08 05:06:45.546 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: Before executing OnResourceExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 05:06:45.548 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: After executing OnResourceExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 05:06:45.554 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executing controller factory for controller MicrohireAgentChat.Controllers.ChatController (MicrohireAgentChat)
+2025-12-08 05:06:46.547 +00:00 [Debug] Microsoft.EntityFrameworkCore.Infrastructure: An 'IServiceProvider' was created for internal use by Entity Framework.
+2025-12-08 05:06:46.630 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executed controller factory for controller MicrohireAgentChat.Controllers.ChatController (MicrohireAgentChat)
+2025-12-08 05:06:46.736 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Attempting to bind parameter 'ct' of type 'System.Threading.CancellationToken' ...
+2025-12-08 05:06:46.743 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Done attempting to bind parameter 'ct' of type 'System.Threading.CancellationToken'.
+2025-12-08 05:06:46.743 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Attempting to validate the bound parameter 'ct' of type 'System.Threading.CancellationToken' ...
+2025-12-08 05:06:46.749 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Done attempting to validate the bound parameter 'ct' of type 'System.Threading.CancellationToken'.
+2025-12-08 05:06:46.759 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: Before executing OnActionExecutionAsync on filter Microsoft.AspNetCore.Mvc.Filters.ControllerActionFilter.
+2025-12-08 05:06:46.759 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: Before executing OnActionExecuting on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 05:06:46.760 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: After executing OnActionExecuting on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 05:06:46.768 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executing action method MicrohireAgentChat.Controllers.ChatController.Index (MicrohireAgentChat) - Validation state: Valid
+2025-12-08 05:06:46.779 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executing action method MicrohireAgentChat.Controllers.ChatController.Index (MicrohireAgentChat) with arguments (System.Threading.CancellationToken)
+2025-12-08 05:06:50.784 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executed action method MicrohireAgentChat.Controllers.ChatController.Index (MicrohireAgentChat), returned result Microsoft.AspNetCore.Mvc.ViewResult in 3996.2756ms.
+2025-12-08 05:06:50.810 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: Before executing OnActionExecuted on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 05:06:50.810 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: After executing OnActionExecuted on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 05:06:50.810 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: After executing OnActionExecutionAsync on filter Microsoft.AspNetCore.Mvc.Filters.ControllerActionFilter.
+2025-12-08 05:06:50.810 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: Before executing OnResultExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 05:06:50.810 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: After executing OnResultExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 05:06:50.811 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Before executing action result Microsoft.AspNetCore.Mvc.ViewResult.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/AgentChat/History.cshtml'.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/Chat/Index.cshtml'.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/Chat/QuoteComplete.cshtml'.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/Chat/_Messages.cshtml'.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/Home/Index.cshtml'.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/Home/Privacy.cshtml'.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/QuotesWeb/Page1.cshtml'.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/QuotesWeb/Page10.cshtml'.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/QuotesWeb/Page2.cshtml'.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/QuotesWeb/Page3.cshtml'.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/QuotesWeb/Page4.cshtml'.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/QuotesWeb/Page5.cshtml'.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/QuotesWeb/Page6.cshtml'.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/QuotesWeb/Page7.cshtml'.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/QuotesWeb/Page8.cshtml'.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/QuotesWeb/Page9.cshtml'.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/Shared/Error.cshtml'.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/Shared/_LayoutQuote.cshtml'.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/Shared/_ValidationScriptsPartial.cshtml'.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/_ViewImports.cshtml'.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/_ViewStart.cshtml'.
+2025-12-08 05:06:50.829 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/Shared/_Layout.cshtml'.
+2025-12-08 05:06:50.847 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.RazorViewEngine: View lookup cache miss for view 'Index' in controller 'Chat'.
+2025-12-08 05:06:50.853 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Located compiled view for view at path '/Views/Chat/Index.cshtml'.
+2025-12-08 05:06:50.863 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Could not find a file for view at path '/Views/Chat/_ViewStart.cshtml'.
+2025-12-08 05:06:50.863 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Located compiled view for view at path '/Views/_ViewStart.cshtml'.
+2025-12-08 05:06:50.864 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Could not find a file for view at path '/_ViewStart.cshtml'.
+2025-12-08 05:06:50.872 +00:00 [Information] Microsoft.AspNetCore.Mvc.ViewFeatures.ViewResultExecutor: Executing ViewResult, running view Index.
+2025-12-08 05:06:50.873 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ViewFeatures.ViewResultExecutor: The view path '/Views/Chat/Index.cshtml' was found in 25.8365ms.
+2025-12-08 05:06:51.014 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.RazorViewEngine: View lookup cache miss for view '_Messages' in controller 'Chat'.
+2025-12-08 05:06:51.014 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Located compiled view for view at path '/Views/Chat/_Messages.cshtml'.
+2025-12-08 05:06:51.052 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing protect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'Microsoft.AspNetCore.Antiforgery.AntiforgeryToken.v1').
+2025-12-08 05:06:51.059 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing protect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'Microsoft.AspNetCore.Antiforgery.AntiforgeryToken.v1').
+2025-12-08 05:06:51.062 +00:00 [Debug] Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery: A new antiforgery cookie token was created.
+2025-12-08 05:06:51.170 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Found the endpoints Route: {controller=Chat}/{action=Index}/{id?} for address (action=[Send],controller=[Chat])
+2025-12-08 05:06:51.179 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Successfully processed template {controller=Chat}/{action=Index}/{id?} for Route: {controller=Chat}/{action=Index}/{id?} resulting in /Chat/Send and 
+2025-12-08 05:06:51.186 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Link generation succeeded for endpoints Route: {controller=Chat}/{action=Index}/{id?} with result /Chat/Send
+2025-12-08 05:06:51.196 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Found the endpoints Route: {controller=Chat}/{action=Index}/{id?} for address (action=[Reset],controller=[Chat])
+2025-12-08 05:06:51.196 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Successfully processed template {controller=Chat}/{action=Index}/{id?} for Route: {controller=Chat}/{action=Index}/{id?} resulting in /Chat/Reset and 
+2025-12-08 05:06:51.202 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Link generation succeeded for endpoints Route: {controller=Chat}/{action=Index}/{id?} with result /Chat/Reset
+2025-12-08 05:06:51.203 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.RazorViewEngine: View lookup cache miss for view '_Layout' in controller 'Chat'.
+2025-12-08 05:06:51.203 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Could not find a file for view at path '/Views/Chat/_Layout.cshtml'.
+2025-12-08 05:06:51.203 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Located compiled view for view at path '/Views/Shared/_Layout.cshtml'.
+2025-12-08 05:06:51.270 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.TagHelpers.HeadTagHelper: Tag helper component 'Microsoft.ApplicationInsights.AiHostingStartup.JavaScriptSnippetTagHelperComponent' initialized.
+2025-12-08 05:06:51.270 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.TagHelpers.HeadTagHelper: Tag helper component 'Microsoft.ApplicationInsights.AiHostingStartup.JavaScriptSnippetTagHelperComponent' processed.
+2025-12-08 05:06:51.287 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.TagHelpers.BodyTagHelper: Tag helper component 'Microsoft.ApplicationInsights.AiHostingStartup.JavaScriptSnippetTagHelperComponent' initialized.
+2025-12-08 05:06:51.287 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.TagHelpers.BodyTagHelper: Tag helper component 'Microsoft.ApplicationInsights.AiHostingStartup.JavaScriptSnippetTagHelperComponent' processed.
+2025-12-08 05:06:51.390 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Found the endpoints Route: {controller=Chat}/{action=Index}/{id?} for address (action=[SendPartial],controller=[Chat])
+2025-12-08 05:06:51.390 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Successfully processed template {controller=Chat}/{action=Index}/{id?} for Route: {controller=Chat}/{action=Index}/{id?} resulting in /Chat/SendPartial and 
+2025-12-08 05:06:51.390 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Link generation succeeded for endpoints Route: {controller=Chat}/{action=Index}/{id?} with result /Chat/SendPartial
+2025-12-08 05:06:51.390 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Found the endpoints Route: {controller=Chat}/{action=Index}/{id?} for address (action=[SendPartial],controller=[Chat])
+2025-12-08 05:06:51.390 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Successfully processed template {controller=Chat}/{action=Index}/{id?} for Route: {controller=Chat}/{action=Index}/{id?} resulting in /Chat/SendPartial and 
+2025-12-08 05:06:51.390 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Link generation succeeded for endpoints Route: {controller=Chat}/{action=Index}/{id?} with result /Chat/SendPartial
+2025-12-08 05:06:51.390 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Found the endpoints Route: {controller=Chat}/{action=Index}/{id?} for address (action=[ResetPartial],controller=[Chat])
+2025-12-08 05:06:51.390 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Successfully processed template {controller=Chat}/{action=Index}/{id?} for Route: {controller=Chat}/{action=Index}/{id?} resulting in /Chat/ResetPartial and 
+2025-12-08 05:06:51.390 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Link generation succeeded for endpoints Route: {controller=Chat}/{action=Index}/{id?} with result /Chat/ResetPartial
+2025-12-08 05:06:51.390 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Found the endpoints Route: {controller=Chat}/{action=Index}/{id?} for address (action=[StartConversationReplay],controller=[Chat])
+2025-12-08 05:06:51.390 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Successfully processed template {controller=Chat}/{action=Index}/{id?} for Route: {controller=Chat}/{action=Index}/{id?} resulting in /Chat/StartConversationReplay and 
+2025-12-08 05:06:51.390 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Link generation succeeded for endpoints Route: {controller=Chat}/{action=Index}/{id?} with result /Chat/StartConversationReplay
+2025-12-08 05:06:51.390 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Found the endpoints Route: {controller=Chat}/{action=Index}/{id?} for address (action=[GetNextReplayMessage],controller=[Chat])
+2025-12-08 05:06:51.390 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Successfully processed template {controller=Chat}/{action=Index}/{id?} for Route: {controller=Chat}/{action=Index}/{id?} resulting in /Chat/GetNextReplayMessage and 
+2025-12-08 05:06:51.390 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Link generation succeeded for endpoints Route: {controller=Chat}/{action=Index}/{id?} with result /Chat/GetNextReplayMessage
+2025-12-08 05:06:51.442 +00:00 [Information] Microsoft.AspNetCore.Mvc.ViewFeatures.ViewResultExecutor: Executed ViewResult - view Index executed in 595.8595ms.
+2025-12-08 05:06:51.442 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: After executing action result Microsoft.AspNetCore.Mvc.ViewResult.
+2025-12-08 05:06:51.442 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: Before executing OnResultExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 05:06:51.442 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: After executing OnResultExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 05:06:51.442 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: Before executing OnResourceExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 05:06:51.442 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: After executing OnResourceExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 05:06:51.443 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executed action MicrohireAgentChat.Controllers.ChatController.Index (MicrohireAgentChat) in 5902.7496ms
+2025-12-08 05:06:51.443 +00:00 [Information] Microsoft.AspNetCore.Routing.EndpointMiddleware: Executed endpoint 'MicrohireAgentChat.Controllers.ChatController.Index (MicrohireAgentChat)'
+2025-12-08 05:06:51.449 +00:00 [Information] Microsoft.AspNetCore.Session.DistributedSession: Session started; Key:2e163f57-3690-74ef-b306-3262038ba861, Id:572b822d-4cf7-4264-a379-dd030d91cd35
+2025-12-08 05:06:51.451 +00:00 [Debug] Microsoft.AspNetCore.Session.DistributedSession: Session stored; Key:2e163f57-3690-74ef-b306-3262038ba861, Id:572b822d-4cf7-4264-a379-dd030d91cd35, Count:3
+2025-12-08 05:06:51.483 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/ - 200 - text/html;+charset=utf-8 6380.7027ms
+2025-12-08 05:06:51.745 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/css/style_fill.css - - -
+2025-12-08 05:06:51.745 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:06:51.746 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:06:51.782 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 05:06:51.782 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: The file /css/style_fill.css was not modified
+2025-12-08 05:06:51.782 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Handled. Status code: 304 File: /css/style_fill.css
+2025-12-08 05:06:51.789 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/css/style_fill.css - 304 - text/css 44.4320ms
+2025-12-08 05:06:51.955 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/css/style_regular.css - - -
+2025-12-08 05:06:51.956 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:06:51.957 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:06:51.957 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 05:06:51.957 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: The file /css/style_regular.css was not modified
+2025-12-08 05:06:51.957 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Handled. Status code: 304 File: /css/style_regular.css
+2025-12-08 05:06:51.960 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/css/style_regular.css - 304 - text/css 4.7126ms
+2025-12-08 05:06:52.123 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/css/style.css - - -
+2025-12-08 05:06:52.123 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:06:52.124 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:06:52.124 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 05:06:52.124 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: The file /css/style.css was not modified
+2025-12-08 05:06:52.124 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Handled. Status code: 304 File: /css/style.css
+2025-12-08 05:06:52.124 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/css/style.css - 304 - text/css 0.7364ms
+2025-12-08 05:06:52.283 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/aHfZNBPMlVa1GSUumeOAfrclJp4azvJT.png - - -
+2025-12-08 05:06:52.283 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:06:52.283 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:06:52.350 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 05:06:52.350 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: The file /images/aHfZNBPMlVa1GSUumeOAfrclJp4azvJT.png was not modified
+2025-12-08 05:06:52.350 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Handled. Status code: 304 File: /images/aHfZNBPMlVa1GSUumeOAfrclJp4azvJT.png
+2025-12-08 05:06:52.356 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/aHfZNBPMlVa1GSUumeOAfrclJp4azvJT.png - 304 - image/png 67.4387ms
+2025-12-08 05:06:52.371 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/avatar.png - - -
+2025-12-08 05:06:52.371 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:06:52.371 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:06:52.371 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 05:06:52.371 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: The file /images/avatar.png was not modified
+2025-12-08 05:06:52.371 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Handled. Status code: 304 File: /images/avatar.png
+2025-12-08 05:06:52.371 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/avatar.png - 304 - image/png 0.8219ms
+2025-12-08 05:06:52.381 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-member-img-1.png - - -
+2025-12-08 05:06:52.381 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:06:52.381 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:06:52.381 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 05:06:52.381 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: The file /images/footer-member-img-1.png was not modified
+2025-12-08 05:06:52.381 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Handled. Status code: 304 File: /images/footer-member-img-1.png
+2025-12-08 05:06:52.382 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-member-img-1.png - 304 - image/png 0.7935ms
+2025-12-08 05:06:52.382 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/lib/jquery/dist/jquery.min.js - - -
+2025-12-08 05:06:52.382 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:06:52.382 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:06:52.390 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-member-img-2.png - - -
+2025-12-08 05:06:52.390 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:06:52.390 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:06:52.391 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 05:06:52.391 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: The file /images/footer-member-img-2.png was not modified
+2025-12-08 05:06:52.391 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Handled. Status code: 304 File: /images/footer-member-img-2.png
+2025-12-08 05:06:52.391 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-member-img-2.png - 304 - image/png 0.7904ms
+2025-12-08 05:06:52.418 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 05:06:52.418 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: The file /lib/jquery/dist/jquery.min.js was not modified
+2025-12-08 05:06:52.418 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Handled. Status code: 304 File: /lib/jquery/dist/jquery.min.js
+2025-12-08 05:06:52.418 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/lib/jquery/dist/jquery.min.js - 304 - text/javascript 35.9667ms
+2025-12-08 05:06:52.527 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/css/Fonts/Phosphor.woff2 - - -
+2025-12-08 05:06:52.527 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:06:52.527 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:06:52.534 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 05:06:52.534 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: The file /css/Fonts/Phosphor.woff2 was not modified
+2025-12-08 05:06:52.534 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Handled. Status code: 304 File: /css/Fonts/Phosphor.woff2
+2025-12-08 05:06:52.534 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/css/Fonts/Phosphor.woff2 - 304 - font/woff2 7.6536ms
+2025-12-08 05:06:52.549 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/hero-banner-image.png - - -
+2025-12-08 05:06:52.549 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:06:52.550 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:06:52.550 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 05:06:52.550 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: The file /images/hero-banner-image.png was not modified
+2025-12-08 05:06:52.550 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Handled. Status code: 304 File: /images/hero-banner-image.png
+2025-12-08 05:06:52.550 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/hero-banner-image.png - 304 - image/png 7.0086ms
+2025-12-08 05:06:52.563 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-member-img-3.png - - -
+2025-12-08 05:06:52.563 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:06:52.563 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:06:52.563 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 05:06:52.563 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: The file /images/footer-member-img-3.png was not modified
+2025-12-08 05:06:52.563 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Handled. Status code: 304 File: /images/footer-member-img-3.png
+2025-12-08 05:06:52.564 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-member-img-3.png - 304 - image/png 0.8317ms
+2025-12-08 05:06:52.591 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/lib/bootstrap/dist/js/bootstrap.bundle.min.js - - -
+2025-12-08 05:06:52.591 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:06:52.591 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:06:52.595 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/js/site.js?v=y_Ngd8W21UpuCUhEqGbUKDEqFnNfTjAfb24GhJJGUyM - - -
+2025-12-08 05:06:52.595 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:06:52.595 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:06:52.595 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 05:06:52.595 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: The file /js/site.js was not modified
+2025-12-08 05:06:52.595 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Handled. Status code: 304 File: /js/site.js
+2025-12-08 05:06:52.596 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/js/site.js?v=y_Ngd8W21UpuCUhEqGbUKDEqFnNfTjAfb24GhJJGUyM - 304 - text/javascript 0.7506ms
+2025-12-08 05:06:52.628 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 05:06:52.628 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: The file /lib/bootstrap/dist/js/bootstrap.bundle.min.js was not modified
+2025-12-08 05:06:52.628 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Handled. Status code: 304 File: /lib/bootstrap/dist/js/bootstrap.bundle.min.js
+2025-12-08 05:06:52.629 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/lib/bootstrap/dist/js/bootstrap.bundle.min.js - 304 - text/javascript 37.5080ms
+2025-12-08 05:06:52.713 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-member-img-4.png - - -
+2025-12-08 05:06:52.713 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:06:52.713 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:06:52.714 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 05:06:52.714 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: The file /images/footer-member-img-4.png was not modified
+2025-12-08 05:06:52.714 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Handled. Status code: 304 File: /images/footer-member-img-4.png
+2025-12-08 05:06:52.714 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-member-img-4.png - 304 - image/png 0.7401ms
+2025-12-08 05:06:52.718 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/microhire_apac.webp - - -
+2025-12-08 05:06:52.718 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:06:52.718 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:06:52.719 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 05:06:52.719 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: The file /images/microhire_apac.webp was not modified
+2025-12-08 05:06:52.719 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Handled. Status code: 304 File: /images/microhire_apac.webp
+2025-12-08 05:06:52.719 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/microhire_apac.webp - 304 - image/webp 0.6247ms
+2025-12-08 05:06:52.747 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-sub-img-1.webp - - -
+2025-12-08 05:06:52.747 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:06:52.747 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:06:52.747 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 05:06:52.747 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: The file /images/footer-sub-img-1.webp was not modified
+2025-12-08 05:06:52.747 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Handled. Status code: 304 File: /images/footer-sub-img-1.webp
+2025-12-08 05:06:52.748 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-sub-img-1.webp - 304 - image/webp 0.7532ms
+2025-12-08 05:06:52.795 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-sub-img-2.webp - - -
+2025-12-08 05:06:52.795 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:06:52.795 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:06:52.795 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 05:06:52.795 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: The file /images/footer-sub-img-2.webp was not modified
+2025-12-08 05:06:52.795 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Handled. Status code: 304 File: /images/footer-sub-img-2.webp
+2025-12-08 05:06:52.795 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-sub-img-2.webp - 304 - image/webp 0.7491ms
+2025-12-08 05:06:52.800 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-sub-img-3.webp - - -
+2025-12-08 05:06:52.800 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:06:52.800 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:06:52.800 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 05:06:52.800 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: The file /images/footer-sub-img-3.webp was not modified
+2025-12-08 05:06:52.800 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Handled. Status code: 304 File: /images/footer-sub-img-3.webp
+2025-12-08 05:06:52.800 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-sub-img-3.webp - 304 - image/webp 0.6070ms
+2025-12-08 05:06:52.843 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/author-img.jpg - - -
+2025-12-08 05:06:52.843 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:06:52.843 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:06:52.843 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 05:06:52.843 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: The file /images/author-img.jpg was not modified
+2025-12-08 05:06:52.843 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Handled. Status code: 304 File: /images/author-img.jpg
+2025-12-08 05:06:52.844 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/author-img.jpg - 304 - image/jpeg 0.7513ms
+2025-12-08 05:06:59.016 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 POST https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/Chat/ResetPartial - - 0
+2025-12-08 05:06:59.016 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:06:59.016 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:06:59.016 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: POST requests are not supported
+2025-12-08 05:06:59.024 +00:00 [Debug] Microsoft.AspNetCore.Routing.Matching.DfaMatcher: 1 candidate(s) found for the request path '/Chat/ResetPartial'
+2025-12-08 05:06:59.024 +00:00 [Debug] Microsoft.AspNetCore.Routing.Matching.DfaMatcher: Endpoint 'MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat)' with route pattern '{controller=Chat}/{action=Index}/{id?}' is valid for the request path '/Chat/ResetPartial'
+2025-12-08 05:06:59.024 +00:00 [Debug] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware: Request matched endpoint 'MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat)'
+2025-12-08 05:06:59.024 +00:00 [Trace] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware: The endpoint does not specify the IRequestSizeLimitMetadata.
+2025-12-08 05:06:59.024 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing unprotect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'SessionMiddleware').
+2025-12-08 05:06:59.025 +00:00 [Information] Microsoft.AspNetCore.Routing.EndpointMiddleware: Executing endpoint 'MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat)'
+2025-12-08 05:06:59.044 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Route matched with {action = "ResetPartial", controller = "Chat"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] ResetPartial(System.Threading.CancellationToken) on controller MicrohireAgentChat.Controllers.ChatController (MicrohireAgentChat).
+2025-12-08 05:06:59.045 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of authorization filters (in the following order): Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.ValidateAntiforgeryTokenAuthorizationFilter
+2025-12-08 05:06:59.045 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of resource filters (in the following order): Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter
+2025-12-08 05:06:59.045 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of action filters (in the following order): Microsoft.AspNetCore.Mvc.Filters.ControllerActionFilter (Order: -2147483648), Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter (Order: -3000)
+2025-12-08 05:06:59.045 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of exception filters (in the following order): None
+2025-12-08 05:06:59.045 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of result filters (in the following order): Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter
+2025-12-08 05:06:59.045 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Authorization Filter: Before executing OnAuthorizationAsync on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.ValidateAntiforgeryTokenAuthorizationFilter.
+2025-12-08 05:06:59.052 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing unprotect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'Microsoft.AspNetCore.Antiforgery.AntiforgeryToken.v1').
+2025-12-08 05:06:59.052 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing unprotect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'Microsoft.AspNetCore.Antiforgery.AntiforgeryToken.v1').
+2025-12-08 05:06:59.052 +00:00 [Debug] Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery: Antiforgery successfully validated a request.
+2025-12-08 05:06:59.052 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Authorization Filter: After executing OnAuthorizationAsync on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.ValidateAntiforgeryTokenAuthorizationFilter.
+2025-12-08 05:06:59.052 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: Before executing OnResourceExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 05:06:59.052 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: After executing OnResourceExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 05:06:59.052 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executing controller factory for controller MicrohireAgentChat.Controllers.ChatController (MicrohireAgentChat)
+2025-12-08 05:06:59.085 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executed controller factory for controller MicrohireAgentChat.Controllers.ChatController (MicrohireAgentChat)
+2025-12-08 05:06:59.085 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Attempting to bind parameter 'ct' of type 'System.Threading.CancellationToken' ...
+2025-12-08 05:06:59.086 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Done attempting to bind parameter 'ct' of type 'System.Threading.CancellationToken'.
+2025-12-08 05:06:59.086 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Attempting to validate the bound parameter 'ct' of type 'System.Threading.CancellationToken' ...
+2025-12-08 05:06:59.086 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Done attempting to validate the bound parameter 'ct' of type 'System.Threading.CancellationToken'.
+2025-12-08 05:06:59.086 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: Before executing OnActionExecutionAsync on filter Microsoft.AspNetCore.Mvc.Filters.ControllerActionFilter.
+2025-12-08 05:06:59.086 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: Before executing OnActionExecuting on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 05:06:59.086 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: After executing OnActionExecuting on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 05:06:59.086 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executing action method MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat) - Validation state: Valid
+2025-12-08 05:06:59.086 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executing action method MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat) with arguments (System.Threading.CancellationToken)
+2025-12-08 05:06:59.093 +00:00 [Debug] Microsoft.AspNetCore.Session.DistributedSession: Session loaded; Key:2e163f57-3690-74ef-b306-3262038ba861, Id:572b822d-4cf7-4264-a379-dd030d91cd35, Count:3
+2025-12-08 05:06:59.501 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executed action method MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat), returned result Microsoft.AspNetCore.Mvc.PartialViewResult in 415.3274ms.
+2025-12-08 05:06:59.501 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: Before executing OnActionExecuted on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 05:06:59.502 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: After executing OnActionExecuted on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 05:06:59.502 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: After executing OnActionExecutionAsync on filter Microsoft.AspNetCore.Mvc.Filters.ControllerActionFilter.
+2025-12-08 05:06:59.502 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: Before executing OnResultExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 05:06:59.502 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: After executing OnResultExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 05:06:59.502 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Before executing action result Microsoft.AspNetCore.Mvc.PartialViewResult.
+2025-12-08 05:06:59.503 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.RazorViewEngine: View lookup cache hit for view '_Messages' in controller 'Chat'.
+2025-12-08 05:06:59.504 +00:00 [Information] Microsoft.AspNetCore.Mvc.ViewFeatures.PartialViewResultExecutor: Executing PartialViewResult, running view _Messages.
+2025-12-08 05:06:59.504 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ViewFeatures.PartialViewResultExecutor: The partial view path '/Views/Chat/_Messages.cshtml' was found in 1.6718ms.
+2025-12-08 05:06:59.507 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing protect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'Microsoft.AspNetCore.Antiforgery.AntiforgeryToken.v1').
+2025-12-08 05:06:59.507 +00:00 [Debug] Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery: An antiforgery cookie token was reused.
+2025-12-08 05:06:59.513 +00:00 [Information] Microsoft.AspNetCore.Mvc.ViewFeatures.PartialViewResultExecutor: Executed PartialViewResult - view _Messages executed in 10.4641ms.
+2025-12-08 05:06:59.513 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: After executing action result Microsoft.AspNetCore.Mvc.PartialViewResult.
+2025-12-08 05:06:59.513 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: Before executing OnResultExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 05:06:59.513 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: After executing OnResultExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 05:06:59.513 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: Before executing OnResourceExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 05:06:59.513 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: After executing OnResourceExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 05:06:59.513 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executed action MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat) in 468.641ms
+2025-12-08 05:06:59.513 +00:00 [Information] Microsoft.AspNetCore.Routing.EndpointMiddleware: Executed endpoint 'MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat)'
+2025-12-08 05:06:59.514 +00:00 [Debug] Microsoft.AspNetCore.Session.DistributedSession: Session stored; Key:2e163f57-3690-74ef-b306-3262038ba861, Id:572b822d-4cf7-4264-a379-dd030d91cd35, Count:3
+2025-12-08 05:06:59.514 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 POST https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/Chat/ResetPartial - 200 - text/html;+charset=utf-8 498.3493ms
+2025-12-08 05:07:05.989 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/lib/bootstrap/dist/js/bootstrap.bundle.min.js.map - - -
+2025-12-08 05:07:06.117 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 05:07:06.117 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 05:07:06.118 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 05:07:06.343 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/lib/bootstrap/dist/js/bootstrap.bundle.min.js.map'. Physical path: 'C:\home\site\wwwroot\wwwroot\lib\bootstrap\dist\js\bootstrap.bundle.min.js.map'
+2025-12-08 05:07:06.371 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/lib/bootstrap/dist/js/bootstrap.bundle.min.js.map - 200 327261 text/plain 375.7611ms
+2025-12-08 05:35:59.046 +00:00 [Debug] Microsoft.Extensions.Hosting.Internal.Host: Hosting stopping
+2025-12-08 05:35:59.512 +00:00 [Information] Microsoft.Hosting.Lifetime: Application is shutting down...
+2025-12-08 05:35:59.651 +00:00 [Debug] Microsoft.Extensions.Hosting.Internal.Host: Hosting stopped
+2025-12-08 07:43:01.387 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ModelBinderFactory: Registered model binder providers, in the following order: Microsoft.AspNetCore.Mvc.ModelBinding.Binders.BinderTypeModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.ServicesModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.BodyModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.HeaderModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.FloatingPointTypeModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.EnumTypeModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.DateTimeModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.SimpleTypeModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.TryParseModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.CancellationTokenModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.ByteArrayModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.FormFileModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.FormCollectionModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.KeyValuePairModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.DictionaryModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.ArrayModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.CollectionModelBinderProvider, Microsoft.AspNetCore.Mvc.ModelBinding.Binders.ComplexObjectModelBinderProvider
+2025-12-08 07:43:01.899 +00:00 [Debug] Microsoft.Extensions.Hosting.Internal.Host: Hosting starting
+2025-12-08 07:43:01.985 +00:00 [Information] Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager: Azure Web Sites environment detected. Using 'C:\home\ASP.NET\DataProtection-Keys' as key repository; keys will not be encrypted at rest.
+2025-12-08 07:43:04.346 +00:00 [Information] AgentToolInstaller: Installing tools on agent asst_uwAJjoHGdHJz5pUS93cJbMAC (TestMicroHire)
+2025-12-08 07:43:05.715 +00:00 [Information] AgentToolInstaller: Tools installed. Agent: asst_uwAJjoHGdHJz5pUS93cJbMAC. Status: 200
+2025-12-08 07:43:05.735 +00:00 [Debug] Microsoft.AspNetCore.DataProtection.Repositories.FileSystemXmlRepository: Reading data from file 'C:\home\ASP.NET\DataProtection-Keys\key-65fb97fa-b417-4970-9777-1532b4a88726.xml'.
+2025-12-08 07:43:05.881 +00:00 [Debug] Microsoft.AspNetCore.DataProtection.KeyManagement.XmlKeyManager: Found key {65fb97fa-b417-4970-9777-1532b4a88726}.
+2025-12-08 07:43:05.949 +00:00 [Debug] Microsoft.AspNetCore.DataProtection.KeyManagement.DefaultKeyResolver: Considering key {65fb97fa-b417-4970-9777-1532b4a88726} with expiration date 2025-12-22 05:45:51Z as default key.
+2025-12-08 07:43:05.987 +00:00 [Debug] Microsoft.AspNetCore.DataProtection.TypeForwardingActivator: Forwarded activator type request from Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel.AuthenticatedEncryptorDescriptorDeserializer, Microsoft.AspNetCore.DataProtection, Version=8.0.0.0, Culture=neutral, PublicKeyToken=adb9793829ddae60 to Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.ConfigurationModel.AuthenticatedEncryptorDescriptorDeserializer, Microsoft.AspNetCore.DataProtection, Culture=neutral, PublicKeyToken=adb9793829ddae60
+2025-12-08 07:43:05.996 +00:00 [Debug] Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.CngCbcAuthenticatedEncryptorFactory: Opening CNG algorithm 'AES' from provider '(null)' with chaining mode CBC.
+2025-12-08 07:43:06.001 +00:00 [Debug] Microsoft.AspNetCore.DataProtection.AuthenticatedEncryption.CngCbcAuthenticatedEncryptorFactory: Opening CNG algorithm 'SHA256' from provider '(null)' with HMAC.
+2025-12-08 07:43:06.002 +00:00 [Debug] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingProvider: Using key {65fb97fa-b417-4970-9777-1532b4a88726} as the default key.
+2025-12-08 07:43:06.002 +00:00 [Debug] Microsoft.AspNetCore.DataProtection.Internal.DataProtectionHostedService: Key ring with default key {65fb97fa-b417-4970-9777-1532b4a88726} was loaded during application startup.
+2025-12-08 07:43:06.448 +00:00 [Debug] Microsoft.AspNetCore.Hosting.Diagnostics: Loaded hosting startup assembly MicrohireAgentChat
+2025-12-08 07:43:06.448 +00:00 [Debug] Microsoft.AspNetCore.Hosting.Diagnostics: Loaded hosting startup assembly Microsoft.ApplicationInsights.StartupBootstrapper
+2025-12-08 07:43:06.448 +00:00 [Debug] Microsoft.AspNetCore.Hosting.Diagnostics: Loaded hosting startup assembly DiagnosticServices.HostingStartup
+2025-12-08 07:43:06.448 +00:00 [Debug] Microsoft.AspNetCore.Hosting.Diagnostics: Loaded hosting startup assembly Microsoft.AspNetCore.AzureAppServices.HostingStartup
+2025-12-08 07:43:06.449 +00:00 [Information] Microsoft.Hosting.Lifetime: Application started. Press Ctrl+C to shut down.
+2025-12-08 07:43:06.449 +00:00 [Information] Microsoft.Hosting.Lifetime: Hosting environment: Production
+2025-12-08 07:43:06.449 +00:00 [Information] Microsoft.Hosting.Lifetime: Content root path: C:\home\site\wwwroot
+2025-12-08 07:43:06.449 +00:00 [Debug] Microsoft.Extensions.Hosting.Internal.Host: Hosting started
+2025-12-08 07:43:06.654 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/ - - -
+2025-12-08 07:43:06.668 +00:00 [Debug] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: Wildcard detected, all requests with hosts will be allowed.
+2025-12-08 07:43:06.669 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 07:43:06.685 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 07:43:06.687 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: The request path / does not match a supported file type
+2025-12-08 07:43:06.831 +00:00 [Debug] Microsoft.AspNetCore.Routing.Matching.DfaMatcher: 1 candidate(s) found for the request path '/'
+2025-12-08 07:43:06.888 +00:00 [Debug] Microsoft.AspNetCore.Routing.Matching.DfaMatcher: Endpoint 'MicrohireAgentChat.Controllers.ChatController.Index (MicrohireAgentChat)' with route pattern '{controller=Chat}/{action=Index}/{id?}' is valid for the request path '/'
+2025-12-08 07:43:06.895 +00:00 [Debug] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware: Request matched endpoint 'MicrohireAgentChat.Controllers.ChatController.Index (MicrohireAgentChat)'
+2025-12-08 07:43:06.896 +00:00 [Trace] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware: The endpoint does not specify the IRequestSizeLimitMetadata.
+2025-12-08 07:43:06.911 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing unprotect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'SessionMiddleware').
+2025-12-08 07:43:06.928 +00:00 [Information] Microsoft.AspNetCore.Routing.EndpointMiddleware: Executing endpoint 'MicrohireAgentChat.Controllers.ChatController.Index (MicrohireAgentChat)'
+2025-12-08 07:43:07.158 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Route matched with {action = "Index", controller = "Chat"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] Index(System.Threading.CancellationToken) on controller MicrohireAgentChat.Controllers.ChatController (MicrohireAgentChat).
+2025-12-08 07:43:07.160 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of authorization filters (in the following order): None
+2025-12-08 07:43:07.160 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of resource filters (in the following order): Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter
+2025-12-08 07:43:07.167 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of action filters (in the following order): Microsoft.AspNetCore.Mvc.Filters.ControllerActionFilter (Order: -2147483648), Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter (Order: -3000)
+2025-12-08 07:43:07.167 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of exception filters (in the following order): None
+2025-12-08 07:43:07.167 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of result filters (in the following order): Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter
+2025-12-08 07:43:07.173 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: Before executing OnResourceExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 07:43:07.175 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: After executing OnResourceExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 07:43:07.182 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executing controller factory for controller MicrohireAgentChat.Controllers.ChatController (MicrohireAgentChat)
+2025-12-08 07:43:07.859 +00:00 [Debug] Microsoft.EntityFrameworkCore.Infrastructure: An 'IServiceProvider' was created for internal use by Entity Framework.
+2025-12-08 07:43:07.929 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executed controller factory for controller MicrohireAgentChat.Controllers.ChatController (MicrohireAgentChat)
+2025-12-08 07:43:07.956 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Attempting to bind parameter 'ct' of type 'System.Threading.CancellationToken' ...
+2025-12-08 07:43:07.964 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Done attempting to bind parameter 'ct' of type 'System.Threading.CancellationToken'.
+2025-12-08 07:43:07.964 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Attempting to validate the bound parameter 'ct' of type 'System.Threading.CancellationToken' ...
+2025-12-08 07:43:07.971 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Done attempting to validate the bound parameter 'ct' of type 'System.Threading.CancellationToken'.
+2025-12-08 07:43:07.972 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: Before executing OnActionExecutionAsync on filter Microsoft.AspNetCore.Mvc.Filters.ControllerActionFilter.
+2025-12-08 07:43:07.972 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: Before executing OnActionExecuting on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 07:43:07.978 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: After executing OnActionExecuting on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 07:43:07.981 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executing action method MicrohireAgentChat.Controllers.ChatController.Index (MicrohireAgentChat) - Validation state: Valid
+2025-12-08 07:43:07.994 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executing action method MicrohireAgentChat.Controllers.ChatController.Index (MicrohireAgentChat) with arguments (System.Threading.CancellationToken)
+2025-12-08 07:43:08.282 +00:00 [Information] Microsoft.AspNetCore.Session.DistributedSession: Accessing expired session, Key:2e163f57-3690-74ef-b306-3262038ba861
+2025-12-08 07:43:09.907 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executed action method MicrohireAgentChat.Controllers.ChatController.Index (MicrohireAgentChat), returned result Microsoft.AspNetCore.Mvc.ViewResult in 1904.4555ms.
+2025-12-08 07:43:09.925 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: Before executing OnActionExecuted on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 07:43:09.925 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: After executing OnActionExecuted on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 07:43:09.925 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: After executing OnActionExecutionAsync on filter Microsoft.AspNetCore.Mvc.Filters.ControllerActionFilter.
+2025-12-08 07:43:09.926 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: Before executing OnResultExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 07:43:09.926 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: After executing OnResultExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 07:43:09.933 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Before executing action result Microsoft.AspNetCore.Mvc.ViewResult.
+2025-12-08 07:43:09.948 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/AgentChat/History.cshtml'.
+2025-12-08 07:43:09.948 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/Chat/Index.cshtml'.
+2025-12-08 07:43:09.948 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/Chat/QuoteComplete.cshtml'.
+2025-12-08 07:43:09.954 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/Chat/_Messages.cshtml'.
+2025-12-08 07:43:09.954 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/Home/Index.cshtml'.
+2025-12-08 07:43:09.954 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/Home/Privacy.cshtml'.
+2025-12-08 07:43:09.954 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/QuotesWeb/Page1.cshtml'.
+2025-12-08 07:43:09.954 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/QuotesWeb/Page10.cshtml'.
+2025-12-08 07:43:09.954 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/QuotesWeb/Page2.cshtml'.
+2025-12-08 07:43:09.954 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/QuotesWeb/Page3.cshtml'.
+2025-12-08 07:43:09.954 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/QuotesWeb/Page4.cshtml'.
+2025-12-08 07:43:09.954 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/QuotesWeb/Page5.cshtml'.
+2025-12-08 07:43:09.954 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/QuotesWeb/Page6.cshtml'.
+2025-12-08 07:43:09.954 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/QuotesWeb/Page7.cshtml'.
+2025-12-08 07:43:09.954 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/QuotesWeb/Page8.cshtml'.
+2025-12-08 07:43:09.954 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/QuotesWeb/Page9.cshtml'.
+2025-12-08 07:43:09.954 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/Shared/Error.cshtml'.
+2025-12-08 07:43:09.954 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/Shared/_LayoutQuote.cshtml'.
+2025-12-08 07:43:09.954 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/Shared/_ValidationScriptsPartial.cshtml'.
+2025-12-08 07:43:09.954 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/_ViewImports.cshtml'.
+2025-12-08 07:43:09.954 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/_ViewStart.cshtml'.
+2025-12-08 07:43:09.954 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Initializing Razor view compiler with compiled view: '/Views/Shared/_Layout.cshtml'.
+2025-12-08 07:43:09.966 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.RazorViewEngine: View lookup cache miss for view 'Index' in controller 'Chat'.
+2025-12-08 07:43:09.973 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Located compiled view for view at path '/Views/Chat/Index.cshtml'.
+2025-12-08 07:43:09.976 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Could not find a file for view at path '/Views/Chat/_ViewStart.cshtml'.
+2025-12-08 07:43:09.983 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Located compiled view for view at path '/Views/_ViewStart.cshtml'.
+2025-12-08 07:43:09.984 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Could not find a file for view at path '/_ViewStart.cshtml'.
+2025-12-08 07:43:09.985 +00:00 [Information] Microsoft.AspNetCore.Mvc.ViewFeatures.ViewResultExecutor: Executing ViewResult, running view Index.
+2025-12-08 07:43:09.993 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ViewFeatures.ViewResultExecutor: The view path '/Views/Chat/Index.cshtml' was found in 19.6952ms.
+2025-12-08 07:43:10.118 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.RazorViewEngine: View lookup cache miss for view '_Messages' in controller 'Chat'.
+2025-12-08 07:43:10.118 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Located compiled view for view at path '/Views/Chat/_Messages.cshtml'.
+2025-12-08 07:43:10.160 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing unprotect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'Microsoft.AspNetCore.Antiforgery.AntiforgeryToken.v1').
+2025-12-08 07:43:10.167 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing protect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'Microsoft.AspNetCore.Antiforgery.AntiforgeryToken.v1').
+2025-12-08 07:43:10.169 +00:00 [Debug] Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery: An antiforgery cookie token was reused.
+2025-12-08 07:43:10.235 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Found the endpoints Route: {controller=Chat}/{action=Index}/{id?} for address (action=[Send],controller=[Chat])
+2025-12-08 07:43:10.252 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Successfully processed template {controller=Chat}/{action=Index}/{id?} for Route: {controller=Chat}/{action=Index}/{id?} resulting in /Chat/Send and 
+2025-12-08 07:43:10.257 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Link generation succeeded for endpoints Route: {controller=Chat}/{action=Index}/{id?} with result /Chat/Send
+2025-12-08 07:43:10.258 +00:00 [Debug] Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery: An antiforgery cookie token was reused.
+2025-12-08 07:43:10.266 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Found the endpoints Route: {controller=Chat}/{action=Index}/{id?} for address (action=[Reset],controller=[Chat])
+2025-12-08 07:43:10.266 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Successfully processed template {controller=Chat}/{action=Index}/{id?} for Route: {controller=Chat}/{action=Index}/{id?} resulting in /Chat/Reset and 
+2025-12-08 07:43:10.267 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Link generation succeeded for endpoints Route: {controller=Chat}/{action=Index}/{id?} with result /Chat/Reset
+2025-12-08 07:43:10.267 +00:00 [Debug] Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery: An antiforgery cookie token was reused.
+2025-12-08 07:43:10.269 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.RazorViewEngine: View lookup cache miss for view '_Layout' in controller 'Chat'.
+2025-12-08 07:43:10.269 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Could not find a file for view at path '/Views/Chat/_Layout.cshtml'.
+2025-12-08 07:43:10.269 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Located compiled view for view at path '/Views/Shared/_Layout.cshtml'.
+2025-12-08 07:43:10.311 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.TagHelpers.HeadTagHelper: Tag helper component 'Microsoft.ApplicationInsights.AiHostingStartup.JavaScriptSnippetTagHelperComponent' initialized.
+2025-12-08 07:43:10.312 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.TagHelpers.HeadTagHelper: Tag helper component 'Microsoft.ApplicationInsights.AiHostingStartup.JavaScriptSnippetTagHelperComponent' processed.
+2025-12-08 07:43:10.324 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.TagHelpers.BodyTagHelper: Tag helper component 'Microsoft.ApplicationInsights.AiHostingStartup.JavaScriptSnippetTagHelperComponent' initialized.
+2025-12-08 07:43:10.324 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.TagHelpers.BodyTagHelper: Tag helper component 'Microsoft.ApplicationInsights.AiHostingStartup.JavaScriptSnippetTagHelperComponent' processed.
+2025-12-08 07:43:10.374 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Found the endpoints Route: {controller=Chat}/{action=Index}/{id?} for address (action=[SendPartial],controller=[Chat])
+2025-12-08 07:43:10.375 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Successfully processed template {controller=Chat}/{action=Index}/{id?} for Route: {controller=Chat}/{action=Index}/{id?} resulting in /Chat/SendPartial and 
+2025-12-08 07:43:10.375 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Link generation succeeded for endpoints Route: {controller=Chat}/{action=Index}/{id?} with result /Chat/SendPartial
+2025-12-08 07:43:10.375 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Found the endpoints Route: {controller=Chat}/{action=Index}/{id?} for address (action=[SendPartial],controller=[Chat])
+2025-12-08 07:43:10.375 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Successfully processed template {controller=Chat}/{action=Index}/{id?} for Route: {controller=Chat}/{action=Index}/{id?} resulting in /Chat/SendPartial and 
+2025-12-08 07:43:10.375 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Link generation succeeded for endpoints Route: {controller=Chat}/{action=Index}/{id?} with result /Chat/SendPartial
+2025-12-08 07:43:10.375 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Found the endpoints Route: {controller=Chat}/{action=Index}/{id?} for address (action=[ResetPartial],controller=[Chat])
+2025-12-08 07:43:10.375 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Successfully processed template {controller=Chat}/{action=Index}/{id?} for Route: {controller=Chat}/{action=Index}/{id?} resulting in /Chat/ResetPartial and 
+2025-12-08 07:43:10.375 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Link generation succeeded for endpoints Route: {controller=Chat}/{action=Index}/{id?} with result /Chat/ResetPartial
+2025-12-08 07:43:10.375 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Found the endpoints Route: {controller=Chat}/{action=Index}/{id?} for address (action=[StartConversationReplay],controller=[Chat])
+2025-12-08 07:43:10.375 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Successfully processed template {controller=Chat}/{action=Index}/{id?} for Route: {controller=Chat}/{action=Index}/{id?} resulting in /Chat/StartConversationReplay and 
+2025-12-08 07:43:10.375 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Link generation succeeded for endpoints Route: {controller=Chat}/{action=Index}/{id?} with result /Chat/StartConversationReplay
+2025-12-08 07:43:10.375 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Found the endpoints Route: {controller=Chat}/{action=Index}/{id?} for address (action=[GetNextReplayMessage],controller=[Chat])
+2025-12-08 07:43:10.375 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Successfully processed template {controller=Chat}/{action=Index}/{id?} for Route: {controller=Chat}/{action=Index}/{id?} resulting in /Chat/GetNextReplayMessage and 
+2025-12-08 07:43:10.375 +00:00 [Debug] Microsoft.AspNetCore.Routing.DefaultLinkGenerator: Link generation succeeded for endpoints Route: {controller=Chat}/{action=Index}/{id?} with result /Chat/GetNextReplayMessage
+2025-12-08 07:43:10.423 +00:00 [Information] Microsoft.AspNetCore.Mvc.ViewFeatures.ViewResultExecutor: Executed ViewResult - view Index executed in 457.988ms.
+2025-12-08 07:43:10.424 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: After executing action result Microsoft.AspNetCore.Mvc.ViewResult.
+2025-12-08 07:43:10.424 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: Before executing OnResultExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 07:43:10.424 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: After executing OnResultExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 07:43:10.424 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: Before executing OnResourceExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 07:43:10.424 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: After executing OnResourceExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 07:43:10.424 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executed action MicrohireAgentChat.Controllers.ChatController.Index (MicrohireAgentChat) in 3256.6606ms
+2025-12-08 07:43:10.424 +00:00 [Information] Microsoft.AspNetCore.Routing.EndpointMiddleware: Executed endpoint 'MicrohireAgentChat.Controllers.ChatController.Index (MicrohireAgentChat)'
+2025-12-08 07:43:10.425 +00:00 [Information] Microsoft.AspNetCore.Session.DistributedSession: Session started; Key:2e163f57-3690-74ef-b306-3262038ba861, Id:9a50d6c2-5f9a-cadb-bf36-486e53606e55
+2025-12-08 07:43:10.432 +00:00 [Debug] Microsoft.AspNetCore.Session.DistributedSession: Session stored; Key:2e163f57-3690-74ef-b306-3262038ba861, Id:9a50d6c2-5f9a-cadb-bf36-486e53606e55, Count:3
+2025-12-08 07:43:10.468 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/ - 200 - text/html;+charset=utf-8 3811.0503ms
+2025-12-08 07:43:10.914 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/css/style_fill.css - - -
+2025-12-08 07:43:10.915 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 07:43:10.915 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 07:43:10.927 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/css/style_regular.css - - -
+2025-12-08 07:43:10.927 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 07:43:10.935 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 07:43:10.954 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 07:43:10.962 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 07:43:11.053 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/css/style_regular.css'. Physical path: 'C:\home\site\wwwroot\wwwroot\css\style_regular.css'
+2025-12-08 07:43:11.062 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/css/style_fill.css'. Physical path: 'C:\home\site\wwwroot\wwwroot\css\style_fill.css'
+2025-12-08 07:43:11.085 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/css/style_regular.css - 200 78149 text/css 157.5609ms
+2025-12-08 07:43:11.086 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/css/style_fill.css - 200 85839 text/css 171.4880ms
+2025-12-08 07:43:11.236 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/css/style.css - - -
+2025-12-08 07:43:11.236 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 07:43:11.236 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 07:43:11.236 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 07:43:11.260 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/aHfZNBPMlVa1GSUumeOAfrclJp4azvJT.png - - -
+2025-12-08 07:43:11.260 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 07:43:11.260 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 07:43:11.307 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 07:43:11.335 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/css/style.css'. Physical path: 'C:\home\site\wwwroot\wwwroot\css\style.css'
+2025-12-08 07:43:11.336 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/css/style.css - 200 22512 text/css 99.6744ms
+2025-12-08 07:43:11.349 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/images/aHfZNBPMlVa1GSUumeOAfrclJp4azvJT.png'. Physical path: 'C:\home\site\wwwroot\wwwroot\images\aHfZNBPMlVa1GSUumeOAfrclJp4azvJT.png'
+2025-12-08 07:43:11.349 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/aHfZNBPMlVa1GSUumeOAfrclJp4azvJT.png - 200 10019 image/png 88.9564ms
+2025-12-08 07:43:11.480 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/avatar.png - - -
+2025-12-08 07:43:11.480 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 07:43:11.480 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 07:43:11.480 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 07:43:11.503 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/images/avatar.png'. Physical path: 'C:\home\site\wwwroot\wwwroot\images\avatar.png'
+2025-12-08 07:43:11.504 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/avatar.png - 200 32741 image/png 24.2600ms
+2025-12-08 07:43:11.532 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-member-img-1.png - - -
+2025-12-08 07:43:11.532 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 07:43:11.533 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 07:43:11.533 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 07:43:11.541 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-member-img-2.png - - -
+2025-12-08 07:43:11.541 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 07:43:11.541 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 07:43:11.541 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 07:43:11.551 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/lib/jquery/dist/jquery.min.js - - -
+2025-12-08 07:43:11.551 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 07:43:11.551 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 07:43:11.572 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 07:43:11.588 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/images/footer-member-img-2.png'. Physical path: 'C:\home\site\wwwroot\wwwroot\images\footer-member-img-2.png'
+2025-12-08 07:43:11.588 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-member-img-2.png - 200 13272 image/png 47.0612ms
+2025-12-08 07:43:11.603 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/images/footer-member-img-1.png'. Physical path: 'C:\home\site\wwwroot\wwwroot\images\footer-member-img-1.png'
+2025-12-08 07:43:11.603 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-member-img-1.png - 200 28732 image/png 71.2012ms
+2025-12-08 07:43:11.624 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/lib/jquery/dist/jquery.min.js'. Physical path: 'C:\home\site\wwwroot\wwwroot\lib\jquery\dist\jquery.min.js'
+2025-12-08 07:43:11.634 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/lib/jquery/dist/jquery.min.js - 200 89501 text/javascript 82.8731ms
+2025-12-08 07:43:11.756 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/css/Fonts/Phosphor.woff2 - - -
+2025-12-08 07:43:11.756 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 07:43:11.757 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 07:43:11.775 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 07:43:11.782 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/hero-banner-image.png - - -
+2025-12-08 07:43:11.782 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 07:43:11.783 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 07:43:11.783 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 07:43:11.809 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-member-img-3.png - - -
+2025-12-08 07:43:11.809 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 07:43:11.809 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 07:43:11.809 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 07:43:11.833 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/lib/bootstrap/dist/js/bootstrap.bundle.min.js - - -
+2025-12-08 07:43:11.834 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 07:43:11.834 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 07:43:11.856 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/css/Fonts/Phosphor.woff2'. Physical path: 'C:\home\site\wwwroot\wwwroot\css\Fonts\Phosphor.woff2'
+2025-12-08 07:43:11.858 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/images/hero-banner-image.png'. Physical path: 'C:\home\site\wwwroot\wwwroot\images\hero-banner-image.png'
+2025-12-08 07:43:11.878 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 07:43:11.886 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/css/Fonts/Phosphor.woff2 - 200 147380 font/woff2 129.2083ms
+2025-12-08 07:43:11.895 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/images/footer-member-img-3.png'. Physical path: 'C:\home\site\wwwroot\wwwroot\images\footer-member-img-3.png'
+2025-12-08 07:43:11.896 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-member-img-3.png - 200 18365 image/png 86.7776ms
+2025-12-08 07:43:11.898 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/js/site.js?v=y_Ngd8W21UpuCUhEqGbUKDEqFnNfTjAfb24GhJJGUyM - - -
+2025-12-08 07:43:11.905 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 07:43:11.905 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 07:43:11.905 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 07:43:11.906 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/js/site.js'. Physical path: 'C:\home\site\wwwroot\wwwroot\js\site.js'
+2025-12-08 07:43:11.906 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/js/site.js?v=y_Ngd8W21UpuCUhEqGbUKDEqFnNfTjAfb24GhJJGUyM - 200 227 text/javascript 8.0808ms
+2025-12-08 07:43:11.928 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/lib/bootstrap/dist/js/bootstrap.bundle.min.js'. Physical path: 'C:\home\site\wwwroot\wwwroot\lib\bootstrap\dist\js\bootstrap.bundle.min.js'
+2025-12-08 07:43:11.930 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/hero-banner-image.png - 200 378930 image/png 147.6899ms
+2025-12-08 07:43:11.938 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/lib/bootstrap/dist/js/bootstrap.bundle.min.js - 200 78468 text/javascript 104.4471ms
+2025-12-08 07:43:12.009 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-member-img-4.png - - -
+2025-12-08 07:43:12.009 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 07:43:12.009 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 07:43:12.010 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 07:43:12.066 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/images/footer-member-img-4.png'. Physical path: 'C:\home\site\wwwroot\wwwroot\images\footer-member-img-4.png'
+2025-12-08 07:43:12.068 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/microhire_apac.webp - - -
+2025-12-08 07:43:12.068 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 07:43:12.068 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 07:43:12.068 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 07:43:12.076 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-sub-img-1.webp - - -
+2025-12-08 07:43:12.076 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 07:43:12.076 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 07:43:12.076 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 07:43:12.095 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-member-img-4.png - 200 27426 image/png 86.0157ms
+2025-12-08 07:43:12.096 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/images/microhire_apac.webp'. Physical path: 'C:\home\site\wwwroot\wwwroot\images\microhire_apac.webp'
+2025-12-08 07:43:12.096 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/microhire_apac.webp - 200 2052 image/webp 28.3116ms
+2025-12-08 07:43:12.103 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-sub-img-2.webp - - -
+2025-12-08 07:43:12.103 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 07:43:12.103 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 07:43:12.103 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 07:43:12.116 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/images/footer-sub-img-1.webp'. Physical path: 'C:\home\site\wwwroot\wwwroot\images\footer-sub-img-1.webp'
+2025-12-08 07:43:12.117 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-sub-img-1.webp - 200 18298 image/webp 40.5381ms
+2025-12-08 07:43:12.133 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/images/footer-sub-img-2.webp'. Physical path: 'C:\home\site\wwwroot\wwwroot\images\footer-sub-img-2.webp'
+2025-12-08 07:43:12.134 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-sub-img-2.webp - 200 20764 image/webp 31.5195ms
+2025-12-08 07:43:12.264 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/lib/bootstrap/dist/js/bootstrap.bundle.min.js.map - - -
+2025-12-08 07:43:12.264 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 07:43:12.264 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 07:43:12.264 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 07:43:12.274 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/lib/bootstrap/dist/js/bootstrap.bundle.min.js.map'. Physical path: 'C:\home\site\wwwroot\wwwroot\lib\bootstrap\dist\js\bootstrap.bundle.min.js.map'
+2025-12-08 07:43:12.298 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-sub-img-3.webp - - -
+2025-12-08 07:43:12.298 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 07:43:12.298 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 07:43:12.299 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 07:43:12.300 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/author-img.jpg - - -
+2025-12-08 07:43:12.300 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 07:43:12.300 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 07:43:12.300 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 07:43:12.376 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/lib/bootstrap/dist/js/bootstrap.bundle.min.js.map - 200 327261 text/plain 112.4593ms
+2025-12-08 07:43:12.378 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/images/author-img.jpg'. Physical path: 'C:\home\site\wwwroot\wwwroot\images\author-img.jpg'
+2025-12-08 07:43:12.378 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/author-img.jpg - 200 7270 image/jpeg 78.0094ms
+2025-12-08 07:43:12.379 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/images/footer-sub-img-3.webp'. Physical path: 'C:\home\site\wwwroot\wwwroot\images\footer-sub-img-3.webp'
+2025-12-08 07:43:12.380 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/footer-sub-img-3.webp - 200 19678 image/webp 81.6187ms
+2025-12-08 09:48:59.482 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 POST https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/Chat/ResetPartial - - 0
+2025-12-08 09:48:59.507 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 09:48:59.522 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 09:48:59.526 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: POST requests are not supported
+2025-12-08 09:48:59.543 +00:00 [Debug] Microsoft.AspNetCore.Routing.Matching.DfaMatcher: 1 candidate(s) found for the request path '/Chat/ResetPartial'
+2025-12-08 09:48:59.550 +00:00 [Debug] Microsoft.AspNetCore.Routing.Matching.DfaMatcher: Endpoint 'MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat)' with route pattern '{controller=Chat}/{action=Index}/{id?}' is valid for the request path '/Chat/ResetPartial'
+2025-12-08 09:48:59.559 +00:00 [Debug] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware: Request matched endpoint 'MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat)'
+2025-12-08 09:48:59.561 +00:00 [Trace] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware: The endpoint does not specify the IRequestSizeLimitMetadata.
+2025-12-08 09:48:59.580 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing unprotect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'SessionMiddleware').
+2025-12-08 09:48:59.591 +00:00 [Information] Microsoft.AspNetCore.Routing.EndpointMiddleware: Executing endpoint 'MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat)'
+2025-12-08 09:48:59.781 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Route matched with {action = "ResetPartial", controller = "Chat"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] ResetPartial(System.Threading.CancellationToken) on controller MicrohireAgentChat.Controllers.ChatController (MicrohireAgentChat).
+2025-12-08 09:48:59.781 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of authorization filters (in the following order): Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.ValidateAntiforgeryTokenAuthorizationFilter
+2025-12-08 09:48:59.781 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of resource filters (in the following order): Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter
+2025-12-08 09:48:59.781 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of action filters (in the following order): Microsoft.AspNetCore.Mvc.Filters.ControllerActionFilter (Order: -2147483648), Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter (Order: -3000)
+2025-12-08 09:48:59.781 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of exception filters (in the following order): None
+2025-12-08 09:48:59.781 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of result filters (in the following order): Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter
+2025-12-08 09:48:59.786 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Authorization Filter: Before executing OnAuthorizationAsync on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.ValidateAntiforgeryTokenAuthorizationFilter.
+2025-12-08 09:48:59.801 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing unprotect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'Microsoft.AspNetCore.Antiforgery.AntiforgeryToken.v1').
+2025-12-08 09:48:59.801 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing unprotect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'Microsoft.AspNetCore.Antiforgery.AntiforgeryToken.v1').
+2025-12-08 09:48:59.803 +00:00 [Debug] Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery: Antiforgery successfully validated a request.
+2025-12-08 09:48:59.803 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Authorization Filter: After executing OnAuthorizationAsync on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.ValidateAntiforgeryTokenAuthorizationFilter.
+2025-12-08 09:48:59.803 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: Before executing OnResourceExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:48:59.804 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: After executing OnResourceExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:48:59.804 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executing controller factory for controller MicrohireAgentChat.Controllers.ChatController (MicrohireAgentChat)
+2025-12-08 09:48:59.866 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executed controller factory for controller MicrohireAgentChat.Controllers.ChatController (MicrohireAgentChat)
+2025-12-08 09:48:59.888 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Attempting to bind parameter 'ct' of type 'System.Threading.CancellationToken' ...
+2025-12-08 09:48:59.890 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Done attempting to bind parameter 'ct' of type 'System.Threading.CancellationToken'.
+2025-12-08 09:48:59.890 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Attempting to validate the bound parameter 'ct' of type 'System.Threading.CancellationToken' ...
+2025-12-08 09:48:59.892 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Done attempting to validate the bound parameter 'ct' of type 'System.Threading.CancellationToken'.
+2025-12-08 09:48:59.892 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: Before executing OnActionExecutionAsync on filter Microsoft.AspNetCore.Mvc.Filters.ControllerActionFilter.
+2025-12-08 09:48:59.892 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: Before executing OnActionExecuting on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 09:48:59.892 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: After executing OnActionExecuting on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 09:48:59.892 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executing action method MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat) - Validation state: Valid
+2025-12-08 09:48:59.892 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executing action method MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat) with arguments (System.Threading.CancellationToken)
+2025-12-08 09:48:59.901 +00:00 [Information] Microsoft.AspNetCore.Session.DistributedSession: Accessing expired session, Key:2e163f57-3690-74ef-b306-3262038ba861
+2025-12-08 09:49:01.978 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executed action method MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat), returned result Microsoft.AspNetCore.Mvc.PartialViewResult in 2086.4888ms.
+2025-12-08 09:49:01.979 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: Before executing OnActionExecuted on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 09:49:01.979 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: After executing OnActionExecuted on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 09:49:01.979 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: After executing OnActionExecutionAsync on filter Microsoft.AspNetCore.Mvc.Filters.ControllerActionFilter.
+2025-12-08 09:49:01.979 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: Before executing OnResultExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:01.980 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: After executing OnResultExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:01.980 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Before executing action result Microsoft.AspNetCore.Mvc.PartialViewResult.
+2025-12-08 09:49:01.989 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.RazorViewEngine: View lookup cache miss for view '_Messages' in controller 'Chat'.
+2025-12-08 09:49:01.989 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Razor.Compilation.DefaultViewCompiler: Located compiled view for view at path '/Views/Chat/_Messages.cshtml'.
+2025-12-08 09:49:01.996 +00:00 [Information] Microsoft.AspNetCore.Mvc.ViewFeatures.PartialViewResultExecutor: Executing PartialViewResult, running view _Messages.
+2025-12-08 09:49:01.996 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ViewFeatures.PartialViewResultExecutor: The partial view path '/Views/Chat/_Messages.cshtml' was found in 9.9499ms.
+2025-12-08 09:49:02.009 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing protect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'Microsoft.AspNetCore.Antiforgery.AntiforgeryToken.v1').
+2025-12-08 09:49:02.009 +00:00 [Debug] Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery: An antiforgery cookie token was reused.
+2025-12-08 09:49:02.045 +00:00 [Information] Microsoft.AspNetCore.Mvc.ViewFeatures.PartialViewResultExecutor: Executed PartialViewResult - view _Messages executed in 58.9865ms.
+2025-12-08 09:49:02.045 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: After executing action result Microsoft.AspNetCore.Mvc.PartialViewResult.
+2025-12-08 09:49:02.045 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: Before executing OnResultExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:02.045 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: After executing OnResultExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:02.045 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: Before executing OnResourceExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:02.045 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: After executing OnResourceExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:02.045 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executed action MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat) in 2263.5243ms
+2025-12-08 09:49:02.045 +00:00 [Information] Microsoft.AspNetCore.Routing.EndpointMiddleware: Executed endpoint 'MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat)'
+2025-12-08 09:49:02.045 +00:00 [Information] Microsoft.AspNetCore.Session.DistributedSession: Session started; Key:2e163f57-3690-74ef-b306-3262038ba861, Id:160ecdf6-8d63-58bf-bf6b-e09330d76b0b
+2025-12-08 09:49:02.046 +00:00 [Debug] Microsoft.AspNetCore.Session.DistributedSession: Session stored; Key:2e163f57-3690-74ef-b306-3262038ba861, Id:160ecdf6-8d63-58bf-bf6b-e09330d76b0b, Count:3
+2025-12-08 09:49:02.048 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 POST https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/Chat/ResetPartial - 200 - text/html;+charset=utf-8 2584.9407ms
+2025-12-08 09:49:02.238 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/avatar.png - - -
+2025-12-08 09:49:02.238 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 09:49:02.238 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 09:49:02.243 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 09:49:02.248 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/images/avatar.png'. Physical path: 'C:\home\site\wwwroot\wwwroot\images\avatar.png'
+2025-12-08 09:49:02.250 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/avatar.png - 200 32741 image/png 12.1565ms
+2025-12-08 09:49:07.535 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 POST https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/Chat/ResetPartial - - 0
+2025-12-08 09:49:07.536 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 09:49:07.536 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 09:49:07.536 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: POST requests are not supported
+2025-12-08 09:49:07.544 +00:00 [Debug] Microsoft.AspNetCore.Routing.Matching.DfaMatcher: 1 candidate(s) found for the request path '/Chat/ResetPartial'
+2025-12-08 09:49:07.544 +00:00 [Debug] Microsoft.AspNetCore.Routing.Matching.DfaMatcher: Endpoint 'MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat)' with route pattern '{controller=Chat}/{action=Index}/{id?}' is valid for the request path '/Chat/ResetPartial'
+2025-12-08 09:49:07.544 +00:00 [Debug] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware: Request matched endpoint 'MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat)'
+2025-12-08 09:49:07.544 +00:00 [Trace] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware: The endpoint does not specify the IRequestSizeLimitMetadata.
+2025-12-08 09:49:07.544 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing unprotect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'SessionMiddleware').
+2025-12-08 09:49:07.544 +00:00 [Information] Microsoft.AspNetCore.Routing.EndpointMiddleware: Executing endpoint 'MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat)'
+2025-12-08 09:49:07.544 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Route matched with {action = "ResetPartial", controller = "Chat"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] ResetPartial(System.Threading.CancellationToken) on controller MicrohireAgentChat.Controllers.ChatController (MicrohireAgentChat).
+2025-12-08 09:49:07.545 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of authorization filters (in the following order): Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.ValidateAntiforgeryTokenAuthorizationFilter
+2025-12-08 09:49:07.545 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of resource filters (in the following order): Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter
+2025-12-08 09:49:07.545 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of action filters (in the following order): Microsoft.AspNetCore.Mvc.Filters.ControllerActionFilter (Order: -2147483648), Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter (Order: -3000)
+2025-12-08 09:49:07.545 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of exception filters (in the following order): None
+2025-12-08 09:49:07.545 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of result filters (in the following order): Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter
+2025-12-08 09:49:07.545 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Authorization Filter: Before executing OnAuthorizationAsync on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.ValidateAntiforgeryTokenAuthorizationFilter.
+2025-12-08 09:49:07.551 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing unprotect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'Microsoft.AspNetCore.Antiforgery.AntiforgeryToken.v1').
+2025-12-08 09:49:07.551 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing unprotect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'Microsoft.AspNetCore.Antiforgery.AntiforgeryToken.v1').
+2025-12-08 09:49:07.551 +00:00 [Debug] Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery: Antiforgery successfully validated a request.
+2025-12-08 09:49:07.551 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Authorization Filter: After executing OnAuthorizationAsync on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.ValidateAntiforgeryTokenAuthorizationFilter.
+2025-12-08 09:49:07.551 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: Before executing OnResourceExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:07.551 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: After executing OnResourceExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:07.551 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executing controller factory for controller MicrohireAgentChat.Controllers.ChatController (MicrohireAgentChat)
+2025-12-08 09:49:07.590 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executed controller factory for controller MicrohireAgentChat.Controllers.ChatController (MicrohireAgentChat)
+2025-12-08 09:49:07.590 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Attempting to bind parameter 'ct' of type 'System.Threading.CancellationToken' ...
+2025-12-08 09:49:07.590 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Done attempting to bind parameter 'ct' of type 'System.Threading.CancellationToken'.
+2025-12-08 09:49:07.590 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Attempting to validate the bound parameter 'ct' of type 'System.Threading.CancellationToken' ...
+2025-12-08 09:49:07.590 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Done attempting to validate the bound parameter 'ct' of type 'System.Threading.CancellationToken'.
+2025-12-08 09:49:07.590 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: Before executing OnActionExecutionAsync on filter Microsoft.AspNetCore.Mvc.Filters.ControllerActionFilter.
+2025-12-08 09:49:07.590 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: Before executing OnActionExecuting on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 09:49:07.590 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: After executing OnActionExecuting on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 09:49:07.590 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executing action method MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat) - Validation state: Valid
+2025-12-08 09:49:07.590 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executing action method MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat) with arguments (System.Threading.CancellationToken)
+2025-12-08 09:49:07.590 +00:00 [Debug] Microsoft.AspNetCore.Session.DistributedSession: Session loaded; Key:2e163f57-3690-74ef-b306-3262038ba861, Id:160ecdf6-8d63-58bf-bf6b-e09330d76b0b, Count:3
+2025-12-08 09:49:07.985 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executed action method MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat), returned result Microsoft.AspNetCore.Mvc.PartialViewResult in 394.954ms.
+2025-12-08 09:49:07.985 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: Before executing OnActionExecuted on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 09:49:07.987 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: After executing OnActionExecuted on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 09:49:07.987 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: After executing OnActionExecutionAsync on filter Microsoft.AspNetCore.Mvc.Filters.ControllerActionFilter.
+2025-12-08 09:49:07.987 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: Before executing OnResultExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:07.987 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: After executing OnResultExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:07.987 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Before executing action result Microsoft.AspNetCore.Mvc.PartialViewResult.
+2025-12-08 09:49:07.987 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.RazorViewEngine: View lookup cache hit for view '_Messages' in controller 'Chat'.
+2025-12-08 09:49:07.987 +00:00 [Information] Microsoft.AspNetCore.Mvc.ViewFeatures.PartialViewResultExecutor: Executing PartialViewResult, running view _Messages.
+2025-12-08 09:49:07.987 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ViewFeatures.PartialViewResultExecutor: The partial view path '/Views/Chat/_Messages.cshtml' was found in 0.1954ms.
+2025-12-08 09:49:07.994 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing protect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'Microsoft.AspNetCore.Antiforgery.AntiforgeryToken.v1').
+2025-12-08 09:49:07.994 +00:00 [Debug] Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery: An antiforgery cookie token was reused.
+2025-12-08 09:49:07.995 +00:00 [Information] Microsoft.AspNetCore.Mvc.ViewFeatures.PartialViewResultExecutor: Executed PartialViewResult - view _Messages executed in 7.9015ms.
+2025-12-08 09:49:07.995 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: After executing action result Microsoft.AspNetCore.Mvc.PartialViewResult.
+2025-12-08 09:49:07.995 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: Before executing OnResultExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:07.995 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: After executing OnResultExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:07.995 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: Before executing OnResourceExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:07.995 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: After executing OnResourceExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:07.999 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executed action MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat) in 454.0655ms
+2025-12-08 09:49:07.999 +00:00 [Information] Microsoft.AspNetCore.Routing.EndpointMiddleware: Executed endpoint 'MicrohireAgentChat.Controllers.ChatController.ResetPartial (MicrohireAgentChat)'
+2025-12-08 09:49:08.000 +00:00 [Debug] Microsoft.AspNetCore.Session.DistributedSession: Session stored; Key:2e163f57-3690-74ef-b306-3262038ba861, Id:160ecdf6-8d63-58bf-bf6b-e09330d76b0b, Count:3
+2025-12-08 09:49:08.000 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 POST https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/Chat/ResetPartial - 200 - text/html;+charset=utf-8 465.1460ms
+2025-12-08 09:49:15.894 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/avatar.png - - -
+2025-12-08 09:49:15.894 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 09:49:15.894 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 09:49:15.894 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 09:49:15.895 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/images/avatar.png'. Physical path: 'C:\home\site\wwwroot\wwwroot\images\avatar.png'
+2025-12-08 09:49:15.903 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/avatar.png - 200 32741 image/png 9.4415ms
+2025-12-08 09:49:16.092 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 POST https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/Chat/SendPartial - application/x-www-form-urlencoded;+charset=UTF-8 7
+2025-12-08 09:49:16.092 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 09:49:16.092 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 09:49:16.092 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: POST requests are not supported
+2025-12-08 09:49:16.092 +00:00 [Debug] Microsoft.AspNetCore.Routing.Matching.DfaMatcher: 1 candidate(s) found for the request path '/Chat/SendPartial'
+2025-12-08 09:49:16.099 +00:00 [Debug] Microsoft.AspNetCore.Routing.Matching.DfaMatcher: Endpoint 'MicrohireAgentChat.Controllers.ChatController.SendPartial (MicrohireAgentChat)' with route pattern '{controller=Chat}/{action=Index}/{id?}' is valid for the request path '/Chat/SendPartial'
+2025-12-08 09:49:16.099 +00:00 [Debug] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware: Request matched endpoint 'MicrohireAgentChat.Controllers.ChatController.SendPartial (MicrohireAgentChat)'
+2025-12-08 09:49:16.099 +00:00 [Trace] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware: The endpoint does not specify the IRequestSizeLimitMetadata.
+2025-12-08 09:49:16.099 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing unprotect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'SessionMiddleware').
+2025-12-08 09:49:16.099 +00:00 [Information] Microsoft.AspNetCore.Routing.EndpointMiddleware: Executing endpoint 'MicrohireAgentChat.Controllers.ChatController.SendPartial (MicrohireAgentChat)'
+2025-12-08 09:49:16.130 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Route matched with {action = "SendPartial", controller = "Chat"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] SendPartial(System.String, System.Threading.CancellationToken) on controller MicrohireAgentChat.Controllers.ChatController (MicrohireAgentChat).
+2025-12-08 09:49:16.130 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of authorization filters (in the following order): Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.ValidateAntiforgeryTokenAuthorizationFilter
+2025-12-08 09:49:16.130 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of resource filters (in the following order): Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter
+2025-12-08 09:49:16.130 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of action filters (in the following order): Microsoft.AspNetCore.Mvc.Filters.ControllerActionFilter (Order: -2147483648), Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter (Order: -3000)
+2025-12-08 09:49:16.130 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of exception filters (in the following order): None
+2025-12-08 09:49:16.130 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of result filters (in the following order): Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter
+2025-12-08 09:49:16.130 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Authorization Filter: Before executing OnAuthorizationAsync on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.ValidateAntiforgeryTokenAuthorizationFilter.
+2025-12-08 09:49:16.130 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing unprotect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'Microsoft.AspNetCore.Antiforgery.AntiforgeryToken.v1').
+2025-12-08 09:49:16.130 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing unprotect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'Microsoft.AspNetCore.Antiforgery.AntiforgeryToken.v1').
+2025-12-08 09:49:16.131 +00:00 [Debug] Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery: Antiforgery successfully validated a request.
+2025-12-08 09:49:16.131 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Authorization Filter: After executing OnAuthorizationAsync on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.ValidateAntiforgeryTokenAuthorizationFilter.
+2025-12-08 09:49:16.131 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: Before executing OnResourceExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:16.131 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: After executing OnResourceExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:16.131 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executing controller factory for controller MicrohireAgentChat.Controllers.ChatController (MicrohireAgentChat)
+2025-12-08 09:49:16.131 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executed controller factory for controller MicrohireAgentChat.Controllers.ChatController (MicrohireAgentChat)
+2025-12-08 09:49:16.166 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Attempting to bind parameter 'text' of type 'System.String' ...
+2025-12-08 09:49:16.174 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.Binders.SimpleTypeModelBinder: Attempting to bind parameter 'text' of type 'System.String' using the name 'text' in request data ...
+2025-12-08 09:49:16.175 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.Binders.SimpleTypeModelBinder: Done attempting to bind parameter 'text' of type 'System.String'.
+2025-12-08 09:49:16.175 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Done attempting to bind parameter 'text' of type 'System.String'.
+2025-12-08 09:49:16.175 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Attempting to validate the bound parameter 'text' of type 'System.String' ...
+2025-12-08 09:49:16.193 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Done attempting to validate the bound parameter 'text' of type 'System.String'.
+2025-12-08 09:49:16.193 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Attempting to bind parameter 'ct' of type 'System.Threading.CancellationToken' ...
+2025-12-08 09:49:16.194 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Done attempting to bind parameter 'ct' of type 'System.Threading.CancellationToken'.
+2025-12-08 09:49:16.194 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Attempting to validate the bound parameter 'ct' of type 'System.Threading.CancellationToken' ...
+2025-12-08 09:49:16.194 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Done attempting to validate the bound parameter 'ct' of type 'System.Threading.CancellationToken'.
+2025-12-08 09:49:16.194 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: Before executing OnActionExecutionAsync on filter Microsoft.AspNetCore.Mvc.Filters.ControllerActionFilter.
+2025-12-08 09:49:16.194 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: Before executing OnActionExecuting on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 09:49:16.194 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: After executing OnActionExecuting on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 09:49:16.194 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executing action method MicrohireAgentChat.Controllers.ChatController.SendPartial (MicrohireAgentChat) - Validation state: Valid
+2025-12-08 09:49:16.194 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executing action method MicrohireAgentChat.Controllers.ChatController.SendPartial (MicrohireAgentChat) with arguments (hi, System.Threading.CancellationToken)
+2025-12-08 09:49:16.211 +00:00 [Debug] Microsoft.AspNetCore.Session.DistributedSession: Session loaded; Key:2e163f57-3690-74ef-b306-3262038ba861, Id:160ecdf6-8d63-58bf-bf6b-e09330d76b0b, Count:3
+2025-12-08 09:49:20.684 +00:00 [Information] MicrohireAgentChat.Controllers.ChatController: Consent detection: text='hi', isConsentToSummary=False, wasSummaryAsk=False
+2025-12-08 09:49:20.691 +00:00 [Information] MicrohireAgentChat.Controllers.ChatController: Returning 2 messages to view. Last message role: assistant
+2025-12-08 09:49:20.692 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executed action method MicrohireAgentChat.Controllers.ChatController.SendPartial (MicrohireAgentChat), returned result Microsoft.AspNetCore.Mvc.PartialViewResult in 4497.8018ms.
+2025-12-08 09:49:20.692 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: Before executing OnActionExecuted on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 09:49:20.692 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: After executing OnActionExecuted on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 09:49:20.693 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: After executing OnActionExecutionAsync on filter Microsoft.AspNetCore.Mvc.Filters.ControllerActionFilter.
+2025-12-08 09:49:20.699 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: Before executing OnResultExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:20.699 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: After executing OnResultExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:20.699 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Before executing action result Microsoft.AspNetCore.Mvc.PartialViewResult.
+2025-12-08 09:49:20.699 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.RazorViewEngine: View lookup cache hit for view '_Messages' in controller 'Chat'.
+2025-12-08 09:49:20.699 +00:00 [Information] Microsoft.AspNetCore.Mvc.ViewFeatures.PartialViewResultExecutor: Executing PartialViewResult, running view _Messages.
+2025-12-08 09:49:20.699 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ViewFeatures.PartialViewResultExecutor: The partial view path '/Views/Chat/_Messages.cshtml' was found in 0.09ms.
+2025-12-08 09:49:20.700 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing protect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'Microsoft.AspNetCore.Antiforgery.AntiforgeryToken.v1').
+2025-12-08 09:49:20.700 +00:00 [Debug] Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery: An antiforgery cookie token was reused.
+2025-12-08 09:49:20.702 +00:00 [Information] Microsoft.AspNetCore.Mvc.ViewFeatures.PartialViewResultExecutor: Executed PartialViewResult - view _Messages executed in 2.3749ms.
+2025-12-08 09:49:20.702 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: After executing action result Microsoft.AspNetCore.Mvc.PartialViewResult.
+2025-12-08 09:49:20.702 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: Before executing OnResultExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:20.702 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: After executing OnResultExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:20.702 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: Before executing OnResourceExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:20.702 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: After executing OnResourceExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:20.702 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executed action MicrohireAgentChat.Controllers.ChatController.SendPartial (MicrohireAgentChat) in 4571.9564ms
+2025-12-08 09:49:20.709 +00:00 [Information] Microsoft.AspNetCore.Routing.EndpointMiddleware: Executed endpoint 'MicrohireAgentChat.Controllers.ChatController.SendPartial (MicrohireAgentChat)'
+2025-12-08 09:49:20.709 +00:00 [Debug] Microsoft.AspNetCore.Session.DistributedSession: Session stored; Key:2e163f57-3690-74ef-b306-3262038ba861, Id:160ecdf6-8d63-58bf-bf6b-e09330d76b0b, Count:3
+2025-12-08 09:49:20.710 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 POST https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/Chat/SendPartial - 200 - text/html;+charset=utf-8 4618.1664ms
+2025-12-08 09:49:20.890 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/avatar.png - - -
+2025-12-08 09:49:20.890 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 09:49:20.890 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 09:49:20.890 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 09:49:20.895 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/images/avatar.png'. Physical path: 'C:\home\site\wwwroot\wwwroot\images\avatar.png'
+2025-12-08 09:49:20.896 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/avatar.png - 200 32741 image/png 6.2605ms
+2025-12-08 09:49:30.178 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/avatar.png - - -
+2025-12-08 09:49:30.179 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 09:49:30.179 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 09:49:30.179 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 09:49:30.180 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/images/avatar.png'. Physical path: 'C:\home\site\wwwroot\wwwroot\images\avatar.png'
+2025-12-08 09:49:30.182 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 POST https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/Chat/SendPartial - application/x-www-form-urlencoded;+charset=UTF-8 11
+2025-12-08 09:49:30.182 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 09:49:30.182 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 09:49:30.182 +00:00 [Debug] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: POST requests are not supported
+2025-12-08 09:49:30.182 +00:00 [Debug] Microsoft.AspNetCore.Routing.Matching.DfaMatcher: 1 candidate(s) found for the request path '/Chat/SendPartial'
+2025-12-08 09:49:30.182 +00:00 [Debug] Microsoft.AspNetCore.Routing.Matching.DfaMatcher: Endpoint 'MicrohireAgentChat.Controllers.ChatController.SendPartial (MicrohireAgentChat)' with route pattern '{controller=Chat}/{action=Index}/{id?}' is valid for the request path '/Chat/SendPartial'
+2025-12-08 09:49:30.182 +00:00 [Debug] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware: Request matched endpoint 'MicrohireAgentChat.Controllers.ChatController.SendPartial (MicrohireAgentChat)'
+2025-12-08 09:49:30.182 +00:00 [Trace] Microsoft.AspNetCore.Routing.EndpointRoutingMiddleware: The endpoint does not specify the IRequestSizeLimitMetadata.
+2025-12-08 09:49:30.182 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing unprotect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'SessionMiddleware').
+2025-12-08 09:49:30.182 +00:00 [Information] Microsoft.AspNetCore.Routing.EndpointMiddleware: Executing endpoint 'MicrohireAgentChat.Controllers.ChatController.SendPartial (MicrohireAgentChat)'
+2025-12-08 09:49:30.183 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Route matched with {action = "SendPartial", controller = "Chat"}. Executing controller action with signature System.Threading.Tasks.Task`1[Microsoft.AspNetCore.Mvc.IActionResult] SendPartial(System.String, System.Threading.CancellationToken) on controller MicrohireAgentChat.Controllers.ChatController (MicrohireAgentChat).
+2025-12-08 09:49:30.183 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of authorization filters (in the following order): Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.ValidateAntiforgeryTokenAuthorizationFilter
+2025-12-08 09:49:30.183 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of resource filters (in the following order): Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter
+2025-12-08 09:49:30.183 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of action filters (in the following order): Microsoft.AspNetCore.Mvc.Filters.ControllerActionFilter (Order: -2147483648), Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter (Order: -3000)
+2025-12-08 09:49:30.183 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of exception filters (in the following order): None
+2025-12-08 09:49:30.183 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Execution plan of result filters (in the following order): Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter
+2025-12-08 09:49:30.183 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Authorization Filter: Before executing OnAuthorizationAsync on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.ValidateAntiforgeryTokenAuthorizationFilter.
+2025-12-08 09:49:30.183 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing unprotect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'Microsoft.AspNetCore.Antiforgery.AntiforgeryToken.v1').
+2025-12-08 09:49:30.183 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing unprotect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'Microsoft.AspNetCore.Antiforgery.AntiforgeryToken.v1').
+2025-12-08 09:49:30.183 +00:00 [Debug] Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery: Antiforgery successfully validated a request.
+2025-12-08 09:49:30.183 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Authorization Filter: After executing OnAuthorizationAsync on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.ValidateAntiforgeryTokenAuthorizationFilter.
+2025-12-08 09:49:30.183 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: Before executing OnResourceExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:30.183 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: After executing OnResourceExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:30.183 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executing controller factory for controller MicrohireAgentChat.Controllers.ChatController (MicrohireAgentChat)
+2025-12-08 09:49:30.184 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/avatar.png - 200 32741 image/png 3.1183ms
+2025-12-08 09:49:30.192 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executed controller factory for controller MicrohireAgentChat.Controllers.ChatController (MicrohireAgentChat)
+2025-12-08 09:49:30.193 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Attempting to bind parameter 'text' of type 'System.String' ...
+2025-12-08 09:49:30.194 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.Binders.SimpleTypeModelBinder: Attempting to bind parameter 'text' of type 'System.String' using the name 'text' in request data ...
+2025-12-08 09:49:30.194 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.Binders.SimpleTypeModelBinder: Done attempting to bind parameter 'text' of type 'System.String'.
+2025-12-08 09:49:30.194 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Done attempting to bind parameter 'text' of type 'System.String'.
+2025-12-08 09:49:30.194 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Attempting to validate the bound parameter 'text' of type 'System.String' ...
+2025-12-08 09:49:30.194 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Done attempting to validate the bound parameter 'text' of type 'System.String'.
+2025-12-08 09:49:30.194 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Attempting to bind parameter 'ct' of type 'System.Threading.CancellationToken' ...
+2025-12-08 09:49:30.200 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Done attempting to bind parameter 'ct' of type 'System.Threading.CancellationToken'.
+2025-12-08 09:49:30.200 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Attempting to validate the bound parameter 'ct' of type 'System.Threading.CancellationToken' ...
+2025-12-08 09:49:30.200 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ModelBinding.ParameterBinder: Done attempting to validate the bound parameter 'ct' of type 'System.Threading.CancellationToken'.
+2025-12-08 09:49:30.200 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: Before executing OnActionExecutionAsync on filter Microsoft.AspNetCore.Mvc.Filters.ControllerActionFilter.
+2025-12-08 09:49:30.200 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: Before executing OnActionExecuting on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 09:49:30.201 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: After executing OnActionExecuting on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 09:49:30.201 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executing action method MicrohireAgentChat.Controllers.ChatController.SendPartial (MicrohireAgentChat) - Validation state: Valid
+2025-12-08 09:49:30.201 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executing action method MicrohireAgentChat.Controllers.ChatController.SendPartial (MicrohireAgentChat) with arguments (hmm', System.Threading.CancellationToken)
+2025-12-08 09:49:30.201 +00:00 [Debug] Microsoft.AspNetCore.Session.DistributedSession: Session loaded; Key:2e163f57-3690-74ef-b306-3262038ba861, Id:160ecdf6-8d63-58bf-bf6b-e09330d76b0b, Count:3
+2025-12-08 09:49:45.526 +00:00 [Information] MicrohireAgentChat.Controllers.ChatController: Consent detection: text='hmm'', isConsentToSummary=False, wasSummaryAsk=False
+2025-12-08 09:49:45.527 +00:00 [Information] MicrohireAgentChat.Controllers.ChatController: Returning 4 messages to view. Last message role: assistant
+2025-12-08 09:49:45.527 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executed action method MicrohireAgentChat.Controllers.ChatController.SendPartial (MicrohireAgentChat), returned result Microsoft.AspNetCore.Mvc.PartialViewResult in 15326.1938ms.
+2025-12-08 09:49:45.527 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: Before executing OnActionExecuted on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 09:49:45.527 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: After executing OnActionExecuted on filter Microsoft.AspNetCore.Mvc.ModelBinding.UnsupportedContentTypeFilter.
+2025-12-08 09:49:45.527 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Action Filter: After executing OnActionExecutionAsync on filter Microsoft.AspNetCore.Mvc.Filters.ControllerActionFilter.
+2025-12-08 09:49:45.527 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: Before executing OnResultExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:45.527 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: After executing OnResultExecuting on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:45.527 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Before executing action result Microsoft.AspNetCore.Mvc.PartialViewResult.
+2025-12-08 09:49:45.533 +00:00 [Debug] Microsoft.AspNetCore.Mvc.Razor.RazorViewEngine: View lookup cache hit for view '_Messages' in controller 'Chat'.
+2025-12-08 09:49:45.533 +00:00 [Information] Microsoft.AspNetCore.Mvc.ViewFeatures.PartialViewResultExecutor: Executing PartialViewResult, running view _Messages.
+2025-12-08 09:49:45.533 +00:00 [Debug] Microsoft.AspNetCore.Mvc.ViewFeatures.PartialViewResultExecutor: The partial view path '/Views/Chat/_Messages.cshtml' was found in 0.1045ms.
+2025-12-08 09:49:45.534 +00:00 [Trace] Microsoft.AspNetCore.DataProtection.KeyManagement.KeyRingBasedDataProtector: Performing protect operation to key {65fb97fa-b417-4970-9777-1532b4a88726} with purposes ('C:\home\site\wwwroot\', 'Microsoft.AspNetCore.Antiforgery.AntiforgeryToken.v1').
+2025-12-08 09:49:45.534 +00:00 [Debug] Microsoft.AspNetCore.Antiforgery.DefaultAntiforgery: An antiforgery cookie token was reused.
+2025-12-08 09:49:45.540 +00:00 [Information] Microsoft.AspNetCore.Mvc.ViewFeatures.PartialViewResultExecutor: Executed PartialViewResult - view _Messages executed in 7.8672ms.
+2025-12-08 09:49:45.540 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: After executing action result Microsoft.AspNetCore.Mvc.PartialViewResult.
+2025-12-08 09:49:45.540 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: Before executing OnResultExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:45.540 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Result Filter: After executing OnResultExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:45.541 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: Before executing OnResourceExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:45.541 +00:00 [Trace] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Resource Filter: After executing OnResourceExecuted on filter Microsoft.AspNetCore.Mvc.ViewFeatures.Filters.SaveTempDataFilter.
+2025-12-08 09:49:45.541 +00:00 [Information] Microsoft.AspNetCore.Mvc.Infrastructure.ControllerActionInvoker: Executed action MicrohireAgentChat.Controllers.ChatController.SendPartial (MicrohireAgentChat) in 15357.0086ms
+2025-12-08 09:49:45.541 +00:00 [Information] Microsoft.AspNetCore.Routing.EndpointMiddleware: Executed endpoint 'MicrohireAgentChat.Controllers.ChatController.SendPartial (MicrohireAgentChat)'
+2025-12-08 09:49:45.541 +00:00 [Debug] Microsoft.AspNetCore.Session.DistributedSession: Session stored; Key:2e163f57-3690-74ef-b306-3262038ba861, Id:160ecdf6-8d63-58bf-bf6b-e09330d76b0b, Count:3
+2025-12-08 09:49:45.541 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 POST https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/Chat/SendPartial - 200 - text/html;+charset=utf-8 15358.5605ms
+2025-12-08 09:49:45.730 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request starting HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/avatar.png - - -
+2025-12-08 09:49:45.730 +00:00 [Trace] Microsoft.AspNetCore.HostFiltering.HostFilteringMiddleware: All hosts are allowed.
+2025-12-08 09:49:45.730 +00:00 [Trace] Microsoft.AspNetCore.HttpsPolicy.HstsMiddleware: Adding HSTS header to response.
+2025-12-08 09:49:45.730 +00:00 [Trace] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Range header's value is empty.
+2025-12-08 09:49:45.731 +00:00 [Information] Microsoft.AspNetCore.StaticFiles.StaticFileMiddleware: Sending file. Request path: '/images/avatar.png'. Physical path: 'C:\home\site\wwwroot\wwwroot\images\avatar.png'
+2025-12-08 09:49:45.732 +00:00 [Information] Microsoft.AspNetCore.Hosting.Diagnostics: Request finished HTTP/1.1 GET https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/images/avatar.png - 200 32741 image/png 2.5712ms
+2025-12-08 13:35:57.248 +00:00 [Debug] Microsoft.Extensions.Hosting.Internal.Host: Hosting stopping
+2025-12-08 13:35:58.195 +00:00 [Information] Microsoft.Hosting.Lifetime: Application is shutting down...
+2025-12-08 13:35:58.449 +00:00 [Debug] Microsoft.Extensions.Hosting.Internal.Host: Hosting stopped

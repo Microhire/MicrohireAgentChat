@@ -1,4 +1,4 @@
-﻿using MicrohireAgentChat.Models;
+using MicrohireAgentChat.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
@@ -19,6 +19,7 @@ public sealed class BookingDbContext : DbContext
     public DbSet<TblBooknote> TblBooknotes => Set<TblBooknote>();
     public DbSet<TblVenue> TblVenues => Set<TblVenue>();
     public DbSet<VwProdsComponents> VwProdsComponents => Set<VwProdsComponents>();
+    public DbSet<AgentThread> AgentThreads => Set<AgentThread>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -495,5 +496,40 @@ public sealed class BookingDbContext : DbContext
         venue.Property(x => x.DefaultFolder).HasColumnName("DefaultFolder").HasMaxLength(200);
 
         venue.HasIndex(x => x.VenueName).HasDatabaseName("IX_tblVenues_Name");
+
+        // --- AgentThreads (thread persistence) ---
+        var at = modelBuilder.Entity<AgentThread>();
+        at.ToTable("AgentThreads");
+        at.HasKey(x => x.Id);
+
+        at.Property(x => x.Id)
+            .HasColumnName("Id")
+            .ValueGeneratedOnAdd();
+
+        at.Property(x => x.UserKey)
+            .HasColumnName("UserKey")
+            .HasMaxLength(200)
+            .IsRequired();
+
+        at.Property(x => x.ThreadId)
+            .HasColumnName("ThreadId")
+            .HasMaxLength(200)
+            .IsRequired();
+
+        at.Property(x => x.CreatedUtc)
+            .HasColumnName("CreatedUtc")
+            .IsRequired();
+
+        at.Property(x => x.LastSeenUtc)
+            .HasColumnName("LastSeenUtc")
+            .IsRequired();
+
+        at.HasIndex(x => x.UserKey)
+            .HasDatabaseName("IX_AgentThreads_UserKey")
+            .IsUnique();
+
+        at.HasIndex(x => x.ThreadId)
+            .HasDatabaseName("IX_AgentThreads_ThreadId")
+            .IsUnique();
     }
 }

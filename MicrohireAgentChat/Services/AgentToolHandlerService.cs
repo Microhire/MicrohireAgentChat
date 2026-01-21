@@ -177,11 +177,38 @@ public sealed class AgentToolHandlerService
             }
         }
 
-        // Normalize provided date string (including explicit dates in argsJson) and use a user-friendly title
-        if (normalizedDate is null && !string.IsNullOrWhiteSpace(dateIso) && DateTimeOffset.TryParse(dateIso, out var parsed))
+        // Normalize provided date string (including explicit dates in argsJson) and apply smart date logic
+        if (normalizedDate is null && !string.IsNullOrWhiteSpace(dateIso))
         {
-            normalizedDate = parsed;
-            dateIso = parsed.ToString("yyyy-MM-dd");
+            if (DateTimeOffset.TryParse(dateIso, out var parsed))
+            {
+                normalizedDate = parsed;
+                dateIso = parsed.ToString("yyyy-MM-dd");
+            }
+        }
+
+        // Apply smart date detection: roll forward until the date is in the future
+        // This handles cases where AI agent provides wrong year or past dates
+        if (normalizedDate.HasValue)
+        {
+            var now = DateTimeOffset.Now;
+            var adjustedDate = normalizedDate.Value;
+
+            _logger.LogInformation("TIME PICKER TOOL: Initial date from AI agent: {InitialDate}, Current time: {Now}",
+                adjustedDate, now);
+
+            // Roll forward if the date is in the past
+            while (adjustedDate.Date < now.Date)
+            {
+                var beforeRoll = adjustedDate;
+                adjustedDate = adjustedDate.AddYears(1);
+                _logger.LogInformation("TIME PICKER TOOL: Rolled forward from {Before} to {After}", beforeRoll.Date, adjustedDate.Date);
+            }
+
+            normalizedDate = adjustedDate;
+            dateIso = adjustedDate.ToString("yyyy-MM-dd");
+
+            _logger.LogInformation("TIME PICKER TOOL: Final date after smart detection: {FinalDate}", adjustedDate);
         }
         var titleDateText = normalizedDate.HasValue
             ? normalizedDate.Value.ToString("d MMMM yyyy")

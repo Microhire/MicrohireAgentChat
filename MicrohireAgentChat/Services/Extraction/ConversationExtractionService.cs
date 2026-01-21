@@ -30,6 +30,8 @@ public sealed class ConversationExtractionService
         {
             $@"\b(\d{{1,2}})(st|nd|rd|th)?\s+({monthNames})\s+(\d{{4}})\b",
             $@"\b({monthNames})\s+(\d{{1,2}})(st|nd|rd|th)?(,?\s*(\d{{4}}))?\b",
+            // "1st Jan", "15 January", "1 Feb" (day-first without year)
+            $@"\b(\d{{1,2}})(st|nd|rd|th)?\s+({monthNames})\b",
             @"\b(\d{1,2})/(\d{1,2})/(\d{2,4})\b",
             @"\b(\d{4})-(\d{2})-(\d{2})\b"
         };
@@ -798,7 +800,7 @@ public sealed class ConversationExtractionService
 
     // ==================== PRIVATE HELPERS ====================
 
-    private static bool TryParseDateToken(string token, out DateTimeOffset dto)
+    private bool TryParseDateToken(string token, out DateTimeOffset dto)
     {
         dto = default;
         if (string.IsNullOrWhiteSpace(token)) return false;
@@ -812,6 +814,9 @@ public sealed class ConversationExtractionService
         // Consider the token missing a year if no 4-digit year is present
         var hasExplicitYear = Regex.IsMatch(token, @"\b\d{4}\b");
 
+        // LOGGING: Initial parsing attempt
+        _logger.LogInformation("CONV EXTRACTION DATE PARSING: Starting to parse token '{Token}'. Has explicit year: {HasYear}, Current time: {Now}", token, hasExplicitYear, now);
+
         var cultures = new[]
         {
             CultureInfo.GetCultureInfo("en-US"),
@@ -824,13 +829,18 @@ public sealed class ConversationExtractionService
             ? new[] { token }
             : new[] { $"{token} {now.Year}", token };
 
+        _logger.LogInformation("CONV EXTRACTION DATE PARSING: Candidates to try: {Candidates}", string.Join(", ", candidates));
+
         foreach (var candidate in candidates)
         {
+            _logger.LogInformation("CONV EXTRACTION DATE PARSING: Trying candidate '{Candidate}'", candidate);
+
             // ISO (yyyy-MM-dd)
             if (Regex.IsMatch(candidate, @"^\d{4}-\d{2}-\d{2}$") &&
                 DateTime.TryParseExact(candidate, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var isoDt))
             {
                 dto = new DateTimeOffset(isoDt);
+                _logger.LogInformation("CONV EXTRACTION DATE PARSING: Parsed ISO format '{Candidate}' to {ParsedDate}", candidate, dto);
                 break;
             }
 
@@ -843,6 +853,7 @@ public sealed class ConversationExtractionService
                     if (DateTime.TryParseExact(candidate, fmt, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var dmy))
                     {
                         dto = new DateTimeOffset(dmy);
+                        _logger.LogInformation("CONV EXTRACTION DATE PARSING: Parsed slash format '{Candidate}' with format '{Format}' to {ParsedDate}", candidate, fmt, dto);
                         break;
                     }
                 }
@@ -855,6 +866,7 @@ public sealed class ConversationExtractionService
                 if (DateTime.TryParse(candidate, c, DateTimeStyles.AssumeLocal, out var dt))
                 {
                     dto = new DateTimeOffset(dt);
+                    _logger.LogInformation("CONV EXTRACTION DATE PARSING: Parsed with culture '{Culture}' '{Candidate}' to {ParsedDate}", c.Name, candidate, dto);
                     break;
                 }
             }
@@ -863,22 +875,37 @@ public sealed class ConversationExtractionService
         }
 
         if (dto == default)
-            return false;
-
-        // If no explicit year was provided, roll forward to next year when the inferred date is in the past
-        if (!hasExplicitYear)
         {
-            var dateOnly = dto.Date;
-            var normalized = new DateTimeOffset(dateOnly, dto.Offset);
-            if (normalized.Date < now.Date)
-                normalized = normalized.AddYears(1);
-            dto = normalized;
+            _logger.LogWarning("CONV EXTRACTION DATE PARSING: Failed to parse token '{Token}' with any method", token);
+            return false;
         }
+
+        _logger.LogInformation("CONV EXTRACTION DATE PARSING: Initial parse result for '{Token}': {ParsedDate}", token, dto);
+
+        // Always apply smart date detection: roll forward until the date is in the future
+        // This handles both cases: explicit years that are wrong, and implicit years
+        var originalDate = dto;
+        var normalized = new DateTimeOffset(dto.Date, dto.Offset);
+
+        _logger.LogInformation("CONV EXTRACTION DATE PARSING: Before roll-forward - Original: {Original}, Normalized: {Normalized}, Current time: {Now}", originalDate, normalized, now);
+
+        int rollForwardCount = 0;
+        while (normalized.Date < now.Date)
+        {
+            var beforeRoll = normalized;
+            normalized = normalized.AddYears(1);
+            rollForwardCount++;
+            _logger.LogInformation("CONV EXTRACTION DATE PARSING: Rolled forward from {Before} to {After} (iteration {Count})", beforeRoll.Date, normalized.Date, rollForwardCount);
+        }
+
+        dto = normalized;
+
+        _logger.LogInformation("CONV EXTRACTION DATE PARSING: Final result for '{Token}': {FinalDate} (rolled forward {Count} times)", token, dto, rollForwardCount);
 
         return true;
     }
 
-    private static DateTimeOffset? FindEventDate(IEnumerable<string> lines, int? yearHint, out string? matched)
+    private DateTimeOffset? FindEventDate(IEnumerable<string> lines, int? yearHint, out string? matched)
     {
         matched = null;
         var monthNames = "jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december";
