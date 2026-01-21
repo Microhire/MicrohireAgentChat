@@ -1061,7 +1061,7 @@ public class ConversationReplayService
             
             // Step 10: User confirms schedule selection (THIS IS WHERE THE BUG OCCURS)
             // The AI shows the time picker, user confirms, and then AI stops responding
-            $"I've selected this schedule: on {dayOfWeek}, {dateFormatted}: Setup {setupHour}AM; Rehearsal {rehearsalHour}AM; Event Start {startHour}AM; Event End {endHour - 12}PM; Pack Up {packupHour - 12}PM. Please confirm this schedule and ask about AV equipment requirements.",
+            $"I've selected this schedule: on {dayOfWeek}, {dateFormatted}: Setup {setupHour}AM; Rehearsal {rehearsalHour}AM; Event Start {startHour}AM; Event End {endHour - 12}PM; Pack Up {packupHour - 12}PM. Please confirm this schedule.",
             
             // Step 11: Additional messages to test if AI continues responding
             // These messages should get responses, but the bug causes the AI to stop

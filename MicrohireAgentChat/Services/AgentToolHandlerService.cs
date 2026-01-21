@@ -300,7 +300,7 @@ public sealed class AgentToolHandlerService
         return new
         {
             Available = true,
-            Message = "Room is available"
+            Message = "Microhire is available to service your event on this date"
         };
     }
 

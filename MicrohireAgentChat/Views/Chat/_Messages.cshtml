@@ -66,6 +66,18 @@ else
     foreach (var m in Model)
     {
         var isAssistant = string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase);
+        var isUser = string.Equals(m.Role, "user", StringComparison.OrdinalIgnoreCase);
+        
+        // Hide internal schedule confirmation messages from user view
+        // These are sent to the agent but should not be displayed to the user
+        var messageText = string.Join(" ", m.Parts ?? new List<string>()).Trim();
+        var isHiddenScheduleMessage = isUser && messageText.StartsWith("I've selected this schedule:", StringComparison.OrdinalIgnoreCase);
+        
+        if (isHiddenScheduleMessage)
+        {
+            continue; // Skip rendering this message - it's only for the AI agent
+        }
+        
         var rowClass = isAssistant ? "message-recived" : "message-sent";
 
         var _rawAll = string.Join("\n", (m.Parts ?? new List<string>()).Select(p => p ?? string.Empty));

@@ -202,15 +202,18 @@ namespace MicrohireAgentChat.Services
 
                     // Reformat the message for AI agent to continue the conversation
                     var confirmation = _timePicker.BuildScheduleConfirmation(schedule, dateDto);
-                    userText = $"I've selected this schedule: {confirmation.Replace("✅ Perfect! I've confirmed your schedule", "").Replace(".", "")}. Please confirm this schedule and ask about AV equipment requirements.";
+                    userText = $"I've selected this schedule: {confirmation.Replace("✅ Perfect! I've confirmed your schedule", "").Replace(".", "")}. Please confirm this schedule.";
                     _logger.LogInformation("Schedule selection reformatted for AI agent: {UserText}", userText);
                 }
                 // Handle multi-part schedule selection - parse it and reformat for AI agent
                 else if (_timePicker.TryParseMultiScheduleSelection(userText.Trim(), out var multiSchedule))
                 {
+                    // Save the schedule times to session so the time picker can display them
+                    SaveMultiScheduleToSession(multiSchedule);
+                    
                     // Reformat the message to be more natural for the AI agent
                     var readableSchedule = _timePicker.BuildMultiScheduleConfirmation(multiSchedule);
-                    userText = $"I've selected this schedule: {readableSchedule.Replace("✅ Perfect! I've confirmed your schedule", "").Replace(".", "")}. Please confirm this schedule and ask about AV equipment requirements.";
+                    userText = $"I've selected this schedule: {readableSchedule.Replace("✅ Perfect! I've confirmed your schedule", "").Replace(".", "")}. Please confirm this schedule.";
                     _logger.LogInformation("Multi-schedule selection reformatted for AI agent: {UserText}", userText);
                 }
 
@@ -3510,7 +3513,23 @@ namespace MicrohireAgentChat.Services
             if (s.End.HasValue) session.SetString("Draft:EndTime", s.End.Value.ToString(@"hh\:mm"));
             if (s.Setup.HasValue) session.SetString("Draft:SetupTime", s.Setup.Value.ToString(@"hh\:mm"));
             if (s.Rehearsal.HasValue) session.SetString("Draft:RehearsalTime", s.Rehearsal.Value.ToString(@"hh\:mm"));
-            if (s.PackUp.HasValue) session.SetString("Draft:PackUpTime", s.PackUp.Value.ToString(@"hh\:mm"));
+            if (s.PackUp.HasValue) session.SetString("Draft:PackupTime", s.PackUp.Value.ToString(@"hh\:mm"));
+        }
+
+        // Save multi-schedule selection to session for time picker persistence
+        private void SaveMultiScheduleToSession(ScheduleSelection s)
+        {
+            var session = _http.HttpContext?.Session;
+            if (session == null) return;
+
+            if (s.Setup != default) session.SetString("Draft:SetupTime", s.Setup.ToString(@"hh\:mm"));
+            if (s.Rehearsal != default) session.SetString("Draft:RehearsalTime", s.Rehearsal.ToString(@"hh\:mm"));
+            if (s.Start.HasValue) session.SetString("Draft:StartTime", s.Start.Value.ToString(@"hh\:mm"));
+            if (s.End.HasValue) session.SetString("Draft:EndTime", s.End.Value.ToString(@"hh\:mm"));
+            if (s.PackUp != default) session.SetString("Draft:PackupTime", s.PackUp.ToString(@"hh\:mm"));
+            
+            _logger.LogInformation("Saved multi-schedule to session: Setup={Setup}, Rehearsal={Rehearsal}, Start={Start}, End={End}, PackUp={PackUp}",
+                s.Setup, s.Rehearsal, s.Start, s.End, s.PackUp);
         }
         // ----------------------------- BOOKING SAVE HELPERS -----------------------------
 
