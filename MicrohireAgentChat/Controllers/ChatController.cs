@@ -348,7 +348,7 @@ public sealed class ChatController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> StartConversationReplay(CancellationToken ct)
+    public async Task<IActionResult> StartConversationReplay(string scenario, CancellationToken ct)
     {
         if (!_devOptions.Enabled)
         {
@@ -357,98 +357,57 @@ public sealed class ChatController : Controller
 
         try
         {
-            // Randomly select a test scenario for comprehensive coverage
-            var random = new Random();
-            var scenarioType = random.Next(21); // 21 different scenario weights for better distribution
-            
             IEnumerable<string> messages;
             string scenarioName;
             
-            switch (scenarioType)
+            // Select scenario based on user selection or default to random
+            switch (scenario?.ToLowerInvariant())
             {
-                case 0: // Small intimate event
+                // === BUG REPRODUCTION SCENARIOS ===
+                case "ai_stops_responding":
+                    messages = _replayService.GenerateAiStopsRespondingBugConversation();
+                    scenarioName = "🐛 AI Stops Responding Bug";
+                    break;
+                    
+                case "time_picker_validation":
+                    messages = _replayService.GenerateTimePickerValidationConversation();
+                    scenarioName = "🐛 Time Picker Validation";
+                    break;
+                
+                // === STANDARD TEST SCENARIOS ===
+                case "small_event":
                     messages = _replayService.GenerateSmallEventConversation();
                     scenarioName = "Small Event (15-25 people)";
                     break;
                     
-                case 1: // Large conference
+                case "large_conference":
                     messages = _replayService.GenerateLargeConferenceConversation();
                     scenarioName = "Large Conference (300-500 people)";
                     break;
                     
-                case 2: // Hackathon
-                    messages = _replayService.GenerateHackathonConversation();
-                    scenarioName = "Hackathon Event";
-                    break;
-                    
-                case 3: // Social/Gala event
+                case "social_event":
                     messages = _replayService.GenerateSocialEventConversation();
                     scenarioName = "Social/Gala Event";
                     break;
                     
-                case 4: // Minimal info user
-                    messages = _replayService.GenerateMinimalInfoConversation();
-                    scenarioName = "Minimal Info User";
-                    break;
-                    
-                case 5: // Very detailed user
-                    messages = _replayService.GenerateDetailedConversation();
-                    scenarioName = "Detailed/Verbose User";
-                    break;
-                    
-                case 6: // Complex with changes
-                    messages = _replayService.GenerateComplexTestConversation();
-                    scenarioName = "Complex with Follow-ups";
-                    break;
-                    
-                case 7: // Urgent/rush booking
-                    messages = _replayService.GenerateUrgentBookingConversation();
-                    scenarioName = "Urgent/Rush Booking";
-                    break;
-                    
-                case 8: // Multi-day event
-                    messages = _replayService.GenerateMultiDayEventConversation();
-                    scenarioName = "Multi-Day Event";
-                    break;
-                    
-                case 9: // Panel discussion at Westin Brisbane
-                    messages = _replayService.GenerateEquipmentOnlyConversation();
-                    scenarioName = "Panel Discussion";
-                    break;
-                    
-                case 10: // All info at once
-                    messages = _replayService.GenerateAllAtOnceConversation();
-                    scenarioName = "All Info At Once";
-                    break;
-                    
-                case 11: // Training workshop
-                    messages = _replayService.GenerateTrainingWorkshopConversation();
-                    scenarioName = "Training Workshop";
-                    break;
-                    
-                case 12: // Mac-focused tech company
-                    messages = _replayService.GenerateMacTechConversation();
-                    scenarioName = "Mac/Creative Tech Company";
-                    break;
-                    
-                case 13: // Boardroom meeting
-                    messages = _replayService.GenerateBoardroomMeetingConversation();
-                    scenarioName = "Corporate Boardroom Meeting";
-                    break;
-                    
-                case 14: // Product launch
-                    messages = _replayService.GenerateProductLaunchConversation();
-                    scenarioName = "Product Launch Event";
-                    break;
-                    
-                case 15: // Time picker validation test
-                    messages = _replayService.GenerateTimePickerValidationConversation();
-                    scenarioName = "Time Picker Validation Test";
-                    break;
-                    
-                default: // 20% - Standard random (most common case)
-                    messages = _replayService.GenerateTestConversation();
-                    scenarioName = "Standard Random Event";
+                case "random":
+                default:
+                    // Random selection from standard scenarios
+                    var random = new Random();
+                    var randomScenario = random.Next(10);
+                    (messages, scenarioName) = randomScenario switch
+                    {
+                        0 => (_replayService.GenerateSmallEventConversation(), "Small Event"),
+                        1 => (_replayService.GenerateLargeConferenceConversation(), "Large Conference"),
+                        2 => (_replayService.GenerateHackathonConversation(), "Hackathon Event"),
+                        3 => (_replayService.GenerateSocialEventConversation(), "Social/Gala Event"),
+                        4 => (_replayService.GenerateMinimalInfoConversation(), "Minimal Info User"),
+                        5 => (_replayService.GenerateDetailedConversation(), "Detailed/Verbose User"),
+                        6 => (_replayService.GenerateUrgentBookingConversation(), "Urgent/Rush Booking"),
+                        7 => (_replayService.GenerateMultiDayEventConversation(), "Multi-Day Event"),
+                        8 => (_replayService.GenerateTrainingWorkshopConversation(), "Training Workshop"),
+                        _ => (_replayService.GenerateTestConversation(), "Standard Random Event")
+                    };
                     break;
             }
 
@@ -465,7 +424,7 @@ public sealed class ChatController : Controller
             return Json(new { 
                 success = true, 
                 messageCount = messageList.Count,
-                scenario = scenarioName
+                scenarioName = scenarioName
             });
         }
         catch (Exception ex)
@@ -533,6 +492,14 @@ public sealed class ChatController : Controller
             HttpContext.Session.Remove("Draft:CustomerCode");
             HttpContext.Session.Remove("Draft:PersistedSummaryKey");
             HttpContext.Session.Remove("Draft:ShowedBookingNo");
+            
+            // Clear acknowledged information to prevent duplicate acknowledgments in new conversation
+            HttpContext.Session.Remove("Ack:Budget");
+            HttpContext.Session.Remove("Ack:Attendees");
+            HttpContext.Session.Remove("Ack:SetupStyle");
+            HttpContext.Session.Remove("Ack:Venue");
+            HttpContext.Session.Remove("Ack:SpecialRequests");
+            HttpContext.Session.Remove("Ack:Dates");
 
             var newThreadId = _chat.EnsureThreadId(HttpContext.Session);
 
@@ -789,8 +756,35 @@ public sealed class ChatController : Controller
         }
         catch (Exception ex)
         {
-            Response.StatusCode = 500;
-            return Content(ex.Message);
+            _logger.LogError(ex, "Error in SendPartial for text: {Text}", text?.Substring(0, Math.Min(100, text?.Length ?? 0)));
+            
+            // Even on error, try to return the current transcript so user's message is preserved
+            try
+            {
+                var threadId = _chat.EnsureThreadId(HttpContext.Session);
+                var (_, messages) = _chat.GetTranscript(threadId);
+                var msgList = messages.ToList();
+                
+                // Add an error message to the conversation
+                var errorMessage = new DisplayMessage
+                {
+                    Role = "assistant",
+                    Timestamp = DateTimeOffset.UtcNow,
+                    Parts = new List<string> { "I apologize, but I encountered a brief issue. Could you please try sending your message again?" },
+                    FullText = "I apologize, but I encountered a brief issue. Could you please try sending your message again?",
+                    Html = "<p>I apologize, but I encountered a brief issue. Could you please try sending your message again?</p>"
+                };
+                msgList.Add(errorMessage);
+                
+                SetScheduleTimesInViewData();
+                return PartialView("_Messages", msgList);
+            }
+            catch
+            {
+                // Last resort fallback
+                Response.StatusCode = 500;
+                return Content("I apologize, but something went wrong. Please refresh the page and try again.");
+            }
         }
     }
 
@@ -1195,6 +1189,14 @@ public sealed class ChatController : Controller
             HttpContext.Session.Remove("Draft:CustomerCode");
             HttpContext.Session.Remove("Draft:PersistedSummaryKey");
             HttpContext.Session.Remove("Draft:ShowedBookingNo");
+            
+            // Clear acknowledged information to prevent duplicate acknowledgments in new conversation
+            HttpContext.Session.Remove("Ack:Budget");
+            HttpContext.Session.Remove("Ack:Attendees");
+            HttpContext.Session.Remove("Ack:SetupStyle");
+            HttpContext.Session.Remove("Ack:Venue");
+            HttpContext.Session.Remove("Ack:SpecialRequests");
+            HttpContext.Session.Remove("Ack:Dates");
 
             var newThreadId = _chat.EnsureThreadId(HttpContext.Session);
 

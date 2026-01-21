@@ -957,6 +957,122 @@ public class ConversationReplayService
         };
     }
 
+    #region Bug Reproduction Scenarios
+
+    /// <summary>
+    /// BUG REPRODUCTION: AI Stops Responding After Time Picker Confirmation
+    /// 
+    /// This scenario reproduces the reported bug where:
+    /// 1. User goes through the full conversation flow
+    /// 2. User selects venue (Thrive Boardroom)
+    /// 3. User confirms schedule via time picker
+    /// 4. AI stops responding and just repeats "Thank you! I've noted X attendees..."
+    /// 
+    /// Uses randomized data but follows the exact conversation pattern that triggers the bug.
+    /// </summary>
+    public IEnumerable<string> GenerateAiStopsRespondingBugConversation()
+    {
+        // Generate randomized but realistic data
+        var firstName = _firstNames[_random.Next(_firstNames.Length)];
+        var lastName = _lastNames[_random.Next(_lastNames.Length)];
+        var fullName = $"{firstName} {lastName}";
+        
+        var companyBase = _companyNames[_random.Next(_companyNames.Length)];
+        var companySuffix = _companySuffixes[_random.Next(_companySuffixes.Length)];
+        var companyName = $"{companyBase}{companySuffix}";
+        
+        var phone = GeneratePhoneNumber();
+        var email = GenerateEmail(firstName, lastName, companyBase);
+        var position = _positions[_random.Next(_positions.Length)].ToLower();
+        
+        // Generate random Australian state
+        var states = new[] { "nsw", "vic", "qld", "sa", "wa", "tas", "nt", "act" };
+        var state = states[_random.Next(states.Length)];
+        
+        // Generate event type (year-end meetings are common)
+        var meetingTypes = new[] { 
+            "a year end meeting", 
+            "an end of year meeting", 
+            "our annual meeting", 
+            "a quarterly review meeting",
+            "a board meeting",
+            "a team planning session"
+        };
+        var meetingType = meetingTypes[_random.Next(meetingTypes.Length)];
+        
+        // Generate random attendee count (10-50 for boardroom)
+        var attendeeCount = _random.Next(10, 51);
+        
+        // Generate random event date in the future
+        var eventDate = DateTime.Now.AddDays(_random.Next(14, 90));
+        var monthName = eventDate.ToString("MMMM").ToLower();
+        var day = eventDate.Day;
+        
+        // Generate schedule times
+        var setupHour = _random.Next(7, 10);
+        var rehearsalHour = setupHour + 1;
+        var startHour = rehearsalHour + 1;
+        var endHour = _random.Next(15, 18);
+        var packupHour = endHour + 1;
+        
+        var dayOfWeek = eventDate.ToString("dddd");
+        var dateFormatted = eventDate.ToString("MMMM d, yyyy");
+        
+        // Return the exact conversation flow that triggers the bug
+        return new[]
+        {
+            // Step 1: User provides name (various formats)
+            fullName,
+            
+            // Step 2: User indicates new customer (various ways to say it)
+            new[] { "new one", "new", "new customer", "first time", "nope, new" }[_random.Next(5)],
+            
+            // Step 3: User provides organization and location
+            $"{companyName.ToLower()}, {state}",
+            
+            // Step 4: User provides contact details (phone, email, position)
+            $"{phone},{email},{position}",
+            
+            // Step 5: User describes event type
+            meetingType,
+            
+            // Step 6: User asks for venue recommendation
+            new[] { 
+                "can i have your recommendation", 
+                "what do you recommend?", 
+                "any suggestions?",
+                "what venues do you have?",
+                "show me the options"
+            }[_random.Next(5)],
+            
+            // Step 7: User selects Thrive Boardroom
+            new[] {
+                "I like the thrive boardroom",
+                "thrive boardroom please",
+                "the thrive boardroom looks good",
+                "I'll go with thrive boardroom"
+            }[_random.Next(4)],
+            
+            // Step 8: User selects boardroom layout
+            "boardroom",
+            
+            // Step 9: User provides date and attendee count
+            $"it's on {monthName} {day} and have around {attendeeCount} attendees",
+            
+            // Step 10: User confirms schedule selection (THIS IS WHERE THE BUG OCCURS)
+            // The AI shows the time picker, user confirms, and then AI stops responding
+            $"I've selected this schedule: on {dayOfWeek}, {dateFormatted}: Setup {setupHour}AM; Rehearsal {rehearsalHour}AM; Event Start {startHour}AM; Event End {endHour - 12}PM; Pack Up {packupHour - 12}PM. Please confirm this schedule and ask about AV equipment requirements.",
+            
+            // Step 11: Additional messages to test if AI continues responding
+            // These messages should get responses, but the bug causes the AI to stop
+            "yes that looks good",
+            "we'll need a projector and microphones",
+            "hello? are you there?"
+        };
+    }
+
+    #endregion
+
     /// <summary>
     /// Generates a test case specifically for time picker validation testing
     /// This includes scenarios that will trigger the time picker and test validation

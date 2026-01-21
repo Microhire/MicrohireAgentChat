@@ -90,8 +90,7 @@
                 <i class="ph ph-caret-right"></i>
             </button>
 
-            @if (ViewData["DevModeEnabled"] as bool? == true)
-            {
+            @{
                 <button id="startReplayBtn" type="button" class="btn btn-outline-primary ms-2" title="Start Test Conversation">
                     <i class="ph ph-play"></i> Test
                 </button>
@@ -112,6 +111,183 @@
         </div>
     </div>
 </div>
+
+<!-- Test Scenario Selection Modal -->
+<div id="testScenarioModal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Select Test Scenario</h3>
+            <button type="button" class="modal-close" id="closeModalBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="scenario-category">
+                <h4>🐛 Bug Reproduction Tests</h4>
+                <p class="category-desc">Test scenarios that reproduce reported bugs</p>
+                <div class="scenario-list">
+                    <button class="scenario-btn bug-scenario" data-scenario="ai_stops_responding">
+                        <span class="scenario-icon">⚠️</span>
+                        <span class="scenario-info">
+                            <strong>AI Stops Responding</strong>
+                            <small>Reproduces bug where AI stops after time picker confirmation</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn bug-scenario" data-scenario="time_picker_validation">
+                        <span class="scenario-icon">⏰</span>
+                        <span class="scenario-info">
+                            <strong>Time Picker Validation</strong>
+                            <small>Tests time picker edge cases and validation</small>
+                        </span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="scenario-category">
+                <h4>📋 Standard Test Flows</h4>
+                <p class="category-desc">General conversation flow tests with randomized data</p>
+                <div class="scenario-list">
+                    <button class="scenario-btn" data-scenario="random">
+                        <span class="scenario-icon">🎲</span>
+                        <span class="scenario-info">
+                            <strong>Random Scenario</strong>
+                            <small>Randomly selects from all standard scenarios</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn" data-scenario="small_event">
+                        <span class="scenario-icon">👥</span>
+                        <span class="scenario-info">
+                            <strong>Small Event</strong>
+                            <small>15-25 attendees, boardroom meeting</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn" data-scenario="large_conference">
+                        <span class="scenario-icon">🎪</span>
+                        <span class="scenario-info">
+                            <strong>Large Conference</strong>
+                            <small>300-500 attendees, major event</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn" data-scenario="social_event">
+                        <span class="scenario-icon">🎉</span>
+                        <span class="scenario-info">
+                            <strong>Social/Gala Event</strong>
+                            <small>Dinner, gala, or social gathering</small>
+                        </span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+    .modal-content {
+        background: white;
+        border-radius: 12px;
+        max-width: 500px;
+        width: 90%;
+        max-height: 80vh;
+        overflow-y: auto;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    }
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px 20px;
+        border-bottom: 1px solid #e6e8ef;
+    }
+    .modal-header h3 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+    }
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 24px;
+        cursor: pointer;
+        color: #666;
+        padding: 0;
+        line-height: 1;
+    }
+    .modal-close:hover { color: #333; }
+    .modal-body {
+        padding: 16px 20px;
+    }
+    .scenario-category {
+        margin-bottom: 20px;
+    }
+    .scenario-category h4 {
+        margin: 0 0 4px 0;
+        font-size: 14px;
+        font-weight: 600;
+        color: #333;
+    }
+    .category-desc {
+        margin: 0 0 12px 0;
+        font-size: 12px;
+        color: #666;
+    }
+    .scenario-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .scenario-btn {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 16px;
+        background: #f7f8fc;
+        border: 1px solid #e6e8ef;
+        border-radius: 8px;
+        cursor: pointer;
+        text-align: left;
+        transition: all 0.2s;
+    }
+    .scenario-btn:hover {
+        background: #eef0f7;
+        border-color: #d0d4e4;
+    }
+    .scenario-btn.bug-scenario {
+        background: #fff5f5;
+        border-color: #fecaca;
+    }
+    .scenario-btn.bug-scenario:hover {
+        background: #fee2e2;
+        border-color: #f87171;
+    }
+    .scenario-icon {
+        font-size: 24px;
+        flex-shrink: 0;
+    }
+    .scenario-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .scenario-info strong {
+        font-size: 14px;
+        font-weight: 600;
+        color: #333;
+    }
+    .scenario-info small {
+        font-size: 12px;
+        color: #666;
+    }
+</style>
 
 @section Scripts {
     <script>
@@ -380,10 +556,39 @@
           const startReplayBtn = document.getElementById('startReplayBtn');
           const nextReplayBtn = document.getElementById('nextReplayBtn');
           const replayStatus = document.getElementById('replayStatus');
+          const testScenarioModal = document.getElementById('testScenarioModal');
+          const closeModalBtn = document.getElementById('closeModalBtn');
+          const scenarioBtns = document.querySelectorAll('.scenario-btn');
 
-          // Only add dev mode event listeners if buttons exist (dev mode enabled)
+          // Show modal when clicking Test button
           if (startReplayBtn) {
-            startReplayBtn.addEventListener('click', async () => {
+            startReplayBtn.addEventListener('click', () => {
+              testScenarioModal.style.display = 'flex';
+            });
+          }
+
+          // Close modal
+          if (closeModalBtn) {
+            closeModalBtn.addEventListener('click', () => {
+              testScenarioModal.style.display = 'none';
+            });
+          }
+
+          // Close modal when clicking outside
+          if (testScenarioModal) {
+            testScenarioModal.addEventListener('click', (e) => {
+              if (e.target === testScenarioModal) {
+                testScenarioModal.style.display = 'none';
+              }
+            });
+          }
+
+          // Handle scenario selection
+          scenarioBtns.forEach(btn => {
+            btn.addEventListener('click', async () => {
+              const scenario = btn.dataset.scenario;
+              testScenarioModal.style.display = 'none';
+
               try {
                 startReplayBtn.disabled = true;
                 startReplayBtn.textContent = 'Starting...';
@@ -393,7 +598,8 @@
                   headers: {
                     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                     'RequestVerificationToken': sendToken
-                  }
+                  },
+                  body: new URLSearchParams({ scenario })
                 });
 
                 const data = await res.json();
@@ -401,7 +607,7 @@
                   startReplayBtn.style.display = 'none';
                   nextReplayBtn.style.display = 'inline-block';
                   replayStatus.style.display = 'inline';
-                  replayStatus.textContent = `${data.messageCount} messages ready`;
+                  replayStatus.textContent = `${data.scenarioName}: ${data.messageCount} messages`;
                   nextReplayBtn.disabled = false;
                 } else {
                   throw new Error(data.error || 'Failed to start replay');
@@ -413,7 +619,7 @@
                 startReplayBtn.innerHTML = '<i class="ph ph-play"></i> Test';
               }
             });
-          }
+          });
 
           if (nextReplayBtn) {
             nextReplayBtn.addEventListener('click', async () => {
