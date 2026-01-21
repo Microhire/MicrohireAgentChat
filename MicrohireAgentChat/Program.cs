@@ -45,8 +45,14 @@ builder.Services.AddDbContext<BookingDbContext>(opt =>
     opt.EnableDetailedErrors();
     opt.EnableSensitiveDataLogging();
 });
-//builder.Services.AddDbContext<AppDbContext>(options =>
-//    options.UseSqlServer(builder.Configuration.GetConnectionString("AppConnection")));
+// AppDbContext for thread persistence (separate from client's BookingsDb)
+builder.Services.AddDbContext<AppDbContext>(options =>
+{
+    var cs = builder.Configuration.GetConnectionString("AppConnection");
+    if (string.IsNullOrWhiteSpace(cs))
+        throw new InvalidOperationException("Missing connection string 'AppConnection'.");
+    options.UseSqlServer(cs);
+});
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AzureAgentChatService>();
 builder.Services.AddScoped<BookingService>();

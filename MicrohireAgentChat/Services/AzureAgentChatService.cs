@@ -35,6 +35,7 @@ namespace MicrohireAgentChat.Services
         private readonly ILogger<AzureAgentChatService> _logger;
         private readonly IWebHostEnvironment _env;
         private readonly BookingDbContext _bookings;
+        private readonly AppDbContext _appDb;  // For thread persistence (separate from client's DB)
         
         // Modular services (extracted from this monolith)
         private readonly BookingOrchestrationService _orchestration;
@@ -55,6 +56,7 @@ namespace MicrohireAgentChat.Services
             AIProjectClient projectClient,
             IOptions<AzureAgentOptions> options,
             BookingDbContext bookings,
+            AppDbContext appDb,  // Thread persistence DB (separate from client's BookingsDb)
             IHttpContextAccessor http,
             IWebHostEnvironment env,
             ILogger<AzureAgentChatService> logger,
@@ -71,6 +73,7 @@ namespace MicrohireAgentChat.Services
             _projectClient = projectClient;
             _agentId = options.Value.AgentId ?? throw new ArgumentNullException(nameof(options.Value.AgentId));
             _bookings = bookings;
+            _appDb = appDb;
             _http = http;
             _env = env;
             _logger = logger;
@@ -1123,12 +1126,12 @@ namespace MicrohireAgentChat.Services
 
         public async Task ReplacePersistedThreadAsync(string userKey, string newThreadId, CancellationToken ct)
         {
-            var row = await _bookings.AgentThreads.FirstOrDefaultAsync(x => x.UserKey == userKey, ct);
+            var row = await _appDb.AgentThreads.FirstOrDefaultAsync(x => x.UserKey == userKey, ct);
             var now = DateTime.UtcNow;
 
             if (row is null)
             {
-                _bookings.AgentThreads.Add(new AgentThread
+                _appDb.AgentThreads.Add(new AgentThread
                 {
                     UserKey = userKey,
                     ThreadId = newThreadId,
@@ -1140,10 +1143,10 @@ namespace MicrohireAgentChat.Services
             {
                 row.ThreadId = newThreadId;
                 row.LastSeenUtc = now;
-                _bookings.AgentThreads.Update(row);
+                _appDb.AgentThreads.Update(row);
             }
 
-            await _bookings.SaveChangesAsync(ct);
+            await _appDb.SaveChangesAsync(ct);
         }
 
         public async Task<string> EnsureThreadIdPersistedAsync(
@@ -1151,7 +1154,7 @@ namespace MicrohireAgentChat.Services
             string userKey,
             CancellationToken ct)
         {
-            var saved = await _bookings.AgentThreads
+            var saved = await _appDb.AgentThreads
                 .AsNoTracking()
                 .Where(t => t.UserKey == userKey)
                 .Select(t => t.ThreadId)
@@ -1167,13 +1170,13 @@ namespace MicrohireAgentChat.Services
             var threadId = EnsureThreadId(session);
 
             var now = DateTime.UtcNow;
-            var existing = await _bookings.AgentThreads
+            var existing = await _appDb.AgentThreads
                 .Where(t => t.UserKey == userKey || t.ThreadId == threadId)
                 .FirstOrDefaultAsync(ct);
 
             if (existing is null)
             {
-                _bookings.AgentThreads.Add(new AgentThread
+                _appDb.AgentThreads.Add(new AgentThread
                 {
                     UserKey = userKey,
                     ThreadId = threadId,
@@ -1186,30 +1189,30 @@ namespace MicrohireAgentChat.Services
                 existing.UserKey = userKey;
                 existing.ThreadId = threadId;
                 existing.LastSeenUtc = now;
-                _bookings.AgentThreads.Update(existing);
+                _appDb.AgentThreads.Update(existing);
             }
 
-            await _bookings.SaveChangesAsync(ct);
+            await _appDb.SaveChangesAsync(ct);
             return threadId;
         }
 
         private async Task TouchLastSeenAsync(string userKey, CancellationToken ct)
         {
-            var row = await _bookings.AgentThreads
+            var row = await _appDb.AgentThreads
                 .Where(t => t.UserKey == userKey)
                 .FirstOrDefaultAsync(ct);
 
             if (row is not null)
             {
                 row.LastSeenUtc = DateTime.UtcNow;
-                _bookings.AgentThreads.Update(row);
-                await _bookings.SaveChangesAsync(ct);
+                _appDb.AgentThreads.Update(row);
+                await _appDb.SaveChangesAsync(ct);
             }
         }
 
         public async Task<string?> GetSavedThreadIdAsync(string userKey, CancellationToken ct)
         {
-            var t = await _bookings.AgentThreads
+            var t = await _appDb.AgentThreads
                 .AsNoTracking()
                 .Where(x => x.UserKey == userKey)
                 .Select(x => x.ThreadId)

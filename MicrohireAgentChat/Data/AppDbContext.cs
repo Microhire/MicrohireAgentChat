@@ -1,4 +1,4 @@
-﻿using MicrohireAgentChat.Models;
+using MicrohireAgentChat.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace MicrohireAgentChat.Data
@@ -16,7 +16,7 @@ namespace MicrohireAgentChat.Data
 
             modelBuilder.Entity<AgentThread>(e =>
             {
-                e.ToTable("AgentThreads", "dbo"); // schema + table
+                e.ToTable("AgentThreads", "dbo");
                 e.HasKey(x => x.Id);
 
                 e.HasIndex(x => x.UserKey).IsUnique();
