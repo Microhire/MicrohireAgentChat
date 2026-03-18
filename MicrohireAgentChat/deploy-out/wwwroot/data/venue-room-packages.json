@@ -1,0 +1,26 @@
+{
+  "Westin Brisbane": {
+    "Westin Ballroom": {
+      "audio": ["WSBFBALL", "WSBALLAU"],
+      "vision": ["WSBBDPRO", "WSBBSPRO", "WSBNSPRO", "WSBSSPRO"],
+      "av": ["WSBWFAV", "WSBWSAV"]
+    },
+    "Elevate": {
+      "audio": ["WSBELAUD", "WSBELSAD"],
+      "vision": ["WSBELPRO"],
+      "av": ["WSBFELAV", "WSBELAV"]
+    },
+    "Thrive Boardroom": {
+      "audio": ["WSBTHAUD"],
+      "vision": ["WSBTHPRO"],
+      "av": ["WSBTHAV"]
+    }
+  },
+  "Four Points Brisbane": {
+    "Meeting Room": {
+      "audio": ["WSBFPAUD"],
+      "vision": ["WSBFPPRO"],
+      "av": ["WSBFPAVP"]
+    }
+  }
+}

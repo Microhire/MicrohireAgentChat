@@ -1,7 +1,13 @@
+using MicrohireAgentChat.Config;
 using MicrohireAgentChat.Data;
 using MicrohireAgentChat.Models;
+using MicrohireAgentChat.Services.Extraction;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using System.Globalization;
+using System.Text;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using MicrohireAgentChat.Services;
 
@@ -10,14 +16,34 @@ namespace MicrohireAgentChat.Services.Persistence;
 /// <summary>
 /// Handles booking persistence to tblbookings table
 /// </summary>
-public sealed class BookingPersistenceService
+public sealed partial class BookingPersistenceService
 {
     private readonly BookingDbContext _db;
+    private readonly ChatExtractionService _chatExtraction;
+    private readonly ItemPersistenceService _itemService;
+    private readonly CrewPersistenceService _crewService;
+    private readonly ContactPersistenceService _contactService;
+    private readonly OrganizationPersistenceService _orgService;
+    private readonly RentalPointDefaultsOptions _rpDefaults;
     private readonly ILogger<BookingPersistenceService> _logger;
 
-    public BookingPersistenceService(BookingDbContext db, ILogger<BookingPersistenceService> logger)
+    public BookingPersistenceService(
+        BookingDbContext db,
+        ChatExtractionService chatExtraction,
+        ItemPersistenceService itemService,
+        CrewPersistenceService crewService,
+        ContactPersistenceService contactService,
+        OrganizationPersistenceService orgService,
+        IOptions<RentalPointDefaultsOptions> rpDefaults,
+        ILogger<BookingPersistenceService> logger)
     {
         _db = db;
+        _chatExtraction = chatExtraction;
+        _itemService = itemService;
+        _crewService = crewService;
+        _contactService = contactService;
+        _orgService = orgService;
+        _rpDefaults = rpDefaults.Value;
         _logger = logger;
     }
 
@@ -94,9 +120,13 @@ public sealed class BookingPersistenceService
 
             var venueName = GetFact(facts, "venue_name");
             var venueRoom = GetFact(facts, "venue_room");
+            var projectorArea = GetFact(facts, "projector_area");
+            var projectorAreas = GetFact(facts, "projector_areas");
+            var projectionNeeded = FactsRequireProjectorPlacement(facts);
+            venueRoom = MergeProjectorAreasIntoVenueRoom(venueRoom, projectorAreas, projectorArea, projectionNeeded);
             var eventType = GetFact(facts, "event_type");
             var showName = GetFact(facts, "show_name") ?? GetFact(facts, "event_type");
-            var salesperson = GetFact(facts, "salesperson") ?? "Isla";
+            var salesperson = GetFact(facts, "salesperson") ?? _rpDefaults.Salesperson;
             var attendees = ParseInt(GetFact(facts, "expected_attendees"));
 
             // Financial fields
@@ -107,49 +137,20 @@ public sealed class BookingPersistenceService
             var tax2 = ParseDecimal(GetFact(facts, "gst"));
 
             // Status
-            var status = GetFact(facts, "booking_status") ?? "Enquiry";
+            var statusFact = GetFact(facts, "booking_status");
+            var initialStatus = statusFact ?? "Enquiry";
             var bookingType = ParseByte(GetFact(facts, "booking_type")) ?? (byte)2; // 2 = Quote/Booking
 
-            // Venue lookup - check tblVenues for venue ID
-            int? venueId = null; // null means don't change existing venue
-            if (!string.IsNullOrWhiteSpace(venueName))
-            {
-                // Check if it's Westin Brisbane (our primary supported venue)
-                var normalizedVenue = venueName.ToLower().Trim();
-                if (normalizedVenue.Contains("westin") && normalizedVenue.Contains("brisbane"))
-                {
-                    // Use Westin Brisbane ID directly - this is our primary partner venue
-                    venueId = 20; // The Westin Brisbane ID
-                }
-                else
-                {
-                    // Look up in tblVenues by name
-                    var venue = await _db.TblVenues
-                        .Where(v => v.VenueName != null && v.VenueName.ToLower().Contains(normalizedVenue))
-                        .Select(v => new { v.ID })
-                        .FirstOrDefaultAsync(ct);
-                    
-                    if (venue != null)
-                    {
-                        venueId = (int)venue.ID;
-                    }
-                    else
-                    {
-                        // Fallback: check tblCusts for venue
-                        var custVenue = await _db.TblCusts
-                            .Where(c => c.OrganisationV6 != null && c.OrganisationV6.ToLower().Contains(normalizedVenue))
-                            .Select(c => new { c.ID })
-                            .FirstOrDefaultAsync(ct);
-                        venueId = custVenue != null ? (int)custVenue.ID : 20; // Default to Westin Brisbane
-                    }
-                }
-            }
+            // Venue lookup - check tblVenues (with safe fallback)
+            int? venueId = await ResolveVenueIdAsync(venueName, ct);
 
             var existing = await _db.TblBookings.FirstOrDefaultAsync(b => b.booking_no == bookingNo, ct);
 
             // CRITICAL: CustID is required by the database - get default if not provided
             var finalCustId = organizationId ?? await GetDefaultCustomerIdAsync(ct);
-            var finalCustCode = customerCode ?? (finalCustId.HasValue ? await GetCustomerCodeByIdAsync(finalCustId.Value, ct) : null);
+            var finalCustCode = Trunc(
+                customerCode ?? (finalCustId.HasValue ? await GetCustomerCodeByIdAsync(finalCustId.Value, ct) : null),
+                CustomerCodeMaxLength);
 
             if (existing == null)
             {
@@ -160,7 +161,7 @@ public sealed class BookingPersistenceService
                     order_no = bookingNo, // default same as booking_no
                     booking_type_v32 = bookingType,
                     status = 0, // 0 = enquiry/quote
-                    BookingProgressStatus = (byte)TryParseStatus(status),
+                    BookingProgressStatus = (byte)TryParseStatus(initialStatus),
                     bBookingIsComplete = false,
                     
                     // Dates (CRITICAL: must set dDate and rDate per guide)
@@ -186,11 +187,11 @@ public sealed class BookingPersistenceService
                     ret_time_m = (byte?)strikeTime?.Minutes,
                     
                     // Venue & Event
-                    VenueRoom = Trunc(venueRoom, 50),
-                    EventType = Trunc(eventType, 35),
-                    showName = Trunc(showName, 100),
+                    VenueRoom = Trunc(venueRoom, VenueRoomMaxLength),
+                    EventType = Trunc(eventType, EventTypeMaxLength),
+                    showName = Trunc(showName, ShowNameMaxLength),
                     expAttendees = attendees,
-                    VenueID = venueId ?? 1,
+                    VenueID = venueId ?? 20,
                     
                     // Financial
                     price_quoted = (double?)priceQuoted,
@@ -207,9 +208,9 @@ public sealed class BookingPersistenceService
                     ContactID = contactId,
                     contact_nameV6 = Trunc(contactName, 35),
                     OrganizationV6 = finalCustId.HasValue
-                        ? await GetOrganizationNameAsync(finalCustId.Value, ct)
+                        ? Trunc(await GetOrganizationNameAsync(finalCustId.Value, ct), 50)
                         : null,
-                    Salesperson = Trunc(salesperson, 50),
+                    Salesperson = Trunc(salesperson, SalespersonMaxLength),
                     
                     // Defaults
                     From_locn = 20,
@@ -253,11 +254,27 @@ public sealed class BookingPersistenceService
                 if (showStartTime.HasValue) existing.showStartTime = ToHHmmString(showStartTime);
                 if (showEndTime.HasValue) existing.ShowEndTime = ToHHmmString(showEndTime);
 
-                if (!string.IsNullOrWhiteSpace(venueRoom)) existing.VenueRoom = Trunc(venueRoom, 50);
-                if (!string.IsNullOrWhiteSpace(eventType)) existing.EventType = Trunc(eventType, 35);
-                if (!string.IsNullOrWhiteSpace(showName)) existing.showName = Trunc(showName, 100);
-                if (!string.IsNullOrWhiteSpace(salesperson)) existing.Salesperson = Trunc(salesperson, 50);
-                if (!string.IsNullOrWhiteSpace(status)) existing.BookingProgressStatus = (byte)TryParseStatus(status);
+                if (!string.IsNullOrWhiteSpace(venueRoom)) existing.VenueRoom = Trunc(venueRoom, VenueRoomMaxLength);
+                if (!string.IsNullOrWhiteSpace(eventType)) existing.EventType = Trunc(eventType, EventTypeMaxLength);
+                if (!string.IsNullOrWhiteSpace(showName)) existing.showName = Trunc(showName, ShowNameMaxLength);
+                if (!string.IsNullOrWhiteSpace(salesperson)) existing.Salesperson = Trunc(salesperson, SalespersonMaxLength);
+                if (!string.IsNullOrWhiteSpace(statusFact))
+                {
+                    var parsedStatus = (byte)TryParseStatus(statusFact);
+                    var currentStatus = existing.BookingProgressStatus ?? 0;
+
+                    // Once quote is accepted/signed (heavy pencil or above), avoid accidental downgrades.
+                    if (currentStatus >= 2 && parsedStatus < 2)
+                    {
+                        _logger.LogInformation(
+                            "Skipped BookingProgressStatus downgrade for {BookingNo}: current={Current}, incoming={Incoming}",
+                            bookingNo, currentStatus, parsedStatus);
+                    }
+                    else
+                    {
+                        existing.BookingProgressStatus = parsedStatus;
+                    }
+                }
                 if (attendees.HasValue) existing.expAttendees = attendees;
 
                 if (priceQuoted.HasValue) existing.price_quoted = (double?)priceQuoted;
@@ -272,11 +289,11 @@ public sealed class BookingPersistenceService
 
                 if (contactId.HasValue) existing.ContactID = contactId;
                 if (!string.IsNullOrWhiteSpace(contactName)) existing.contact_nameV6 = Trunc(contactName, 35);
-                if (!string.IsNullOrWhiteSpace(finalCustCode)) existing.CustCode = finalCustCode;
+                if (!string.IsNullOrWhiteSpace(finalCustCode)) existing.CustCode = Trunc(finalCustCode, CustomerCodeMaxLength);
                 if (finalCustId.HasValue)
                 {
                     existing.CustID = finalCustId;
-                    existing.OrganizationV6 = await GetOrganizationNameAsync(finalCustId.Value, ct);
+                    existing.OrganizationV6 = Trunc(await GetOrganizationNameAsync(finalCustId.Value, ct), 50);
                 }
                 if (venueId.HasValue) existing.VenueID = venueId.Value;
             }
@@ -312,9 +329,13 @@ public sealed class BookingPersistenceService
         // Extract common data that applies to all days
         var venueName = GetFact(facts, "venue_name");
         var venueRoom = GetFact(facts, "venue_room");
+        var projectorArea = GetFact(facts, "projector_area");
+        var projectorAreas = GetFact(facts, "projector_areas");
+        var projectionNeeded = FactsRequireProjectorPlacement(facts);
+        venueRoom = MergeProjectorAreasIntoVenueRoom(venueRoom, projectorAreas, projectorArea, projectionNeeded);
         var eventType = GetFact(facts, "event_type");
         var showName = GetFact(facts, "show_name") ?? GetFact(facts, "event_type");
-        var salesperson = GetFact(facts, "salesperson") ?? "Isla";
+        var salesperson = GetFact(facts, "salesperson") ?? _rpDefaults.Salesperson;
         var attendees = ParseInt(GetFact(facts, "expected_attendees"));
 
         // Financial fields (shared across all days)
@@ -328,39 +349,13 @@ public sealed class BookingPersistenceService
         var bookingType = ParseByte(GetFact(facts, "booking_type")) ?? (byte)2;
 
         // Venue lookup
-        int? venueId = null;
-        if (!string.IsNullOrWhiteSpace(venueName))
-        {
-            var normalizedVenue = venueName.ToLower().Trim();
-            if (normalizedVenue.Contains("westin") && normalizedVenue.Contains("brisbane"))
-            {
-                venueId = 20; // The Westin Brisbane ID
-            }
-            else
-            {
-                var venue = await _db.TblVenues
-                    .Where(v => v.VenueName != null && v.VenueName.ToLower().Contains(normalizedVenue))
-                    .Select(v => new { v.ID })
-                    .FirstOrDefaultAsync(ct);
-
-                if (venue != null)
-                {
-                    venueId = (int)venue.ID;
-                }
-                else
-                {
-                    var custVenue = await _db.TblCusts
-                        .Where(c => c.OrganisationV6 != null && c.OrganisationV6.ToLower().Contains(normalizedVenue))
-                        .Select(c => new { c.ID })
-                        .FirstOrDefaultAsync(ct);
-                    venueId = custVenue != null ? (int)custVenue.ID : 20;
-                }
-            }
-        }
+        int? venueId = await ResolveVenueIdAsync(venueName, ct);
 
         // CRITICAL: CustID is required
         var finalCustId = organizationId ?? await GetDefaultCustomerIdAsync(ct);
-        var finalCustCode = customerCode ?? (finalCustId.HasValue ? await GetCustomerCodeByIdAsync(finalCustId.Value, ct) : null);
+        var finalCustCode = Trunc(
+            customerCode ?? (finalCustId.HasValue ? await GetCustomerCodeByIdAsync(finalCustId.Value, ct) : null),
+            CustomerCodeMaxLength);
 
         // Create booking record for each day
         for (int dayNumber = 1; dayNumber <= multiDayDetails.DurationDays; dayNumber++)
@@ -419,11 +414,11 @@ public sealed class BookingPersistenceService
                     ret_time_m = dayEndTime.HasValue ? (byte?)dayEndTime.Value.Minutes : null,
 
                     // Venue & Event
-                    VenueRoom = Trunc($"{venueRoom} - Day {dayNumber}", 50),
-                    EventType = Trunc($"{eventType} (Day {dayNumber})", 35),
-                    showName = Trunc($"{showName} - Day {dayNumber}", 100),
+                    VenueRoom = Trunc($"{venueRoom} - Day {dayNumber}", VenueRoomMaxLength),
+                    EventType = Trunc($"{eventType} (Day {dayNumber})", EventTypeMaxLength),
+                    showName = Trunc($"{showName} - Day {dayNumber}", ShowNameMaxLength),
                     expAttendees = attendees,
-                    VenueID = venueId ?? 1,
+                    VenueID = venueId ?? 20,
 
                     // Financial (distributed across days)
                     price_quoted = (double?)dayPriceQuoted,
@@ -440,9 +435,9 @@ public sealed class BookingPersistenceService
                     ContactID = contactId,
                     contact_nameV6 = Trunc(contactName, 35),
                     OrganizationV6 = finalCustId.HasValue
-                        ? await GetOrganizationNameAsync(finalCustId.Value, ct)
+                        ? Trunc(await GetOrganizationNameAsync(finalCustId.Value, ct), 50)
                         : null,
-                    Salesperson = Trunc(salesperson, 50),
+                    Salesperson = Trunc(salesperson, SalespersonMaxLength),
 
                     // Defaults
                     From_locn = 20,
@@ -486,9 +481,9 @@ public sealed class BookingPersistenceService
                     existing.ret_time_m = (byte?)dayEndTime.Value.Minutes;
                 }
 
-                existing.VenueRoom = Trunc($"{venueRoom} - Day {dayNumber}", 50);
-                existing.EventType = Trunc($"{eventType} (Day {dayNumber})", 35);
-                existing.showName = Trunc($"{showName} - Day {dayNumber}", 100);
+                existing.VenueRoom = Trunc($"{venueRoom} - Day {dayNumber}", VenueRoomMaxLength);
+                existing.EventType = Trunc($"{eventType} (Day {dayNumber})", EventTypeMaxLength);
+                existing.showName = Trunc($"{showName} - Day {dayNumber}", ShowNameMaxLength);
 
                 if (dayPriceQuoted.HasValue) existing.price_quoted = (double?)dayPriceQuoted;
                 if (dayHirePrice.HasValue) existing.hire_price = (double?)dayHirePrice;
@@ -502,11 +497,11 @@ public sealed class BookingPersistenceService
 
                 if (contactId.HasValue) existing.ContactID = contactId;
                 if (!string.IsNullOrWhiteSpace(contactName)) existing.contact_nameV6 = Trunc(contactName, 35);
-                if (!string.IsNullOrWhiteSpace(finalCustCode)) existing.CustCode = finalCustCode;
+                if (!string.IsNullOrWhiteSpace(finalCustCode)) existing.CustCode = Trunc(finalCustCode, CustomerCodeMaxLength);
                 if (finalCustId.HasValue)
                 {
                     existing.CustID = finalCustId;
-                    existing.OrganizationV6 = await GetOrganizationNameAsync(finalCustId.Value, ct);
+                    existing.OrganizationV6 = Trunc(await GetOrganizationNameAsync(finalCustId.Value, ct), 50);
                 }
                 if (venueId.HasValue) existing.VenueID = venueId.Value;
 
@@ -519,225 +514,4 @@ public sealed class BookingPersistenceService
         return firstDayBookingNo;
     }
 
-    /// <summary>
-    /// Save full transcript to tblbooknote
-    /// Schema: booking_no_v32 (varchar 20), booknote (text), log_dt (datetime)
-    /// </summary>
-    public async Task SaveTranscriptAsync(
-        string bookingNo,
-        IEnumerable<DisplayMessage> messages,
-        CancellationToken ct)
-    {
-        var transcript = BuildTranscript(messages);
-        if (string.IsNullOrWhiteSpace(transcript)) return;
-
-        var noteRow = new TblBooknote
-        {
-            BookingNo = bookingNo,
-            TextLine = transcript,
-            NoteType = 1 // 1 = transcript
-        };
-
-        _db.Set<TblBooknote>().Add(noteRow);
-        await _db.SaveChangesAsync(ct);
-    }
-
-    // ==================== PRIVATE HELPERS ====================
-
-    private static DateTime NowAest()
-    {
-#if WINDOWS
-        var tz = TimeZoneInfo.FindSystemTimeZoneById("E. Australia Standard Time");
-#else
-        var tz = TimeZoneInfo.FindSystemTimeZoneById("Australia/Brisbane");
-#endif
-        return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
-    }
-
-    private async Task<string> GenerateBookingNumberAsync(CancellationToken ct)
-    {
-        var now = NowAest();
-        var fiscalYear = now.Month >= 7 ? now.Year : now.Year - 1;
-        var yearShort = fiscalYear % 100;
-
-        var prefix = $"{yearShort:D2}";
-        var lastBooking = await _db.TblBookings
-            .Where(b => b.booking_no != null && b.booking_no.StartsWith(prefix))
-            .OrderByDescending(b => b.booking_no)
-            .Select(b => b.booking_no)
-            .FirstOrDefaultAsync(ct);
-
-        int nextSeq = 1;
-        if (lastBooking != null && lastBooking.Length >= 6)
-        {
-            var seqPart = lastBooking.Substring(2, 4);
-            if (int.TryParse(seqPart, out var seq))
-                nextSeq = seq + 1;
-        }
-
-        return $"{yearShort:D2}{nextSeq:D4}";
-    }
-
-    private async Task<string?> GetOrganizationNameAsync(decimal orgId, CancellationToken ct)
-    {
-        var org = await _db.TblCusts
-            .Where(c => c.ID == orgId)
-            .Select(c => c.OrganisationV6)
-            .FirstOrDefaultAsync(ct);
-        return org;
-    }
-
-    /// <summary>
-    /// Get a default customer ID for bookings without organization.
-    /// First tries to find "General Enquiry" or similar, falls back to ID 1.
-    /// </summary>
-    private async Task<decimal?> GetDefaultCustomerIdAsync(CancellationToken ct)
-    {
-        // Try to find a general/default customer
-        var defaultOrg = await _db.TblCusts
-            .Where(c => c.OrganisationV6 != null && 
-                   (c.OrganisationV6.ToLower().Contains("general") ||
-                    c.OrganisationV6.ToLower().Contains("enquiry") ||
-                    c.OrganisationV6.ToLower().Contains("walk-in") ||
-                    c.OrganisationV6.ToLower().Contains("default")))
-            .Select(c => c.ID)
-            .FirstOrDefaultAsync(ct);
-
-        if (defaultOrg != 0)
-            return defaultOrg;
-
-        // Fall back to first customer ID or 1
-        var firstCust = await _db.TblCusts
-            .OrderBy(c => c.ID)
-            .Select(c => c.ID)
-            .FirstOrDefaultAsync(ct);
-
-        return firstCust != 0 ? firstCust : 1;
-    }
-
-    /// <summary>
-    /// Get customer code by ID
-    /// </summary>
-    private async Task<string?> GetCustomerCodeByIdAsync(decimal custId, CancellationToken ct)
-    {
-        var code = await _db.TblCusts
-            .Where(c => c.ID == custId)
-            .Select(c => c.Customer_code)
-            .FirstOrDefaultAsync(ct);
-        return code;
-    }
-
-    private static string? GetFact(Dictionary<string, string> facts, string key)
-    {
-        if (facts.TryGetValue(key, out var val) && !string.IsNullOrWhiteSpace(val))
-            return val.Trim();
-        return null;
-    }
-
-    private static DateTime? ExtractDate(Dictionary<string, string> facts, string key)
-    {
-        var val = GetFact(facts, key);
-        if (val == null) return null;
-
-        if (DateTime.TryParse(val, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
-            return dt;
-
-        return null;
-    }
-
-    private static DateTime? ExtractDateTime(Dictionary<string, string> facts, string key)
-    {
-        return ExtractDate(facts, key);
-    }
-
-    private static TimeSpan? ExtractTime(Dictionary<string, string> facts, string key)
-    {
-        var val = GetFact(facts, key);
-        if (val == null) return null;
-
-        // Try HH:mm format
-        if (TimeSpan.TryParseExact(val, @"hh\:mm", CultureInfo.InvariantCulture, out var ts))
-            return ts;
-
-        // Try H:mm format
-        if (TimeSpan.TryParseExact(val, @"h\:mm", CultureInfo.InvariantCulture, out var ts2))
-            return ts2;
-
-        return null;
-    }
-
-    private static decimal? ParseDecimal(string? val)
-    {
-        if (string.IsNullOrWhiteSpace(val)) return null;
-        val = Regex.Replace(val, @"[^\d\.]", ""); // strip currency symbols
-        if (decimal.TryParse(val, out var d)) return d;
-        return null;
-    }
-
-    private static int? MinutesFromMidnight(TimeSpan? ts)
-    {
-        if (!ts.HasValue) return null;
-        return (int)ts.Value.TotalMinutes;
-    }
-
-    /// <summary>
-    /// Convert TimeSpan to 4-digit HHmm string format.
-    /// PER GUIDE: Format time so RP can read it properly - use "0930" not "930"
-    /// </summary>
-    private static string? ToHHmmString(TimeSpan? ts)
-    {
-        if (!ts.HasValue) return null;
-        // D2 ensures 2-digit formatting with leading zeros: 09:30 → "0930"
-        return $"{ts.Value.Hours:D2}{ts.Value.Minutes:D2}";
-    }
-
-    private static int TryParseStatus(string? status)
-    {
-        if (string.IsNullOrWhiteSpace(status)) return 1;
-        // Map common status strings to byte values
-        return status.ToLowerInvariant() switch
-        {
-            "enquiry" or "quote" => 1,
-            "confirmed" => 2,
-            "completed" => 3,
-            _ => 1 // default to enquiry
-        };
-    }
-
-    private static int? ParseInt(string? val)
-    {
-        if (string.IsNullOrWhiteSpace(val)) return null;
-        val = Regex.Replace(val, @"[^\d]", ""); // strip non-numeric
-        if (int.TryParse(val, out var i)) return i;
-        return null;
-    }
-
-    private static byte? ParseByte(string? val)
-    {
-        if (string.IsNullOrWhiteSpace(val)) return null;
-        if (byte.TryParse(val, out var b)) return b;
-        return null;
-    }
-
-    private static string? Trunc(string? s, int len)
-        => string.IsNullOrWhiteSpace(s) ? s : (s!.Length <= len ? s : s[..len]);
-
-    private static string BuildTranscript(IEnumerable<DisplayMessage> messages)
-    {
-        var sb = new System.Text.StringBuilder();
-        sb.AppendLine("=== CONVERSATION TRANSCRIPT ===");
-        sb.AppendLine();
-
-        foreach (var msg in messages)
-        {
-            var role = msg.Role == "user" ? "USER" : "ASSISTANT";
-            var timestamp = msg.Timestamp.ToString("yyyy-MM-dd HH:mm:ss");
-            sb.AppendLine($"[{timestamp}] {role}:");
-            sb.AppendLine(msg.FullText);
-            sb.AppendLine();
-        }
-
-        return sb.ToString();
-    }
 }
-

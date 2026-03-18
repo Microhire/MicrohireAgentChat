@@ -1,0 +1,55 @@
+{
+  "generatedAt": "2026-03-11T18:49:56.848Z",
+  "config": {
+    "runs": 1,
+    "headless": true,
+    "baseUrl": "http://localhost:5216",
+    "maxTurns": 18,
+    "outDir": "playwright-random-results",
+    "assistantTimeoutMs": 30000,
+    "profile": "thriveHybridFullCoverage",
+    "parallel": 1,
+    "invocationDir": "playwright-random-results/invocation-2026-03-11T18-49-37-237Z",
+    "ndjsonPath": "playwright-random-results/invocation-2026-03-11T18-49-37-237Z/runs.ndjson",
+    "summaryPath": "playwright-random-results/invocation-2026-03-11T18-49-37-237Z/summary.json",
+    "profiles": [
+      "thriveHybridFullCoverage"
+    ]
+  },
+  "totals": {
+    "runs": 1,
+    "pass": 0,
+    "fail": 1,
+    "warn": 0
+  },
+  "runs": [
+    {
+      "runId": "run-001-thrivehybridfullcoverage",
+      "startedAt": "2026-03-11T18:49:44.916Z",
+      "scenarioId": "thriveHybridFullCoverage",
+      "scenarioDescription": "Thrive Boardroom hybrid meeting with full technician coverage",
+      "status": "FAIL",
+      "reason": "Exception: page.waitForTimeout: Target page, context or browser has been closed",
+      "metrics": {
+        "assistantTurns": 0,
+        "attendeePromptCount": 0,
+        "attendeeReconfirmCount": 0,
+        "technicalIssueCount": 0,
+        "videoAssumptionCount": 0,
+        "technicianPromptCount": 0,
+        "quoteReached": false,
+        "timePickerSubmitted": false
+      },
+      "assertions": [],
+      "transcript": [
+        {
+          "ts": "2026-03-11T18:49:51.221Z",
+          "role": "user",
+          "text": "Daniel Morel"
+        }
+      ],
+      "screenshotOnFailure": null,
+      "endedAt": "2026-03-11T18:49:56.846Z"
+    }
+  ]
+}

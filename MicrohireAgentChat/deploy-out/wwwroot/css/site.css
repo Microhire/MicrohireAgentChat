@@ -1,0 +1,214 @@
+.hero {
+    height: 500px;
+    background: url("/images/6ayphSkNC7h3rSmFt9ImGKvjjNB7PVnu.png") no-repeat center center/cover;
+    padding: 40px 100px 2px 100px;
+    margin-bottom: 50px;
+}
+
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo img {
+    width: 200px;
+}
+
+.tablet-menu .desktop-menu {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+    .tablet-menu .desktop-menu a {
+        text-decoration: none;
+        color: white;
+        font-family: "Montserrat", sans-serif;
+        font-weight: 500;
+        transition: 0.3s;
+    }
+
+        .tablet-menu .desktop-menu a:hover {
+            color: red;
+        }
+
+.text-1 {
+    background-color: #ca1a20;
+    padding: 10px 20px;
+    border-radius: 50px;
+    font-size: 12px;
+    font-family: "Montserrat", sans-serif;
+    font-weight: 600;
+    color: #fff;
+}
+
+.tablet-menu .menu-1 {
+    display: none;
+}
+
+.tablet-menu .mobile-menu-link {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 0, 0, 0.6);
+    z-index: 999;
+    justify-content: center;
+    align-items: start;
+}
+
+    .tablet-menu .mobile-menu-link .menu-slide {
+        display: flex;
+        flex-direction: column;
+        font-size: 30px;
+        align-items: center;
+        padding: 10px;
+        margin-top: 170px;
+        gap: 20px;
+    }
+
+        .tablet-menu .mobile-menu-link .menu-slide a {
+            text-decoration: none;
+            color: #fff;
+            font-family: "Montserrat", sans-serif;
+        }
+
+    .tablet-menu .mobile-menu-link .mobile-menu-1 {
+        position: absolute;
+        top: 47px;
+        right: 46px;
+        border-radius: 100px;
+        background-color: white;
+        color: red;
+        padding: 10px;
+    }
+
+.active {
+    display: flex !important;
+}
+
+.main-wrapper {
+    position: relative;
+}
+@media only screen and (max-width: 768px) {
+    .hero {
+        padding: 40px 40px;
+        margin-bottom: 50px;
+    }
+
+    .tablet-menu .desktop-menu {
+        display: none;
+    }
+
+    .tablet-menu .menu-1 {
+        display: flex;
+    }
+
+    .menu-1 .text-mobile {
+        background-color: #ca1a20;
+        padding: 10px 20px;
+        border-radius: 50px;
+        font-size: 12px;
+        font-family: "Montserrat", sans-serif;
+        font-weight: 600;
+        color: #fff;
+    }
+
+    .menu-1 {
+        display: flex;
+        gap: 5px;
+    }
+
+    .tablet-menu .mobile-menu {
+        display: block;
+        background-color: #ca1a20;
+        color: #fff;
+        padding: 10px;
+        border-radius: 100px;
+        top: 0;
+    }
+}
+
+@media (max-width: 425px) {
+    .logo img {
+        width: 100px;
+    }
+
+    .tablet-menu .mobile-menu-link .mobile-menu-1 {
+        top: 40px;
+    }
+}
+/* Chat text typography */
+.chat-text {
+    line-height: 1.5;
+    font-size: 0.95rem;
+}
+
+    /* Spacing for paragraphs in assistant messages */
+    .chat-text p {
+        margin: 0.4rem 0 0.6rem;
+    }
+
+    /* Ordered/Unordered lists styling */
+    .chat-text ol,
+    .chat-text ul {
+        margin: 0.4rem 0 0.8rem; /* top/bottom breathing room */
+        padding-left: 1.25rem; /* indent bullets/numbers */
+    }
+
+    /* Slight spacing between list items */
+    .chat-text li + li {
+        margin-top: 0.25rem;
+    }
+
+    /* Make bold labels read clearly without shouting */
+    .chat-text strong {
+        font-weight: 600;
+    }
+
+/* Keep bubbles from becoming too wide on large screens */
+.chat-message-body {
+    max-width: 720px;
+}
+.isla-gallery {
+    margin: .25rem 0 .5rem
+}
+
+.isla-gallery-title {
+    font-weight: 600;
+    margin-bottom: .35rem
+}
+
+.isla-gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill,minmax(140px,1fr));
+    gap: .5rem
+}
+
+.isla-card {
+    border: 1px solid #eee;
+    border-radius: 10px;
+    padding: .5rem;
+    background: #fff;
+    cursor: pointer;
+    text-align: left
+}
+
+    .isla-card img {
+        width: 100%;
+        height: 110px;
+        object-fit: cover;
+        border-radius: 6px
+    }
+
+.isla-card-label {
+    margin-top: .35rem;
+    font-size: .875rem
+}
+
+.isla-card:hover {
+    box-shadow: 0 2px 10px rgba(0,0,0,.08)
+}

@@ -138,7 +138,7 @@ booking_no = f'C{next_booking_num:08d}'
 - `order_no` - Usually same as booking_no
 - `booking_type_v32` - Type (2 = standard)
 - `status` - Status code (0 = active)
-- `BookingProgressStatus` - Progress (1 = in progress)
+- `BookingProgressStatus` - Progress (1 = Light Pencil, 2 = Heavy Pencil, 3 = Confirmed)
 - `bBookingIsComplete` - 0 = incomplete, 1 = complete
 
 #### Dates (CRITICAL - Must be set correctly)
@@ -216,7 +216,7 @@ cursor.execute('''
         %s, %s, %s, %s
     )
 ''', (
-    booking_no, booking_no, 2, 0, 1,
+    booking_no, booking_no, 2, 0, 1,  -- BookingProgressStatus: 1=Light Pencil, 2=Heavy Pencil, 3=Confirmed
     0,
     delivery_date, return_date, event_date, show_start, show_end, event_date, delivery_date, event_date, delivery_date, return_date,
     7, 0, 23, 30,

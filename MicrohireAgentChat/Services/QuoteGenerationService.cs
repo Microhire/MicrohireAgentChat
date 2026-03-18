@@ -2,6 +2,7 @@ using MicrohireAgentChat.Data;
 using MicrohireAgentChat.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 
 namespace MicrohireAgentChat.Services;
 
@@ -104,22 +105,33 @@ public class QuoteGenerationService
 
             // 5. Load equipment items with inventory details for pricing
             _logger.LogInformation("Loading equipment items for booking {BookingNo} (ID: {BookingId})", bookingNo, booking.ID);
+            int? bookingIdAsInt = null;
+            if (booking.ID <= int.MaxValue && booking.ID >= int.MinValue)
+            {
+                bookingIdAsInt = decimal.ToInt32(decimal.Truncate(booking.ID));
+            }
             var items = await _db.TblItemtrans
-                .Where(i => i.BookingNoV32 == bookingNo || i.BookingId == booking.ID)
+                .Where(i => i.BookingNoV32 == bookingNo || (bookingIdAsInt.HasValue && i.BookingId == bookingIdAsInt.Value))
                 .ToListAsync(ct);
             _logger.LogInformation("Loaded {ItemCount} equipment items", items.Count);
 
             // 6. Load inventory master data for descriptions and prices
             var productCodes = items.Select(i => i.ProductCodeV42).Where(p => !string.IsNullOrEmpty(p)).Distinct().ToList();
-            var inventoryItems = await _db.TblInvmas
+            var inventoryItemsList = await _db.TblInvmas
                 .Where(inv => productCodes.Contains(inv.product_code))
-                .ToDictionaryAsync(inv => inv.product_code ?? "", ct);
+                .ToListAsync(ct);
+            var inventoryItems = inventoryItemsList
+                .GroupBy(inv => inv.product_code ?? "")
+                .ToDictionary(g => g.Key, g => g.First());
             _logger.LogInformation("Loaded {InventoryCount} inventory items for price/description lookup", inventoryItems.Count);
 
             // 6b. Load rate table data for proper pricing (tableNo=0 is default retail rate)
-            var rateItems = await _db.TblRatetbls
+            var rateItemsList = await _db.TblRatetbls
                 .Where(r => productCodes.Contains(r.product_code) && r.TableNo == 0)
-                .ToDictionaryAsync(r => r.product_code ?? "", ct);
+                .ToListAsync(ct);
+            var rateItems = rateItemsList
+                .GroupBy(r => r.product_code ?? "")
+                .ToDictionary(g => g.Key, g => g.First());
             _logger.LogInformation("Loaded {RateCount} rate table entries for pricing", rateItems.Count);
 
             // 7. Load crew/labor
@@ -138,7 +150,7 @@ public class QuoteGenerationService
             _logger.LogInformation("Generating PDF for booking {BookingNo}", bookingNo);
             try
             {
-                var (fileName, fullPath) = _pdfService.Generate(quoteFields);
+                var (fileName, fullPath) = _pdfService.Generate(quoteFields, bookingNo);
                 _logger.LogInformation("PDF generated successfully: {FileName}", fileName);
 
                 // 10. Return URL
@@ -179,6 +191,9 @@ public class QuoteGenerationService
         var rehearsalDate = booking.RehDate?.ToString("dddd d MMMM yyyy") ?? eventDate;
         var showStartDate = booking.ShowSDate?.ToString("dddd d MMMM yyyy") ?? eventDate;
         var showEndDate = booking.ShowEdate?.ToString("dddd d MMMM yyyy") ?? eventDate;
+        var dateRange = string.Equals(showStartDate, showEndDate, StringComparison.Ordinal)
+            ? showStartDate
+            : $"{showStartDate} to {showEndDate}";
 
         // Format times
         var setupTime = FormatTime(booking.setupTimeV61);
@@ -186,10 +201,10 @@ public class QuoteGenerationService
         var eventStartTime = FormatTime(booking.showStartTime);
         var eventEndTime = FormatTime(booking.ShowEndTime);
 
-        // Build venue information
-        var venueName = venue?.VenueName ?? booking.VenueRoom ?? "Venue TBD";
-        var venueAddress = venue?.FullAddress ?? organization?.Address_l1V6 ?? "Address TBD";
-        var venueRoom = booking.VenueRoom ?? "Room TBD";
+        // All supported rooms are at the Westin Brisbane
+        var venueName = WestinRoomCatalog.VenueName;
+        var venueAddress = WestinRoomCatalog.VenueAddress;
+        var venueRoom = StripProjectorAreaSuffix(booking.VenueRoom) ?? "Room TBD";
 
         // Build equipment rows categorized by groupFld, grouping packages with their components
         _logger.LogInformation("Categorizing {ItemCount} equipment items by group", items.Count);
@@ -388,8 +403,7 @@ public class QuoteGenerationService
         // Calculate totals
         var equipmentSubtotal = visionTotal + audioTotal + lightingTotal + recordingTotal + drapeTotal;
         var rentalTotal = equipmentSubtotal;
-        var serviceChargeRate = 0.10m; // 10% service charge
-        var serviceCharge = rentalTotal * serviceChargeRate;
+        var serviceCharge = (decimal)(booking.sundry_total ?? 0);
         var subtotalExGst = rentalTotal + labourTotal + serviceCharge;
         var gstRate = 0.10m; // 10% GST
         var gst = subtotalExGst * gstRate;
@@ -417,7 +431,7 @@ public class QuoteGenerationService
             Location: venueName,
             Address: venueAddress,
             Room: venueRoom,
-            DateRange: $"{showStartDate} to {showEndDate}",
+            DateRange: dateRange,
 
             // Right column contact block
             DeliveryContact: contact?.Contactname ?? booking.contact_nameV6 ?? "Contact Name",
@@ -490,13 +504,12 @@ public class QuoteGenerationService
     }
 
     /// <summary>
-    /// Gets the best available unit price from item, rate table, or inventory
+    /// Gets the best available unit price from item, rate table, or inventory.
+    /// UnitRate is the per-unit price in Rental Point; Price is UnitRate × Qty (total line price).
+    /// UnitRate must be checked first to avoid double-counting when the caller multiplies by qty.
     /// </summary>
     private decimal GetUnitPrice(TblItemtran item, TblInvmas? invItem, TblRatetbl? rateItem)
     {
-        // Priority: item price > unit rate > rate table (1st day) > inventory retail price
-        if (item.Price.HasValue && item.Price.Value > 0)
-            return (decimal)item.Price.Value;
         if (item.UnitRate.HasValue && item.UnitRate.Value > 0)
             return (decimal)item.UnitRate.Value;
         // Rate table has the actual hire prices
@@ -504,6 +517,9 @@ public class QuoteGenerationService
             return (decimal)rateItem.rate_1st_day.Value;
         if (invItem?.retail_price.HasValue == true && invItem.retail_price.Value > 0)
             return (decimal)invItem.retail_price.Value;
+        // Price is the total line price; divide by qty as a last resort to recover the unit price.
+        if (item.Price.HasValue && item.Price.Value > 0)
+            return (decimal)(item.Price.Value / Math.Max((double)(item.TransQty ?? 1), 1));
         return 0;
     }
 
@@ -589,5 +605,15 @@ public class QuoteGenerationService
         }
 
         return time;
+    }
+
+    private static string? StripProjectorAreaSuffix(string? venueRoom)
+    {
+        if (string.IsNullOrWhiteSpace(venueRoom)) return venueRoom;
+        var s = venueRoom.Trim();
+        s = Regex.Replace(s, @"\s*-\s*Projector\s+Area(?:s)?\s*$", "", RegexOptions.IgnoreCase);
+        s = Regex.Replace(s, @"\s*-\s*Projector\s+Area(?:s)?\s+[A-F](?:/[A-F])*$", "", RegexOptions.IgnoreCase);
+        s = Regex.Replace(s, @"\s*\(Proj(?:ector)?\s+[A-F](?:/[A-F])*\)$", "", RegexOptions.IgnoreCase);
+        return s.Trim();
     }
 }

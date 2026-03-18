@@ -1,7 +1,13 @@
 @using MicrohireAgentChat.Services
 @using Markdig
 @using System.Text.Json
+@using System.Net
+@using System.IO
+@using System.Text
+@using System.Text.RegularExpressions
 @model IEnumerable<DisplayMessage>
+
+<div id="progressStepData" data-step="@ViewData["ProgressStep"]" style="display:none"></div>
 
 @{
     var mdPipeline = new MarkdownPipelineBuilder()
@@ -16,13 +22,84 @@
 </div>
 
 <style>
-  /* minimal CTA styles (optional) */
+  /* CTA styles */
   .isla-cta{margin-top:.75rem}
-  .isla-cta-label{margin-bottom:.5rem;font-weight:600}
-  .isla-cta-buttons{display:flex;gap:.5rem}
+  .isla-cta-label{margin-bottom:.25rem;font-weight:600;font-size:1rem}
+  .isla-cta-sublabel{margin-bottom:.75rem;font-size:0.9rem;color:#666}
+  .isla-cta-buttons{display:flex;gap:.625rem;flex-wrap:wrap}
   .isla-cta-buttons .isla-quote-yes,.isla-cta-buttons .isla-quote-no{padding:.375rem .75rem;border-radius:.5rem;border:none;cursor:pointer}
   .isla-cta-buttons .isla-quote-yes{background:#c62828;color:#fff}
   .isla-cta-buttons .isla-quote-no{background:#eee;color:#333}
+
+  /* Quote acceptance CTA — polished variant */
+  .isla-cta-acceptance{
+    background:linear-gradient(135deg,#f8f9fa 0%,#fff 100%);
+    border:1px solid #e0e0e0;
+    border-radius:12px;
+    padding:1.25rem 1.5rem;
+    margin-top:1rem;
+  }
+  .isla-cta-acceptance .isla-cta-label{font-size:1.05rem;font-weight:700;color:#222;margin-bottom:.35rem}
+  .isla-cta-acceptance .isla-cta-sublabel{color:#666;font-size:0.9rem;margin-bottom:1rem}
+  .isla-cta-acceptance .isla-cta-buttons{gap:.75rem}
+  .isla-cta-acceptance .isla-quote-accept-yes{
+    display:inline-flex;align-items:center;gap:0.4rem;
+    background:#c62828;color:#fff;
+    padding:0.625rem 1.25rem;border-radius:8px;border:none;
+    font-weight:600;font-size:0.95rem;cursor:pointer;
+    transition:background 0.2s ease,transform 0.1s ease,box-shadow 0.2s ease;
+    box-shadow:0 2px 6px rgba(198,40,40,0.25);
+  }
+  .isla-cta-acceptance .isla-quote-accept-yes:hover{background:#b71c1c;transform:translateY(-1px);box-shadow:0 4px 12px rgba(198,40,40,0.3)}
+  .isla-cta-acceptance .isla-quote-accept-yes:active{transform:translateY(0);box-shadow:0 1px 3px rgba(198,40,40,0.2)}
+  .isla-cta-acceptance .isla-quote-accept-no{
+    display:inline-flex;align-items:center;
+    background:transparent;color:#555;
+    padding:0.625rem 1.25rem;border-radius:8px;border:1px solid #ccc;
+    font-weight:500;font-size:0.95rem;cursor:pointer;
+    transition:background 0.2s ease,border-color 0.2s ease,color 0.2s ease;
+  }
+  .isla-cta-acceptance .isla-quote-accept-no:hover{background:#f5f5f5;border-color:#999;color:#333}
+  .isla-cta-acceptance .isla-quote-accept-no:active{background:#eee}
+
+  /* Digital signing form */
+  .isla-signing-form{margin-top:1rem;padding:1.25rem;background:#fff;border:1px solid #ddd;border-radius:10px}
+  .isla-signing-title{font-weight:700;font-size:1rem;color:#222;margin-bottom:1rem}
+  .isla-signing-row{display:flex;gap:1rem;margin-bottom:1rem}
+  .isla-signing-row-full .isla-signing-field{flex:1 1 100%}
+  .isla-signing-field{flex:1}
+  .isla-signing-field label{display:block;font-weight:600;font-size:0.8rem;color:#666;text-transform:uppercase;letter-spacing:0.03em;margin-bottom:0.35rem}
+  .isla-signing-field input{width:100%;padding:0.5rem 0.65rem;border:1px solid #ccc;border-radius:6px;font-size:0.95rem;font-family:inherit;box-sizing:border-box;transition:border-color 0.2s}
+  .isla-signing-field input:focus{outline:none;border-color:#c62828}
+  .isla-signing-field input[readonly]{background:#f5f5f5;color:#666;cursor:default}
+  .isla-signing-field canvas{width:100%;height:120px;border:1px solid #ccc;border-radius:6px;cursor:crosshair;touch-action:none;display:block}
+  .isla-sign-clear{margin-top:0.35rem;background:none;border:none;color:#888;font-size:0.8rem;cursor:pointer;padding:0;text-decoration:underline}
+  .isla-sign-clear:hover{color:#c62828}
+  .isla-signing-actions{display:flex;gap:0.75rem;margin-top:1rem}
+  .isla-sign-submit{
+    display:inline-flex;align-items:center;gap:0.4rem;
+    background:#c62828;color:#fff;
+    padding:0.625rem 1.25rem;border-radius:8px;border:none;
+    font-weight:600;font-size:0.95rem;cursor:pointer;
+    transition:background 0.2s ease,transform 0.1s ease,box-shadow 0.2s ease;
+    box-shadow:0 2px 6px rgba(198,40,40,0.25);
+  }
+  .isla-sign-submit:hover{background:#b71c1c;transform:translateY(-1px);box-shadow:0 4px 12px rgba(198,40,40,0.3)}
+  .isla-sign-submit:active{transform:translateY(0);box-shadow:0 1px 3px rgba(198,40,40,0.2)}
+  .isla-sign-submit:disabled{opacity:0.6;pointer-events:none}
+  .isla-sign-cancel{
+    display:inline-flex;align-items:center;
+    background:transparent;color:#555;
+    padding:0.625rem 1.25rem;border-radius:8px;border:1px solid #ccc;
+    font-weight:500;font-size:0.95rem;cursor:pointer;
+    transition:background 0.2s ease,border-color 0.2s ease,color 0.2s ease;
+  }
+  .isla-sign-cancel:hover{background:#f5f5f5;border-color:#999;color:#333}
+  .isla-signing-error{margin-top:0.5rem;color:#c62828;font-size:0.9rem;font-weight:500}
+  @@media(max-width:540px){
+    .isla-signing-row{flex-direction:column;gap:0.75rem}
+  }
+
   .isla-busy{opacity:.7;pointer-events:none}
   .isla-spinner{display:inline-block;width:.9em;height:.9em;margin-left:.5em;border:.15em solid currentColor;border-right-color:transparent;border-radius:50%;animation:isla-spin .8s linear infinite}
   .isla-thinking{margin-top:.25rem;font-size:.9rem;color:#888}
@@ -55,6 +132,14 @@
   }
   .isla-quote-download-btn:hover{background:#b71c1c;transform:translateY(-1px);color:#fff}
   .isla-quote-download-btn:active{transform:translateY(0)}
+
+  /* Inline image previews for shared asset paths */
+  .chat-inline-image{margin-top:.5rem;max-width:620px;width:100%}
+  .chat-inline-image a{display:block;font-size:.85rem;color:#c62828;word-break:break-all}
+  .chat-inline-image-frame{margin-top:.35rem;border:1px solid #e6e6e6;border-radius:10px;overflow:hidden;background:#fafafa}
+  .chat-inline-image img{display:block;width:100%;height:auto;max-height:560px;object-fit:contain}
+  .chat-inline-image.isla-img-error .chat-inline-image-frame{display:none}
+  .chat-inline-image.isla-img-error::after{content:"Preview unavailable";display:block;font-size:.85rem;color:#888;padding:.25rem 0}
 </style>
 
 @if (Model?.Any() != true)
@@ -63,6 +148,17 @@
 }
 else
 {
+    // Precompute last message that qualifies for quote acceptance CTA (show CTA only once)
+    var lastAcceptanceAskMessage = Model.LastOrDefault(m =>
+    {
+        if (!string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase)) return false;
+        var raw = string.Join("\n", (m.Parts ?? new List<string>()).Select(p => p ?? string.Empty)).ToLowerInvariant();
+        return raw.Contains("would you like to proceed with this quote") || raw.Contains("would you like to confirm this quote") || raw.Contains("would you like me to confirm this quote")
+            || raw.Contains("would you like to proceed and accept this quote")
+            || raw.Contains("selecting yes will notify microhire") || raw.Contains("once you're done reviewing the quote")
+            || raw.Contains("notify microhire to finalize");
+    });
+
     foreach (var m in Model)
     {
         var isAssistant = string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase);
@@ -84,11 +180,36 @@ else
         var _rawAllLower = _rawAll.ToLowerInvariant();
 
         bool _looksLikeSummaryAsk = IsFinalSummaryAskBubble(_rawAllLower);
-        bool _hasUiJson = _rawAllLower.Contains("\"ui\":")
-                          || _rawAllLower.Contains("[[isla_gallery]]")
-                          || _rawAllLower.Contains("{\"ui\":");
+        bool _hasQuoteReadyUi = _rawAllLower.Contains("\"quoteurl\"") || _rawAllLower.Contains("\"quote_url\"");
+        bool _looksLikeQuoteAcceptanceAsk = _rawAllLower.Contains("would you like to proceed with this quote")
+                                           || _rawAllLower.Contains("would you like to confirm this quote")
+                                           || _rawAllLower.Contains("would you like me to confirm this quote")
+                                           || _rawAllLower.Contains("would you like to proceed and accept this quote")
+                                           || _rawAllLower.Contains("selecting yes will notify microhire")
+                                           || _rawAllLower.Contains("once you're done reviewing the quote")
+                                           || _rawAllLower.Contains("notify microhire to finalize");
         bool _looksLikePicker = _rawAllLower.Contains("timepicker")
                                 || _rawAllLower.Contains("multitime");
+        bool _quoteAlreadyAccepted = string.Equals(ViewData["QuoteAccepted"] as string, "1");
+        bool _looksLikePreSignQuoteReady = _rawAllLower.Contains("generated your quote")
+                                           && _rawAllLower.Contains("you can view it")
+                                           && _rawAllLower.Contains("download it");
+        bool _willShowAcceptanceCard = isAssistant && _looksLikeQuoteAcceptanceAsk && m == lastAcceptanceAskMessage
+                                       && !_quoteAlreadyAccepted;
+
+        if (isAssistant && _quoteAlreadyAccepted && _looksLikePreSignQuoteReady)
+        {
+            continue;
+        }
+
+        if (isAssistant && _quoteAlreadyAccepted && _looksLikeQuoteAcceptanceAsk)
+        {
+            var strippedAcceptanceOnly = StripQuoteAcceptancePhrases(_rawAll);
+            if (string.IsNullOrWhiteSpace(strippedAcceptanceOnly))
+            {
+                continue;
+            }
+        }
 
         <div class="chat-message @rowClass" data-role="@m.Role">
             <div class="chat-message-box">
@@ -366,7 +487,7 @@ else
                                                 {
                                                     <p class="isla-quote-ref">Reference: @bookingNum</p>
                                                 }
-                                                <a href="@quoteUrlValue" target="_blank" class="isla-quote-download-btn">
+                                                <a href="@quoteUrlValue" target="_blank" rel="noopener noreferrer" class="isla-quote-download-btn isla-quote-open" data-quote-open="1">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
                                                         <polyline points="15 3 21 3 21 9"></polyline>
@@ -402,19 +523,74 @@ else
                             }
                             else
                             {
-                                var html = Markdown.ToHtml(part, mdPipeline);
-                                <div class="chat-text">@Html.Raw(html)</div>
+                                var partToRender = part;
+                                if (_looksLikeQuoteAcceptanceAsk)
+                                {
+                                    partToRender = StripQuoteAcceptancePhrases(partToRender);
+                                }
+                                if (!string.IsNullOrWhiteSpace(partToRender))
+                                {
+                                    var html = RenderTextWithInlineImages(partToRender, mdPipeline);
+                                    <div class="chat-text">@Html.Raw(html)</div>
+                                }
                             }
                         }
 
                         // ---------------- CTA: render only after an assistant summary ask ----------------
-                        if (isAssistant && _looksLikeSummaryAsk && !_hasUiJson && !_looksLikePicker)
+                        if (isAssistant && _looksLikeSummaryAsk && !_hasQuoteReadyUi && !_looksLikePicker)
                         {
                             <div class="isla-cta" data-quote-controls>
-                                <div class="isla-cta-label">Would you like me to create the quote now?</div>
                                 <div class="isla-cta-buttons">
                                     <button type="button" class="isla-quote-yes">Yes, create quote</button>
                                     <button type="button" class="isla-quote-no">No, not yet</button>
+                                </div>
+                            </div>
+                        }
+
+                        // ---------------- CTA: render after quote is ready to ask for acceptance (only for last qualifying message) ----------------
+                        if (isAssistant && _looksLikeQuoteAcceptanceAsk && m == lastAcceptanceAskMessage && !string.Equals(ViewData["QuoteAccepted"] as string, "1"))
+                        {
+                            <div class="isla-cta isla-cta-acceptance" data-quote-acceptance-controls>
+                                <div class="isla-cta-label">Would you like to proceed and accept this quote?</div>
+                                <div class="isla-cta-sublabel">Selecting Yes will notify Microhire to finalize the details.</div>
+                                <div class="isla-cta-buttons" data-acceptance-buttons>
+                                    <button type="button" class="isla-quote-accept-yes">Yes, proceed</button>
+                                    <button type="button" class="isla-quote-accept-no">No, not yet</button>
+                                </div>
+                                <div class="isla-signing-form" style="display:none" data-signing-form>
+                                    <div class="isla-signing-title">Sign to accept this quote</div>
+                                    <div class="isla-signing-row">
+                                        <div class="isla-signing-field">
+                                            <label>Full Name</label>
+                                            <input type="text" data-sign-name placeholder="Enter your full name" required />
+                                        </div>
+                                        <div class="isla-signing-field">
+                                            <label>Date</label>
+                                            <input type="text" data-sign-date readonly />
+                                        </div>
+                                    </div>
+                                    <div class="isla-signing-row">
+                                        <div class="isla-signing-field">
+                                            <label>Title / Position</label>
+                                            <input type="text" data-sign-title placeholder="e.g. Event Manager" />
+                                        </div>
+                                        <div class="isla-signing-field">
+                                            <label>Purchase Order (if applicable)</label>
+                                            <input type="text" data-sign-po placeholder="Optional" />
+                                        </div>
+                                    </div>
+                                    <div class="isla-signing-row isla-signing-row-full">
+                                        <div class="isla-signing-field">
+                                            <label>Signature</label>
+                                            <canvas data-sign-canvas width="500" height="120"></canvas>
+                                            <button type="button" class="isla-sign-clear">Clear</button>
+                                        </div>
+                                    </div>
+                                    <div class="isla-signing-actions">
+                                        <button type="button" class="isla-sign-submit">Sign &amp; Accept</button>
+                                        <button type="button" class="isla-sign-cancel">Cancel</button>
+                                    </div>
+                                    <div class="isla-signing-error" style="display:none" data-signing-error></div>
                                 </div>
                             </div>
                         }
@@ -426,10 +602,74 @@ else
 }
 
 @functions{
+    static readonly Regex InlineImageTokenRegex = new Regex(
+        @"!\[(?<alt>[^\]]*)\]\(\s*(?<mdPath>/images/[\w\-/\.]+?\.(?:png|jpe?g|gif|webp))(?:\s+[^\)]*)?\s*\)|(?<plainPath>/images/[\w\-/\.]+?\.(?:png|jpe?g|gif|webp))",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.Singleline);
+
+    string SafeAltFromPath(string path){
+        try{
+            var file = System.IO.Path.GetFileNameWithoutExtension(path);
+            if (string.IsNullOrWhiteSpace(file)) return "shared image";
+            return file.Replace('-', ' ').Replace('_',' ').Trim();
+        }catch{
+            return "shared image";
+        }
+    }
+
+    string RenderTextWithInlineImages(string text, MarkdownPipeline pipeline){
+        if (string.IsNullOrWhiteSpace(text)) return string.Empty;
+
+        var matches = InlineImageTokenRegex.Matches(text);
+        if (matches.Count == 0) return Markdown.ToHtml(text, pipeline);
+
+        var sb = new StringBuilder();
+        var last = 0;
+
+        foreach (Match m in matches){
+            if (m.Index > last){
+                var before = text.Substring(last, m.Index - last);
+                if (!string.IsNullOrWhiteSpace(before)){
+                    sb.Append(Markdown.ToHtml(before, pipeline));
+                }
+            }
+
+            var rawPath = m.Groups["mdPath"].Success ? m.Groups["mdPath"].Value : m.Groups["plainPath"].Value;
+            if (string.IsNullOrWhiteSpace(rawPath)){
+                continue;
+            }
+            var resolved = Url.Content(rawPath);
+            var encodedPath = WebUtility.HtmlEncode(rawPath);
+            var rawAlt = m.Groups["alt"].Success ? m.Groups["alt"].Value : string.Empty;
+            var alt = WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(rawAlt) ? SafeAltFromPath(rawPath) : rawAlt.Trim());
+
+            sb.Append($@"<div class=""chat-inline-image""><a href=""{resolved}"" target=""_blank"" rel=""noopener noreferrer"">{encodedPath}</a><div class=""chat-inline-image-frame""><img src=""{resolved}"" alt=""{alt}"" loading=""lazy"" onerror=""this.closest('.chat-inline-image')?.classList.add('isla-img-error');"" /></div></div>");
+
+            last = m.Index + m.Length;
+        }
+
+        if (last < text.Length){
+            var tail = text.Substring(last);
+            if (!string.IsNullOrWhiteSpace(tail)){
+                sb.Append(Markdown.ToHtml(tail, pipeline));
+            }
+        }
+
+        return sb.ToString();
+    }
+
     bool IsUiJson(string s){
         if (string.IsNullOrWhiteSpace(s)) return false;
         s=s.Trim(); if(!s.StartsWith("{")||!s.EndsWith("}")) return false;
         return s.Contains("\"ui\"");
+    }
+
+    static readonly Regex QuoteAcceptancePhrasesRegex = new Regex(
+        @"(?:<p>)?\s*(?:would you like (?:to confirm|me to confirm|to proceed (?:with|and accept)) this quote\??|selecting yes will notify microhire[^.]*\.?|once you're done reviewing the quote[^.]*\.?|notify microhire to finalize[^.]*\.?)\s*(?:</p>)?",
+        RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    string StripQuoteAcceptancePhrases(string text){
+        if (string.IsNullOrWhiteSpace(text)) return text;
+        return QuoteAcceptancePhrasesRegex.Replace(text, "").Trim();
     }
 
     // Extract complete JSON object starting from a given index
@@ -473,7 +713,8 @@ else
 
         // MUST have equipment-specific content (not just venue/attendee info)
         bool hasEquipmentConfirmation =
-            rawLower.Contains("quote summary") ||          // Our new summary format
+            rawLower.Contains("requirement summary") ||
+            rawLower.Contains("quote summary") ||          // Backward compatibility
             rawLower.Contains("recommended equipment") ||  // Section header
             rawLower.Contains("equipment selection") ||
             rawLower.Contains("equipment lineup") ||
@@ -517,16 +758,11 @@ else
             (rawLower.Contains("reservation") || rawLower.Contains("available") || rawLower.Contains("proceed with this venue")) &&
             !hasEquipmentConfirmation;
 
-        // Only show CTA if:
-        // 1. Equipment has been confirmed AND asking about quote/proceed, OR
-        // 2. Explicitly asking about creating a quote (without venue-only content)
-        return (hasEquipmentConfirmation && asksAboutQuote) || 
-               (asksAboutQuote && !isVenueOnly);
+        // Only show CTA if equipment has been confirmed AND asking about quote/proceed
+        // (do NOT show when we're still collecting details, even if quote is mentioned)
+        return hasEquipmentConfirmation && asksAboutQuote && !isVenueOnly;
     }
 
-    // Shapes for galleries
-    public class IslaGallery{ public string? Room{get;set;} public List<IslaGalleryItem>? Items{get;set;} }
-    public class IslaGalleryItem{ public string? Kind{get;set;} public string? Label{get;set;} public string? Url{get;set;} public object? Select{get;set;} }
 }
 
 <script id="isla-chat-binder">
@@ -558,6 +794,11 @@ else
     if(!host || host.querySelector('.isla-thinking')) return;
     const line=document.createElement('div'); line.className='isla-thinking'; line.textContent='Isla is thinking…'; host.appendChild(line);
   }
+  function syncProgressBar(){
+    var s=document.getElementById('progressStepData');
+    var b=document.querySelector('.chat-box-progress');
+    if(s&&b) b.className='chat-box-progress'+(s.dataset.step?' '+s.dataset.step:'');
+  }
   async function postChat(text,busyEl){
     try{
       showBusy(busyEl); addThinkingUnder(busyEl);
@@ -570,28 +811,255 @@ else
         },
         body:new URLSearchParams({ text })
       });
-      const html=await resp.text();
+      const textRes=await resp.text();
+      let html=textRes;
+      let continueNeeded=false;
+      try{
+        const j=JSON.parse(textRes);
+        if(j.continueNeeded && j.html){ html=j.html; continueNeeded=true; }
+      }catch(_){}
       const host=document.getElementById('messagesWrap')||
                   document.querySelector('#messages, .messages, .chat-transcript')||null;
       if(host){ host.innerHTML=html; host.scrollTop=host.scrollHeight; }
       else{ document.body.innerHTML=html; }
+      syncProgressBar();
+      if(continueNeeded){
+        const contRes=await fetch('/Chat/ContinuePartial',{
+          method:'POST',
+          headers:{
+            'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8',
+            'RequestVerificationToken': token
+          },
+          body:new URLSearchParams({ __RequestVerificationToken: token })
+        });
+        if(contRes.ok){
+          const fullHtml=await contRes.text();
+          if(host){ host.innerHTML=fullHtml; host.scrollTop=host.scrollHeight; }
+          syncProgressBar();
+        }
+      }
     }catch(e){ console.error('send failed',e); alert('Something went wrong. Please try again.'); }
   }
 
+  async function notifyQuoteReviewed(){
+    try{
+      const token=getCsrf();
+      const resp=await fetch('/Chat/QuoteReviewedPartial',{
+        method:'POST',
+        headers:{
+          'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8',
+          'RequestVerificationToken': token
+        },
+        body:new URLSearchParams({}),
+        keepalive:true
+      });
+      if(!resp.ok) return;
+      const html=await resp.text();
+      const host=document.getElementById('messagesWrap')||
+                  document.querySelector('#messages, .messages, .chat-transcript')||null;
+      if(host){ host.innerHTML=html; host.scrollTop=host.scrollHeight; }
+      syncProgressBar();
+    }catch(e){
+      console.warn('quote reviewed notify failed',e);
+    }
+  }
+
+  function parseDownloadFilename(dispositionHeader){
+    if(!dispositionHeader) return '';
+    const utfMatch = dispositionHeader.match(/filename\*=UTF-8''([^;]+)/i);
+    if(utfMatch && utfMatch[1]){
+      try{ return decodeURIComponent(utfMatch[1]); }catch(_){ return utfMatch[1]; }
+    }
+    const plainMatch = dispositionHeader.match(/filename="?([^"]+)"?/i);
+    return (plainMatch && plainMatch[1]) ? plainMatch[1] : '';
+  }
+
+  function toQuoteDownloadEndpoint(rawHref, suggestedName){
+    if(!rawHref) return '';
+    let urlObj;
+    try{
+      urlObj = new URL(rawHref, window.location.origin);
+    }catch(_){
+      return '';
+    }
+
+    const path = urlObj.pathname || '';
+    if(path.startsWith('/quotes/render')){
+      return urlObj.toString();
+    }
+
+    if(path.startsWith('/files/quotes/') && path.toLowerCase().endsWith('.html')){
+      const htmlFile = path.split('/').pop() || 'quote.html';
+      const fallbackPdfName = htmlFile.replace(/\.html?$/i, '.pdf');
+      const outFile = (suggestedName || fallbackPdfName).trim();
+      const endpoint = `/quotes/render?src=${encodeURIComponent(path)}&outFile=${encodeURIComponent(outFile)}`;
+      return new URL(endpoint, window.location.origin).toString();
+    }
+
+    return urlObj.toString();
+  }
+
+  async function downloadQuoteWithoutNavigation(anchor){
+    const rawHref = anchor.getAttribute('href') || '';
+    const preferredName = (anchor.getAttribute('data-download-name') || '').trim();
+    const endpoint = toQuoteDownloadEndpoint(rawHref, preferredName);
+    if(!endpoint){
+      throw new Error('Missing download URL');
+    }
+
+    const resp = await fetch(endpoint, { method: 'GET', credentials: 'same-origin' });
+    if(!resp.ok){
+      throw new Error(`Download failed with status ${resp.status}`);
+    }
+
+    const blob = await resp.blob();
+    const blobUrl = URL.createObjectURL(blob);
+    const headerName = parseDownloadFilename(resp.headers.get('content-disposition'));
+    const fallbackName = preferredName || headerName || 'Quote.pdf';
+
+    const dl = document.createElement('a');
+    dl.href = blobUrl;
+    dl.download = fallbackName;
+    dl.style.display = 'none';
+    document.body.appendChild(dl);
+    dl.click();
+    dl.remove();
+    setTimeout(()=>URL.revokeObjectURL(blobUrl), 1500);
+  }
+
+  // --- Image Preview Modal Logic ---
+  let previewCards = [];
+  let previewIndex = -1;
+  const previewOverlay = document.getElementById('islaPreviewOverlay');
+  if (!previewOverlay) {
+    console.error('islaPreviewOverlay not found in DOM');
+    // Fallback: binding old click behavior if modal is missing (unlikely now)
+    document.addEventListener('click',(ev)=>{
+      const btn=ev.target.closest('.isla-card'); if(!btn) return;
+      const raw=btn.getAttribute('data-select')||'{}'; let obj={}; try{obj=JSON.parse(raw);}catch{}
+      let text='';
+      if(obj.room) text=`Choose room: ${obj.room}`;
+      else if(obj.layout) text=`Choose layout: ${obj.layout}`;
+      else if(obj.product_code) {
+        const desc = obj.description || obj.product_code;
+        text=`Selected equipment: ${desc} (${obj.product_code})`;
+      }
+      if(text) postChat(text,btn);
+    },{passive:true});
+    return;
+  }
+
+  const previewImg = document.getElementById('islaPreviewImage');
+  const previewLabel = document.getElementById('islaPreviewLabel');
+  const previewCounter = document.getElementById('islaPreviewCounter');
+  const previewSelectBtn = previewOverlay.querySelector('.isla-preview-select');
+
+  function openPreviewModal() {
+    previewOverlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden'; // prevent scroll
+  }
+
+  function closePreviewModal() {
+    previewOverlay.style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  function updatePreview() {
+    if (previewIndex < 0 || previewIndex >= previewCards.length) return;
+    const card = previewCards[previewIndex];
+    const img = card.querySelector('img');
+    const label = card.querySelector('.isla-card-label, .message-card-box-content h6');
+    
+    if (img) previewImg.src = img.src;
+    if (label) previewLabel.textContent = label.textContent;
+    
+    previewCounter.textContent = `${previewIndex + 1} of ${previewCards.length}`;
+    
+    // Update Select button text based on what's being selected
+    const raw = card.getAttribute('data-select') || '{}';
+    let obj = {}; try { obj = JSON.parse(raw); } catch {}
+    
+    if (obj.room) previewSelectBtn.textContent = 'Select This Room';
+    else if (obj.layout) previewSelectBtn.textContent = 'Select This Layout';
+    else if (obj.product_code) previewSelectBtn.textContent = 'Select This Equipment';
+    else previewSelectBtn.textContent = 'Select This Option';
+  }
+
+  function navigatePreview(delta) {
+    if (previewCards.length <= 1) return;
+    previewIndex = (previewIndex + delta + previewCards.length) % previewCards.length;
+    updatePreview();
+  }
+
+  function selectCurrentPreview() {
+    if (previewIndex < 0 || previewIndex >= previewCards.length) return;
+    const card = previewCards[previewIndex];
+    
+    const raw = card.getAttribute('data-select') || '{}';
+    let obj = {}; try { obj = JSON.parse(raw); } catch {}
+    let text = '';
+    
+    if (obj.room) text = `Choose room: ${obj.room}`;
+    else if (obj.layout) text = `Choose layout: ${obj.layout}`;
+    else if (obj.product_code) {
+      const desc = obj.description || obj.product_code;
+      text = `Selected equipment: ${desc} (${obj.product_code})`;
+    }
+    
+    if (text) {
+      closePreviewModal();
+      postChat(text, card);
+    } else if (card.classList.contains('message-card-box')) {
+      // Legacy card selection support
+      const img = card.querySelector('img');
+      if (img && img.src) {
+        closePreviewModal();
+        if (window.sendSelection) {
+          window.sendSelection('image', img.src);
+        } else {
+          postChat(`[UI_SELECT] {"kind":"image","value":"${img.src}"}`, card);
+        }
+      }
+    }
+  }
+
+  // Modal Event Listeners
+  previewOverlay.querySelector('.isla-preview-close').addEventListener('click', closePreviewModal);
+  previewOverlay.querySelector('.isla-preview-backdrop').addEventListener('click', closePreviewModal);
+  previewOverlay.querySelector('.isla-preview-nav.prev').addEventListener('click', () => navigatePreview(-1));
+  previewOverlay.querySelector('.isla-preview-nav.next').addEventListener('click', () => navigatePreview(1));
+  previewSelectBtn.addEventListener('click', selectCurrentPreview);
+
+  document.addEventListener('keydown', (ev) => {
+    if (previewOverlay.style.display === 'none') return;
+    if (ev.key === 'Escape') closePreviewModal();
+    else if (ev.key === 'ArrowLeft') navigatePreview(-1);
+    else if (ev.key === 'ArrowRight') navigatePreview(1);
+    else if (ev.key === 'Enter') selectCurrentPreview();
+  });
+
   // Delegated handlers that survive DOM replacement
   document.addEventListener('click',(ev)=>{
-    const btn=ev.target.closest('.isla-card'); if(!btn) return;
-    const raw=btn.getAttribute('data-select')||'{}'; let obj={}; try{obj=JSON.parse(raw);}catch{}
-    let text='';
-    // Room/layout selection
-    if(obj.room) text=`Choose room: ${obj.room}`;
-    else if(obj.layout) text=`Choose layout: ${obj.layout}`;
-    // Equipment selection - handle product_code
-    else if(obj.product_code) {
-      const desc = obj.description || obj.product_code;
-      text=`Selected equipment: ${desc} (${obj.product_code})`;
+    const card = ev.target.closest('.isla-card, .message-card-box');
+    if (!card) return;
+    
+    // If it's a legacy card and we clicked the SELECT button specifically, 
+    // let the button's own onclick handler handle it.
+    if (card.classList.contains('message-card-box') && ev.target.tagName === 'BUTTON') {
+      return;
     }
-    if(text) postChat(text,btn);
+    
+    // Find all cards in the same gallery grid
+    const grid = card.closest('.isla-gallery-grid, .message-card-wrap');
+    if (!grid) return;
+    
+    previewCards = Array.from(grid.querySelectorAll('.isla-card, .message-card-box'));
+    previewIndex = previewCards.indexOf(card);
+    
+    if (previewIndex >= 0) {
+      openPreviewModal();
+      updatePreview();
+    }
   },{passive:true});
 
   document.addEventListener('click',(ev)=>{
@@ -956,6 +1424,139 @@ else
   document.addEventListener('click',(ev)=>{
     const no=ev.target.closest('.isla-quote-no'); if(!no) return;
     ev.preventDefault(); ev.stopPropagation(); postChat('no, not yet', no);
+  },{passive:false});
+
+  // ---- Digital signing workflow ----
+  document.addEventListener('click',(ev)=>{
+    const yes=ev.target.closest('.isla-quote-accept-yes'); if(!yes) return;
+    ev.preventDefault(); ev.stopPropagation();
+    const cta=yes.closest('[data-quote-acceptance-controls]'); if(!cta) return;
+    const buttons=cta.querySelector('[data-acceptance-buttons]');
+    const form=cta.querySelector('[data-signing-form]');
+    if(!form) return;
+    if(buttons) buttons.style.display='none';
+    form.style.display='block';
+    const dateInput=form.querySelector('[data-sign-date]');
+    if(dateInput && !dateInput.value){
+      const d=new Date(); dateInput.value=d.toLocaleDateString('en-AU',{day:'2-digit',month:'long',year:'numeric'});
+    }
+    initSignatureCanvas(form.querySelector('[data-sign-canvas]'));
+    const nameInput=form.querySelector('[data-sign-name]');
+    if(nameInput) nameInput.focus();
+  },{passive:false});
+
+  document.addEventListener('click',(ev)=>{
+    const no=ev.target.closest('.isla-quote-accept-no'); if(!no) return;
+    ev.preventDefault(); ev.stopPropagation(); postChat('no, not yet', no);
+  },{passive:false});
+
+  document.addEventListener('click',(ev)=>{
+    const btn=ev.target.closest('.isla-sign-cancel'); if(!btn) return;
+    ev.preventDefault(); ev.stopPropagation();
+    const cta=btn.closest('[data-quote-acceptance-controls]'); if(!cta) return;
+    const buttons=cta.querySelector('[data-acceptance-buttons]');
+    const form=cta.querySelector('[data-signing-form]');
+    if(form) form.style.display='none';
+    if(buttons) buttons.style.display='flex';
+  },{passive:false});
+
+  document.addEventListener('click',(ev)=>{
+    const btn=ev.target.closest('.isla-sign-clear'); if(!btn) return;
+    ev.preventDefault();
+    const canvas=btn.closest('.isla-signing-field')?.querySelector('canvas');
+    if(canvas){ const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); canvas._hasSig=false; }
+  },{passive:false});
+
+  document.addEventListener('click',async(ev)=>{
+    const btn=ev.target.closest('.isla-sign-submit'); if(!btn) return;
+    ev.preventDefault(); ev.stopPropagation();
+    const form=btn.closest('[data-signing-form]'); if(!form) return;
+    const errEl=form.querySelector('[data-signing-error]');
+    const showErr=(msg)=>{ if(errEl){errEl.textContent=msg;errEl.style.display='block';} };
+    const hideErr=()=>{ if(errEl) errEl.style.display='none'; };
+    hideErr();
+    const name=form.querySelector('[data-sign-name]')?.value?.trim();
+    const date=form.querySelector('[data-sign-date]')?.value?.trim();
+    const title=form.querySelector('[data-sign-title]')?.value?.trim()||'';
+    const po=form.querySelector('[data-sign-po]')?.value?.trim()||'';
+    const canvas=form.querySelector('[data-sign-canvas]');
+    if(!name){ showErr('Please enter your full name.'); return; }
+    if(!canvas||!canvas._hasSig){ showErr('Please provide your signature.'); return; }
+    const sigData=canvas.toDataURL('image/png');
+    btn.disabled=true; btn.innerHTML='Submitting…<span class="isla-spinner"></span>';
+    try{
+      const token=getCsrf();
+      const resp=await fetch('/Chat/AcceptQuoteWithSignaturePartial',{
+        method:'POST',
+        headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','RequestVerificationToken':token},
+        body:new URLSearchParams({fullName:name,signDate:date,titlePosition:title,purchaseOrder:po,signatureData:sigData})
+      });
+      if(!resp.ok) throw new Error('Server error '+resp.status);
+      const html=await resp.text();
+      const wrap=document.getElementById('messagesWrap');
+      if(wrap){ wrap.innerHTML=html; wrap.scrollTop=wrap.scrollHeight; }
+      syncProgressBar();
+    }catch(ex){
+      showErr('Something went wrong. Please try again.');
+      btn.disabled=false; btn.textContent='Sign & Accept';
+    }
+  },{passive:false});
+
+  function initSignatureCanvas(canvas){
+    if(!canvas||canvas._sigInit) return;
+    canvas._sigInit=true; canvas._hasSig=false;
+    const ctx=canvas.getContext('2d');
+    const rect=()=>canvas.getBoundingClientRect();
+    const dpr=window.devicePixelRatio||1;
+    const resizeCanvas=()=>{
+      const r=rect();
+      canvas.width=r.width*dpr; canvas.height=r.height*dpr;
+      ctx.scale(dpr,dpr);
+      ctx.lineWidth=2; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#222';
+    };
+    resizeCanvas();
+    let drawing=false;
+    const getPos=(e)=>{
+      const r=rect();
+      const t=e.touches?e.touches[0]:e;
+      return {x:t.clientX-r.left,y:t.clientY-r.top};
+    };
+    const start=(e)=>{ drawing=true; const p=getPos(e); ctx.beginPath(); ctx.moveTo(p.x,p.y); };
+    const move=(e)=>{ if(!drawing) return; e.preventDefault(); const p=getPos(e); ctx.lineTo(p.x,p.y); ctx.stroke(); canvas._hasSig=true; };
+    const end=()=>{ drawing=false; };
+    canvas.addEventListener('mousedown',start);
+    canvas.addEventListener('mousemove',move);
+    canvas.addEventListener('mouseup',end);
+    canvas.addEventListener('mouseleave',end);
+    canvas.addEventListener('touchstart',start,{passive:false});
+    canvas.addEventListener('touchmove',move,{passive:false});
+    canvas.addEventListener('touchend',end);
+  }
+
+  document.addEventListener('click',(ev)=>{
+    const quoteLink = ev.target.closest('.isla-quote-open')
+      || ev.target.closest('.chat-text a[href*="/files/quotes/"]');
+    if(!quoteLink) return;
+    if(quoteLink.href && /\/quotes\/render/i.test(quoteLink.href)) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    window.open(quoteLink.href, '_blank', 'noopener,noreferrer');
+    notifyQuoteReviewed();
+  },{passive:false});
+
+  document.addEventListener('click',async(ev)=>{
+    const quoteDownloadLink = ev.target.closest('.isla-quote-download, .chat-text a[download]')
+      || ev.target.closest('.chat-text a[href*="/quotes/render"]');
+    if(!quoteDownloadLink) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    try{
+      await downloadQuoteWithoutNavigation(quoteDownloadLink);
+      notifyQuoteReviewed();
+    }catch(err){
+      console.warn('quote download failed', err);
+      alert('Unable to download the quote right now. Please try again.');
+    }
   },{passive:false});
 })();
 </script>

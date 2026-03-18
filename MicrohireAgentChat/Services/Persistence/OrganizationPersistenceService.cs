@@ -61,7 +61,7 @@ public sealed class OrganizationPersistenceService
                     OrganisationV6 = Trunc(org, 50),
                     Address_l1V6 = Trunc(addr, 50),
                     Customer_code = MakeTempCustomerCode(), // unique placeholder
-                    ILink_ContactID = contactId, // CRITICAL: link to contact
+                    ILink_ContactID = contactId ?? 0, // 0 = no contact linked (DB column does not allow null)
                     CustCDate = now
                 };
 

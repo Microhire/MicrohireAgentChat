@@ -18,8 +18,8 @@ The `AzureAgentChatService.cs` is a monolithic service (~4,500 lines) that serve
 
 ### 2. Tools Exposed to the Agent
 
-**Availability Tools:**
-- `check_date_availability`: Queries `TblBookings` for scheduling conflicts using venue/room filters
+**Schedule Recording:**
+- `check_date_availability`: Records the event date and time window for scheduling (no RP database validation; delegates to AgentToolHandlerService)
 
 **Product/Catalog Tools:**
 - `get_product_info`: Searches `TblInvmas` (inventory) by product code or keyword

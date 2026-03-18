@@ -16,6 +16,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <InternalsVisibleTo Include="MicrohireAgentChat.Tests" />
+	</ItemGroup>
+
+	<ItemGroup>
 	  <Compile Remove="Views\ChatAdmin\**" />
 	  <Content Remove="Views\ChatAdmin\**" />
 	  <EmbeddedResource Remove="Views\ChatAdmin\**" />
@@ -25,6 +29,7 @@
 	<ItemGroup>
 	  <Compile Remove="Controllers\AgentChatController.cs" />
 	  <Compile Remove="Controllers\ChatAdminController.cs" />
+	  <Compile Remove="Services\ToolHandlers\**\*.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -49,6 +54,17 @@
 
 	<ItemGroup>
 	  <Folder Include="wwwroot\img\venues\" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Content Update="wwwroot\images\westin\westin-ballroom\floor-plan.png">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+	  </Content>
+	  <Content Update="wwwroot\data\isla-instructions.md">
+	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+	    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+	  </Content>
 	</ItemGroup>
 
 	<!-- Restore local dotnet tools using the manifest at the solution (or project) dir -->

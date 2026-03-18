@@ -1,0 +1,138 @@
+{
+  "runId": "run-001-thrivehybridfullcoverage",
+  "startedAt": "2026-03-11T18:51:04.650Z",
+  "scenarioId": "thriveHybridFullCoverage",
+  "scenarioDescription": "Thrive Boardroom hybrid meeting with full technician coverage",
+  "status": "FAIL",
+  "reason": "Exception: Timed out waiting for assistant response after 30000ms",
+  "metrics": {
+    "assistantTurns": 11,
+    "attendeePromptCount": 2,
+    "attendeeReconfirmCount": 1,
+    "technicalIssueCount": 0,
+    "videoAssumptionCount": 0,
+    "technicianPromptCount": 0,
+    "quoteReached": false,
+    "timePickerSubmitted": true
+  },
+  "assertions": [],
+  "transcript": [
+    {
+      "ts": "2026-03-11T18:51:09.386Z",
+      "role": "user",
+      "text": "Daniel Morel"
+    },
+    {
+      "ts": "2026-03-11T18:51:20.175Z",
+      "role": "assistant",
+      "text": "Thank you, Daniel. Are you a new or existing customer with Microhire?"
+    },
+    {
+      "ts": "2026-03-11T18:51:20.244Z",
+      "role": "user",
+      "text": "new"
+    },
+    {
+      "ts": "2026-03-11T18:51:34.152Z",
+      "role": "assistant",
+      "text": "Welcome to Microhire, Daniel! Could you please share the name and location of your organisation?"
+    },
+    {
+      "ts": "2026-03-11T18:51:34.235Z",
+      "role": "user",
+      "text": "Morel Enterprises"
+    },
+    {
+      "ts": "2026-03-11T18:51:47.380Z",
+      "role": "assistant",
+      "text": "Thank you! I've noted your organisation as Morel Enterprises. Could you also provide either your email address or phone number so I can contact you if needed?"
+    },
+    {
+      "ts": "2026-03-11T18:51:47.488Z",
+      "role": "user",
+      "text": "daniel@morel.co"
+    },
+    {
+      "ts": "2026-03-11T18:52:05.827Z",
+      "role": "assistant",
+      "text": "Your contact details have been saved successfully. Could you please share a bit about your event? For instance, what type of event you're organising and the venue or room you're considering?"
+    },
+    {
+      "ts": "2026-03-11T18:52:05.868Z",
+      "role": "user",
+      "text": "meeting"
+    },
+    {
+      "ts": "2026-03-11T18:52:20.508Z",
+      "role": "assistant",
+      "text": "Thank you for confirming it’s a meeting. Could you let me know the venue and room you're considering? If it's at The Westin Brisbane, I can assist with specific room options."
+    },
+    {
+      "ts": "2026-03-11T18:52:20.572Z",
+      "role": "user",
+      "text": "thrive"
+    },
+    {
+      "ts": "2026-03-11T18:52:34.757Z",
+      "role": "assistant",
+      "text": "Great choice! The Thrive Boardroom at The Westin Brisbane is ideal for small meetings, with a fixed boardroom layout seating up to 10 attendees. How many attendees are you expecting for this meeting?"
+    },
+    {
+      "ts": "2026-03-11T18:52:34.812Z",
+      "role": "user",
+      "text": "7 April 2026"
+    },
+    {
+      "ts": "2026-03-11T18:52:52.699Z",
+      "role": "assistant",
+      "text": "I've noted your meeting date as 7 April 2026. How many attendees are you expecting for your meeting?"
+    },
+    {
+      "ts": "2026-03-11T18:52:52.770Z",
+      "role": "user",
+      "text": "8"
+    },
+    {
+      "ts": "2026-03-11T18:53:17.391Z",
+      "role": "assistant",
+      "text": "Here's a time picker for you. Please confirm your schedule for 7 April 2026:\n\nConfirm your schedule for 7 April 2026\nRoom setup by (optional)\nRehearsal time (optional)\nEvent start time\nEvent end time\nPack up time from (optional)\nSubmit"
+    },
+    {
+      "ts": "2026-03-11T18:53:18.733Z",
+      "role": "system",
+      "text": "[auto] submitted multitime picker {\"setup\":\"07:00\",\"rehearsal\":\"09:30\",\"start\":\"10:00\",\"end\":\"16:00\",\"packup\":\"17:00\"}"
+    },
+    {
+      "ts": "2026-03-11T18:53:44.024Z",
+      "role": "assistant",
+      "text": "Perfect! I've confirmed your schedule for Tuesday, 7 April 2026:\n\nSetup at 7:00 AM\nRehearsal at 9:30 AM\nEvent from 10:00 AM to 4:00 PM\nPack up at 5:00 PM.\n\nNow, could you let me know if you’ll need any specific audio-visual equipment for your meeting? For example, do you plan to hold presentations, or perhaps a video conference?"
+    },
+    {
+      "ts": "2026-03-11T18:53:44.431Z",
+      "role": "user",
+      "text": "Yes a couple of laptops and we will be sharing presentations on screen with attendees in the room and others globally via Zoom and Teams"
+    },
+    {
+      "ts": "2026-03-11T18:54:04.273Z",
+      "role": "assistant",
+      "text": "Thank you for confirming. Based on your requirements, here's what I recommend:\n\nFor the presentations, you'll need a screen for the attendees to view in the room.\nWe'll provide laptops—could you confirm how many laptops you’ll need and if you have a preference for Windows or Mac?\nFor the Zoom and Teams video conferencing, you'll need a camera, speaker, and a microphone to ensure all participants, both in-room and global, can interact seamlessly.\n\nLet me know about your preference for the laptops, and I’ll ensure everything is detailed for your event!"
+    },
+    {
+      "ts": "2026-03-11T18:54:04.535Z",
+      "role": "system",
+      "text": "[auto] submitted multitime picker {\"setup\":\"07:00\",\"rehearsal\":\"09:30\",\"start\":\"10:00\",\"end\":\"16:00\",\"packup\":\"17:00\"}"
+    },
+    {
+      "ts": "2026-03-11T18:54:22.272Z",
+      "role": "assistant",
+      "text": "Your schedule is already confirmed for Tuesday, 7 April 2026 with the following details:\n\nSetup at 7:00 AM\nRehearsal at 9:30 AM\nEvent from 10:00 AM to 4:00 PM\nPack up at 5:00 PM.\n\nCould you please confirm how many laptops you’ll need and if you have a preference for Windows or Mac for your setup?"
+    },
+    {
+      "ts": "2026-03-11T18:54:22.371Z",
+      "role": "user",
+      "text": "2 laptops, mac"
+    }
+  ],
+  "screenshotOnFailure": "playwright-random-results/invocation-2026-03-11T18-51-00-590Z/run-001-thrivehybridfullcoverage/error.png",
+  "endedAt": "2026-03-11T18:54:54.817Z"
+}

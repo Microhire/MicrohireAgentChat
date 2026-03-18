@@ -1,0 +1,254 @@
+{
+  "runId": "run-001-thrivehybridfullcoverage",
+  "startedAt": "2026-03-11T19:19:43.514Z",
+  "scenarioId": "thriveHybridFullCoverage",
+  "scenarioDescription": "Thrive Boardroom hybrid meeting with full technician coverage",
+  "status": "FAIL",
+  "reason": "Assertions failed: technician prompt expectation; technician support summary expectation; stage label 'Rehearsal / Test & Connect' present; stage label 'Operate' present; stage label 'Pack down' present; timing fragment 'around 9:30 AM' present; timing fragment 'from 5:00 PM' present",
+  "metrics": {
+    "assistantTurns": 14,
+    "attendeePromptCount": 1,
+    "attendeeReconfirmCount": 1,
+    "technicalIssueCount": 0,
+    "videoAssumptionCount": 0,
+    "technicianPromptCount": 0,
+    "quoteReached": true,
+    "timePickerSubmitted": true
+  },
+  "assertions": [
+    {
+      "name": "quote summary reached",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "name": "technician prompt expectation",
+      "passed": false,
+      "details": {}
+    },
+    {
+      "name": "technician support summary expectation",
+      "passed": false,
+      "details": {}
+    },
+    {
+      "name": "stage label 'Setup' present",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "name": "stage label 'Rehearsal / Test & Connect' present",
+      "passed": false,
+      "details": {}
+    },
+    {
+      "name": "stage label 'Operate' present",
+      "passed": false,
+      "details": {}
+    },
+    {
+      "name": "stage label 'Pack down' present",
+      "passed": false,
+      "details": {}
+    },
+    {
+      "name": "timing fragment 'by 7:00 AM' present",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "name": "timing fragment 'around 9:30 AM' present",
+      "passed": false,
+      "details": {}
+    },
+    {
+      "name": "timing fragment '10:00 AM to 4:00 PM' present",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "name": "timing fragment 'from 5:00 PM' present",
+      "passed": false,
+      "details": {}
+    },
+    {
+      "name": "forbidden assistant pattern 'setup style' absent",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "name": "forbidden assistant pattern 'select a layout' absent",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "name": "forbidden assistant pattern 'choose a setup' absent",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "name": "forbidden assistant pattern 'inbuilt speaker system' absent",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "name": "forbidden assistant pattern 'external/portable pa speakers' absent",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "name": "forbidden assistant pattern 'foldback monitor' absent",
+      "passed": true,
+      "details": {}
+    },
+    {
+      "name": "forbidden assistant pattern 'lectern' absent",
+      "passed": true,
+      "details": {}
+    }
+  ],
+  "transcript": [
+    {
+      "ts": "2026-03-11T19:19:50.145Z",
+      "role": "user",
+      "text": "Daniel Morel"
+    },
+    {
+      "ts": "2026-03-11T19:19:59.393Z",
+      "role": "assistant",
+      "text": "Thank you, Daniel. Are you a new or existing customer with Microhire?"
+    },
+    {
+      "ts": "2026-03-11T19:19:59.427Z",
+      "role": "user",
+      "text": "new"
+    },
+    {
+      "ts": "2026-03-11T19:20:09.782Z",
+      "role": "assistant",
+      "text": "Great, Daniel. Could you please share the name and location of your organisation?"
+    },
+    {
+      "ts": "2026-03-11T19:20:09.827Z",
+      "role": "user",
+      "text": "Brisbane"
+    },
+    {
+      "ts": "2026-03-11T19:20:20.989Z",
+      "role": "assistant",
+      "text": "Thank you! Could you also provide the name of your organisation?"
+    },
+    {
+      "ts": "2026-03-11T19:20:21.029Z",
+      "role": "user",
+      "text": "Morel Enterprises"
+    },
+    {
+      "ts": "2026-03-11T19:20:32.471Z",
+      "role": "assistant",
+      "text": "Thanks, Daniel. Could you please share either your contact number or email address so we can reach you regarding your event?"
+    },
+    {
+      "ts": "2026-03-11T19:20:32.511Z",
+      "role": "user",
+      "text": "daniel@morel.co"
+    },
+    {
+      "ts": "2026-03-11T19:20:53.155Z",
+      "role": "assistant",
+      "text": "Your contact details have been saved successfully. Could you please share a bit about your event? For instance, what type of event you're organising and the venue or room you're considering?"
+    },
+    {
+      "ts": "2026-03-11T19:20:53.196Z",
+      "role": "user",
+      "text": "meeting at thrive"
+    },
+    {
+      "ts": "2026-03-11T19:21:07.693Z",
+      "role": "assistant",
+      "text": "Got it! You're planning a meeting at Thrive Boardroom. Could you let me know the date of your event?"
+    },
+    {
+      "ts": "2026-03-11T19:21:07.750Z",
+      "role": "user",
+      "text": "Yes a couple of laptops and we will be sharing presentations on screen with attendees in the room and others globally via Zoom and Teams"
+    },
+    {
+      "ts": "2026-03-11T19:21:21.660Z",
+      "role": "assistant",
+      "text": "Thank you for sharing! I'll be recommending equipment based on the requirements for presentations on-screen and global participation via Zoom and Teams. Could you provide the event date so I can proceed with the scheduling details?"
+    },
+    {
+      "ts": "2026-03-11T19:21:21.717Z",
+      "role": "user",
+      "text": "7 April 2026"
+    },
+    {
+      "ts": "2026-03-11T19:21:58.302Z",
+      "role": "assistant",
+      "text": "Here's a time picker for you. Please confirm your schedule for 7 April 2026:\n\nConfirm your schedule for 7 April 2026\nRoom setup by (optional)\nRehearsal time (optional)\nEvent start time\nEvent end time\nPack up time from (optional)\nSubmit"
+    },
+    {
+      "ts": "2026-03-11T19:21:58.432Z",
+      "role": "system",
+      "text": "[auto] submitted multitime picker {\"setup\":\"07:00\",\"rehearsal\":\"09:30\",\"start\":\"10:00\",\"end\":\"16:00\",\"packup\":\"17:00\"}"
+    },
+    {
+      "ts": "2026-03-11T19:22:25.915Z",
+      "role": "assistant",
+      "text": "Perfect! I've confirmed your schedule for Tuesday, 7 April 2026:\n\nSetup by 7:00 AM\nRehearsal at 9:30 AM\nEvent from 10:00 AM to 4:00 PM\nPack up at 5:00 PM\n\nNow, let's review your AV equipment needs. Just to confirm, you'll require:\n\nEquipment for displaying presentations on-screen\nA connection for your laptops\nVideo conferencing via Zoom and Teams for global participation\n\nCould you let me know if I've captured this correctly or if there's anything else you'd require?"
+    },
+    {
+      "ts": "2026-03-11T19:22:25.968Z",
+      "role": "user",
+      "text": "Yes a clicker would be good"
+    },
+    {
+      "ts": "2026-03-11T19:22:46.698Z",
+      "role": "assistant",
+      "text": "Noted! I'll include a wireless clicker (presentation remote) for slide control.\n\nWould you like technical operator assistance during your rehearsal or the event itself to ensure everything runs smoothly, especially with the video conferencing setup?"
+    },
+    {
+      "ts": "2026-03-11T19:22:46.744Z",
+      "role": "user",
+      "text": "A flipchart would be good too"
+    },
+    {
+      "ts": "2026-03-11T19:23:05.205Z",
+      "role": "assistant",
+      "text": "Great, I'll include a flipchart in your requirements as well.\n\nWould you like technical operator assistance during your rehearsal or event to manage the technical setup, particularly for the video conferencing?"
+    },
+    {
+      "ts": "2026-03-11T19:23:05.244Z",
+      "role": "user",
+      "text": "2 laptops, mac"
+    },
+    {
+      "ts": "2026-03-11T19:23:29.117Z",
+      "role": "assistant",
+      "text": "Understood, I'll include 2 Mac laptops in your requirements.\n\nWould you like technical operator assistance during your rehearsal or event to help manage the presentations and video conferencing?"
+    },
+    {
+      "ts": "2026-03-11T19:23:29.210Z",
+      "role": "user",
+      "text": "yes"
+    },
+    {
+      "ts": "2026-03-11T19:23:49.951Z",
+      "role": "assistant",
+      "text": "Thank you for confirming. I'll include technical operator support to assist during both the rehearsal and the event.\n\nNow, let's summarise your requirements:\n\nMeeting at Thrive Boardroom\nEvent date: 7 April 2026\nSchedule: Setup at 7:00 AM, Rehearsal at 9:30 AM, Event from 10:00 AM to 4:00 PM, Pack up at 5:00 PM\nAV equipment:\nVideo conferencing setup for Zoom/Teams\nDisplay presentations on-screen\nWireless clicker (presentation remote)\nFlipchart\n2 Mac laptops\nTechnical operator assistance during rehearsal and the event\n\nHave I captured everything? Let me know if there's anything else to add!"
+    },
+    {
+      "ts": "2026-03-11T19:23:49.994Z",
+      "role": "user",
+      "text": "yes this is all"
+    },
+    {
+      "ts": "2026-03-11T19:24:16.184Z",
+      "role": "assistant",
+      "text": "Before I can provide the equipment recommendations and quote summary, could you please confirm the number of attendees for your meeting?"
+    }
+  ],
+  "screenshotOnFailure": "playwright-random-results/invocation-2026-03-11T19-19-41-952Z/run-001-thrivehybridfullcoverage/failure.png",
+  "endedAt": "2026-03-11T19:24:16.633Z"
+}

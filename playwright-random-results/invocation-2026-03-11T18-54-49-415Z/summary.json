@@ -1,0 +1,85 @@
+{
+  "generatedAt": "2026-03-11T18:55:59.894Z",
+  "config": {
+    "runs": 1,
+    "headless": false,
+    "baseUrl": "http://localhost:5216",
+    "maxTurns": 10,
+    "outDir": "playwright-random-results",
+    "assistantTimeoutMs": 20000,
+    "profile": "thriveHybridFullCoverage",
+    "parallel": 1,
+    "invocationDir": "playwright-random-results/invocation-2026-03-11T18-54-49-415Z",
+    "ndjsonPath": "playwright-random-results/invocation-2026-03-11T18-54-49-415Z/runs.ndjson",
+    "summaryPath": "playwright-random-results/invocation-2026-03-11T18-54-49-415Z/summary.json",
+    "profiles": [
+      "thriveHybridFullCoverage"
+    ]
+  },
+  "totals": {
+    "runs": 1,
+    "pass": 0,
+    "fail": 1,
+    "warn": 0
+  },
+  "runs": [
+    {
+      "runId": "run-001-thrivehybridfullcoverage",
+      "startedAt": "2026-03-11T18:54:54.355Z",
+      "scenarioId": "thriveHybridFullCoverage",
+      "scenarioDescription": "Thrive Boardroom hybrid meeting with full technician coverage",
+      "status": "FAIL",
+      "reason": "Exception: Timed out waiting for assistant response after 20000ms",
+      "metrics": {
+        "assistantTurns": 3,
+        "attendeePromptCount": 0,
+        "attendeeReconfirmCount": 0,
+        "technicalIssueCount": 0,
+        "videoAssumptionCount": 0,
+        "technicianPromptCount": 0,
+        "quoteReached": false,
+        "timePickerSubmitted": false
+      },
+      "assertions": [],
+      "transcript": [
+        {
+          "ts": "2026-03-11T18:54:59.073Z",
+          "role": "user",
+          "text": "Daniel Morel"
+        },
+        {
+          "ts": "2026-03-11T18:55:10.937Z",
+          "role": "assistant",
+          "text": "Thank you, Daniel. Are you a new or existing customer with Microhire?"
+        },
+        {
+          "ts": "2026-03-11T18:55:11.027Z",
+          "role": "user",
+          "text": "new"
+        },
+        {
+          "ts": "2026-03-11T18:55:24.843Z",
+          "role": "assistant",
+          "text": "Welcome, Daniel! Could you please provide the name and location of your organisation?"
+        },
+        {
+          "ts": "2026-03-11T18:55:25.936Z",
+          "role": "user",
+          "text": "Morel Enterprises"
+        },
+        {
+          "ts": "2026-03-11T18:55:38.981Z",
+          "role": "assistant",
+          "text": "Thank you! I've noted your organisation as Morel Enterprises. Could you now provide either your email address or phone number so we can keep in touch?"
+        },
+        {
+          "ts": "2026-03-11T18:55:39.081Z",
+          "role": "user",
+          "text": "daniel@morel.co"
+        }
+      ],
+      "screenshotOnFailure": "playwright-random-results/invocation-2026-03-11T18-54-49-415Z/run-001-thrivehybridfullcoverage/error.png",
+      "endedAt": "2026-03-11T18:55:59.853Z"
+    }
+  ]
+}

@@ -1,4 +1,5 @@
-﻿// Services/PdfFromBlankService.cs
+// Services/PdfFromBlankService.cs
+using System.Linq;
 using iText.IO.Font.Constants;
 using iText.Kernel.Colors;
 using iText.Kernel.Font;
@@ -34,18 +35,35 @@ public class PdfFromBlankService
     private const float CONTENT_START_Y = 710f;      // Main content starts BELOW red line
     private const float FOOTER_Y = 35f;              // Footer reference position
 
-    public (string fileName, string fullPath) Generate(QuoteAllFields q)
+    /// <summary>Sanitize a string for use as a filename segment (e.g. from Reference).</summary>
+    private static string SanitizeFilenameSegment(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return "";
+        var segment = new string(value.Where(c => char.IsLetterOrDigit(c) || c == '-').ToArray());
+        return segment.Length > 0 ? segment : "";
+    }
+
+    public (string fileName, string fullPath) Generate(QuoteAllFields q, string? bookingNo = null)
     {
         var webRoot = _env.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot");
-        var src = Path.Combine(webRoot, "files", "quotes", "Quote-BLANK-TEMPLATE.pdf");
-        if (!File.Exists(src))
-            throw new FileNotFoundException("Blank template not found", src);
-
         var outDir = Path.Combine(webRoot, "files", "quotes");
         Directory.CreateDirectory(outDir);
 
-        var outName = $"Quote-{DateTime.UtcNow:yyyyMMddHHmmss}.pdf";
+        var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+        var identifier = !string.IsNullOrEmpty(bookingNo)
+            ? bookingNo
+            : SanitizeFilenameSegment(q.Reference);
+        var outName = string.IsNullOrEmpty(identifier)
+            ? $"Quote-{timestamp}.pdf"
+            : $"Quote-{identifier}-{timestamp}.pdf";
         var dest = Path.Combine(outDir, outName);
+
+        var src = Path.Combine(webRoot, "files", "quotes", "Quote-BLANK-TEMPLATE.pdf");
+        if (!File.Exists(src))
+        {
+            GenerateSimplePdfFallback(dest, q);
+            return (outName, dest);
+        }
 
         using var reader = new PdfReader(src);
         using var writer = new PdfWriter(dest);
@@ -343,6 +361,12 @@ public class PdfFromBlankService
             Text(c, font, 9f, sigX, sigY, "Reference Number: " + (q.Reference ?? "")); sigY -= 14f;
             Text(c, font, 9f, sigX, sigY, "Total: " + (q.GrandTotalIncGst ?? "$0.00") + " inc GST"); sigY -= 25f;
 
+            Text(c, bold, 10f, sigX, sigY, "PAYMENT DETAILS"); sigY -= 18f;
+            Text(c, font, 9f, sigX, sigY, "Account Name: Microhire Pty Ltd"); sigY -= 14f;
+            Text(c, font, 9f, sigX, sigY, "BSB: 064-000"); sigY -= 14f;
+            Text(c, font, 9f, sigX, sigY, "Account Number: 1527 3541"); sigY -= 14f;
+            Text(c, font, 9f, sigX, sigY, "Reference: " + (q.Reference ?? "")); sigY -= 25f;
+
             Text(c, bold, 10f, sigX, sigY, "CLIENT ACCEPTANCE"); sigY -= 18f;
             Text(c, font, 9f, sigX, sigY, "Signature: _______________________________"); sigY -= 14f;
             Text(c, font, 9f, sigX, sigY, "Name: ___________________________________"); sigY -= 14f;
@@ -355,6 +379,93 @@ public class PdfFromBlankService
         pdf.Close();
         return (outName, dest);
     }
+
+    private static void GenerateSimplePdfFallback(string dest, QuoteAllFields q)
+    {
+        using var writer = new PdfWriter(dest);
+        using var pdf = new PdfDocument(writer);
+        using var doc = new Document(pdf);
+
+        doc.SetMargins(28f, 28f, 28f, 28f);
+
+        doc.Add(new Paragraph("Microhire Quote").SetFontSize(18f).SetBold());
+        doc.Add(new Paragraph(Safe(q.EventTitle, "Event")).SetFontSize(13f).SetBold());
+
+        doc.Add(new Paragraph($"Reference: {Safe(q.Reference)}"));
+        doc.Add(new Paragraph($"Client: {Safe(q.Client)}"));
+        doc.Add(new Paragraph($"Contact: {Safe(q.ContactName)}"));
+        doc.Add(new Paragraph($"Email: {Safe(q.Email)}"));
+        doc.Add(new Paragraph($"Location: {Safe(q.Location)}"));
+        doc.Add(new Paragraph($"Room: {Safe(q.Room)}"));
+        doc.Add(new Paragraph($"Date Range: {Safe(q.DateRange)}"));
+
+        AddEquipmentSection(doc, "Vision", q.VisionRows, q.VisionTotal);
+        AddEquipmentSection(doc, "Audio", q.AudioRows, q.AudioTotal);
+        AddEquipmentSection(doc, "Lighting", q.LightingRows, q.LightingTotal);
+        AddEquipmentSection(doc, "Recording", q.RecordingRows, q.RecordingTotal);
+        AddEquipmentSection(doc, "Drape", q.DrapeRows, q.DrapeTotal);
+        AddLaborSection(doc, q.LabourRows, q.LabourTotal);
+
+        doc.Add(new Paragraph("Budget Summary").SetFontSize(12f).SetBold().SetMarginTop(12f));
+        doc.Add(new Paragraph($"Rental Equipment: {Safe(q.RentalTotal, "$0.00")}"));
+        doc.Add(new Paragraph($"Labour: {Safe(q.LabourTotal, "$0.00")}"));
+        doc.Add(new Paragraph($"Service Charge: {Safe(q.ServiceCharge, "$0.00")}"));
+        doc.Add(new Paragraph($"Sub Total (ex GST): {Safe(q.SubTotalExGst, "$0.00")}"));
+        doc.Add(new Paragraph($"GST: {Safe(q.Gst, "$0.00")}"));
+        doc.Add(new Paragraph($"Total (inc GST): {Safe(q.GrandTotalIncGst, "$0.00")}").SetBold());
+    }
+
+    private static void AddEquipmentSection(Document doc, string title, List<EquipmentRow>? rows, string? total)
+    {
+        doc.Add(new Paragraph(title).SetFontSize(11f).SetBold().SetMarginTop(10f));
+
+        if (rows == null || rows.Count == 0)
+        {
+            doc.Add(new Paragraph("No items"));
+            return;
+        }
+
+        foreach (var row in rows)
+        {
+            if (row.IsGroup)
+            {
+                doc.Add(new Paragraph(Safe(row.Description)).SetBold());
+                continue;
+            }
+
+            var prefix = row.IsComponent ? "  - " : "- ";
+            var qty = string.IsNullOrWhiteSpace(row.Qty) ? string.Empty : $" x{row.Qty.Trim()}";
+            var lineTotal = string.IsNullOrWhiteSpace(row.LineTotal) ? string.Empty : $" ({row.LineTotal.Trim()})";
+            doc.Add(new Paragraph($"{prefix}{Safe(row.Description)}{qty}{lineTotal}").SetFontSize(9f));
+        }
+
+        doc.Add(new Paragraph($"{title} Total: {Safe(total, "$0.00")}").SetBold().SetFontSize(9f));
+    }
+
+    private static void AddLaborSection(Document doc, List<LaborRow>? rows, string? total)
+    {
+        doc.Add(new Paragraph("Technical Services").SetFontSize(11f).SetBold().SetMarginTop(10f));
+
+        if (rows == null || rows.Count == 0)
+        {
+            doc.Add(new Paragraph("No technical services"));
+            return;
+        }
+
+        foreach (var row in rows)
+        {
+            doc.Add(
+                new Paragraph(
+                    $"- {Safe(row.Description)} | {Safe(row.Task)} | Qty {Safe(row.Qty, "0")} | " +
+                    $"{Safe(row.Start)} -> {Safe(row.Finish)} | {Safe(row.Hrs)} | {Safe(row.Total, "$0.00")}")
+                .SetFontSize(9f));
+        }
+
+        doc.Add(new Paragraph($"Labour Total: {Safe(total, "$0.00")}").SetBold().SetFontSize(9f));
+    }
+
+    private static string Safe(string? value, string fallback = "N/A")
+        => string.IsNullOrWhiteSpace(value) ? fallback : value.Trim();
 
     // ==================== HELPERS ====================
 

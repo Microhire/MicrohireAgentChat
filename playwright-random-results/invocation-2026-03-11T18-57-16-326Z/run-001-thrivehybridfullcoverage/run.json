@@ -1,0 +1,88 @@
+{
+  "runId": "run-001-thrivehybridfullcoverage",
+  "startedAt": "2026-03-11T18:57:17.970Z",
+  "scenarioId": "thriveHybridFullCoverage",
+  "scenarioDescription": "Thrive Boardroom hybrid meeting with full technician coverage",
+  "status": "FAIL",
+  "reason": "Exception: Timed out waiting for assistant response after 20000ms",
+  "metrics": {
+    "assistantTurns": 6,
+    "attendeePromptCount": 0,
+    "attendeeReconfirmCount": 0,
+    "technicalIssueCount": 0,
+    "videoAssumptionCount": 0,
+    "technicianPromptCount": 0,
+    "quoteReached": false,
+    "timePickerSubmitted": false
+  },
+  "assertions": [],
+  "transcript": [
+    {
+      "ts": "2026-03-11T18:57:22.410Z",
+      "role": "user",
+      "text": "Daniel Morel"
+    },
+    {
+      "ts": "2026-03-11T18:57:33.659Z",
+      "role": "assistant",
+      "text": "Thank you, Daniel! Are you a new or existing customer with Microhire?"
+    },
+    {
+      "ts": "2026-03-11T18:57:33.726Z",
+      "role": "user",
+      "text": "new"
+    },
+    {
+      "ts": "2026-03-11T18:57:44.722Z",
+      "role": "assistant",
+      "text": "Great to have you, Daniel! Could you please share the name of your organisation?"
+    },
+    {
+      "ts": "2026-03-11T18:57:44.814Z",
+      "role": "user",
+      "text": "Yes a couple of laptops and we will be sharing presentations on screen with attendees in the room and others globally via Zoom and Teams"
+    },
+    {
+      "ts": "2026-03-11T18:57:56.177Z",
+      "role": "assistant",
+      "text": "That's helpful, thank you! Before we get into the AV details, could you please share the name of your organisation?"
+    },
+    {
+      "ts": "2026-03-11T18:57:56.361Z",
+      "role": "user",
+      "text": "Yes a clicker would be good"
+    },
+    {
+      "ts": "2026-03-11T18:58:07.230Z",
+      "role": "assistant",
+      "text": "Noted about the clicker—I'll include that when finalising your AV requirements. Could you now share the name of your organisation?"
+    },
+    {
+      "ts": "2026-03-11T18:58:07.297Z",
+      "role": "user",
+      "text": "A flipchart would be good too"
+    },
+    {
+      "ts": "2026-03-11T18:58:18.971Z",
+      "role": "assistant",
+      "text": "Got it, Daniel—I'll include a flipchart as well. Could you now please provide the name of your organisation?"
+    },
+    {
+      "ts": "2026-03-11T18:58:19.117Z",
+      "role": "user",
+      "text": "Morel Enterprises"
+    },
+    {
+      "ts": "2026-03-11T18:58:30.768Z",
+      "role": "assistant",
+      "text": "Thank you, Daniel. I've noted your organisation as Morel Enterprises. Could you also share your contact number or email address so we can proceed?"
+    },
+    {
+      "ts": "2026-03-11T18:58:30.869Z",
+      "role": "user",
+      "text": "daniel@morel.co"
+    }
+  ],
+  "screenshotOnFailure": "playwright-random-results/invocation-2026-03-11T18-57-16-326Z/run-001-thrivehybridfullcoverage/error.png",
+  "endedAt": "2026-03-11T18:58:52.189Z"
+}

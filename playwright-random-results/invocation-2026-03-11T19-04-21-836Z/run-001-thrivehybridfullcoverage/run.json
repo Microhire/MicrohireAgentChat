@@ -1,0 +1,68 @@
+{
+  "runId": "run-001-thrivehybridfullcoverage",
+  "startedAt": "2026-03-11T19:04:23.729Z",
+  "scenarioId": "thriveHybridFullCoverage",
+  "scenarioDescription": "Thrive Boardroom hybrid meeting with full technician coverage",
+  "status": "FAIL",
+  "reason": "Exception: Timed out waiting for assistant response after 30000ms",
+  "metrics": {
+    "assistantTurns": 4,
+    "attendeePromptCount": 0,
+    "attendeeReconfirmCount": 0,
+    "technicalIssueCount": 0,
+    "videoAssumptionCount": 0,
+    "technicianPromptCount": 0,
+    "quoteReached": false,
+    "timePickerSubmitted": false
+  },
+  "assertions": [],
+  "transcript": [
+    {
+      "ts": "2026-03-11T19:04:27.892Z",
+      "role": "user",
+      "text": "Daniel Morel"
+    },
+    {
+      "ts": "2026-03-11T19:04:39.834Z",
+      "role": "assistant",
+      "text": "Thank you, Daniel. Are you a new or existing customer with Microhire?"
+    },
+    {
+      "ts": "2026-03-11T19:04:40.175Z",
+      "role": "user",
+      "text": "new"
+    },
+    {
+      "ts": "2026-03-11T19:04:51.445Z",
+      "role": "assistant",
+      "text": "Welcome, Daniel! Could you please share the name and location of your organisation?"
+    },
+    {
+      "ts": "2026-03-11T19:04:51.575Z",
+      "role": "user",
+      "text": "Brisbane"
+    },
+    {
+      "ts": "2026-03-11T19:05:02.775Z",
+      "role": "assistant",
+      "text": "Thanks, Daniel. Could you also provide the name of your organisation?"
+    },
+    {
+      "ts": "2026-03-11T19:05:02.880Z",
+      "role": "user",
+      "text": "Morel Enterprises"
+    },
+    {
+      "ts": "2026-03-11T19:05:16.521Z",
+      "role": "assistant",
+      "text": "Thank you, Daniel. Could you please provide either your contact number or email address so we can stay in touch?"
+    },
+    {
+      "ts": "2026-03-11T19:05:16.693Z",
+      "role": "user",
+      "text": "daniel@morel.co"
+    }
+  ],
+  "screenshotOnFailure": "playwright-random-results/invocation-2026-03-11T19-04-21-836Z/run-001-thrivehybridfullcoverage/error.png",
+  "endedAt": "2026-03-11T19:05:47.351Z"
+}

@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 using MicrohireAgentChat.Data;
 using MicrohireAgentChat.Models;
 using MicrohireAgentChat.Services;
@@ -260,15 +260,23 @@ public sealed class QuotesWebController : Controller
             }
 
             // Load equipment items
+            int? bookingIdAsInt = null;
+            if (booking.ID <= int.MaxValue && booking.ID >= int.MinValue)
+            {
+                bookingIdAsInt = decimal.ToInt32(decimal.Truncate(booking.ID));
+            }
             var items = await _bookingDb.TblItemtrans
-                .Where(i => i.BookingNoV32 == booking.booking_no || i.BookingId == booking.ID)
+                .Where(i => i.BookingNoV32 == booking.booking_no || (bookingIdAsInt.HasValue && i.BookingId == bookingIdAsInt.Value))
                 .ToListAsync();
 
             // Load inventory master data for descriptions and prices
             var productCodes = items.Select(i => i.ProductCodeV42).Where(p => !string.IsNullOrEmpty(p)).Distinct().ToList();
-            var inventoryItems = await _bookingDb.TblInvmas
+            var inventoryItemsList = await _bookingDb.TblInvmas
                 .Where(inv => productCodes.Contains(inv.product_code))
-                .ToDictionaryAsync(inv => inv.product_code ?? "");
+                .ToListAsync();
+            var inventoryItems = inventoryItemsList
+                .GroupBy(inv => inv.product_code ?? "")
+                .ToDictionary(g => g.Key, g => g.First());
 
             // Load crew/labor
             var crew = await _bookingDb.TblCrews
@@ -303,6 +311,9 @@ public sealed class QuotesWebController : Controller
         var rehearsalDate = booking.RehDate?.ToString("dddd d MMMM yyyy") ?? eventDate;
         var showStartDate = booking.ShowSDate?.ToString("dddd d MMMM yyyy") ?? eventDate;
         var showEndDate = booking.ShowEdate?.ToString("dddd d MMMM yyyy") ?? eventDate;
+        var dateRange = string.Equals(showStartDate, showEndDate, StringComparison.Ordinal)
+            ? showStartDate
+            : $"{showStartDate} to {showEndDate}";
 
         // Format times
         var setupTime = FormatTime(booking.setupTimeV61);
@@ -310,10 +321,10 @@ public sealed class QuotesWebController : Controller
         var eventStartTime = FormatTime(booking.showStartTime);
         var eventEndTime = FormatTime(booking.ShowEndTime);
 
-        // Build venue information
-        var venueName = venue?.VenueName ?? booking.VenueRoom ?? "Venue TBD";
-        var venueAddress = venue?.FullAddress ?? organization?.Address_l1V6 ?? "Address TBD";
-        var venueRoom = booking.VenueRoom ?? "Room TBD";
+        // All supported rooms are at the Westin Brisbane
+        var venueName = WestinRoomCatalog.VenueName;
+        var venueAddress = WestinRoomCatalog.VenueAddress;
+        var venueRoom = StripProjectorAreaSuffix(booking.VenueRoom) ?? "Room TBD";
 
         // Build equipment rows categorized by groupFld
         var visionRows = new List<EquipmentRow>();
@@ -488,7 +499,7 @@ public sealed class QuotesWebController : Controller
             Location: venueName,
             Address: venueAddress,
             Room: venueRoom,
-            DateRange: $"{showStartDate} to {showEndDate}",
+            DateRange: dateRange,
 
             // Contact block
             DeliveryContact: contact?.Contactname ?? booking.contact_nameV6 ?? "Contact Name",
@@ -609,5 +620,15 @@ public sealed class QuotesWebController : Controller
             return $"{time.Substring(0, 2)}:{time.Substring(2, 2)}";
         }
         return time;
+    }
+
+    private static string? StripProjectorAreaSuffix(string? venueRoom)
+    {
+        if (string.IsNullOrWhiteSpace(venueRoom)) return venueRoom;
+        var s = venueRoom.Trim();
+        s = Regex.Replace(s, @"\s*-\s*Projector\s+Area(?:s)?\s*$", "", RegexOptions.IgnoreCase);
+        s = Regex.Replace(s, @"\s*-\s*Projector\s+Area(?:s)?\s+[A-F](?:/[A-F])*$", "", RegexOptions.IgnoreCase);
+        s = Regex.Replace(s, @"\s*\(Proj(?:ector)?\s+[A-F](?:/[A-F])*\)$", "", RegexOptions.IgnoreCase);
+        return s.Trim();
     }
 }

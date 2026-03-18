@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microhire Quote - Codenest Corp</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --microhire-red: #E81E25;
+            --microhire-red-dark: #C91A20;
+            --microhire-red-darker: #9E1D20;
+            --microhire-accent: #FF3262;
+            --text-dark: #1a1a1a;
+            --text-gray: #4a4a4a;
+            --text-light: #6b6b6b;
+            --bg-light: #f5f5f5;
+            --white: #ffffff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Lato', sans-serif;
+            background: #2a2a2a;
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        .page-container {
+            max-width: 850px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .page {
+            background: var(--white);
+            width: 100%;
+            min-height: 1100px;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* ==================== COVER PAGE ==================== */
+        .cover-page {
+            background: var(--microhire-red);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cover-main {
+            flex: 1;
+            min-height: 900px;
+            position: relative;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Geometric shapes */
+        .cover-shape-1 {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 50%;
+            height: 70%;
+            background: var(--microhire-red-dark);
+            clip-path: polygon(0 0, 100% 0, 50% 100%, 0 100%);
+        }
+
+        .cover-shape-2 {
+            position: absolute;
+            top: 20%;
+            right: 0;
+            width: 55%;
+            height: 80%;
+            background: var(--microhire-red-darker);
+            clip-path: polygon(40% 0, 100% 0, 100% 100%, 0 100%);
+        }
+
+        .cover-logo {
+            position: relative;
+            z-index: 10;
+            text-align: right;
+            margin-bottom: auto;
+        }
+
+        .cover-logo-text {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
+            font-size: 48px;
+            color: var(--white);
+            letter-spacing: 2px;
+        }
+
+        .cover-logo-text span {
+            color: var(--white);
+            font-weight: 300;
+        }
+
+        .cover-tagline {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 11px;
+            color: var(--white);
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            opacity: 0.9;
+        }
+
+        .cover-title {
+            position: relative;
+            z-index: 10;
+            margin-top: auto;
+            padding-bottom: 40px;
+        }
+
+        .cover-title h1 {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 300;
+            font-size: clamp(32px, 5vw, 52px);
+            color: var(--white);
+            line-height: 1.2;
+        }
+
+        .cover-footer {
+            background: var(--white);
+            padding: 30px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .cover-date {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            font-size: 18px;
+            color: var(--microhire-red);
+        }
+
+        .cover-ref {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--microhire-red);
+            margin-top: 5px;
+        }
+
+        .cover-venue-logo {
+            text-align: right;
+        }
+
+        .cover-venue-logo img {
+            height: 50px;
+            object-fit: contain;
+        }
+
+        .venue-name {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 20px;
+            color: var(--text-dark);
+            letter-spacing: 2px;
+        }
+
+        .venue-location {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 11px;
+            color: var(--text-gray);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        /* ==================== OVERVIEW PAGE ==================== */
+        .overview-page {
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .page-header {
+            padding: 35px 45px 25px;
+            border-bottom: 3px solid var(--microhire-red);
+        }
+
+        .page-section-title {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 14px;
+            color: var(--microhire-red-darker);
+            letter-spacing: 1px;
+            margin-bottom: 8px;
+        }
+
+        .page-event-title {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: clamp(18px, 3vw, 24px);
+            color: var(--microhire-red);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .page-event-title::before {
+            content: '';
+            width: 0;
+            height: 0;
+            border-top: 10px solid transparent;
+            border-bottom: 10px solid transparent;
+            border-left: 16px solid var(--microhire-red);
+        }
+
+        .page-content {
+            flex: 1;
+            padding: 30px 45px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .contact-block {
+            margin-bottom: 25px;
+        }
+
+        .contact-name {
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--text-dark);
+        }
+
+        .contact-company {
+            font-weight: 400;
+            font-size: 14px;
+            color: var(--text-dark);
+        }
+
+        .contact-details {
+            font-size: 13px;
+            color: var(--text-gray);
+            margin-top: 4px;
+        }
+
+        .greeting {
+            font-size: 14px;
+            color: var(--text-dark);
+            margin: 20px 0 15px;
+        }
+
+        .intro-text {
+            font-size: 13px;
+            color: var(--text-gray);
+            line-height: 1.7;
+            text-align: justify;
+            margin-bottom: 25px;
+        }
+
+        .details-table {
+            margin-bottom: 25px;
+        }
+
+        .detail-row {
+            display: flex;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+
+        .detail-label {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            font-size: 11px;
+            color: var(--microhire-red);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            width: 180px;
+            flex-shrink: 0;
+        }
+
+        .detail-value {
+            font-size: 13px;
+            color: var(--text-dark);
+        }
+
+        .section-divider {
+            height: 1px;
+            background: linear-gradient(90deg, var(--microhire-red) 0%, transparent 100%);
+            margin: 20px 0;
+            opacity: 0.3;
+        }
+
+        .manager-section {
+            margin-bottom: 25px;
+        }
+
+        .manager-section .detail-row {
+            border-bottom: none;
+            padding: 5px 0;
+        }
+
+        .schedule-intro {
+            font-size: 12px;
+            font-style: italic;
+            color: var(--text-gray);
+            margin-bottom: 15px;
+        }
+
+        .schedule-table {
+            width: 100%;
+        }
+
+        .schedule-row {
+            display: flex;
+            padding: 6px 0;
+        }
+
+        .schedule-label {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            font-size: 11px;
+            color: var(--microhire-red);
+            text-transform: uppercase;
+            width: 130px;
+            flex-shrink: 0;
+        }
+
+        .schedule-date {
+            font-size: 13px;
+            color: var(--text-dark);
+            width: 220px;
+        }
+
+        .schedule-time {
+            font-size: 13px;
+            color: var(--text-gray);
+        }
+
+        .page-footer {
+            padding: 20px 45px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #eee;
+            margin-top: auto;
+        }
+
+        .footer-logo {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .footer-logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--microhire-red);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .footer-logo-icon::after {
+            content: '11';
+            color: white;
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 800;
+            font-size: 16px;
+            letter-spacing: -2px;
+        }
+
+        .footer-ref {
+            font-size: 11px;
+            color: var(--text-light);
+        }
+
+        .footer-page-info {
+            font-size: 11px;
+            color: var(--text-light);
+        }
+
+        /* ==================== EQUIPMENT PAGE ==================== */
+        .equipment-table {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .equipment-header {
+            display: flex;
+            padding: 12px 0;
+            border-bottom: 2px solid var(--microhire-red);
+            margin-bottom: 15px;
+        }
+
+        .equipment-header-desc {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--microhire-red);
+            flex: 1;
+        }
+
+        .equipment-header-qty {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 600;
+            font-size: 12px;
+            color: var(--microhire-red);
+            width: 80px;
+            text-align: center;
+        }
+
+        .equipment-section {
+            margin-bottom: 20px;
+        }
+
+        .equipment-category {
+            font-style: italic;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+        }
+
+        .equipment-subcategory {
+            font-style: italic;
+            text-decoration: underline;
+            font-size: 13px;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+            margin-left: 15px;
+        }
+
+        .equipment-row {
+            display: flex;
+            padding: 4px 0;
+            align-items: center;
+        }
+
+        .equipment-item {
+            flex: 1;
+            font-size: 13px;
+            color: var(--text-dark);
+        }
+
+        .equipment-item.main {
+            font-weight: 600;
+        }
+
+        .equipment-item.component {
+            margin-left: 30px;
+            font-style: italic;
+            color: var(--text-gray);
+        }
+
+        .equipment-qty {
+            width: 80px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--text-dark);
+        }
+
+        .equipment-note {
+            font-style: italic;
+            font-size: 13px;
+            color: var(--text-dark);
+            margin: 15px 0 15px 15px;
+        }
+
+        .equipment-group-title {
+            font-style: italic;
+            text-decoration: underline;
+            font-size: 13px;
+            color: var(--text-dark);
+            margin: 15px 0 10px 0;
+        }
+
+        .equipment-total {
+            display: flex;
+            justify-content: flex-end;
+            padding: 20px 0;
+            margin-top: auto;
+        }
+
+        .equipment-total-amount {
+            font-family: 'Montserrat', sans-serif;
+            font-weight: 700;
+            font-size: 18px;
+            color: var(--text-dark);
+        }
+
+        /* ==================== PRINT STYLES ==================== */
+        @media print {
+            body {
+                background: white;
+            }
+            
+            .page-container {
+                padding: 0;
+            }
+            
+            .page {
+                box-shadow: none;
+                margin-bottom: 0;
+                page-break-after: always;
+                aspect-ratio: auto;
+                height: 100vh;
+            }
+            
+            .page:last-child {
+                page-break-after: avoid;
+            }
+        }
+
+        /* ==================== RESPONSIVE ==================== */
+        @media (max-width: 600px) {
+            .page-container {
+                padding: 10px;
+            }
+            
+            .cover-main {
+                padding: 25px;
+            }
+            
+            .cover-footer {
+                padding: 20px 25px;
+            }
+            
+            .page-header,
+            .page-content,
+            .page-footer {
+                padding-left: 25px;
+                padding-right: 25px;
+            }
+            
+            .detail-label,
+            .schedule-label {
+                width: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <!-- ==================== PAGE 1: COVER ==================== -->
+        <div class="page cover-page">
+            <div class="cover-main">
+                <!-- Geometric shapes -->
+                <div class="cover-shape-1"></div>
+                <div class="cover-shape-2"></div>
+                
+                <!-- Logo -->
+                <div class="cover-logo">
+                    <div class="cover-logo-text"><span>I</span>1icrohire.</div>
+                    <div class="cover-tagline">Events That Inspire</div>
+                </div>
+                
+                <!-- Event Title -->
+                <div class="cover-title">
+                    <h1>Corporate Traveller<br>Meeting</h1>
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="cover-footer">
+                <div class="cover-info">
+                    <div class="cover-date">29 JULY 2025</div>
+                    <div class="cover-ref">C1422500001 - 001</div>
+                </div>
+                <div class="cover-venue-logo">
+                    <div class="venue-name">THE WESTIN</div>
+                    <div class="venue-location">Brisbane</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== PAGE 2: OVERVIEW ==================== -->
+        <div class="page overview-page">
+            <div class="page-header">
+                <div class="page-section-title">OVERVIEW</div>
+                <div class="page-event-title">CORPORATE TRAVELLER MEETING</div>
+            </div>
+            
+            <div class="page-content">
+                <!-- Contact Info -->
+                <div class="contact-block">
+                    <div class="contact-name">Sara Malone</div>
+                    <div class="contact-company">Corporate Traveller</div>
+                    <div class="contact-details">
+                        275 Grey St<br>
+                        South Brisbane QLD 4101<br>
+                        61 7 3083 4030
+                    </div>
+                </div>
+                
+                <!-- Greeting -->
+                <div class="greeting">Dear Sara,</div>
+                
+                <!-- Intro Text -->
+                <p class="intro-text">
+                    Thank you for the opportunity to present our audio-visual production services for your upcoming event at The Westin Brisbane. We are pleased to provide our proposal in the following pages, based on the information we have received and our recommendations for a seamless and successful event. Our team are committed to achieving your event objectives and welcome the opportunity to discuss your requirements and any budget parameters in further detail. If you have any questions or need further information, please do not hesitate to contact me on the details below. Thank you again and we look forward to speaking to you soon.
+                </p>
+                
+                <!-- Event Details -->
+                <div class="details-table">
+                    <div class="detail-row">
+                        <div class="detail-label">Location</div>
+                        <div class="detail-value">The Westin Brisbane</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Address</div>
+                        <div class="detail-value">111 Mary Street Brisbane QLD 4000</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Room</div>
+                        <div class="detail-value">Elevate Room</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Date</div>
+                        <div class="detail-value">Tuesday 29 July 2025 to Tuesday 29 July 2025</div>
+                    </div>
+                </div>
+                
+                <div class="section-divider"></div>
+                
+                <!-- Account Manager -->
+                <div class="manager-section">
+                    <div class="detail-row">
+                        <div class="detail-label">Event Account Manager</div>
+                        <div class="detail-value">Doug Miller</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Mobile Number</div>
+                        <div class="detail-value">+61 420 838 716</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Email</div>
+                        <div class="detail-value">Doug.Miller@microhire.com</div>
+                    </div>
+                </div>
+                
+                <!-- Schedule -->
+                <p class="schedule-intro">Please confirm the following dates and times are accurate:</p>
+                
+                <div class="schedule-table">
+                    <div class="schedule-row">
+                        <div class="schedule-label">Setup By</div>
+                        <div class="schedule-date">Tuesday 29 July 2025</div>
+                        <div class="schedule-time">Time: 07:30</div>
+                    </div>
+                    <div class="schedule-row">
+                        <div class="schedule-label">Rehearsal</div>
+                        <div class="schedule-date">Tuesday 29 July 2025</div>
+                        <div class="schedule-time">Time: 07:30</div>
+                    </div>
+                    <div class="schedule-row">
+                        <div class="schedule-label">Event Start</div>
+                        <div class="schedule-date">Tuesday 29 July 2025</div>
+                        <div class="schedule-time">Time: 08:00</div>
+                    </div>
+                    <div class="schedule-row">
+                        <div class="schedule-label">Event End</div>
+                        <div class="schedule-date">Tuesday 29 July 2025</div>
+                        <div class="schedule-time">Time: 14:00</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="page-footer">
+                <div class="footer-logo">
+                    <div class="footer-logo-icon"></div>
+                </div>
+                <div class="footer-ref">Ref No: C1422500001 - 001</div>
+                <div class="footer-page-info">Microhire | Corporate Traveller Meeting 2</div>
+            </div>
+        </div>
+
+        <!-- ==================== PAGE 3: EQUIPMENT & SERVICES ==================== -->
+        <div class="page overview-page">
+            <div class="page-header">
+                <div class="page-section-title">EQUIPMENT & SERVICES</div>
+                <div class="page-event-title">CORPORATE TRAVELLER MEETING</div>
+            </div>
+            
+            <div class="page-content">
+                <!-- Equipment Table Header -->
+                <div class="equipment-header">
+                    <div class="equipment-header-desc">Description</div>
+                    <div class="equipment-header-qty">Qty.</div>
+                </div>
+                
+                <!-- AV Package Section -->
+                <div class="equipment-section">
+                    <div class="equipment-category">AV Package:</div>
+                    <div class="equipment-subcategory">Data Projector/Screen</div>
+                    
+                    <div class="equipment-row">
+                        <div class="equipment-item main">Elevate AV Package</div>
+                        <div class="equipment-qty">1</div>
+                    </div>
+                    <div class="equipment-row">
+                        <div class="equipment-item component">Venue Installed 115" Motorised Projection Screen</div>
+                        <div class="equipment-qty">1</div>
+                    </div>
+                    <div class="equipment-row">
+                        <div class="equipment-item component">Venue Installed Ceiling LoudSpeaker</div>
+                        <div class="equipment-qty">8</div>
+                    </div>
+                    <div class="equipment-row">
+                        <div class="equipment-item component">Venue Installed 5000 Lumen Laser Projector</div>
+                        <div class="equipment-qty">1</div>
+                    </div>
+                </div>
+                
+                <div class="equipment-note">Client to provide laptop</div>
+                
+                <!-- Microphones Section -->
+                <div class="equipment-section">
+                    <div class="equipment-group-title">2x HH Microphones</div>
+                    
+                    <div class="equipment-row">
+                        <div class="equipment-item main">SINGLE Radio Mic Receiver - Shure QLXD4 K52</div>
+                        <div class="equipment-qty">2</div>
+                    </div>
+                    <div class="equipment-row">
+                        <div class="equipment-item component">Wireless Handheld Mic - Shure QLXD2 K52</div>
+                        <div class="equipment-qty">2</div>
+                    </div>
+                    <div class="equipment-row">
+                        <div class="equipment-item component">Wireless Lapel Mic - Shure QLXD2 K52</div>
+                        <div class="equipment-qty">2</div>
+                    </div>
+                </div>
+                
+                <!-- Audio Mixer -->
+                <div class="equipment-section">
+                    <div class="equipment-row">
+                        <div class="equipment-item main">6 Channel Audio Mixer</div>
+                        <div class="equipment-qty">1</div>
+                    </div>
+                </div>
+                
+                <!-- Total -->
+                <div class="equipment-total">
+                    <div class="equipment-total-amount">$992.61</div>
+                </div>
+            </div>
+            
+            <div class="page-footer">
+                <div class="footer-logo">
+                    <div class="footer-logo-icon"></div>
+                </div>
+                <div class="footer-ref">Ref No: C1422500001 - 001</div>
+                <div class="footer-page-info">Microhire | Corporate Traveller Meeting 3</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+

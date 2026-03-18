@@ -1,0 +1,211 @@
+{
+  "description": "MicroHire's collaboration with The Westin Brisbane: venue-by-venue capacities, built-in AV, and MicroHire add-ons. Every event space is supported by our professional team, on-site AV infrastructure, and scalable solutions.",
+  "sourceUrl": "https://www.marriott.com/en-us/hotels/bnewi-the-westin-brisbane/overview/",
+  "venues": [
+    {
+      "name": "Westin Ballroom",
+      "configuration": "Can be used as the whole Westin Ballroom or split into Westin Ballroom 1 and Westin Ballroom 2 for concurrent sessions or smaller events.",
+      "sizeSqm": 450,
+      "sizeSqft": 4843,
+      "capacities": {
+        "theatre": 400,
+        "classroom": 240,
+        "conference": 224,
+        "reception": 400,
+        "banquet": 280
+      },
+      "builtInAV": "Integrated sound systems, high-lumens projection, rigging points, intelligent lighting. Natural light from floor-to-ceiling windows.",
+      "microhireAddOns": "Additional staging, multi-camera setups, LED wall options for large gala dinners, awards nights, and conferences requiring high-impact production. Background music is recommended for a seamless flow, and professional photography for meaningful celebrations.",
+      "bestFor": "Large gala dinners, awards nights, conferences, weddings, signature events."
+    },
+    {
+      "name": "Westin Ballroom 1",
+      "configuration": "One half of the Westin Ballroom when split; same AV and support as full ballroom.",
+      "sizeSqm": 300,
+      "sizeSqft": null,
+      "capacities": {
+        "theatre": 205,
+        "classroom": 136,
+        "conference": 120,
+        "uShape": 48,
+        "reception": 220,
+        "banquet": 150
+      },
+      "builtInAV": "Same as Westin Ballroom: integrated sound, high-lumens projection, rigging points, intelligent lighting.",
+      "microhireAddOns": "Same as Westin Ballroom: staging, multi-camera, LED wall options.",
+      "bestFor": "Concurrent sessions, breakout space, mid-size conferences, seminars."
+    },
+    {
+      "name": "Westin Ballroom 2",
+      "configuration": "Second half of the Westin Ballroom when split; same AV and support as full ballroom.",
+      "sizeSqm": 150,
+      "sizeSqft": null,
+      "capacities": {
+        "theatre": 135,
+        "classroom": 105,
+        "conference": 80,
+        "uShape": 42,
+        "reception": 80,
+        "banquet": 100
+      },
+      "builtInAV": "Same as Westin Ballroom: integrated sound, high-lumens projection, rigging points, intelligent lighting.",
+      "microhireAddOns": "Same as Westin Ballroom: staging, multi-camera, LED wall options.",
+      "bestFor": "Concurrent sessions, breakout space, mid-size conferences, seminars."
+    },
+    {
+      "name": "Elevate",
+      "sizeSqm": 100,
+      "sizeSqft": 1076,
+      "capacities": {
+        "theatre": 96,
+        "classroom": 57,
+        "conference": 48,
+        "uShape": 33,
+        "reception": 80,
+        "banquet": 60
+      },
+      "builtInAV": "Built-in sound and screens.",
+      "microhireAddOns": "Interactive displays, live recording packages, audience engagement tools, remote clickers, lectern with microphone, ambient uplighting, BIP (Digital Signage 'Big iPhone'), and live streaming services. Background music and professional photography are also recommended for this space.",
+      "bestFor": "Workshops, product launches, small corporate events. Located on Level 1 with atrium natural light."
+    },
+    {
+      "name": "Elevate 1",
+      "sizeSqm": 40,
+      "sizeSqft": 431,
+      "capacities": {
+        "theatre": 40,
+        "classroom": 18,
+        "conference": 16,
+        "uShape": 16,
+        "reception": 35,
+        "banquet": 20
+      },
+      "builtInAV": "Same as Elevate; divisible space on Level 1.",
+      "microhireAddOns": "Per Elevate.",
+      "bestFor": "Small meetings, breakouts, intimate workshops."
+    },
+    {
+      "name": "Elevate 2",
+      "sizeSqm": 60,
+      "sizeSqft": 646,
+      "capacities": {
+        "theatre": 50,
+        "classroom": 27,
+        "conference": 24,
+        "uShape": 19,
+        "reception": 45,
+        "banquet": 30
+      },
+      "builtInAV": "Same as Elevate; divisible space on Level 1.",
+      "microhireAddOns": "Per Elevate.",
+      "bestFor": "Small to mid-size meetings, breakouts."
+    },
+    {
+      "name": "Thrive Boardroom",
+      "sizeSqm": 10,
+      "sizeSqft": null,
+      "capacities": {
+        "conference": 10
+      },
+      "builtInAV": "High-definition conferencing technology, mounted screen, reliable audio clarity.",
+      "microhireAddOns": "PTZ cameras for hybrid meetings, noise-cancellation microphones, secure streaming options for interstate or global teams, remote clickers, and audio/video recording services.",
+      "bestFor": "Executive meetings, video conferencing, creative small meetings."
+    },
+    {
+      "name": "Settimo Private Dining & Wine Room",
+      "sizeSqm": null,
+      "sizeSqft": null,
+      "capacities": {
+        "seated": 20,
+        "standing": 20,
+        "note": "Wine Room alcove for pre-dinner drinks or standing receptions up to 20."
+      },
+      "builtInAV": "Natural light from floor-to-ceiling windows; refined dining atmosphere.",
+      "microhireAddOns": "Discreet audiovisual elements: subtle sound, portable lighting, soft ambient projection to complement the luxe dining environment.",
+      "bestFor": "Private dining, intimate celebrations, romantic and exclusive settings. Views over Mary Street."
+    },
+    {
+      "name": "Nautilus Pool Deck",
+      "sizeSqm": 400,
+      "sizeSqft": 4305,
+      "capacities": {
+        "reception": 250
+      },
+      "builtInAV": "Alfresco space; tropical oasis overlooking Brisbane skyline.",
+      "microhireAddOns": "Weatherproof sound systems, ambient lighting, LED furniture, DJ or live band support. Projection on surrounding surfaces and branded lighting to transform the deck into a striking social venue.",
+      "bestFor": "Outdoor cocktail events, unique launches, poolside receptions, post-event drinks."
+    },
+    {
+      "name": "Pre-Function Area",
+      "sizeSqm": 150,
+      "sizeSqft": 1615,
+      "capacities": {
+        "reception": 0
+      },
+      "builtInAV": "Adjacent to ballrooms; spacious, light filled, easily accessible from Mary Street and within the hotel.",
+      "microhireAddOns": "Digital signage, background music systems, portable lighting features to set the right tone before guests enter the main ballroom, and professional photography for event arrivals.",
+      "bestFor": "Guest arrivals, registration, pre-event networking, cocktail receptions."
+    },
+    {
+      "name": "Chairman's Lounge",
+      "sizeSqm": null,
+      "sizeSqft": null,
+      "capacities": {
+        "conference": 8,
+        "reception": 50,
+        "banquet": 10
+      },
+      "builtInAV": "Integrated display screens and conferencing equipment.",
+      "microhireAddOns": "Wireless collaboration tools, video capture, secure teleconferencing for a premium executive experience.",
+      "bestFor": "Private business discussions, executive meetings, refined boardroom setting."
+    },
+    {
+      "name": "The Promenade",
+      "sizeSqm": 100,
+      "sizeSqft": null,
+      "capacities": {
+        "reception": 150,
+        "banquet": 40
+      },
+      "builtInAV": null,
+      "microhireAddOns": "Per AV infrastructure across all Westin spaces (see below).",
+      "bestFor": "General event space, reception-style events."
+    },
+    {
+      "name": "The Pier",
+      "sizeSqm": 80,
+      "sizeSqft": null,
+      "capacities": {
+        "theatre": 60,
+        "reception": 80,
+        "banquet": 60
+      },
+      "builtInAV": null,
+      "microhireAddOns": "Per AV infrastructure across all Westin spaces.",
+      "bestFor": "Moderate sized receptions, small gatherings."
+    },
+    {
+      "name": "The Podium",
+      "sizeSqm": 20,
+      "sizeSqft": null,
+      "capacities": {
+        "conference": 16,
+        "reception": 15,
+        "banquet": 20
+      },
+      "builtInAV": null,
+      "microhireAddOns": "Per AV infrastructure across all Westin spaces.",
+      "bestFor": "Board meetings, small groups, breakout sessions."
+    }
+  ],
+  "avInfrastructureAcrossAllSpaces": "Across all venues, The Westin Brisbane — powered by MicroHire — offers: on-site AV technicians for seamless delivery; installed PA systems and wireless microphones; high-definition projection screens and displays; video and teleconferencing setups; fast, reliable wireless internet; stages, lecterns, spotlights, flip charts, polling devices, and walkie-talkies. On top of these, MicroHire provides scalable solutions like LED walls, multi-camera production, streaming, projection mapping, and customised staging for high-end productions.",
+  "roomSetupTypes": [
+    { "name": "Boardroom Table", "description": "Single large table with chairs around all sides. Ideal for meetings and discussions." },
+    { "name": "U-Shape", "description": "Tables and chairs arranged in a U shape facing the presenter. Great for training and workshops." },
+    { "name": "Cabaret", "description": "Round tables with chairs on two-thirds of the table facing the stage. Encourages group discussion." },
+    { "name": "Classroom", "description": "Rows of tables and chairs facing the front. Best for seminars and note-taking sessions." },
+    { "name": "Theatre", "description": "Rows of chairs facing the stage with no tables. Suited for presentations and large audiences." },
+    { "name": "Banquet", "description": "Round tables with chairs all around. Ideal for meals, receptions, and social events." },
+    { "name": "Hollow Square", "description": "Tables arranged in a square with an open center. Ideal for discussions and team meetings." }
+  ]
+}

@@ -1,0 +1,433 @@
+{
+  "scope": "master",
+  "description": "MicroHire AV products across Master Warehouse (Brisbane Main) and subwarehouses (Sydney WH2, Melbourne WH3). All products registered in RentalPoint.",
+  "categories": [
+    {
+      "id": "audio",
+      "name": "Audio Equipment",
+      "description": "Audio equipment ensures clarity of speech, balanced music playback, and immersive sound coverage across event spaces. MicroHire maintains professional-grade solutions for all scales, from small rooms to concert halls.",
+      "equipmentTypes": [
+        "PA Systems – Portable sound systems suitable for small gatherings",
+        "Speakers (Line Array & Point Source) – For medium to large-scale venues",
+        "Microphones (Wired, Wireless, Lapel, Handheld, Headset) – Ideal for speeches, panels, and performances",
+        "Mixing Consoles – For balancing multiple audio sources",
+        "Audio Accessories – DI boxes, audio recorders, and signal processors"
+      ],
+      "eventRecommendations": [
+        { "eventType": "Boardroom meetings", "recommendation": "1–2 wireless handheld or lapel mics, compact speaker system" },
+        { "eventType": "Conferences", "recommendation": "Wireless microphone kits (lapel for presenters, handheld for Q&A), distributed speakers, digital mixing console" },
+        { "eventType": "Concerts/Gala events", "recommendation": "Line array speakers, subwoofers, stage monitors, multiple mics" },
+        { "eventType": "Workshops", "recommendation": "Portable PA with wireless mic for facilitator" }
+      ],
+      "integrationAndScalability": "Audio setups integrate with video systems for seamless live streams and hybrid meetings. Scalable by linking additional speakers and microphones.",
+      "operationalNotes": "MicroHire technicians provide on-site calibration. Backup microphones always available. Rehearsal sound check recommended.",
+      "operationMode": "operator_recommended",
+      "operationGuidance": "Basic speech events can be self-operated after setup, but an audio technician is recommended for microphone mixing, troubleshooting, and smooth transitions.",
+      "availabilitySeasons": {
+        "peak": "Oct–Dec – High demand for large PA systems (gala dinners, Christmas events)",
+        "lean": "Jan–Feb – Greater availability",
+        "normal": "Mar–Sep – Moderate demand"
+      },
+      "warehouseStock": [
+        {
+          "warehouseName": "Brisbane (Main)",
+          "items": [
+            { "name": "Speakers", "quantity": 120 },
+            { "name": "Mixers", "quantity": 40 },
+            { "name": "Wireless mics", "quantity": 80 },
+            { "name": "IEM kits", "quantity": 20 },
+            { "name": "Subwoofers", "quantity": 30 },
+            { "name": "Conference mic systems", "quantity": 10 }
+          ]
+        },
+        {
+          "warehouseName": "Sydney (WH2)",
+          "items": [
+            { "name": "Speakers", "quantity": 90 },
+            { "name": "Mixers", "quantity": 30 },
+            { "name": "Wireless mics", "quantity": 60 },
+            { "name": "IEM kits", "quantity": 10 },
+            { "name": "Subwoofers", "quantity": 15 }
+          ]
+        },
+        {
+          "warehouseName": "Melbourne (WH3)",
+          "items": [
+            { "name": "Speakers", "quantity": 70 },
+            { "name": "Mixers", "quantity": 25 },
+            { "name": "Wireless mics", "quantity": 50 },
+            { "name": "IEM kits", "quantity": 8 },
+            { "name": "Subwoofers", "quantity": 10 },
+            { "name": "Delegate systems", "quantity": 15 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "visual",
+      "name": "Visual Equipment",
+      "description": "Visual solutions deliver crisp, engaging content through screens, projectors, and LED walls.",
+      "equipmentTypes": [
+        "Projectors (HD, Laser, 4K)",
+        "Screens (Tripod, Fast-Fold, Motorised)",
+        "LED Video Walls (Indoor & Outdoor)",
+        "LCD/Plasma Displays (32\"–98\")",
+        "Switchers & Scalers"
+      ],
+      "eventRecommendations": [
+        { "eventType": "Webinars/Webcasts", "recommendation": "55\"+ LCD screens for presenters" },
+        { "eventType": "Product launches", "recommendation": "LED video wall for dramatic impact" },
+        { "eventType": "Workshops", "recommendation": "Portable projector + pull-up screen" },
+        { "eventType": "Expos", "recommendation": "Multiple LCD displays for booths" }
+      ],
+      "integrationAndScalability": "Seamless integration with audio and lighting for hybrid or fully immersive events. LED walls scalable in size.",
+      "operationalNotes": "MicroHire provides test pattern setup and resolution scaling. Backup displays recommended for large expos. Projectors need controlled lighting conditions.",
+      "operationMode": "operator_recommended",
+      "operationGuidance": "Single-projector presentations may be self-operated after setup, but operator support is recommended for multiple sources, switching, live cameras, or recording.",
+      "availabilitySeasons": {
+        "peak": "LED walls and large projectors in very high demand",
+        "normal": "Screens & portable projectors readily available"
+      },
+      "warehouseStock": [
+        {
+          "warehouseName": "Brisbane (Main)",
+          "items": [
+            { "name": "Projectors", "quantity": 30 },
+            { "name": "LED walls", "quantity": 6 },
+            { "name": "Touch screens", "quantity": 10 },
+            { "name": "PTZ cameras", "quantity": 12 },
+            { "name": "Confidence monitors", "quantity": 15 }
+          ]
+        },
+        {
+          "warehouseName": "Sydney (WH2)",
+          "items": [
+            { "name": "Projectors", "quantity": 20 },
+            { "name": "LED walls", "quantity": 4 },
+            { "name": "Touch screens", "quantity": 8 },
+            { "name": "PTZ cameras", "quantity": 10 }
+          ]
+        },
+        {
+          "warehouseName": "Melbourne (WH3)",
+          "items": [
+            { "name": "Projectors", "quantity": 18 },
+            { "name": "LED walls", "quantity": 3 },
+            { "name": "Touch screens", "quantity": 12 },
+            { "name": "PTZ cameras", "quantity": 8 },
+            { "name": "Confidence monitors", "quantity": 12 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lighting",
+      "name": "Lighting Equipment",
+      "description": "Lighting transforms spaces, highlights speakers, and sets the event atmosphere.",
+      "equipmentTypes": [
+        "Stage Lighting (Profiles, Fresnels, PARs)",
+        "Moving Heads (Spot, Beam, Wash)",
+        "LED Uplights & Strips",
+        "Control Consoles (DMX, Digital Desks)",
+        "Table lighting (Centrepiece LED lights)"
+      ],
+      "eventRecommendations": [
+        { "eventType": "Gala events", "recommendation": "Uplighting, moving heads for dynamic effects" },
+        { "eventType": "Conferences", "recommendation": "Profile lights for presenters" },
+        { "eventType": "Cocktail events", "recommendation": "Soft LED uplighting for ambience" },
+        { "eventType": "Product launches", "recommendation": "Intelligent moving heads for dramatic reveals" }
+      ],
+      "integrationAndScalability": "Lighting integrates with sound cues and video content for synchronised shows.",
+      "operationalNotes": "Rigging may be required. Safety compliance with weight loadings is essential. Pre-programming for cue-based events.",
+      "operationMode": "operator_required",
+      "operationGuidance": "Lighting systems require a trained operator due to rigging, programming, and safety requirements.",
+      "availabilitySeasons": {
+        "peak": "December galas drive heavy demand",
+        "normal": "Steady demand for stage lighting"
+      },
+      "warehouseStock": [
+        {
+          "warehouseName": "Brisbane (Main)",
+          "items": [
+            { "name": "LED fixtures", "quantity": 80 },
+            { "name": "Follow spots", "quantity": 12 },
+            { "name": "Gobos", "quantity": 20 },
+            { "name": "Architectural kits", "quantity": 15 },
+            { "name": "Special effects rigs", "quantity": 10 }
+          ]
+        },
+        {
+          "warehouseName": "Sydney (WH2)",
+          "items": [
+            { "name": "LED fixtures", "quantity": 60 },
+            { "name": "Follow spots", "quantity": 10 },
+            { "name": "Gobos", "quantity": 10 },
+            { "name": "Special effects rigs", "quantity": 12 }
+          ]
+        },
+        {
+          "warehouseName": "Melbourne (WH3)",
+          "items": [
+            { "name": "LED fixtures", "quantity": 55 },
+            { "name": "Follow spots", "quantity": 8 },
+            { "name": "Gobos", "quantity": 15 },
+            { "name": "Architectural kits", "quantity": 10 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "staging",
+      "name": "Staging & Structures",
+      "description": "Customisable staging and event structures provide physical platforms for presentations, performances, and exhibitions.",
+      "equipmentTypes": [
+        "Modular Stage Platforms",
+        "Stage Risers",
+        "Truss Systems",
+        "Draping & Backdrops"
+      ],
+      "eventRecommendations": [
+        { "eventType": "Conferences", "recommendation": "Modular stage with backdrop" },
+        { "eventType": "Concerts", "recommendation": "Large riser platforms + trussing" },
+        { "eventType": "Expos", "recommendation": "Custom booth structures" }
+      ],
+      "integrationAndScalability": "Compatible with MicroHire's lighting and AV setups.",
+      "operationalNotes": "Engineering certification provided for truss builds. On-site safety checks performed by crew.",
+      "operationMode": "operator_required",
+      "operationGuidance": "Staging and structural systems require trained crew for compliant installation, safety checks, and changes during the event.",
+      "availabilitySeasons": {
+        "high": "High demand during exhibition season (Feb–May, Aug–Oct)"
+      },
+      "warehouseStock": [
+        {
+          "warehouseName": "Brisbane (Main)",
+          "items": [
+            { "name": "Stage platforms", "quantity": 50 },
+            { "name": "Lecterns", "quantity": 20 },
+            { "name": "Dance floors", "quantity": 10 },
+            { "name": "Marquees", "quantity": 5 }
+          ]
+        },
+        {
+          "warehouseName": "Sydney (WH2)",
+          "items": [
+            { "name": "Stage platforms", "quantity": 40 },
+            { "name": "Lecterns", "quantity": 15 },
+            { "name": "Dance floors", "quantity": 8 }
+          ]
+        },
+        {
+          "warehouseName": "Melbourne (WH3)",
+          "items": [
+            { "name": "Stage platforms", "quantity": 35 },
+            { "name": "Lecterns", "quantity": 18 },
+            { "name": "Dance floors", "quantity": 5 },
+            { "name": "Marquees", "quantity": 3 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event-technology",
+      "name": "Event Technology Solutions",
+      "description": "Interactive and tech-driven solutions that enhance engagement and hybrid experiences.",
+      "equipmentTypes": [
+        "Live Streaming Kits",
+        "Video Conferencing Systems",
+        "Voting & Polling Systems",
+        "Virtual Event Platforms"
+      ],
+      "eventRecommendations": [
+        { "eventType": "Boardroom meetings", "recommendation": "Video conferencing kits" },
+        { "eventType": "Hybrid conferences", "recommendation": "Streaming kits + polling systems" },
+        { "eventType": "Workshops", "recommendation": "Polling systems for engagement" }
+      ],
+      "integrationAndScalability": "All systems integrate with MicroHire's audio, video, and lighting setups.",
+      "operationalNotes": "MicroHire provides tech moderation for hybrid events. Connectivity checks required pre-event.",
+      "operationMode": "operator_recommended",
+      "operationGuidance": "Simple interfaces can be self-operated after setup, but operator support is recommended for hybrid moderation, conferencing, or multi-system workflows.",
+      "availabilitySeasons": {
+        "peak": "COVID-style hybrid events – High demand for streaming kits",
+        "normal": "Steady demand for polling & VC"
+      },
+      "warehouseStock": [
+        {
+          "warehouseName": "Brisbane (Main)",
+          "items": [
+            { "name": "RFID badges", "quantity": 200 },
+            { "name": "Signage kits", "quantity": 10 },
+            { "name": "iPads", "quantity": 30 },
+            { "name": "Interpretation booths", "quantity": 4 }
+          ]
+        },
+        {
+          "warehouseName": "Sydney (WH2)",
+          "items": [
+            { "name": "RFID badges", "quantity": 120 },
+            { "name": "Signage kits", "quantity": 8 },
+            { "name": "iPads", "quantity": 20 }
+          ]
+        },
+        {
+          "warehouseName": "Melbourne (WH3)",
+          "items": [
+            { "name": "RFID badges", "quantity": 100 },
+            { "name": "Signage kits", "quantity": 5 },
+            { "name": "iPads", "quantity": 15 },
+            { "name": "Interpretation booths", "quantity": 3 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "computers-playback",
+      "name": "Computers & Playback Systems",
+      "description": "Dedicated devices for content management, media playback, and seamless switching.",
+      "equipmentTypes": [
+        "Laptops (PC/Mac) – Preloaded with Microsoft Office and presentation software",
+        "Media Servers – For high-end graphics, mapping, and video playback",
+        "Playback Devices (DVD/Blu-Ray, Digital Players) – For pre-recorded content",
+        "Clickers & Presentation Remotes – Wireless slide advancement for presenters"
+      ],
+      "eventRecommendations": [
+        { "eventType": "Best for", "recommendation": "Conferences, workshops, awards nights, hybrid events" }
+      ],
+      "integrationAndScalability": "Integrates with projectors, screens, and video systems for full presentation workflows.",
+      "operationalNotes": "Laptops provided with standard software; media servers for high-end playback. Presentation remotes for wireless control.",
+      "operationMode": "self_operated",
+      "operationGuidance": "Laptops, basic playback, and presentation remotes are self-operated once configured. Operator support is only needed for complex switching or media-server workflows.",
+      "availabilitySeasons": {
+        "normal": "Steady availability across warehouses"
+      },
+      "warehouseStock": [
+        {
+          "warehouseName": "Brisbane (Main)",
+          "items": [
+            { "name": "Laptops", "quantity": 40 },
+            { "name": "Media servers", "quantity": 5 },
+            { "name": "Playback devices", "quantity": 10 },
+            { "name": "Clickers", "quantity": 30 }
+          ]
+        },
+        {
+          "warehouseName": "Sydney (WH2)",
+          "items": [
+            { "name": "Laptops", "quantity": 25 },
+            { "name": "Media servers", "quantity": 3 },
+            { "name": "Playback devices", "quantity": 8 },
+            { "name": "Clickers", "quantity": 15 }
+          ]
+        },
+        {
+          "warehouseName": "Melbourne (WH3)",
+          "items": [
+            { "name": "Laptops", "quantity": 30 },
+            { "name": "Media servers", "quantity": 4 },
+            { "name": "Playback devices", "quantity": 6 },
+            { "name": "Clickers", "quantity": 20 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cables-power-rigging",
+      "name": "Cables, Power & Rigging Essentials",
+      "description": "The backbone of every AV setup — ensuring safe, stable, and connected installations.",
+      "equipmentTypes": [
+        "Power Distribution Units (PDUs)",
+        "UPS (Uninterruptible Power Supply) – Protects against outages",
+        "Signal Cables (HDMI, SDI, XLR, DMX)",
+        "Rigging Motors & Hoists – For safe overhead installations"
+      ],
+      "eventRecommendations": [
+        { "eventType": "Best for", "recommendation": "Every event — foundational equipment" }
+      ],
+      "integrationAndScalability": "Essential for all AV, lighting, and staging setups.",
+      "operationalNotes": "Safety-certified rigging. PDUs and UPS sized to event load.",
+      "operationMode": "operator_required",
+      "operationGuidance": "Power distribution and rigging infrastructure must be installed and managed by qualified technicians for safety and compliance.",
+      "availabilitySeasons": {
+        "normal": "Consistently available"
+      },
+      "warehouseStock": [
+        {
+          "warehouseName": "Brisbane (Main)",
+          "items": [
+            { "name": "Cable sets", "quantity": 200 },
+            { "name": "PDUs", "quantity": 25 },
+            { "name": "UPS", "quantity": 15 },
+            { "name": "Rigging motors", "quantity": 20 }
+          ]
+        },
+        {
+          "warehouseName": "Sydney (WH2)",
+          "items": [
+            { "name": "Cable sets", "quantity": 150 },
+            { "name": "PDUs", "quantity": 20 },
+            { "name": "UPS", "quantity": 10 },
+            { "name": "Rigging motors", "quantity": 15 }
+          ]
+        },
+        {
+          "warehouseName": "Melbourne (WH3)",
+          "items": [
+            { "name": "Cable sets", "quantity": 120 },
+            { "name": "PDUs", "quantity": 15 },
+            { "name": "UPS", "quantity": 8 },
+            { "name": "Rigging motors", "quantity": 12 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "special-effects",
+      "name": "Special Effects & Theming Equipment",
+      "description": "Event enhancers that create memorable moments.",
+      "equipmentTypes": [
+        "Smoke/Haze Machines – To enhance lighting beams",
+        "CO2 Jets & Pyrotechnics – For dramatic stage effects",
+        "Confetti Cannons – Awards and celebrations",
+        "Water/Projection Mapping Kits – For immersive productions"
+      ],
+      "eventRecommendations": [
+        { "eventType": "Best for", "recommendation": "Concerts, gala dinners, product launches, high-energy activations" }
+      ],
+      "integrationAndScalability": "Integrates with lighting and video for synchronised effects.",
+      "operationalNotes": "Safety and venue compliance required for pyrotechnics and CO2. Haze and confetti suitable for most indoor venues.",
+      "operationMode": "operator_required",
+      "operationGuidance": "Special effects systems require qualified operators and venue approvals due to safety controls and compliance requirements.",
+      "availabilitySeasons": {
+        "peak": "High demand for gala and concert effects",
+        "normal": "Standard availability"
+      },
+      "warehouseStock": [
+        {
+          "warehouseName": "Brisbane (Main)",
+          "items": [
+            { "name": "Haze machines", "quantity": 12 },
+            { "name": "CO2 jets", "quantity": 6 },
+            { "name": "Confetti cannons", "quantity": 4 },
+            { "name": "Mapping kits", "quantity": 2 }
+          ]
+        },
+        {
+          "warehouseName": "Sydney (WH2)",
+          "items": [
+            { "name": "Haze machines", "quantity": 10 },
+            { "name": "CO2 jets", "quantity": 4 },
+            { "name": "Confetti cannons", "quantity": 3 }
+          ]
+        },
+        {
+          "warehouseName": "Melbourne (WH3)",
+          "items": [
+            { "name": "Haze machines", "quantity": 8 },
+            { "name": "CO2 jets", "quantity": 3 },
+            { "name": "Confetti cannons", "quantity": 4 },
+            { "name": "Mapping kits", "quantity": 2 }
+          ]
+        }
+      ]
+    }
+  ]
+}

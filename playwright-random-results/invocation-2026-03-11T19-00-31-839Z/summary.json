@@ -1,0 +1,135 @@
+{
+  "generatedAt": "2026-03-11T19:03:32.594Z",
+  "config": {
+    "runs": 1,
+    "headless": false,
+    "baseUrl": "http://localhost:5216",
+    "maxTurns": 18,
+    "outDir": "playwright-random-results",
+    "assistantTimeoutMs": 30000,
+    "profile": "thriveHybridFullCoverage",
+    "parallel": 1,
+    "invocationDir": "playwright-random-results/invocation-2026-03-11T19-00-31-839Z",
+    "ndjsonPath": "playwright-random-results/invocation-2026-03-11T19-00-31-839Z/runs.ndjson",
+    "summaryPath": "playwright-random-results/invocation-2026-03-11T19-00-31-839Z/summary.json",
+    "profiles": [
+      "thriveHybridFullCoverage"
+    ]
+  },
+  "totals": {
+    "runs": 1,
+    "pass": 0,
+    "fail": 1,
+    "warn": 0
+  },
+  "runs": [
+    {
+      "runId": "run-001-thrivehybridfullcoverage",
+      "startedAt": "2026-03-11T19:00:35.988Z",
+      "scenarioId": "thriveHybridFullCoverage",
+      "scenarioDescription": "Thrive Boardroom hybrid meeting with full technician coverage",
+      "status": "FAIL",
+      "reason": "Exception: Timed out waiting for assistant response after 30000ms",
+      "metrics": {
+        "assistantTurns": 8,
+        "attendeePromptCount": 1,
+        "attendeeReconfirmCount": 0,
+        "technicalIssueCount": 0,
+        "videoAssumptionCount": 0,
+        "technicianPromptCount": 0,
+        "quoteReached": false,
+        "timePickerSubmitted": true
+      },
+      "assertions": [],
+      "transcript": [
+        {
+          "ts": "2026-03-11T19:00:40.524Z",
+          "role": "user",
+          "text": "Daniel Morel"
+        },
+        {
+          "ts": "2026-03-11T19:01:02.079Z",
+          "role": "assistant",
+          "text": "Thank you, Daniel. Are you a new or existing customer with Microhire?"
+        },
+        {
+          "ts": "2026-03-11T19:01:02.150Z",
+          "role": "user",
+          "text": "new"
+        },
+        {
+          "ts": "2026-03-11T19:01:15.209Z",
+          "role": "assistant",
+          "text": "Welcome, Daniel! Could you please share the name of your organisation and its location?"
+        },
+        {
+          "ts": "2026-03-11T19:01:15.263Z",
+          "role": "user",
+          "text": "Morel Enterprises, Brisbane"
+        },
+        {
+          "ts": "2026-03-11T19:01:26.089Z",
+          "role": "assistant",
+          "text": "Thank you, Daniel. Could you also provide your contact number or email address so I can assist you further?"
+        },
+        {
+          "ts": "2026-03-11T19:01:26.429Z",
+          "role": "user",
+          "text": "daniel@morel.co"
+        },
+        {
+          "ts": "2026-03-11T19:01:47.878Z",
+          "role": "assistant",
+          "text": "Your contact details have been saved successfully. Could you please share a bit about your event? For instance, what type of event you're organising and the venue or room you're considering?"
+        },
+        {
+          "ts": "2026-03-11T19:01:48.195Z",
+          "role": "user",
+          "text": "meeting at thrive"
+        },
+        {
+          "ts": "2026-03-11T19:02:10.299Z",
+          "role": "assistant",
+          "text": "Thank you, Daniel. I've noted that you're organising a meeting in the Thrive Boardroom at The Westin Brisbane. Could you let me know the event date?"
+        },
+        {
+          "ts": "2026-03-11T19:02:10.583Z",
+          "role": "user",
+          "text": "7 April 2026"
+        },
+        {
+          "ts": "2026-03-11T19:02:29.001Z",
+          "role": "assistant",
+          "text": "I've noted your event date as 7 April 2026. How many attendees are you expecting for your meeting?"
+        },
+        {
+          "ts": "2026-03-11T19:02:29.217Z",
+          "role": "user",
+          "text": "8"
+        },
+        {
+          "ts": "2026-03-11T19:02:57.068Z",
+          "role": "assistant",
+          "text": "Here's a time picker for you. Please confirm your schedule for 7 April 2026:\n\nConfirm your schedule for 7 April 2026\nRoom setup by (optional)\nRehearsal time (optional)\nEvent start time\nEvent end time\nPack up time from (optional)\nSubmit"
+        },
+        {
+          "ts": "2026-03-11T19:02:57.369Z",
+          "role": "system",
+          "text": "[auto] submitted multitime picker {\"setup\":\"07:00\",\"rehearsal\":\"09:30\",\"start\":\"10:00\",\"end\":\"16:00\",\"packup\":\"17:00\"}"
+        },
+        {
+          "ts": "2026-03-11T19:02:58.448Z",
+          "role": "assistant",
+          "text": "Here's a time picker for you. Please confirm your schedule for 7 April 2026:\n\nConfirm your schedule for 7 April 2026\nRoom setup by (optional)\nRehearsal time (optional)\nEvent start time\nEvent end time\nPack up time from (optional)\nSubmit\n Isla is thinking…"
+        },
+        {
+          "ts": "2026-03-11T19:02:58.582Z",
+          "role": "user",
+          "text": "Yes a couple of laptops and we will be sharing presentations on screen with attendees in the room and others globally via Zoom and Teams"
+        }
+      ],
+      "screenshotOnFailure": "playwright-random-results/invocation-2026-03-11T19-00-31-839Z/run-001-thrivehybridfullcoverage/error.png",
+      "endedAt": "2026-03-11T19:03:32.341Z"
+    }
+  ]
+}

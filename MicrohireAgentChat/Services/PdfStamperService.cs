@@ -1,11 +1,12 @@
-﻿// Services/PdfStamperService.cs
+// Services/PdfStamperService.cs
+using System.Linq;
 using iText.Bouncycastleconnector;
 using iText.IO.Font.Constants;
 using iText.Kernel.Colors;
 using iText.Kernel.Font;
 using iText.Kernel.Pdf;
 using iText.Kernel.Pdf.Canvas;
-using iText.Commons.Bouncycastle;   
+using iText.Commons.Bouncycastle;
 namespace MicrohireAgentChat.Services
 {
     public record QuoteFields(
@@ -23,6 +24,13 @@ namespace MicrohireAgentChat.Services
         private readonly IWebHostEnvironment _env;
         public PdfStamperService(IWebHostEnvironment env) => _env = env;
 
+        private static string SanitizeFilenameSegment(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return "";
+            var segment = new string(value.Where(c => char.IsLetterOrDigit(c) || c == '-').ToArray());
+            return segment.Length > 0 ? segment : "";
+        }
+
         public (string fileName, string fullPath) Stamp(QuoteFields q)
         {
             var webRoot = _env.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot");
@@ -33,7 +41,11 @@ namespace MicrohireAgentChat.Services
             var outDir = Path.Combine(webRoot, "files", "quotes");
             Directory.CreateDirectory(outDir);
 
-            var outName = $"Quote-{DateTime.UtcNow:yyyyMMddHHmmss}.pdf";
+            var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
+            var identifier = SanitizeFilenameSegment(q.Reference);
+            var outName = string.IsNullOrEmpty(identifier)
+                ? $"Quote-{timestamp}.pdf"
+                : $"Quote-{identifier}-{timestamp}.pdf";
             var dest = Path.Combine(outDir, outName);
             //_ = BouncyCastleFactoryCreator.GetInstance();
             using var reader = new PdfReader(src);

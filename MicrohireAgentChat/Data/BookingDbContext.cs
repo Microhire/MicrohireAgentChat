@@ -48,9 +48,15 @@ public sealed class BookingDbContext : DbContext
         e.Property(x => x.SetDate).HasColumnName("SetDate");
         e.Property(x => x.RehDate).HasColumnName("RehDate");
 
-        // Times (varchar(4))
+        // Times (varchar(4) - HHmm format)
         e.Property(x => x.showStartTime).HasColumnName("showStartTime").HasMaxLength(4);
         e.Property(x => x.ShowEndTime).HasColumnName("ShowEndTime").HasMaxLength(4);
+        e.Property(x => x.setupTimeV61).HasColumnName("setupTimeV61").HasMaxLength(4);
+        e.Property(x => x.RehearsalTime).HasColumnName("RehearsalTime").HasMaxLength(4);
+        e.Property(x => x.StrikeTime).HasColumnName("StrikeTime").HasMaxLength(4);
+
+        // Event type (varchar)
+        e.Property(x => x.EventType).HasColumnName("EventType").HasMaxLength(20);
 
         // Money / numbers (limited set)
         e.Property(x => x.price_quoted).HasColumnName("price_quoted");
@@ -64,12 +70,12 @@ public sealed class BookingDbContext : DbContext
 
         // Text fields
         e.Property(x => x.contact_nameV6).HasColumnName("contact_nameV6").HasMaxLength(35);
-        e.Property(x => x.showName).HasColumnName("showName").HasMaxLength(100);
-        e.Property(x => x.OrganizationV6).HasColumnName("OrganizationV6").HasMaxLength(100);
-        e.Property(x => x.Salesperson).HasColumnName("Salesperson").HasMaxLength(50);
+        e.Property(x => x.showName).HasColumnName("showName").HasMaxLength(50);
+        e.Property(x => x.OrganizationV6).HasColumnName("OrganizationV6").HasMaxLength(50);
+        e.Property(x => x.Salesperson).HasColumnName("Salesperson").HasMaxLength(30);
         e.Property(x => x.CustID).HasColumnName("CustID").HasColumnType("decimal(10,0)");
-        e.Property(x => x.CustCode).HasColumnName("CustCode").HasMaxLength(50);
-        e.Property(x => x.EntryDate).HasColumnName("EntryDate").HasMaxLength(50);
+        e.Property(x => x.CustCode).HasColumnName("CustCode").HasMaxLength(30);
+        e.Property(x => x.EntryDate).HasColumnName("EntryDate");
 
         // Contact FK link (no FK constraint here unless you add it)
         e.Property(x => x.ContactID).HasColumnName("ContactID").HasColumnType("decimal(10,0)");
@@ -206,7 +212,7 @@ public sealed class BookingDbContext : DbContext
         it.Property(x => x.AvailRecFlag).HasColumnName("AvailRecFlag");
 
         // Links / FK-ish
-        it.Property(x => x.BookingId).HasColumnName("booking_id");
+        it.Property(x => x.BookingId).HasColumnName("booking_id").HasColumnType("int");
         it.Property(x => x.UndiscAmt).HasColumnName("Undisc_amt");
 
         // Logistics / visibility

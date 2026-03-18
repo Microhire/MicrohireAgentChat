@@ -60,22 +60,37 @@
         </div>
     </div>
 
-    @if (!string.IsNullOrWhiteSpace(ViewData["ExistingQuoteUrl"] as string))
-    {
-        <div class="alert alert-success border-0 rounded-0 mb-0 py-2 px-3" style="background: #d4edda; border-bottom: 1px solid #c3e6cb;">
-            <div class="d-flex align-items-center">
-                <i class="ph ph-check-circle text-success me-2"></i>
-                <div class="flex-grow-1">
-                    <strong>Quote Ready!</strong> Your professional quote has been generated and is available for download.
+    <div class="chat-box-body">
+        <!-- Image Preview Modal -->
+        <div id="islaPreviewOverlay" class="isla-preview-overlay" style="display: none;">
+            <div class="isla-preview-backdrop"></div>
+            <div class="isla-preview-modal">
+                <button type="button" class="isla-preview-close" aria-label="Close preview">&times;</button>
+                
+                <div class="isla-preview-content">
+                    <button type="button" class="isla-preview-nav prev" aria-label="Previous image">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                    </button>
+                    
+                    <div class="isla-preview-image-container">
+                        <img id="islaPreviewImage" src="" alt="Preview" />
+                        <div class="isla-preview-info-overlay">
+                            <div id="islaPreviewLabel" class="isla-preview-label"></div>
+                            <div id="islaPreviewCounter" class="isla-preview-counter"></div>
+                        </div>
+                    </div>
+
+                    <button type="button" class="isla-preview-nav next" aria-label="Next image">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                    </button>
                 </div>
-                <a href="@ViewData["ExistingQuoteUrl"]" target="_blank" class="btn btn-success btn-sm ms-3">
-                    <i class="ph ph-download me-1"></i> Download PDF
-                </a>
+
+                <div class="isla-preview-footer">
+                    <button type="button" class="isla-preview-select">Select This Option</button>
+                </div>
             </div>
         </div>
-    }
 
-    <div class="chat-box-body">
         <div id="messagesWrap" class="chat-box-wrap">
             @await Html.PartialAsync("_Messages", Model)
         </div>
@@ -90,7 +105,8 @@
                 <i class="ph ph-caret-right"></i>
             </button>
 
-            @{
+            @if (ViewData["DevModeEnabled"] as bool? == true && ViewData["IsDevelopment"] as bool? == true)
+            {
                 <button id="startReplayBtn" type="button" class="btn btn-outline-primary ms-2" title="Start Test Conversation">
                     <i class="ph ph-play"></i> Test
                 </button>
@@ -100,15 +116,74 @@
                 </button>
 
                 <span id="replayStatus" class="ms-2 text-muted" style="display:none"></span>
-            }
 
-            <form id="resetForm" asp-action="Reset" method="post" class="ms-2">
-                @Html.AntiForgeryToken()
-                <button class="btn btn-link text-decoration-none" type="submit" title="Start New Conversation">
-                    <i class="ph ph-plus-circle"></i> New Quote
+                <button id="startAutoTestBtn" type="button" class="btn btn-outline-success ms-2" title="AI Auto-Test (runs like a customer)">
+                    <i class="ph ph-robot"></i> Auto Test
                 </button>
-            </form>
+
+                <form id="resetForm" asp-action="Reset" method="post" class="ms-2">
+                    @Html.AntiForgeryToken()
+                    <button class="btn btn-link text-decoration-none" type="submit" title="Start New Conversation">
+                        <i class="ph ph-plus-circle"></i> New Quote
+                    </button>
+                </form>
+            }
         </div>
+    </div>
+</div>
+
+@if (ViewData["DevModeEnabled"] as bool? == true && ViewData["IsDevelopment"] as bool? == true)
+{
+<!-- Auto-Test Floating Panel (outside chat-box-main to avoid CSS bleed) -->
+<style>
+    #autoTestPanel { position: fixed; bottom: 20px; right: 20px; width: 340px; z-index: 10000; background: #fff; border: 1px solid #ccc; border-radius: 10px; box-shadow: 0 6px 24px rgba(0,0,0,.15); padding: 14px 16px; font-family: 'Inter', sans-serif; font-size: 13px; color: #333; }
+    #autoTestPanel button { all: revert; font-family: inherit; font-size: 12px; cursor: pointer; border-radius: 4px; padding: 3px 10px; border: 1px solid #999; background: #f5f5f5; color: #333; }
+    #autoTestPanel button:hover { background: #e0e0e0; }
+    #autoTestPanel button.atp-stop { border-color: #d32f2f; color: #d32f2f; }
+    #autoTestPanel button.atp-stop:hover { background: #ffebee; }
+    #autoTestPanel button.atp-close { all: revert; font-family: inherit; font-size: 18px; cursor: pointer; background: none; border: none; color: #999; padding: 0; line-height: 1; }
+    #autoTestPanel button.atp-close:hover { color: #333; }
+    #autoTestPanel .atp-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    #autoTestPanel .atp-name { font-weight: 700; font-size: 14px; color: #1a73e8; }
+    #autoTestPanel .atp-controls { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+    #autoTestPanel .atp-step { background: #333; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+    #autoTestPanel .atp-delay { margin-bottom: 8px; }
+    #autoTestPanel .atp-delay label { font-size: 11px; color: #888; display: block; margin-bottom: 2px; }
+    #autoTestPanel .atp-delay input[type=range] { width: 100%; margin: 0; }
+    #autoTestPanel .atp-delay output { font-size: 11px; color: #555; }
+    #autoTestPanel .atp-msg { font-style: italic; font-size: 12px; color: #555; background: #f9f9f9; border: 1px solid #eee; border-radius: 6px; padding: 6px 8px; margin-bottom: 8px; max-height: 50px; overflow-y: auto; word-break: break-word; }
+    #autoTestPanel .atp-milestones { display: flex; flex-wrap: wrap; gap: 4px; }
+    #autoTestPanel .atp-badge { font-size: 10px; padding: 2px 6px; border-radius: 8px; color: #fff; font-weight: 600; }
+    #autoTestPanel .atp-badge.off { background: #bbb; }
+    #autoTestPanel .atp-badge.on  { background: #2e7d32; }
+</style>
+<div id="autoTestPanel" style="display:none;">
+    <div class="atp-header">
+        <span id="autoTestStatus" class="atp-name"></span>
+        <button type="button" class="atp-close" onclick="document.getElementById('autoTestPanel').style.display='none'">&times;</button>
+    </div>
+    <div class="atp-controls">
+        <span id="autoTestStep" class="atp-step"></span>
+        <button id="autoTestPauseBtn" type="button">Pause</button>
+        <button id="autoTestStopBtn" type="button" class="atp-stop">Stop</button>
+    </div>
+    <div class="atp-delay">
+        <label>Delay between steps</label>
+        <input id="autoTestDelay" type="range" value="3000" min="500" max="10000" step="500" oninput="this.nextElementSibling.value = this.value + 'ms'" />
+        <output>3000ms</output>
+    </div>
+    <div id="autoTestGenerated" class="atp-msg"></div>
+    <div class="atp-milestones">
+        <span id="m-name" class="atp-badge off">Name</span>
+        <span id="m-status" class="atp-badge off">Status</span>
+        <span id="m-org" class="atp-badge off">Org</span>
+        <span id="m-contact" class="atp-badge off">Contact</span>
+        <span id="m-event" class="atp-badge off">Event</span>
+        <span id="m-equipment" class="atp-badge off">Equipment</span>
+        <span id="m-schedule" class="atp-badge off">Schedule</span>
+        <span id="m-summary" class="atp-badge off">Summary</span>
+        <span id="m-quote" class="atp-badge off">Quote</span>
+        <span id="m-confirmed" class="atp-badge off">Confirmed</span>
     </div>
 </div>
 
@@ -136,6 +211,139 @@
                         <span class="scenario-info">
                             <strong>Time Picker Validation</strong>
                             <small>Tests time picker edge cases and validation</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn bug-scenario" data-scenario="time_picker_display_order">
+                        <span class="scenario-icon">🔄</span>
+                        <span class="scenario-info">
+                            <strong>Time Picker Display Order</strong>
+                            <small>Tests picker doesn't appear for room questions and shows correct order</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn bug-scenario" data-scenario="skip_contact_info">
+                        <span class="scenario-icon">📋</span>
+                        <span class="scenario-info">
+                            <strong>Skip Contact Info</strong>
+                            <small>Tests that AI blocks quote without contact info</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn bug-scenario" data-scenario="quote_generation_issues">
+                        <span class="scenario-icon">📄</span>
+                        <span class="scenario-info">
+                            <strong>Quote Generation Issues</strong>
+                            <small>Tests quote retry loops, context memory, and back-and-forth errors</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn bug-scenario" data-scenario="thrive_zoom_no_assumption">
+                        <span class="scenario-icon">🎯</span>
+                        <span class="scenario-info">
+                            <strong>Thrive Zoom/Teams Ask-Only</strong>
+                            <small>Replays Thrive Boardroom path where Zoom/Teams is mentioned; assistant must ask for camera/mic/speakers instead of assuming</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn bug-scenario" data-scenario="schedule_recognition_fix">
+                        <span class="scenario-icon">📅</span>
+                        <span class="scenario-info">
+                            <strong>Schedule Recognition Fix</strong>
+                            <small>Verifies schedule is recognised after time picker submit; no re-ask for schedule before quote</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn bug-scenario" data-scenario="westin_brisbane_room_packages">
+                        <span class="scenario-icon">🛠️</span>
+                        <span class="scenario-info">
+                            <strong>Westin Brisbane Room Packages</strong>
+                            <small>Verifies AI recommends built-in AV packages (projector, speaker) for specific rooms</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn bug-scenario" data-scenario="quote_modification">
+                        <span class="scenario-icon">📝</span>
+                        <span class="scenario-info">
+                            <strong>Quote Modification</strong>
+                            <small>Tests update_equipment (remove projector/screen, add mic) then create quote; optional regenerate_quote</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn bug-scenario" data-scenario="image_gallery_preview">
+                        <span class="scenario-icon">🖼️</span>
+                        <span class="scenario-info">
+                            <strong>Image Gallery Preview</strong>
+                            <small>Tests the new image preview modal for rooms, layouts and equipment</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn bug-scenario" data-scenario="ai_delay_memory_fix">
+                        <span class="scenario-icon">🛡️</span>
+                        <span class="scenario-info">
+                            <strong>AI Delay & Memory Fix</strong>
+                            <small>Verifies the fix for "brief delay" message and ensures context is preserved during retries</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn bug-scenario" data-scenario="speaker_style_order">
+                        <span class="scenario-icon">🔊</span>
+                        <span class="scenario-info">
+                            <strong>Speaker Style Order</strong>
+                            <small>Verifies audio playback prompts speaker style (inbuilt vs external) before laptop questions for Elevate/Ballroom</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn bug-scenario" data-scenario="another_quote_from_same_conversation">
+                        <span class="scenario-icon">📋</span>
+                        <span class="scenario-info">
+                            <strong>Another Quote From Same Conversation</strong>
+                            <small>First quote (Ballroom 2, 10 Mar), then "new quote for another event" and second quote (Elevate, 4 Apr). Second must get a new booking number.</small>
+                        </span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="scenario-category">
+                <h4>🏢 Thrive Boardroom Test Flows</h4>
+                <p class="category-desc">Comprehensive Thrive flow tests: happy path, capacity, presentations, video conferencing, equipment modification</p>
+                <div class="scenario-list">
+                    <button class="scenario-btn" data-scenario="thrive_simple_meeting">
+                        <span class="scenario-icon">✅</span>
+                        <span class="scenario-info">
+                            <strong>Thrive Simple Meeting</strong>
+                            <small>Happy path end-to-end: name, contact, thrive, date, schedule, equipment, create quote</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn" data-scenario="thrive_too_many_attendees">
+                        <span class="scenario-icon">👥</span>
+                        <span class="scenario-info">
+                            <strong>Thrive Too Many Attendees</strong>
+                            <small>15+ attendees; agent should redirect away from Thrive to Elevate/Podium</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn" data-scenario="thrive_presentations_full_av">
+                        <span class="scenario-icon">📽️</span>
+                        <span class="scenario-info">
+                            <strong>Thrive Presentations Full AV</strong>
+                            <small>2 presenters, slides, Mac laptops, clicker, flipchart; WSBTHAV included, no duplicates</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn" data-scenario="thrive_video_conference">
+                        <span class="scenario-icon">📹</span>
+                        <span class="scenario-info">
+                            <strong>Thrive Video Conference</strong>
+                            <small>Zoom/Teams mentioned; agent must ask for VC gear, never assume</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn" data-scenario="thrive_own_laptop_adaptor">
+                        <span class="scenario-icon">💻</span>
+                        <span class="scenario-info">
+                            <strong>Thrive Own Laptop + Adaptor</strong>
+                            <small>User brings own laptop, needs USBC/HDMI adaptor</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn" data-scenario="thrive_equipment_modification">
+                        <span class="scenario-icon">✏️</span>
+                        <span class="scenario-info">
+                            <strong>Thrive Equipment Modification</strong>
+                            <small>Quote summary then remove item, add flipchart; tests update_equipment and regenerate_quote</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn" data-scenario="thrive_room_alias_bare">
+                        <span class="scenario-icon">🏷️</span>
+                        <span class="scenario-info">
+                            <strong>Thrive Room Alias (bare)</strong>
+                            <small>User says only "thrive" to select room; tests standalone token matching</small>
                         </span>
                     </button>
                 </div>
@@ -175,9 +383,58 @@
                     </button>
                 </div>
             </div>
+            <div class="scenario-category">
+                <h4>🤖 AI Auto-Test (GPT-4o customer)</h4>
+                <p class="category-desc">AI generates realistic customer messages and runs the full flow automatically. Watch in real time.</p>
+                <div class="scenario-list">
+                    <button class="scenario-btn auto-test-scenario" data-autotest="random">
+                        <span class="scenario-icon">🎲</span>
+                        <span class="scenario-info">
+                            <strong>Random</strong>
+                            <small>AI customer with random persona and event</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn auto-test-scenario" data-autotest="small_meeting">
+                        <span class="scenario-icon">👥</span>
+                        <span class="scenario-info">
+                            <strong>Small Meeting</strong>
+                            <small>8-25 people, boardroom style</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn auto-test-scenario" data-autotest="large_conference">
+                        <span class="scenario-icon">🎪</span>
+                        <span class="scenario-info">
+                            <strong>Large Conference</strong>
+                            <small>200-500 attendees</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn auto-test-scenario" data-autotest="social_event">
+                        <span class="scenario-icon">🎉</span>
+                        <span class="scenario-info">
+                            <strong>Social Event</strong>
+                            <small>Gala, dinner, or social gathering</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn auto-test-scenario" data-autotest="thrive_boardroom">
+                        <span class="scenario-icon">🪑</span>
+                        <span class="scenario-info">
+                            <strong>Thrive Boardroom</strong>
+                            <small>Fixed layout, 4-10 people, no layout selection</small>
+                        </span>
+                    </button>
+                    <button class="scenario-btn auto-test-scenario" data-autotest="ballroom_projector">
+                        <span class="scenario-icon">📽️</span>
+                        <span class="scenario-info">
+                            <strong>Ballroom + Projector</strong>
+                            <small>Ballroom 1/2, projector area &amp; dual projector test</small>
+                        </span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+}
 
 <style>
     .modal-overlay {
@@ -299,9 +556,17 @@
           const sendBtn      = document.getElementById('sendBtn');
 
           const sendToken  = sendForm.querySelector('input[name="__RequestVerificationToken"]').value;
-          const resetToken = resetForm.querySelector('input[name="__RequestVerificationToken"]').value;
+          const resetToken = resetForm ? resetForm.querySelector('input[name="__RequestVerificationToken"]').value : null;
 
           function scrollToBottom() { messagesWrap.scrollTop = messagesWrap.scrollHeight; }
+
+          function updateProgressBar() {
+            const stepEl = document.getElementById('progressStepData');
+            if (!stepEl) return;
+            const step = stepEl.dataset.step || '';
+            const bar = document.querySelector('.chat-box-progress');
+            if (bar) bar.className = 'chat-box-progress' + (step ? ' ' + step : '');
+          }
 
           // ----- Typing bubble -----
           function addTypingBubble() {
@@ -324,6 +589,47 @@
             scrollToBottom();
           }
           function removeTypingBubble() { const t = document.getElementById('typing-bubble'); if (t) t.remove(); }
+          const REQUEST_TIMEOUT_MS = 90000;
+
+          function createRequestTimeout(timeoutMs = REQUEST_TIMEOUT_MS) {
+            const controller = new AbortController();
+            const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
+            return {
+              signal: controller.signal,
+              clear: () => window.clearTimeout(timeoutId)
+            };
+          }
+
+          function escapeHtml(text) {
+            return (text || '')
+              .replace(/&/g, '&amp;')
+              .replace(/</g, '&lt;')
+              .replace(/>/g, '&gt;');
+          }
+
+          function appendAssistantFallbackMessage(text) {
+            const fallbackText = text || 'Sorry, I hit a temporary issue and could not complete that step. Please send your last message again and I will continue.';
+            const fallbackDiv = document.createElement('div');
+            fallbackDiv.className = 'chat-message message-recived';
+            fallbackDiv.innerHTML = `
+              <div class="chat-message-box">
+                <div class="chat-message-avatar">
+                  <img src="${'@Url.Content("~/images/avatar.png")'}" alt="">
+                </div>
+                <div class="chat-message-body">
+                  <div class="chat-text">${escapeHtml(fallbackText)}</div>
+                </div>
+              </div>`;
+            messagesWrap.appendChild(fallbackDiv);
+            scrollToBottom();
+          }
+
+          function fallbackMessageForError(err) {
+            if (err && err.name === 'AbortError') {
+              return 'I am still processing that request and it took longer than expected. Please send your last message again and I will continue.';
+            }
+            return 'Sorry, I hit a temporary issue and could not complete that step. Please send your last message again and I will continue.';
+          }
 
           // ----- Hydrate agent UI JSON blocks (imageGallery, timePicker, multitime) -----
           function hydrateUiBlocks(root) {
@@ -456,25 +762,58 @@
             const text = `[UI_SELECT] ${JSON.stringify({ kind, value })}`;
             sendBtn.disabled = true;
             addTypingBubble();
+            let sendReqTimeout = null;
+            let continueReqTimeout = null;
 
             try {
+              sendReqTimeout = createRequestTimeout();
               const res = await fetch('@Url.Action("SendPartial", "Chat")', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                   'RequestVerificationToken': sendToken
                 },
-                body: new URLSearchParams({ text })
+                body: new URLSearchParams({ text }),
+                signal: sendReqTimeout.signal
               });
+              sendReqTimeout.clear();
               if (!res.ok) throw new Error('Request failed');
-              const html = await res.text();
+              const textRes = await res.text();
+              let html = textRes;
+              let continueNeeded = false;
+              try {
+                const j = JSON.parse(textRes);
+                if (j.continueNeeded && j.html) { html = j.html; continueNeeded = true; }
+              } catch (_) {}
               messagesWrap.innerHTML = html;
               hydrateUiBlocks(messagesWrap);
+              updateProgressBar();
               scrollToBottom();
+              if (continueNeeded) {
+                continueReqTimeout = createRequestTimeout();
+                const contRes = await fetch('@Url.Action("ContinuePartial", "Chat")', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    'RequestVerificationToken': sendToken
+                  },
+                  body: new URLSearchParams({ __RequestVerificationToken: sendToken }),
+                  signal: continueReqTimeout.signal
+                });
+                continueReqTimeout.clear();
+                if (!contRes.ok) throw new Error('Continue failed');
+                const fullHtml = await contRes.text();
+                messagesWrap.innerHTML = fullHtml;
+                hydrateUiBlocks(messagesWrap);
+                updateProgressBar();
+                scrollToBottom();
+              }
             } catch (err) {
               console.error(err);
-              alert(err.message || 'Failed to send selection');
+              appendAssistantFallbackMessage(fallbackMessageForError(err));
             } finally {
+              if (sendReqTimeout) sendReqTimeout.clear();
+              if (continueReqTimeout) continueReqTimeout.clear();
               removeTypingBubble();
               sendBtn.disabled = false;
               input.focus();
@@ -484,6 +823,7 @@
 
           // Initial hydrate + scroll (in case agent already returned UI blocks)
           hydrateUiBlocks(messagesWrap);
+          updateProgressBar();
           scrollToBottom();
 
           // ----- SEND -----
@@ -498,7 +838,7 @@
             userMessageDiv.innerHTML = `
               <div class="chat-message-box">
                 <div class="chat-message-body">
-                  <div class="chat-text">${text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+                  <div class="chat-text">${escapeHtml(text)}</div>
                 </div>
               </div>`;
             messagesWrap.appendChild(userMessageDiv);
@@ -507,25 +847,62 @@
 
             sendBtn.disabled = true;
             addTypingBubble();
+            let sendReqTimeout = null;
+            let continueReqTimeout = null;
 
             try {
+              sendReqTimeout = createRequestTimeout();
               const res = await fetch('@Url.Action("SendPartial", "Chat")', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                   'RequestVerificationToken': sendToken
                 },
-                body: new URLSearchParams({ text })
+                body: new URLSearchParams({ text }),
+                signal: sendReqTimeout.signal
               });
+              sendReqTimeout.clear();
               if (!res.ok) throw new Error('Request failed');
-              const html = await res.text();
+              const textRes = await res.text();
+              let html = textRes;
+              let continueNeeded = false;
+              try {
+                const j = JSON.parse(textRes);
+                if (j.continueNeeded && j.html) {
+                  html = j.html;
+                  continueNeeded = true;
+                }
+              } catch (_) { /* not JSON, use as HTML */ }
               messagesWrap.innerHTML = html;
               hydrateUiBlocks(messagesWrap);
+              updateProgressBar();
               scrollToBottom();
+
+              if (continueNeeded) {
+                continueReqTimeout = createRequestTimeout();
+                const contRes = await fetch('@Url.Action("ContinuePartial", "Chat")', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                    'RequestVerificationToken': sendToken
+                  },
+                  body: new URLSearchParams({ __RequestVerificationToken: sendToken }),
+                  signal: continueReqTimeout.signal
+                });
+                continueReqTimeout.clear();
+                if (!contRes.ok) throw new Error('Continue failed');
+                const fullHtml = await contRes.text();
+                messagesWrap.innerHTML = fullHtml;
+                hydrateUiBlocks(messagesWrap);
+                updateProgressBar();
+                scrollToBottom();
+              }
             } catch (err) {
               console.error(err);
-              alert(err.message || 'Failed to send');
+              appendAssistantFallbackMessage(fallbackMessageForError(err));
             } finally {
+              if (sendReqTimeout) sendReqTimeout.clear();
+              if (continueReqTimeout) continueReqTimeout.clear();
               removeTypingBubble();
               sendBtn.disabled = false;
               input.focus();
@@ -533,24 +910,27 @@
           });
 
           // ----- RESET (New Thread) -----
-          resetForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-              const res = await fetch('@Url.Action("ResetPartial", "Chat")', {
-                method: 'POST',
-                headers: { 'RequestVerificationToken': resetToken }
-              });
-              if (!res.ok) throw new Error('Reset failed');
-              const html = await res.text();
-              messagesWrap.innerHTML = html;
-              hydrateUiBlocks(messagesWrap);
-              scrollToBottom();
-              input.focus();
-            } catch (err) {
-              console.error(err);
-              alert(err.message || 'Failed to reset');
-            }
-          });
+          if (resetForm) {
+            resetForm.addEventListener('submit', async (e) => {
+              e.preventDefault();
+              try {
+                const res = await fetch('@Url.Action("ResetPartial", "Chat")', {
+                  method: 'POST',
+                  headers: { 'RequestVerificationToken': resetToken }
+                });
+                if (!res.ok) throw new Error('Reset failed');
+                const html = await res.text();
+                messagesWrap.innerHTML = html;
+                hydrateUiBlocks(messagesWrap);
+                updateProgressBar();
+                scrollToBottom();
+                input.focus();
+              } catch (err) {
+                console.error(err);
+                alert(err.message || 'Failed to reset');
+              }
+            });
+          }
 
           // ----- DEV MODE: Conversation Replay -----
           const startReplayBtn = document.getElementById('startReplayBtn');
@@ -583,12 +963,46 @@
             });
           }
 
-          // Handle scenario selection
+          // Handle scenario selection (scripted replay vs AI auto-test)
           scenarioBtns.forEach(btn => {
             btn.addEventListener('click', async () => {
               const scenario = btn.dataset.scenario;
+              const autoTestScenario = btn.dataset.autotest;
               testScenarioModal.style.display = 'none';
 
+              if (autoTestScenario !== undefined) {
+                // AI Auto-Test flow
+                try {
+                  const res = await fetch('@Url.Action("StartAutoTest", "Chat")', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                      'RequestVerificationToken': sendToken
+                    },
+                    body: new URLSearchParams({ scenario: autoTestScenario })
+                  });
+                  const data = await res.json();
+                  if (!data.success) throw new Error(data.error || 'Failed to start auto-test');
+                  
+                  // Reset chat messages UI for new test
+                  messagesWrap.innerHTML = '';
+                  
+                  const panel = document.getElementById('autoTestPanel');
+                  const statusEl = document.getElementById('autoTestStatus');
+                  statusEl.textContent = `${data.personaName}`;
+                  panel.style.display = 'block';
+                  window.__autoTestRunning = true;
+                  window.__autoTestPaused = false;
+                  window.__autoTestAbort = false;
+                  runAutoTestLoop();
+                } catch (err) {
+                  console.error(err);
+                  alert(err.message || 'Failed to start AI auto-test');
+                }
+                return;
+              }
+
+              // Scripted replay flow
               try {
                 startReplayBtn.disabled = true;
                 startReplayBtn.textContent = 'Starting...';
@@ -620,6 +1034,114 @@
               }
             });
           });
+
+          // ----- AI Auto-Test loop and controls -----
+          const autoTestPanel = document.getElementById('autoTestPanel');
+          const autoTestStatus = document.getElementById('autoTestStatus');
+          const autoTestStep = document.getElementById('autoTestStep');
+          const autoTestGenerated = document.getElementById('autoTestGenerated');
+          const autoTestPauseBtn = document.getElementById('autoTestPauseBtn');
+          const autoTestStopBtn = document.getElementById('autoTestStopBtn');
+          const autoTestDelay = document.getElementById('autoTestDelay');
+          const maxSteps = 30;
+
+          function updateMilestones(m) {
+            if (!m) return;
+            const set = (id, done) => {
+              const el = document.getElementById(id);
+              if (el) { el.className = 'atp-badge ' + (done ? 'on' : 'off'); }
+            };
+            set('m-name', m.nameProvided);
+            set('m-status', m.customerStatusProvided);
+            set('m-org', m.organizationProvided);
+            set('m-contact', m.contactInfoProvided);
+            set('m-event', m.eventDetailsProvided);
+            set('m-equipment', m.equipmentDiscussed);
+            set('m-schedule', m.scheduleConfirmed);
+            set('m-summary', m.quoteSummaryShown);
+            set('m-quote', m.quoteGenerated);
+            set('m-confirmed', m.quoteConfirmed);
+          }
+
+          let autoTestAbortCtrl = null;
+
+          async function runAutoTestLoop() {
+            while (window.__autoTestRunning && !window.__autoTestAbort) {
+              while (window.__autoTestPaused && !window.__autoTestAbort) {
+                await new Promise(r => setTimeout(r, 300));
+              }
+              if (window.__autoTestAbort) break;
+              autoTestAbortCtrl = new AbortController();
+              try {
+                const res = await fetch('@Url.Action("RunAutoTestStep", "Chat")', {
+                  method: 'POST',
+                  headers: { 'RequestVerificationToken': sendToken },
+                  signal: autoTestAbortCtrl.signal
+                });
+                const data = await res.json();
+                if (!data.success) {
+                  autoTestStatus.textContent = 'Error: ' + (data.error || 'Unknown');
+                  autoTestStatus.style.color = '#d32f2f';
+                  break;
+                }
+                if (data.html) {
+                  messagesWrap.innerHTML = data.html;
+                  hydrateUiBlocks(messagesWrap);
+                  updateProgressBar();
+                  scrollToBottom();
+                }
+                if (data.generatedMessage) {
+                  autoTestGenerated.textContent = 'Customer said: ' + data.generatedMessage;
+                }
+                autoTestStep.textContent = 'Step ' + (data.stepNumber || 0) + '/' + maxSteps;
+                if (data.milestones) updateMilestones(data.milestones);
+                if (data.isComplete) {
+                  autoTestStatus.textContent = 'Complete: ' + (data.completionState?.completionReason || 'Done');
+                  autoTestStatus.style.color = '#2e7d32';
+                  window.__autoTestRunning = false;
+                  break;
+                }
+                const delay = parseInt(autoTestDelay?.value || 3000, 10) || 3000;
+                await new Promise(r => setTimeout(r, Math.max(500, delay)));
+              } catch (err) {
+                if (err.name === 'AbortError') break;
+                console.error(err);
+                autoTestStatus.textContent = 'Error: ' + err.message;
+                window.__autoTestRunning = false;
+                break;
+              }
+            }
+            autoTestAbortCtrl = null;
+            if (window.__autoTestAbort) {
+              autoTestStatus.textContent = 'Stopped';
+            }
+          }
+
+          if (startAutoTestBtn) {
+            startAutoTestBtn.addEventListener('click', () => {
+              testScenarioModal.style.display = 'flex';
+            });
+          }
+          if (autoTestPauseBtn) {
+            autoTestPauseBtn.addEventListener('click', () => {
+              window.__autoTestPaused = !window.__autoTestPaused;
+              autoTestPauseBtn.textContent = window.__autoTestPaused ? 'Resume' : 'Pause';
+            });
+          }
+          if (autoTestStopBtn) {
+            autoTestStopBtn.addEventListener('click', async () => {
+              window.__autoTestAbort = true;
+              window.__autoTestRunning = false;
+              autoTestStopBtn.disabled = true;
+              if (autoTestAbortCtrl) autoTestAbortCtrl.abort();
+              try {
+                await fetch('@Url.Action("StopAutoTest", "Chat")', {
+                  method: 'POST',
+                  headers: { 'RequestVerificationToken': sendToken }
+                });
+              } catch (e) { /* ignore */ }
+            });
+          }
 
           if (nextReplayBtn) {
             nextReplayBtn.addEventListener('click', async () => {

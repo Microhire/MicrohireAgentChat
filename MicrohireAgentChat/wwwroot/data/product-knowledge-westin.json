@@ -1,0 +1,307 @@
+{
+  "scope": "westin",
+  "description": "MicroHire manages a dedicated AV warehouse inside The Westin Brisbane, stocked with professional-grade audio-visual and event technology equipment. Events at The Westin Brisbane use on-site stock first; specialised or high-volume kit can be supplied from Brisbane, Sydney, or Melbourne.",
+  "seasonalAvailability": {
+    "peak": "Peak Season (Nov–Dec, Mar–May): High demand across all categories; early booking essential. Specialty items may need to be transferred from central warehouses.",
+    "normal": "Normal Season (Jun–Aug): Standard lead times, good stock availability at Westin warehouse.",
+    "lean": "Lean Season (Jan–Feb, Sep–Oct): Best availability; flexibility for last-minute bookings."
+  },
+  "categories": [
+    {
+      "id": "audio",
+      "name": "Audio Equipment",
+      "description": "Clear, reliable audio is the foundation of every successful event. Whether it's a boardroom meeting or a gala dinner in the Ballroom, sound must be evenly distributed and free from distortion. MicroHire ensures Westin has a versatile range of audio systems to suit small, medium, and large event spaces.",
+      "equipmentTypes": [
+        "Handheld Wireless Microphones",
+        "Lapel & Headset Microphones",
+        "Conference Microphone Systems",
+        "Stage Monitors",
+        "Subwoofers",
+        "Digital Mixing Desks"
+      ],
+      "eventRecommendations": [
+        { "eventType": "Handheld Wireless Microphones (12 units)", "recommendation": "Ideal for Q&A sessions, keynote speakers, and performances. Mobility and ease of use for formal and interactive settings." },
+        { "eventType": "Lapel & Headset Microphones (8 units)", "recommendation": "Perfect for presenters who require hands-free operation. Headset mics for active presenters or fitness demos; lapels discreet for business attire." },
+        { "eventType": "Conference Microphone Systems (2 sets)", "recommendation": "Push-to-talk delegate and chairman units for structured discussions, board meetings, and summits." },
+        { "eventType": "Best for", "recommendation": "Conferences, gala dinners, award nights, live entertainment, weddings." }
+      ],
+      "integrationAndScalability": "Audio integrates with video and staging. External support available for larger events.",
+      "operationalNotes": "Stage monitors for performer feedback. Digital mixing desks for multi-input balance. Backup mics available.",
+      "operationMode": "operator_recommended",
+      "operationGuidance": "Basic speech events can be self-operated after setup, but an audio technician is recommended for microphone mixing, troubleshooting, and smooth transitions.",
+      "availabilitySeasons": {
+        "peak": "High demand for gala and conference audio",
+        "normal": "Good availability on-site"
+      },
+      "externalSupport": "In-ear monitoring systems and concert-grade line arrays available from Brisbane HQ if required.",
+      "warehouseStock": [
+        {
+          "warehouseName": "Westin Warehouse (on-site)",
+          "items": [
+            { "name": "Handheld wireless microphones", "quantity": 12 },
+            { "name": "Lapel & headset microphones", "quantity": 8 },
+            { "name": "Conference microphone systems", "quantity": 2 },
+            { "name": "Stage monitors", "quantity": 6 },
+            { "name": "Subwoofers", "quantity": 4 },
+            { "name": "Digital mixing desks", "quantity": 2 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "visual",
+      "name": "Visual Equipment",
+      "description": "Strong visual delivery ensures messages are engaging, professional, and impactful. Westin Brisbane is equipped with projection, LED, and camera systems suited for both in-person and hybrid events.",
+      "equipmentTypes": [
+        "LED Walls (modular, 3m x 2m)",
+        "High-Brightness Projectors (10,000+ lumens)",
+        "Projection Screens (multiple sizes)",
+        "Seamless Video Walls",
+        "Confidence Monitors",
+        "PTZ Cameras"
+      ],
+      "eventRecommendations": [
+        { "eventType": "LED Walls (4 modular units)", "recommendation": "High-definition visuals, scalable for various spaces. Perfect for product launches, conferences, and exhibitions." },
+        { "eventType": "High-Brightness Projectors (6 units)", "recommendation": "Presentations remain vivid in bright ballrooms. Critical for conferences and gala events." },
+        { "eventType": "Best for", "recommendation": "Hybrid conferences, webinars, expos, and gala productions." }
+      ],
+      "integrationAndScalability": "Seamless with audio and hybrid streaming. Scalable LED and screen options.",
+      "operationalNotes": "Test pattern and resolution scaling provided. Backup displays recommended for large events. PTZ for recording and live-streaming.",
+      "operationMode": "operator_recommended",
+      "operationGuidance": "Single-projector presentations may be self-operated after setup, but operator support is recommended for multiple sources, switching, live cameras, or recording.",
+      "availabilitySeasons": {
+        "peak": "LED walls and large projectors in high demand",
+        "normal": "Screens and projectors readily available"
+      },
+      "externalSupport": "Broadcast-grade cameras, ultra-wide LED walls, and touch-interactive displays available from Sydney and Melbourne.",
+      "warehouseStock": [
+        {
+          "warehouseName": "Westin Warehouse (on-site)",
+          "items": [
+            { "name": "LED walls (modular 3m x 2m)", "quantity": 4 },
+            { "name": "High-brightness projectors (10,000+ lumens)", "quantity": 6 },
+            { "name": "Projection screens", "quantity": 8 },
+            { "name": "Seamless video walls", "quantity": 3 },
+            { "name": "Confidence monitors", "quantity": 10 },
+            { "name": "PTZ cameras", "quantity": 4 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "lighting",
+      "name": "Lighting Equipment",
+      "description": "Lighting sets the mood, highlights key moments, and enhances brand presence. From subtle ambience to dramatic stage effects, Westin's AV lighting inventory is built for versatility.",
+      "equipmentTypes": [
+        "Stage Wash LED Lights",
+        "Automated Spotlights",
+        "Programmable Uplights",
+        "Moving Lights",
+        "Lighting Control Desks"
+      ],
+      "eventRecommendations": [
+        { "eventType": "Stage Wash LED (24 units)", "recommendation": "Bright, even lighting for speakers or performers on stage." },
+        { "eventType": "Automated Spotlights (12 units)", "recommendation": "Track speakers or performers as they move." },
+        { "eventType": "Programmable Uplights (20 units)", "recommendation": "Wash walls or pillars in brand colours for ambience and theme." },
+        { "eventType": "Best for", "recommendation": "Gala dinners, cocktail receptions, themed parties, corporate launches." }
+      ],
+      "integrationAndScalability": "Integrates with sound and video for synchronised shows. Pre-programmable cues.",
+      "operationalNotes": "Rigging may be required. Safety compliance with weight loadings. Control desks for cue-based events.",
+      "operationMode": "operator_required",
+      "operationGuidance": "Lighting systems require a trained operator due to rigging, programming, and safety requirements.",
+      "availabilitySeasons": {
+        "peak": "December galas drive heavy demand",
+        "normal": "Steady demand for stage and uplighting"
+      },
+      "externalSupport": "Gobos, lasers, and outdoor building projection systems available on request.",
+      "warehouseStock": [
+        {
+          "warehouseName": "Westin Warehouse (on-site)",
+          "items": [
+            { "name": "Stage wash LED lights", "quantity": 24 },
+            { "name": "Automated spotlights", "quantity": 12 },
+            { "name": "Programmable uplights", "quantity": 20 },
+            { "name": "Moving lights", "quantity": 8 },
+            { "name": "Lighting control desks", "quantity": 2 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "staging",
+      "name": "Staging & Structures",
+      "description": "Staging gives presenters a platform, sets the tone, and enhances audience sightlines. MicroHire provides flexible, modular staging solutions that fit seamlessly with Westin's event spaces.",
+      "equipmentTypes": [
+        "Portable Stage Risers (2m x 1m each)",
+        "Lecterns (branded option available)",
+        "Dance Floors (modular, up to 8m x 8m)",
+        "Stage Skirting & Carpeting"
+      ],
+      "eventRecommendations": [
+        { "eventType": "Portable Stage Risers (6 units)", "recommendation": "Configurable for panels, keynote sessions, and entertainment." },
+        { "eventType": "Lecterns (2 units)", "recommendation": "Professional presence for speeches; integrate with confidence monitors and microphones." },
+        { "eventType": "Best for", "recommendation": "Conferences, weddings, gala dinners, product launches." }
+      ],
+      "integrationAndScalability": "Compatible with MicroHire lighting and AV. Blends with room aesthetics.",
+      "operationalNotes": "Engineering certification for builds. On-site safety checks by crew. Skirting and carpeting for finish.",
+      "operationMode": "operator_required",
+      "operationGuidance": "Staging and structural systems require trained crew for compliant installation, safety checks, and changes during the event.",
+      "availabilitySeasons": {
+        "normal": "Good availability for standard staging"
+      },
+      "externalSupport": "Custom builds, large outdoor marquees, and branding walls supplied from Sydney/Melbourne.",
+      "warehouseStock": [
+        {
+          "warehouseName": "Westin Warehouse (on-site)",
+          "items": [
+            { "name": "Portable stage risers (2m x 1m)", "quantity": 6 },
+            { "name": "Lecterns", "quantity": 2 },
+            { "name": "Dance floors (modular up to 8m x 8m)", "quantity": 2 },
+            { "name": "Stage skirting & carpeting", "quantity": 0 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "event-technology",
+      "name": "Event Technology Solutions",
+      "description": "Event technology extends engagement and enhances guest experience. At Westin Brisbane, MicroHire keeps the most commonly requested tech tools on hand.",
+      "equipmentTypes": [
+        "iPad Kiosks",
+        "Digital Signage Systems",
+        "RFID Check-In System",
+        "Interpretation Kit (booth + headsets)"
+      ],
+      "eventRecommendations": [
+        { "eventType": "iPad Kiosks (6 units)", "recommendation": "Registration, surveys, or digital signage at entrances." },
+        { "eventType": "Digital Signage (2 units)", "recommendation": "Wayfinding, branding, or agenda displays." },
+        { "eventType": "RFID Check-In (1 set)", "recommendation": "Streamlined entry and real-time attendance tracking." },
+        { "eventType": "Best for", "recommendation": "International conferences, expos, corporate summits." }
+      ],
+      "integrationAndScalability": "Integrates with registration and hybrid platforms.",
+      "operationalNotes": "Connectivity checks required pre-event. Tech moderation available for hybrid events.",
+      "operationMode": "operator_recommended",
+      "operationGuidance": "Simple kiosks or signage can be self-operated after setup, but operator support is recommended for hybrid moderation, interpretation, and live troubleshooting.",
+      "availabilitySeasons": {
+        "peak": "High demand for streaming and interpretation",
+        "normal": "Standard availability"
+      },
+      "externalSupport": "Additional kiosks, larger RFID deployments, and extra translation booths available from Brisbane HQ.",
+      "warehouseStock": [
+        {
+          "warehouseName": "Westin Warehouse (on-site)",
+          "items": [
+            { "name": "iPad kiosks", "quantity": 6 },
+            { "name": "Digital signage systems", "quantity": 2 },
+            { "name": "RFID check-in system", "quantity": 1 },
+            { "name": "Interpretation kit (1 booth + 30 headsets)", "quantity": 1 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "computers-playback",
+      "name": "Computers & Playback Systems",
+      "description": "Playback and computing equipment is essential for seamless delivery of digital content. MicroHire provides both standard and high-performance systems for Westin events.",
+      "equipmentTypes": [
+        "Laptops (PC & Mac)",
+        "Media Servers",
+        "Blu-Ray/Digital Players",
+        "Presentation Remotes"
+      ],
+      "eventRecommendations": [
+        { "eventType": "Laptops (12 units)", "recommendation": "Preloaded with Microsoft Office and playback software; compatibility with most presenter content." },
+        { "eventType": "Media Servers (2 units)", "recommendation": "High-end video playback, mapping, and dynamic presentations." },
+        { "eventType": "Best for", "recommendation": "Conferences, webinars, award nights, hybrid events." }
+      ],
+      "integrationAndScalability": "Integrates with projectors, screens, and streaming.",
+      "operationalNotes": "Presentation remotes for wireless slide progression. Media servers for high-end playback.",
+      "operationMode": "self_operated",
+      "operationGuidance": "Laptops, basic playback, and presentation remotes are self-operated once configured. Operator support is only needed for complex switching or media-server workflows.",
+      "availabilitySeasons": {
+        "normal": "Good availability"
+      },
+      "externalSupport": "Additional servers and high-capacity systems available on request.",
+      "warehouseStock": [
+        {
+          "warehouseName": "Westin Warehouse (on-site)",
+          "items": [
+            { "name": "Laptops (PC & Mac)", "quantity": 12 },
+            { "name": "Media servers", "quantity": 2 },
+            { "name": "Blu-Ray/digital players", "quantity": 4 },
+            { "name": "Presentation remotes", "quantity": 6 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cables-power-rigging",
+      "name": "Cables, Power & Rigging Essentials",
+      "description": "Behind every visible element is a backbone of safe, reliable infrastructure. MicroHire ensures Westin has the essentials stocked in-house.",
+      "equipmentTypes": [
+        "Full cabling kits (HDMI, SDI, XLR, DMX)",
+        "Power Distribution Units",
+        "UPS Backup Units",
+        "Rigging Motors"
+      ],
+      "eventRecommendations": [
+        { "eventType": "Best for", "recommendation": "All events, particularly those with large setups or complex integration." }
+      ],
+      "integrationAndScalability": "Essential for all AV and lighting at Westin.",
+      "operationalNotes": "PDUs for balanced power. UPS for emergency power. Rigging motors for safe overhead installation of lighting, screens, and trusses.",
+      "operationMode": "operator_required",
+      "operationGuidance": "Power distribution and rigging infrastructure must be installed and managed by qualified technicians for safety and compliance.",
+      "availabilitySeasons": {
+        "normal": "Consistently available"
+      },
+      "externalSupport": "Heavy-duty rigging and additional motors available from Brisbane HQ.",
+      "warehouseStock": [
+        {
+          "warehouseName": "Westin Warehouse (on-site)",
+          "items": [
+            { "name": "Full cabling kits (HDMI, SDI, XLR, DMX)", "quantity": 0 },
+            { "name": "Power distribution units", "quantity": 6 },
+            { "name": "UPS backup units", "quantity": 2 },
+            { "name": "Rigging motors", "quantity": 4 }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "special-effects",
+      "name": "Special Effects & Theming Equipment",
+      "description": "For events that demand memorable moments, MicroHire equips Westin with impactful special effects.",
+      "equipmentTypes": [
+        "Haze Machines",
+        "Confetti Cannons",
+        "CO2 Jet System",
+        "Projection Mapping Kit (basic)"
+      ],
+      "eventRecommendations": [
+        { "eventType": "Haze Machines (2 units)", "recommendation": "Enhance lighting beams and create atmosphere." },
+        { "eventType": "Confetti Cannons (2 units)", "recommendation": "Energy for award ceremonies and celebrations." },
+        { "eventType": "Best for", "recommendation": "Product launches, gala dinners, concerts, award nights." }
+      ],
+      "integrationAndScalability": "Integrates with lighting and projection for immersive moments.",
+      "operationalNotes": "CO2 and haze for dramatic effect. Mapping kit for creative projection onto walls or 3D surfaces.",
+      "operationMode": "operator_required",
+      "operationGuidance": "Special effects systems require qualified operators and venue approvals due to safety controls and compliance requirements.",
+      "availabilitySeasons": {
+        "peak": "High demand for gala and launch effects",
+        "normal": "Standard availability"
+      },
+      "externalSupport": "Large pyrotechnics, water projection, and laser systems available from Sydney HQ.",
+      "warehouseStock": [
+        {
+          "warehouseName": "Westin Warehouse (on-site)",
+          "items": [
+            { "name": "Haze machines", "quantity": 2 },
+            { "name": "Confetti cannons", "quantity": 2 },
+            { "name": "CO2 jet system", "quantity": 1 },
+            { "name": "Projection mapping kit (basic)", "quantity": 1 }
+          ]
+        }
+      ]
+    }
+  ]
+}

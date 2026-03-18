@@ -12,20 +12,38 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 
+var azureAgentSection = builder.Configuration.GetSection("AzureAgent");
+var azureAgentOptions = azureAgentSection.Get<AzureAgentOptions>() ?? new AzureAgentOptions();
+
+// Allow environment variables to override
+azureAgentOptions.Endpoint = Environment.GetEnvironmentVariable("AZURE_EXISTING_AIPROJECT_ENDPOINT") ?? azureAgentOptions.Endpoint;
+azureAgentOptions.AgentId = Environment.GetEnvironmentVariable("AZURE_EXISTING_AGENT_ID") ?? azureAgentOptions.AgentId;
+azureAgentOptions.TenantId = Environment.GetEnvironmentVariable("AZURE_TENANT_ID") ?? azureAgentOptions.TenantId;
+
 builder.Services.Configure<AzureAgentOptions>(opt =>
 {
-    opt.Endpoint = Environment.GetEnvironmentVariable("AZURE_EXISTING_AIPROJECT_ENDPOINT")
-                   ?? builder.Configuration["AzureAgent:Endpoint"];
-    opt.AgentId = Environment.GetEnvironmentVariable("AZURE_EXISTING_AGENT_ID")
-                   ?? builder.Configuration["AzureAgent:AgentId"];
+    opt.Endpoint = azureAgentOptions.Endpoint;
+    opt.AgentId = azureAgentOptions.AgentId;
+    opt.TenantId = azureAgentOptions.TenantId;
 });
 
 builder.Services.Configure<DevModeOptions>(builder.Configuration.GetSection("DevMode"));
+builder.Services.Configure<AutoTestOptions>(builder.Configuration.GetSection("AutoTest"));
+builder.Services.Configure<AzureOpenAIOptions>(builder.Configuration.GetSection("AzureOpenAI"));
+builder.Services.Configure<RentalPointDefaultsOptions>(builder.Configuration.GetSection("RentalPointDefaults"));
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-var credential = new DefaultAzureCredential(new DefaultAzureCredentialOptions
+
+var credentialOptions = new DefaultAzureCredentialOptions
 {
-     ExcludeInteractiveBrowserCredential = false
-});
+    ExcludeInteractiveBrowserCredential = true
+};
+
+if (!string.IsNullOrEmpty(azureAgentOptions.TenantId))
+{
+    credentialOptions.TenantId = azureAgentOptions.TenantId;
+}
+
+var credential = new DefaultAzureCredential(credentialOptions);
 
 builder.Services.AddSingleton(sp =>
 {
@@ -64,6 +82,7 @@ builder.Services.AddSingleton<IBookingDraftStore, BookingDraftStore>();
 
 // Register new persistence and orchestration services
 builder.Services.AddScoped<ConversationExtractionService>();
+builder.Services.AddScoped<ChatExtractionService>();
 builder.Services.AddScoped<ContactPersistenceService>();
 builder.Services.AddScoped<OrganizationPersistenceService>();
 builder.Services.AddScoped<BookingPersistenceService>();
@@ -89,6 +108,7 @@ builder.Services.AddScoped<TimePickerService>();
 builder.Services.AddScoped<QuoteGenerationService>();
 builder.Services.AddScoped<HtmlQuoteGenerationService>();
 builder.Services.AddScoped<ConversationReplayService>();
+builder.Services.AddScoped<AutoTestCustomerService>();
 builder.Services.AddControllersWithViews();
 builder.Services.AddSession(options =>
 {

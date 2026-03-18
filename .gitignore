@@ -363,3 +363,5 @@ MigrationBackup/
 FodyWeavers.xsddeploy.zip
 *.dump
 monacip_prod_copy.dump
+# BrainGrid temp files
+.braingrid/temp/

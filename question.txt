@@ -1,0 +1,143 @@
+Here are the set of questions to be ask for each room (HIGHLIGHTED IN GREEN): I intentionally didn't remove the equipments and labor so the flow can easily be understood.
+
+Always ask this if there's a laptop involve
+Once there is an operator the equipment inc laptops etc is assumed at the operator’s desk. We will need to ask the client if they want a laptop anything at stage.
+Laptop @ stage = 2 xSDICROSS
+These boxes extend the HDMI signal via a long SDI cable from the lectern to the operator’s desk so that they can switch between the laptops
+  
+
+Ballroom
+If the room is westin ballroom, make sure the AI ask the client if it's full ballroom, westin ballroom 1 or westin ballroom 2 and ask for the projector location as well based on the picture below.
+
+Alignment of package to floorplan attached
+WSBSSPRO = A
+WSBNSPRO = D
+WSBBSPRO = B, C, E or F
+WSBBDPRO = B & C or E & F
+  
+
+
+Package
+WSBBDPRO, WSBBSPRO, WSBNSPRO, WSBSSPRO
+Projector & Screen
+ 
+Questions/Accessories
+Are you bringing your own laptop or do you need one?
+Own laptop
+We will provide a HDMI connection to the projector. Do you need any adaptors?
+Typically, we just need a USBC adaptor –USBCMX2
+More than 1 laptop at a time will require a switcher so we would need to ask, do you want to be able to seamlessly switch between the 2 laptops?
+Yes – We would suggest an operator
+V1HD= 4 inputs so max 4 laptops
+Add 1 hr forAVTECHSetup
+AVTECHT&C =VXTECHReh 30mins
+VXTECHOp from show start to show end
+Would you like a remote mouse/wireless presenter?
+LOGISPOT
+Would you like a flipchart?
+NATFLIPC
+Add to min labourAVTECH15mins setup per FC
+Flipchart with paper and markers
+Does your presentation have any audio, video etc?
+WSBELSAD or WBELAUD depending on whether they are in Elevate ½ or Elevate (Combined) respectively
+Would you like a foldback monitor so the presenter doesn’t have to turn around and look at the screen?
+LCD40 + NATFLSTD + SDICROSS x 2
+ 
+WSBFBALL or WSBALLAU
+Ceiling Speakers
+ 
+Questions/Accessories
+Would you like a Lectern?
+LECT1
+With a microphone?
+SHURE418
+Add to min labourAVTECH15mins setup & PD
+Do you require any wireless microphones?
+Handheld or Lapel?
+How Many?
+QLXD2SKx how many they want
+This package includes both and handheld and a lapel as it is a kit but we would need to “comment” in the job what they have asked for
+Add to min labour AVTECH 15mins setup & PD
+Note on microphones once there is more than 1 in this room we need to add a mixer.
+MIXER06 = 6ch so 6 microphones
+More than 2 microphones ask the question do you want an operator?
+YES
+AVTECHT&C =AXTECHReh 30mins
+AXTECHOp from show start to show end
+ 
+**If you end up with a MIXER06 and a V1HD then you would just need an AVTECH for the duration of the event.**
+ 
+Elevate 
+Package
+WSBELPRO
+Projector & Screen
+ 
+Questions/Accessories
+Are you bringing your own laptop or do you need one?
+Own laptop
+We will provide a HDMI connection to the projector. Do you need any adaptors?
+Typically, we just need a USBC adaptor –USBCMX2
+More than 1 laptop at a time will require a switcher so we would need to ask, do you want to be able to seamlessly switch between the 2 laptops?
+Yes – We would suggest an operator
+V1HD= 4 inputs so max 4 laptops
+Add 1 hr forAVTECHSetup
+AVTECHT&C =VXTECHReh 30mins
+VXTECHOp from show start to show end
+Would you like a remote mouse/wireless presenter?
+LOGISPOT
+Are you holding a video conference? Using Teams/Zoom etc?
+LOG4kCAM
+Add to min labour AVTECH 15mins SU, 15mins T&C, 15 mins PD
+Video Conference Unit
+Would you like a flipchart?
+NATFLIPC
+Add to min labourAVTECH15mins setup per FC
+Flipchart with paper and markers
+Does your presentation have any audio, video etc?
+WSBELSAD or WBELAUD depending on whether they are in Elevate ½ or Elevate (Combined) respectively
+ 
+WSBELSAD or WBELAUD
+Ceiling Speakers
+ 
+Questions/Accessories
+Would you like a Lectern?
+LECT1
+With a microphone?
+SHURE418
+Add to min labourAVTECH15mins setup & PD
+Do you require any wireless microphones?
+Handheld or Lapel?
+How Many?
+QLXD2SKx how many they want
+This package includes both and handheld and a lapel as it is a kit but we would need to “comment” in the job what they have asked for
+Add to min labour AVTECH 15mins setup & PD
+Note on microphones once there is more than 1 in this room we need to add a mixer.
+MIXER06 = 6ch so 6 microphones
+More than 2 microphones ask the question do you want an operator?
+YES
+AVTECHT&C =AXTECH Reh 30mins
+AXTECH Op from show start to show end
+ 
+**If you end up with a MIXER06 and a V1HD then you would just need an AVTECH for the duration of the event.**
+ 
+Thrive
+Package
+WSBTHAV
+Projector & Screen & ceiling speakers (PC Audio ONLY)
+ 
+Questions/Accessories
+Are you bringing your own laptop or do you need one?
+Own laptop
+We will provide a HDMI connection to the projector. Do you need any adaptors?
+Typically, we just need a USBC adaptor –USBCMX2
+Would you like a remote mouse/wireless presenter?
+LOGISPOT
+Are you holding a video conference? Using Teams/Zoom etc?
+LOG4kCAM
+Add to min labour AVTECH 15mins SU, 15mins T&C, 15 mins PD
+Video Conference Unit
+Would you like a flipchart?
+NATFLIPC
+Add to min labour AVTECH 15mins setup per FC
+Flipchart with paper and markers
+  

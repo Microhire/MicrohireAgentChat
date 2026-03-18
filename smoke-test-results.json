@@ -1,0 +1,79 @@
+{
+  "timestamp": "2026-03-11T02:18:30.726Z",
+  "tests": [
+    {
+      "name": "Thrive image should be cover-only (no layout options)",
+      "status": "PASS",
+      "details": {
+        "hasSetupCards": false,
+        "hasRoomImage": true,
+        "imageCount": 13,
+        "setupKeywordsFound": [],
+        "responseSnippet": "Microhire is at Mornington Peninsula.\n\n1 month ago\n\n✨ Branding Meets Brilliance ✨\n\nMicrohire brought the magic with a mesmerising “light‑scape” at the Mornington Peninsula Thermal Springs. ✨️ Setting the tone for an immersive experience, our expert lighting designers washed the foyer and stairwell w",
+        "allImages": [
+          {
+            "src": "http://localhost:5216/images/avatar.png",
+            "alt": "Isla"
+          },
+          {
+            "src": "http://localhost:5216/images/avatar.png",
+            "alt": "Isla"
+          },
+          {
+            "src": "http://localhost:5216/images/avatar.png",
+            "alt": "Isla"
+          },
+          {
+            "src": "http://localhost:5216/images/avatar.png",
+            "alt": "Isla"
+          },
+          {
+            "src": "http://localhost:5216/images/westin/thrive-boardroom/cover.png",
+            "alt": "Room view"
+          },
+          {
+            "src": "http://localhost:5216/images/footer-member-img-1.png",
+            "alt": ""
+          },
+          {
+            "src": "http://localhost:5216/images/footer-member-img-2.png",
+            "alt": ""
+          },
+          {
+            "src": "http://localhost:5216/images/footer-member-img-3.png",
+            "alt": ""
+          },
+          {
+            "src": "http://localhost:5216/images/footer-member-img-4.png",
+            "alt": ""
+          },
+          {
+            "src": "http://localhost:5216/images/microhire_apac.webp",
+            "alt": ""
+          },
+          {
+            "src": "http://localhost:5216/images/footer-sub-img-1.webp",
+            "alt": ""
+          },
+          {
+            "src": "http://localhost:5216/images/footer-sub-img-2.webp",
+            "alt": ""
+          },
+          {
+            "src": "http://localhost:5216/images/footer-sub-img-3.webp",
+            "alt": ""
+          }
+        ]
+      }
+    },
+    {
+      "name": "No setup-style follow-up question for Thrive",
+      "status": "PASS",
+      "details": {
+        "asksSetupStyle": false,
+        "setupStyleKeywordsFound": [],
+        "responseSnippet": ""
+      }
+    }
+  ]
+}

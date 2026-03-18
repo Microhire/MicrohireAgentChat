@@ -1,0 +1,309 @@
+[
+  {
+    "type": "driver",
+    "key": "wireless_mic_count",
+    "product_code": "MIC-WL-COUNT",
+    "sourceLabel": "Number of Speakers",
+    "qtyFrom": "regex",
+    "regex": "(\\d+)",
+    "multiplier": 1
+  },
+  {
+    "type": "driver",
+    "key": "laptop_count",
+    "product_code": "LAPTOP-COUNT",
+    "sourceLabel": "Laptops Required for Presenters",
+    "qtyFrom": "regex",
+    "regex": "(\\d+)",
+    "multiplier": 1
+  },
+  {
+    "type": "driver",
+    "key": "projector_count",
+    "product_code": "PROJECTOR-COUNT",
+    "sourceLabel": "Number of Projectors",
+    "qtyFrom": "regex",
+    "regex": "(\\d+)",
+    "multiplier": 1
+  },
+  {
+    "type": "driver",
+    "key": "wireless_mic_count",
+    "product_code": "MIC-WL-COUNT",
+    "sourceLabel": "Equipment",
+    "qtyFrom": "regex",
+    "regex": "(\\d+)\\s*(wireless\\s*mic|wireless\\s*microphone)s?",
+    "multiplier": 1
+  },
+  {
+    "type": "driver",
+    "key": "laptop_count",
+    "product_code": "LAPTOP-COUNT",
+    "sourceLabel": "Equipment",
+    "qtyFrom": "regex",
+    "regex": "(\\d+)\\s*laptop(s)?",
+    "multiplier": 1
+  },
+  {
+    "type": "bundle",
+    "key": "wireless_mic_bundle",
+    "bundleItems": [
+      {
+        "product_code": "QLXD2SK",
+        "comment": "SINGLE Radio Mic Receiver - Shure QLXD4 K52",
+        "qtyFrom": "useDriverQty",
+        "driverKey": "wireless_mic_count"
+      },
+      {
+        "product_code": "SHQLXD2K",
+        "comment": "Wireless Handheld Mic - Shure QLXD2 K52",
+        "qtyFrom": "useDriverQty",
+        "driverKey": "wireless_mic_count"
+      },
+      {
+        "product_code": "QLXD2K52",
+        "comment": "Wireless Lapel Mic - Shure QLXD2 K52",
+        "qtyFrom": "optionalFixed",
+        "literalQty": 0
+      }
+    ]
+  },
+  {
+    "type": "bundle",
+    "key": "wired_mic_bundle",
+    "bundleItems": [
+      {
+        "product_code": "LECT1",
+        "comment": "Professional Lectern With Light & Mic Points",
+        "qtyFrom": "literal",
+        "literalQty": 1
+      },
+      {
+        "product_code": "SHURE418",
+        "comment": "Shure MX-418 Gooseneck Microphone 18\"",
+        "qtyFrom": "useDriverQty",
+        "driverKey": "wired_mic_count"
+      }
+    ]
+  },
+  {
+    "type": "bundle",
+    "key": "wireless_presenter_bundle",
+    "requirePresentation": true,
+    "bundleItems": [
+      {
+        "product_code": "WIRPRES",
+        "comment": "Logitech Wireless Presenter",
+        "qtyFrom": "maxOf",
+        "driverKeys": [ "laptop_count" ],
+        "defaultQty": 1
+      }
+    ]
+  },
+  {
+    "type": "bundle",
+    "key": "laptop_bundle",
+    "requirePresentation": true,
+    "bundleItems": [
+      {
+        "product_code": "PCLPRO",
+        "comment": "PC Show Laptop Production Level Pro",
+        "qtyFrom": "maxOf",
+        "driverKeys": [ "laptop_count" ],
+        "defaultQty": 1
+      },
+      {
+        "product_code": "DELLG15",
+        "comment": "Dell G15 Production Level Pro",
+        "qtyFrom": "optionalFixed",
+        "literalQty": 0
+      },
+      {
+        "product_code": "PC-MOUSE",
+        "comment": "Optical Mouse - USB",
+        "qtyFrom": "maxOf",
+        "driverKeys": [ "laptop_count" ],
+        "defaultQty": 1
+      },
+      {
+        "product_code": "LAP-PWR",
+        "comment": "Laptop Power Supply",
+        "qtyFrom": "maxOf",
+        "driverKeys": [ "laptop_count" ],
+        "defaultQty": 1
+      }
+    ]
+  },
+  {
+    "type": "bundle",
+    "key": "westin_single_projector_pkg",
+    "roomContains": [ "westin", "ballroom", "single" ],
+    "bundleItems": [
+      {
+        "product_code": "WSBBSPRO",
+        "comment": "Westin Ballroom Single Projector Package",
+        "qtyFrom": "literal",
+        "literalQty": 1
+      },
+      {
+        "product_code": "VVSCR120",
+        "comment": "Venue Installed 120\" Motorised Projection Screen",
+        "qtyFrom": "literal",
+        "literalQty": 1
+      },
+      {
+        "product_code": "EBG7400U",
+        "comment": "Epson Projector 5500 ANSI",
+        "qtyFrom": "literal",
+        "literalQty": 1
+      }
+    ]
+  },
+  {
+    "type": "bundle",
+    "key": "westin_single_ceiling_pkg",
+    "roomContains": [ "westin", "ballroom", "single" ],
+    "bundleItems": [
+      {
+        "product_code": "WSBALLAU",
+        "comment": "Westin Single Ballroom Ceiling Speaker System",
+        "qtyFrom": "literal",
+        "literalQty": 1
+      },
+      {
+        "product_code": "VACSPKR",
+        "comment": "Venue Installed Ceiling LoudSpeaker",
+        "qtyFrom": "literal",
+        "literalQty": 8
+      }
+    ]
+  },
+  {
+    "type": "bundle",
+    "key": "westin_full_ceiling_pkg",
+    "roomContains": [ "westin", "ballroom", "full" ],
+    "bundleItems": [
+      {
+        "product_code": "WSBFBALL",
+        "comment": "Westin Full Ballroom Ceiling Speaker System",
+        "qtyFrom": "literal",
+        "literalQty": 1
+      },
+      {
+        "product_code": "VACSPKR",
+        "comment": "Venue Installed Ceiling LoudSpeaker",
+        "qtyFrom": "literal",
+        "literalQty": 16
+      }
+    ]
+  },
+  {
+    "type": "bundle",
+    "key": "westin_dual_projector_pkg",
+    "roomContains": [ "westin", "ballroom" ],
+    "requirePresentation": true,
+    "bundleItems": [
+      {
+        "product_code": "WSBBDPRO",
+        "comment": "Westin Ballroom Dual Projector Package",
+        "qtyFrom": "literal",
+        "literalQty": 1
+      },
+      {
+        "product_code": "VVSCR120",
+        "comment": "Venue Installed 120\" Motorised Projection Screen",
+        "qtyFrom": "literal",
+        "literalQty": 2
+      },
+      {
+        "product_code": "EBG7400U",
+        "comment": "Epson Projector 5500 ANSI",
+        "qtyFrom": "literal",
+        "literalQty": 2
+      }
+    ]
+  },
+  {
+    "type": "bundle",
+    "key": "elevate_ceiling_pkg",
+    "roomContains": [ "elevate" ],
+    "bundleItems": [
+      {
+        "product_code": "WSBELAUD",
+        "comment": "Elevate Ceiling Speaker System",
+        "qtyFrom": "literal",
+        "literalQty": 1
+      },
+      {
+        "product_code": "VACSPKR",
+        "comment": "Venue Installed Ceiling LoudSpeaker",
+        "qtyFrom": "literal",
+        "literalQty": 8
+      }
+    ]
+  },
+  {
+    "type": "bundle",
+    "key": "elevate_single_ceiling_pkg",
+    "roomContains": [ "elevate", "single" ],
+    "bundleItems": [
+      {
+        "product_code": "WSBELSAD",
+        "comment": "Elevate Single Ceiling Speaker System",
+        "qtyFrom": "literal",
+        "literalQty": 1
+      },
+      {
+        "product_code": "VACSPKR",
+        "comment": "Venue Installed Ceiling LoudSpeaker",
+        "qtyFrom": "literal",
+        "literalQty": 4
+      }
+    ]
+  },
+  {
+    "type": "bundle",
+    "key": "thrive_ceiling_pkg",
+    "roomContains": [ "thrive" ],
+    "bundleItems": [
+      {
+        "product_code": "WSBTHAUD",
+        "comment": "Thrive Ceiling Speaker System",
+        "qtyFrom": "literal",
+        "literalQty": 1
+      },
+      {
+        "product_code": "VACSPKR",
+        "comment": "Venue Installed Ceiling LoudSpeaker",
+        "qtyFrom": "literal",
+        "literalQty": 1
+      }
+    ]
+  },
+  {
+    "type": "bundle",
+    "key": "thrive_av_pkg",
+    "roomContains": [ "thrive" ],
+    "requirePresentation": true,
+    "bundleItems": [
+      {
+        "product_code": "WSBTHAV",
+        "comment": "Thrive AV Package",
+        "qtyFrom": "literal",
+        "literalQty": 1
+      },
+      {
+        "product_code": "VACSPKR",
+        "comment": "Venue Installed Ceiling LoudSpeaker",
+        "qtyFrom": "literal",
+        "literalQty": 1
+      },
+      {
+        "product_code": "EB1450UI",
+        "comment": "Epson Interactive Projector 3800 ANSI",
+        "qtyFrom": "literal",
+        "literalQty": 1
+      }
+    ]
+  }
+]

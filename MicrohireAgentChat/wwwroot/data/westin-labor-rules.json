@@ -1,0 +1,38 @@
+{
+  "rooms": [
+    {
+      "roomKey": "ballroom",
+      "roomContains": ["ballroom"],
+      "packageCodes": ["WSBBDPRO", "WSBBSPRO", "WSBNSPRO", "WSBSSPRO", "WSBFBALL", "WSBALLAU"],
+      "baselineLaborCode": "AVTECH",
+      "visionSpecialistCode": "VXTECH",
+      "audioSpecialistCode": "AXTECH",
+      "microphoneOperatorThreshold": 2
+    },
+    {
+      "roomKey": "elevate",
+      "roomContains": ["elevate"],
+      "packageCodes": ["WSBELPRO", "WSBELSAD", "WSBELAUD", "WBELAUD"],
+      "baselineLaborCode": "AVTECH",
+      "visionSpecialistCode": "VXTECH",
+      "audioSpecialistCode": "AXTECH",
+      "microphoneOperatorThreshold": 2
+    },
+    {
+      "roomKey": "thrive",
+      "roomContains": ["thrive"],
+      "packageCodes": ["WSBTHAV", "WSBTHAUD", "WSBTHPRO"],
+      "baselineLaborCode": "AVTECH",
+      "visionSpecialistCode": "VXTECH",
+      "audioSpecialistCode": "AXTECH",
+      "microphoneOperatorThreshold": 2
+    }
+  ],
+  "specialRules": {
+    "switcherCode": "V1HD",
+    "mixerCode": "MIXER06",
+    "flipchartCode": "NATFLIPC",
+    "videoConferenceCode": "LOG4kCAM",
+    "lecternCodes": ["LECT1", "SHURE418"]
+  }
+}

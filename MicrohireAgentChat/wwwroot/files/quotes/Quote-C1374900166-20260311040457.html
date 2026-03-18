@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microhire Quote - FutureWorks Global</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --microhire-red: #E81E25;
+            --microhire-red-dark: #C91A20;
+            --microhire-red-darker: #9E1D20;
+            --microhire-accent: #FF3262;
+            --text-dark: #1a1a1a;
+            --text-gray: #4a4a4a;
+            --text-light: #6b6b6b;
+            --bg-light: #f5f5f5;
+            --white: #ffffff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Lato', sans-serif;
+            background: #2a2a2a;
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        .page-container { max-width: 850px; margin: 0 auto; padding: 20px; }
+
+        .page {
+            background: var(--white);
+            width: 100%;
+            min-height: 1100px;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Cover Page */
+        .cover-page { background: var(--microhire-red); display: flex; flex-direction: column; }
+        .cover-main { flex: 1; min-height: 900px; position: relative; padding: 40px; display: flex; flex-direction: column; }
+        .cover-shape-1 { position: absolute; top: 0; left: 0; width: 50%; height: 70%; background: var(--microhire-red-dark); clip-path: polygon(0 0, 100% 0, 50% 100%, 0 100%); }
+        .cover-shape-2 { position: absolute; top: 20%; right: 0; width: 55%; height: 80%; background: var(--microhire-red-darker); clip-path: polygon(40% 0, 100% 0, 100% 100%, 0 100%); }
+        .cover-logo { position: relative; z-index: 10; text-align: right; margin-bottom: auto; }
+        .cover-logo-text { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 48px; color: var(--white); letter-spacing: 2px; }
+        .cover-logo-text span { color: var(--white); font-weight: 300; }
+        .cover-tagline { font-family: 'Montserrat', sans-serif; font-size: 11px; color: var(--white); letter-spacing: 4px; text-transform: uppercase; opacity: 0.9; }
+        .cover-title { position: relative; z-index: 10; margin-top: auto; padding-bottom: 40px; }
+        .cover-title h1 { font-family: 'Montserrat', sans-serif; font-weight: 300; font-size: clamp(32px, 5vw, 52px); color: var(--white); line-height: 1.2; }
+        .cover-footer { background: var(--white); padding: 30px 40px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .cover-date { font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 18px; color: var(--microhire-red); }
+        .cover-ref { font-family: 'Montserrat', sans-serif; font-weight: 500; font-size: 14px; color: var(--microhire-red); margin-top: 5px; }
+        .cover-venue-logo { text-align: right; }
+        .venue-name { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 20px; color: var(--text-dark); letter-spacing: 2px; }
+        .venue-location { font-family: 'Montserrat', sans-serif; font-size: 11px; color: var(--text-gray); letter-spacing: 3px; text-transform: uppercase; }
+
+        /* Overview Page */
+        .overview-page { padding: 0; display: flex; flex-direction: column; }
+        .page-header { padding: 35px 45px 25px; border-bottom: 3px solid var(--microhire-red); }
+        .page-section-title { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 14px; color: var(--microhire-red-darker); letter-spacing: 1px; margin-bottom: 8px; }
+        .page-event-title { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: clamp(18px, 3vw, 24px); color: var(--microhire-red); display: flex; align-items: center; gap: 12px; }
+        .page-event-title::before { content: ''; width: 0; height: 0; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-left: 16px solid var(--microhire-red); }
+        .page-content { flex: 1; padding: 30px 45px; display: flex; flex-direction: column; }
+        .contact-block { margin-bottom: 25px; }
+        .contact-name { font-weight: 700; font-size: 15px; color: var(--text-dark); }
+        .contact-company { font-weight: 400; font-size: 14px; color: var(--text-dark); }
+        .contact-details { font-size: 13px; color: var(--text-gray); margin-top: 4px; }
+        .greeting { font-size: 14px; color: var(--text-dark); margin: 20px 0 15px; }
+        .intro-text { font-size: 13px; color: var(--text-gray); line-height: 1.7; text-align: justify; margin-bottom: 25px; }
+        .details-table { margin-bottom: 25px; }
+        .detail-row { display: flex; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 11px; color: var(--microhire-red); text-transform: uppercase; letter-spacing: 0.5px; width: 180px; flex-shrink: 0; }
+        .detail-value { font-size: 13px; color: var(--text-dark); }
+        .section-divider { height: 1px; background: linear-gradient(90deg, var(--microhire-red) 0%, transparent 100%); margin: 20px 0; opacity: 0.3; }
+        .manager-section { margin-bottom: 25px; }
+        .manager-section .detail-row { border-bottom: none; padding: 5px 0; }
+        .schedule-intro { font-size: 12px; font-style: italic; color: var(--text-gray); margin-bottom: 15px; }
+        .schedule-table { width: 100%; }
+        .schedule-row { display: flex; padding: 6px 0; }
+        .schedule-label { font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 11px; color: var(--microhire-red); text-transform: uppercase; width: 130px; flex-shrink: 0; }
+        .schedule-date { font-size: 13px; color: var(--text-dark); width: 220px; }
+        .schedule-time { font-size: 13px; color: var(--text-gray); }
+        .page-footer { padding: 20px 45px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; margin-top: auto; }
+        .footer-logo { display: flex; align-items: center; gap: 8px; }
+        .footer-logo-icon { width: 40px; height: 40px; background: var(--microhire-red); border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; }
+        .footer-logo-icon::after { content: 'M'; color: white; font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 16px; }
+        .footer-ref { font-size: 11px; color: var(--text-light); }
+        .footer-page-info { font-size: 11px; color: var(--text-light); }
+
+        /* Equipment Page */
+        .equipment-table { width: 100%; margin-bottom: 20px; }
+        .equipment-header { display: flex; padding: 12px 0; border-bottom: 2px solid var(--microhire-red); margin-bottom: 15px; }
+        .equipment-header-desc { font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 12px; color: var(--microhire-red); flex: 1; }
+        .equipment-header-qty { font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 12px; color: var(--microhire-red); width: 80px; text-align: center; }
+        .room-header { margin-bottom: 20px; }
+        .room-name { font-weight: 700; font-size: 14px; color: var(--text-dark); }
+        .room-times { font-style: italic; font-size: 12px; color: var(--text-gray); margin-top: 4px; }
+        .equipment-category-header { font-style: italic; font-weight: 700; font-size: 14px; color: var(--text-dark); margin: 20px 0 10px; }
+        .equipment-section { margin-bottom: 20px; }
+        .equipment-category { font-style: italic; font-weight: 600; font-size: 13px; color: var(--text-dark); margin-bottom: 8px; }
+        .equipment-subcategory { font-style: italic; text-decoration: underline; font-size: 13px; color: var(--text-dark); margin-bottom: 8px; }
+        .equipment-group-title { font-style: italic; font-size: 12px; color: var(--text-gray); margin-bottom: 5px; }
+        .equipment-row { display: flex; padding: 4px 0; align-items: center; }
+        .equipment-item { flex: 1; font-size: 13px; color: var(--text-dark); }
+        .equipment-item.main { font-weight: 600; }
+        .equipment-item.component { margin-left: 15px; font-style: italic; color: var(--text-gray); }
+        .equipment-qty { width: 80px; text-align: center; font-size: 13px; color: var(--text-dark); }
+        .equipment-note { font-style: italic; font-size: 13px; color: var(--text-dark); margin: 15px 0 15px 15px; }
+        .section-total { display: flex; justify-content: flex-end; padding: 15px 0; margin-top: 10px; border-top: 1px solid #eee; }
+        .section-total-label { font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 13px; color: var(--text-dark); margin-right: 30px; }
+        .section-total-amount { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 14px; color: var(--text-dark); }
+
+        /* Labour/Technical Services Page */
+        .labour-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .labour-table th { font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 11px; color: var(--microhire-red); text-transform: uppercase; text-align: left; padding: 10px 8px; border-bottom: 2px solid var(--microhire-red); }
+        .labour-table td { font-size: 12px; color: var(--text-dark); padding: 8px; border-bottom: 1px solid #eee; }
+        .labour-total { margin-top: 20px; }
+
+        /* Budget Summary Page */
+        .budget-table { max-width: 350px; margin-bottom: 30px; }
+        .budget-row { display: flex; justify-content: space-between; padding: 6px 0; }
+        .budget-label { font-size: 13px; color: var(--text-dark); }
+        .budget-value { font-size: 13px; color: var(--text-dark); text-align: right; }
+        .budget-divider .budget-value { color: var(--text-gray); }
+        .budget-total { font-weight: 700; }
+        .budget-total .budget-label, .budget-total .budget-value { font-size: 14px; }
+
+        .closing-text { font-size: 12px; color: var(--text-gray); line-height: 1.7; margin-bottom: 30px; }
+        .closing-text p { margin-bottom: 12px; }
+        .closing-text strong { color: var(--text-dark); }
+
+        .manager-signature { margin-top: 30px; }
+        .manager-name { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 16px; color: var(--text-dark); margin-bottom: 5px; }
+        .manager-name span { font-weight: 400; font-size: 13px; margin-left: 10px; }
+        .manager-company { font-size: 13px; color: var(--text-dark); margin-bottom: 3px; }
+        .manager-address { font-size: 12px; color: var(--text-gray); margin-bottom: 10px; }
+        .manager-contact { font-size: 12px; color: var(--text-dark); line-height: 1.8; }
+        .manager-contact .label { color: var(--microhire-red); font-weight: 600; margin-right: 10px; }
+
+        /* Confirmation Page */
+        .confirmation-page .confirmation-text { font-size: 12px; color: var(--text-gray); line-height: 1.7; margin-bottom: 30px; }
+        .confirmation-page .confirmation-text p { margin-bottom: 12px; }
+        .confirmation-page .confirmation-text a { color: var(--microhire-red); }
+        .confirmation-details { margin-bottom: 30px; }
+        .payment-details { margin-bottom: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; }
+        .payment-title { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 12px; color: var(--microhire-red); text-transform: uppercase; margin-bottom: 15px; }
+        .confirmation-row { display: flex; margin-bottom: 10px; }
+        .confirmation-label { font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 11px; color: var(--microhire-red); text-transform: uppercase; width: 150px; }
+        .confirmation-value { font-size: 13px; color: var(--text-dark); }
+        
+        .signature-section { margin-top: 30px; }
+        .signature-row { display: flex; gap: 30px; margin-bottom: 25px; }
+        .signature-field { flex: 1; }
+        .signature-field.full-width { flex: 1 1 100%; }
+        .signature-field label { font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 11px; color: var(--text-gray); text-transform: uppercase; display: block; margin-bottom: 8px; }
+        .signature-line { border-bottom: 1px solid var(--text-dark); height: 30px; }
+        .signature-box { height: 80px; border: 1px solid var(--text-dark); border-radius: 4px; }
+
+        @media print {
+            body { background: white; }
+            .page-container { padding: 0; }
+            .page { box-shadow: none; margin-bottom: 0; page-break-after: always; }
+            .page:last-child { page-break-after: avoid; }
+        }
+
+        @media (max-width: 600px) {
+            .page-container { padding: 10px; }
+            .cover-main { padding: 25px; }
+            .cover-footer { padding: 20px 25px; }
+            .page-header, .page-content, .page-footer { padding-left: 25px; padding-right: 25px; }
+            .detail-label, .schedule-label { width: 120px; }
+        }</style>
+</head>
+<body>
+    <div class="page-container">
+
+        <!-- PAGE 1: COVER -->
+        <div class="page cover-page">
+            <div class="cover-main">
+                <div class="cover-shape-1"></div>
+                <div class="cover-shape-2"></div>
+                
+                <div class="cover-logo">
+                    <div class="cover-logo-text"><span>M</span>icrohire.</div>
+                    <div class="cover-tagline">Events That Inspire</div>
+                </div>
+                
+                <div class="cover-title">
+                    <h1>FutureWorks Global</h1>
+                </div>
+            </div>
+            
+            <div class="cover-footer">
+                <div class="cover-info">
+                    <div class="cover-date">11 MAY 2026</div>
+                    <div class="cover-ref">C1374900166 - 001</div>
+                </div>
+                <div class="cover-venue-logo">
+                    <div class="venue-name">WESTIN BRISBANE</div>
+                    <div class="venue-location">Brisbane</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE 2: OVERVIEW -->
+        <div class="page overview-page">
+            <div class="page-header">
+                <div class="page-section-title">OVERVIEW</div>
+                <div class="page-event-title">FUTUREWORKS GLOBAL</div>
+            </div>
+            
+            <div class="page-content">
+                <div class="contact-block">
+                    <div class="contact-name">Quinn King</div>
+                    <div class="contact-company">FutureWorks Global</div>
+                    <div class="contact-details">
+                        Brisbane office                                   <br>
+                        0419705545
+                    </div>
+                </div>
+                
+                <div class="greeting">Dear Quinn,</div>
+                
+                <p class="intro-text">
+                    Thank you for the opportunity to present our audio-visual production services for your upcoming event at Westin Brisbane. We are pleased to provide our proposal in the following pages, based on the information we have received and our recommendations for a seamless and successful event. Our team are committed to achieving your event objectives and welcome the opportunity to discuss your requirements and any budget parameters in further detail. If you have any questions or need further information, please do not hesitate to contact me on the details below. Thank you again and we look forward to speaking to you soon.
+                </p>
+                
+                <div class="details-table">
+                    <div class="detail-row">
+                        <div class="detail-label">Location</div>
+                        <div class="detail-value">Westin Brisbane</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Address</div>
+                        <div class="detail-value">Brisbane office                                   </div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Room</div>
+                        <div class="detail-value">Thrive Boardroom</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Date</div>
+                        <div class="detail-value">Monday 11 May 2026 to Monday 11 May 2026</div>
+                    </div>
+                </div>
+                
+                <div class="section-divider"></div>
+                
+                <div class="manager-section">
+                    <div class="detail-row">
+                        <div class="detail-label">Event Account Manager</div>
+                        <div class="detail-value">Doug Miller</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Mobile Number</div>
+                        <div class="detail-value">+61 420 838 716</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Email</div>
+                        <div class="detail-value">Doug.Miller@microhire.com</div>
+                    </div>
+                </div>
+                
+                <p class="schedule-intro">Please confirm the following dates and times are accurate:</p>
+                
+                <div class="schedule-table">
+                    <div class="schedule-row">
+                        <div class="schedule-label">Setup By</div>
+                        <div class="schedule-date">Monday 11 May 2026</div>
+                        <div class="schedule-time">Time: 07:00</div>
+                    </div>
+                    <div class="schedule-row">
+                        <div class="schedule-label">Rehearsal</div>
+                        <div class="schedule-date">Monday 11 May 2026</div>
+                        <div class="schedule-time">Time: 09:30</div>
+                    </div>
+                    <div class="schedule-row">
+                        <div class="schedule-label">Event Start</div>
+                        <div class="schedule-date">Monday 11 May 2026</div>
+                        <div class="schedule-time">Time: 10:00</div>
+                    </div>
+                    <div class="schedule-row">
+                        <div class="schedule-label">Event End</div>
+                        <div class="schedule-date">Monday 11 May 2026</div>
+                        <div class="schedule-time">Time: 16:00</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="page-footer">
+                <div class="footer-logo">
+                    <div class="footer-logo-icon"></div>
+                </div>
+                <div class="footer-ref">Ref No: C1374900166 - 001</div>
+                <div class="footer-page-info">Microhire | FutureWorks Global 2</div>
+            </div>
+        </div>
+
+        <!-- PAGE 3: EQUIPMENT & SERVICES -->
+        <div class="page overview-page">
+            <div class="page-header">
+                <div class="page-section-title">EQUIPMENT & SERVICES</div>
+                <div class="page-event-title">FUTUREWORKS GLOBAL</div>
+            </div>
+            
+            <div class="page-content">
+                <div class="equipment-header">
+                    <div class="equipment-header-desc">Description</div>
+                    <div class="equipment-header-qty">Qty.</div>
+                </div>
+
+                <div class="room-header">
+                    <div class="room-name">Thrive Boardroom</div>
+                    <div class="room-times">Event Starts - 1000<br>Event Ends - 1600</div>
+                </div>
+                
+                
+                <div class="equipment-category-header">Vision</div>
+                <div class="equipment-subcategory">Data Projector/Screen</div>
+                <div class="equipment-group-title">Includes:</div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item ">PC Show Laptop Production Level 1</div>
+                        <div class="equipment-qty">2</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item component">Dell M2800 Production Level 1</div>
+                        <div class="equipment-qty">2</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item component">HP CS99TX / Dell Inspiron 5000 Production Level 1</div>
+                        <div class="equipment-qty">2</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item component">Optical Mouse - USB</div>
+                        <div class="equipment-qty">2</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item component">Laptop Soft Carry Case</div>
+                        <div class="equipment-qty">2</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item component">Laptop Power Supply</div>
+                        <div class="equipment-qty">2</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item component">Laptop Hard Carry Case</div>
+                        <div class="equipment-qty">2</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item ">Thrive Ceiling Speaker System</div>
+                        <div class="equipment-qty">1</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item component">Venue Installed Ceiling LoudSpeaker</div>
+                        <div class="equipment-qty">1</div>
+                    </div>
+
+                <div class="section-total">
+                    <div class="section-total-label">Vision Total</div>
+                    <div class="section-total-amount">$713.09</div>
+                </div>
+
+                <div class="equipment-category-header">Additional Equipment</div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item">Interactive Projector 4000 Lumens Laser FHD</div>
+                        <div class="equipment-qty">1</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item">30&#39;x10&#39; Stumpfl Projection Screen FP Only</div>
+                        <div class="equipment-qty">1</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item">Display Port to DVI - 2m</div>
+                        <div class="equipment-qty">1</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item">Logitech Spotlight Wireless Presenter</div>
+                        <div class="equipment-qty">1</div>
+                    </div>
+
+            </div>
+            
+            <div class="page-footer">
+                <div class="footer-logo">
+                    <div class="footer-logo-icon"></div>
+                </div>
+                <div class="footer-ref">Ref No: C1374900166 - 001</div>
+                <div class="footer-page-info">Microhire | FutureWorks Global 2</div>
+            </div>
+        </div>
+
+        <!-- PAGE 4: TECHNICAL SERVICES -->
+        <div class="page overview-page">
+            <div class="page-header">
+                <div class="page-section-title">TECHNICAL SERVICES</div>
+                <div class="page-event-title">FUTUREWORKS GLOBAL</div>
+            </div>
+            
+            <div class="page-content">
+                <table class="labour-table">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th>Task</th>
+                            <th>Qty</th>
+                            <th>Start Date/Time</th>
+                            <th>Finish</th>
+                            <th>Hrs</th>
+                            <th>Total ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                <tr>
+                    <td>AV Technician</td>
+                    <td>Setup</td>
+                    <td>1</td>
+                    <td>1 May 2026 07:00</td>
+                    <td>1 May 2026 10:00</td>
+                    <td>01:30</td>
+                    <td>$165.00</td>
+                </tr>
+                <tr>
+                    <td>AV Technician</td>
+                    <td>Test & Connect</td>
+                    <td>1</td>
+                    <td>1 May 2026 09:30</td>
+                    <td>1 May 2026 10:00</td>
+                    <td>01:00</td>
+                    <td>$110.00</td>
+                </tr>
+                <tr>
+                    <td>AV Technician</td>
+                    <td>Pack Down</td>
+                    <td>1</td>
+                    <td>1 May 2026 16:00</td>
+                    <td>1 May 2026 18:00</td>
+                    <td>01:00</td>
+                    <td>$110.00</td>
+                </tr>
+
+                    </tbody>
+                </table>
+                
+                <div class="section-total labour-total">
+                    <div class="section-total-label">Labour Total</div>
+                    <div class="section-total-amount">$385.00</div>
+                </div>
+            </div>
+            
+            <div class="page-footer">
+                <div class="footer-logo">
+                    <div class="footer-logo-icon"></div>
+                </div>
+                <div class="footer-ref">Ref No: C1374900166 - 001</div>
+                <div class="footer-page-info">Microhire | FutureWorks Global 3</div>
+            </div>
+        </div>
+
+        <!-- PAGE 5: BUDGET SUMMARY -->
+        <div class="page overview-page">
+            <div class="page-header">
+                <div class="page-section-title">BUDGET SUMMARY</div>
+                <div class="page-event-title">FUTUREWORKS GLOBAL</div>
+            </div>
+            
+            <div class="page-content">
+                <div class="budget-table">
+                    <div class="budget-row">
+                        <div class="budget-label">Rental Equipment</div>
+                        <div class="budget-value">$2,210.19</div>
+                    </div>
+                    <div class="budget-row">
+                        <div class="budget-label">Labour</div>
+                        <div class="budget-value">$385.00</div>
+                    </div>
+                    <div class="budget-row">
+                        <div class="budget-label">Service Charge</div>
+                        <div class="budget-value">$154.71</div>
+                    </div>
+                    <div class="budget-row budget-divider">
+                        <div class="budget-label"></div>
+                        <div class="budget-value">----------------------</div>
+                    </div>
+                    <div class="budget-row">
+                        <div class="budget-label">Sub Total (ex GST)</div>
+                        <div class="budget-value">$2,749.90</div>
+                    </div>
+                    <div class="budget-row">
+                        <div class="budget-label">GST</div>
+                        <div class="budget-value">$274.99</div>
+                    </div>
+                    <div class="budget-row budget-divider">
+                        <div class="budget-label"></div>
+                        <div class="budget-value">----------------------</div>
+                    </div>
+                    <div class="budget-row budget-total">
+                        <div class="budget-label">Total</div>
+                        <div class="budget-value">$3,024.89</div>
+                    </div>
+                </div>
+                
+                <div class="closing-text">
+                    <p>The team at Microhire look forward to working with you to make every aspect of your event a success. To ensure that your event receives the best possible equipment and technical personnel, please confirm that all details are correct including dates, timing and quantities. Note that our pricing is <strong>valid until FRI 10 APR 2026</strong> and our resources are subject to availability at the time of booking.</p>
+                    <p>Please confirm your acceptance of the proposal and its inclusions by returning a signed copy of the Confirmation of Services page, so we can proceed with your requirements.</p>
+                    <p>However, if you wish to discuss any additions or updates regarding our proposal, please do not hesitate to contact me on the details below.</p>
+                    <p>We look forward to working with you on a seamless and successful event.</p>
+                </div>
+                
+                <div class="manager-signature">
+                    <div class="manager-name">Doug Miller <span>Event Staging Manager</span></div>
+                    <div class="manager-company"><strong>Microhire</strong> | Westin Brisbane</div>
+                    <div class="manager-address">Microhire @ 111 Mary St, Brisbane City QLD 4000</div>
+                    <div class="manager-contact">
+                        <span class="label">M</span> +61 420 838 716<br>
+                        <span class="label">T</span><br>
+                        <span class="label">E</span> Doug.Miller@microhire.com
+                    </div>
+                </div>
+            </div>
+            
+            <div class="page-footer">
+                <div class="footer-logo">
+                    <div class="footer-logo-icon"></div>
+                </div>
+                <div class="footer-ref">Ref No: C1374900166 - 001</div>
+                <div class="footer-page-info">Microhire | FutureWorks Global 4</div>
+            </div>
+        </div>
+
+        <!-- PAGE 6: CONFIRMATION OF SERVICES -->
+        <div class="page overview-page confirmation-page">
+            <div class="page-header">
+                <div class="page-section-title">CONFIRMATION OF SERVICES</div>
+                <div class="page-event-title">FUTUREWORKS GLOBAL</div>
+            </div>
+            
+            <div class="page-content">
+                <div class="confirmation-text">
+                    <p>On behalf of FutureWorks Global, I accept this proposal and wish to proceed with the details that are confirmed to be correct.</p>
+                    <p>Upon request, any additions or amendments will be updated to this proposal accordingly.</p>
+                    <p>We understand that equipment and personnel are not allocated until this document is signed and returned.</p>
+                    <p>This proposal and billing details are subject to Microhire's terms and conditions.<br>
+                    <a href="https://www.microhire.com.au/terms-conditions/" target="_blank">https://www.microhire.com.au/terms-conditions/</a></p>
+                </div>
+                
+                <div class="confirmation-details">
+                    <div class="confirmation-row">
+                        <div class="confirmation-label">Reference Number</div>
+                        <div class="confirmation-value">C1374900166 - 001</div>
+                    </div>
+                    <div class="confirmation-row">
+                        <div class="confirmation-label">Total Quotation</div>
+                        <div class="confirmation-value">$3,024.89 inc GST</div>
+                    </div>
+                </div>
+
+                <div class="payment-details">
+                    <div class="payment-title">Payment Details</div>
+                    <div class="confirmation-row">
+                        <div class="confirmation-label">Account Name</div>
+                        <div class="confirmation-value">Microhire Pty Ltd</div>
+                    </div>
+                    <div class="confirmation-row">
+                        <div class="confirmation-label">BSB</div>
+                        <div class="confirmation-value">064-000</div>
+                    </div>
+                    <div class="confirmation-row">
+                        <div class="confirmation-label">Account Number</div>
+                        <div class="confirmation-value">1527 3541</div>
+                    </div>
+                    <div class="confirmation-row">
+                        <div class="confirmation-label">Reference</div>
+                        <div class="confirmation-value">C1374900166</div>
+                    </div>
+                </div>
+                
+                <div class="signature-section">
+                    <div class="signature-row">
+                        <div class="signature-field">
+                            <label>Full Name</label>
+                            <div class="signature-line" style="border-bottom:1px solid #333;height:30px;line-height:30px;font-size:13px;color:#222;padding-left:4px">fdvidsbnvd</div>
+                        </div>
+                        <div class="signature-field">
+                            <label>Date</label>
+                            <div class="signature-line" style="border-bottom:1px solid #333;height:30px;line-height:30px;font-size:13px;color:#222;padding-left:4px">11 March 2026</div>
+                        </div>
+                    </div>
+                    <div class="signature-row">
+                        <div class="signature-field">
+                            <label>Title / Position</label>
+                            <div class="signature-line" style="border-bottom:1px solid #333;height:30px;line-height:30px;font-size:13px;color:#222;padding-left:4px">dfvfds</div>
+                        </div>
+                        <div class="signature-field">
+                            <label>Purchase Order (if applicable)</label>
+                            <div class="signature-line" style="border-bottom:1px solid #333;height:30px;line-height:30px;font-size:13px;color:#222;padding-left:4px">dfvdfs</div>
+                        </div>
+                    </div>
+                    <div class="signature-row">
+                        <div class="signature-field full-width">
+                            <label>Signature</label>
+                            <div class="signature-line signature-box" style="border:1px solid #333;border-radius:4px;height:80px;padding:4px;display:flex;align-items:center"><img src="data:image/png;base64,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" style="max-width:100%;max-height:72px" alt="Signature" /></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="page-footer">
+                <div class="footer-logo">
+                    <div class="footer-logo-icon"></div>
+                </div>
+                <div class="footer-ref">Ref No: C1374900166 - 001</div>
+                <div class="footer-page-info">Microhire | FutureWorks Global 5</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

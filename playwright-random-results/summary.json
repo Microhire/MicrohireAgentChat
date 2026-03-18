@@ -1,0 +1,52 @@
+{
+  "generatedAt": "2026-03-11T18:33:34.665Z",
+  "config": {
+    "runs": 1,
+    "headless": true,
+    "baseUrl": "http://localhost:5216",
+    "maxTurns": 6,
+    "outDir": "playwright-random-results",
+    "assistantTimeoutMs": 20000
+  },
+  "totals": {
+    "runs": 1,
+    "pass": 0,
+    "fail": 1,
+    "warn": 0
+  },
+  "runs": [
+    {
+      "runId": "run-001",
+      "startedAt": "2026-03-11T18:33:34.096Z",
+      "scenario": {
+        "fullName": "Sophie Knight",
+        "status": "new",
+        "organization": "Cobalt Digital",
+        "email": "sophie.knight@atlas.au",
+        "room": "thrive",
+        "date": "14/04/2026",
+        "attendees": 10,
+        "opener": "Need two laptops, presentation screen, and hybrid meeting for zoom/teams",
+        "clicker": "Yes a clicker would be good",
+        "flipchart": "A flipchart would be good too",
+        "laptopReply": "1 laptops, mix of windows and mac",
+        "confirmAll": "yes this is all",
+        "videoConfirmReply": "yes include video package"
+      },
+      "status": "FAIL",
+      "reason": "Exception: Cannot reach http://localhost:5216. Start the app first (e.g. dotnet run in MicrohireAgentChat/) and try again.",
+      "metrics": {
+        "assistantTurns": 0,
+        "attendeePromptCount": 0,
+        "attendeeReconfirmCount": 0,
+        "technicalIssueCount": 0,
+        "videoAssumptionCount": 0,
+        "quoteReached": false,
+        "timePickerSubmitted": false
+      },
+      "transcript": [],
+      "screenshotOnFailure": "playwright-random-results/run-001/error.png",
+      "endedAt": "2026-03-11T18:33:34.598Z"
+    }
+  ]
+}

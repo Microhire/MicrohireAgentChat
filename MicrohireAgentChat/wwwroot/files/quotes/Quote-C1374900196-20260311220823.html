@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microhire Quote - Morel Enterprises</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Lato:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --microhire-red: #E81E25;
+            --microhire-red-dark: #C91A20;
+            --microhire-red-darker: #9E1D20;
+            --microhire-accent: #FF3262;
+            --text-dark: #1a1a1a;
+            --text-gray: #4a4a4a;
+            --text-light: #6b6b6b;
+            --bg-light: #f5f5f5;
+            --white: #ffffff;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Lato', sans-serif;
+            background: #2a2a2a;
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        .page-container { max-width: 850px; margin: 0 auto; padding: 20px; }
+
+        .page {
+            background: var(--white);
+            width: 100%;
+            min-height: 1100px;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Cover Page */
+        .cover-page { background: var(--microhire-red); display: flex; flex-direction: column; }
+        .cover-main { flex: 1; min-height: 900px; position: relative; padding: 40px; display: flex; flex-direction: column; }
+        .cover-shape-1 { position: absolute; top: 0; left: 0; width: 50%; height: 70%; background: var(--microhire-red-dark); clip-path: polygon(0 0, 100% 0, 50% 100%, 0 100%); }
+        .cover-shape-2 { position: absolute; top: 20%; right: 0; width: 55%; height: 80%; background: var(--microhire-red-darker); clip-path: polygon(40% 0, 100% 0, 100% 100%, 0 100%); }
+        .cover-logo { position: relative; z-index: 10; text-align: right; margin-bottom: auto; }
+        .cover-logo-text { font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 48px; color: var(--white); letter-spacing: 2px; }
+        .cover-logo-text span { color: var(--white); font-weight: 300; }
+        .cover-tagline { font-family: 'Montserrat', sans-serif; font-size: 11px; color: var(--white); letter-spacing: 4px; text-transform: uppercase; opacity: 0.9; }
+        .cover-title { position: relative; z-index: 10; margin-top: auto; padding-bottom: 40px; }
+        .cover-title h1 { font-family: 'Montserrat', sans-serif; font-weight: 300; font-size: clamp(32px, 5vw, 52px); color: var(--white); line-height: 1.2; }
+        .cover-footer { background: var(--white); padding: 30px 40px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .cover-date { font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 18px; color: var(--microhire-red); }
+        .cover-ref { font-family: 'Montserrat', sans-serif; font-weight: 500; font-size: 14px; color: var(--microhire-red); margin-top: 5px; }
+        .cover-venue-logo { text-align: right; }
+        .venue-name { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 20px; color: var(--text-dark); letter-spacing: 2px; }
+        .venue-location { font-family: 'Montserrat', sans-serif; font-size: 11px; color: var(--text-gray); letter-spacing: 3px; text-transform: uppercase; }
+
+        /* Overview Page */
+        .overview-page { padding: 0; display: flex; flex-direction: column; }
+        .page-header { padding: 35px 45px 25px; border-bottom: 3px solid var(--microhire-red); }
+        .page-section-title { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 14px; color: var(--microhire-red-darker); letter-spacing: 1px; margin-bottom: 8px; }
+        .page-event-title { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: clamp(18px, 3vw, 24px); color: var(--microhire-red); display: flex; align-items: center; gap: 12px; }
+        .page-event-title::before { content: ''; width: 0; height: 0; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-left: 16px solid var(--microhire-red); }
+        .page-content { flex: 1; padding: 30px 45px; display: flex; flex-direction: column; }
+        .contact-block { margin-bottom: 25px; }
+        .contact-name { font-weight: 700; font-size: 15px; color: var(--text-dark); }
+        .contact-company { font-weight: 400; font-size: 14px; color: var(--text-dark); }
+        .contact-details { font-size: 13px; color: var(--text-gray); margin-top: 4px; }
+        .greeting { font-size: 14px; color: var(--text-dark); margin: 20px 0 15px; }
+        .intro-text { font-size: 13px; color: var(--text-gray); line-height: 1.7; text-align: justify; margin-bottom: 25px; }
+        .details-table { margin-bottom: 25px; }
+        .detail-row { display: flex; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 11px; color: var(--microhire-red); text-transform: uppercase; letter-spacing: 0.5px; width: 180px; flex-shrink: 0; }
+        .detail-value { font-size: 13px; color: var(--text-dark); }
+        .section-divider { height: 1px; background: linear-gradient(90deg, var(--microhire-red) 0%, transparent 100%); margin: 20px 0; opacity: 0.3; }
+        .manager-section { margin-bottom: 25px; }
+        .manager-section .detail-row { border-bottom: none; padding: 5px 0; }
+        .schedule-intro { font-size: 12px; font-style: italic; color: var(--text-gray); margin-bottom: 15px; }
+        .schedule-table { width: 100%; }
+        .schedule-row { display: flex; padding: 6px 0; }
+        .schedule-label { font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 11px; color: var(--microhire-red); text-transform: uppercase; width: 130px; flex-shrink: 0; }
+        .schedule-date { font-size: 13px; color: var(--text-dark); width: 220px; }
+        .schedule-time { font-size: 13px; color: var(--text-gray); }
+        .page-footer { padding: 20px 45px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; margin-top: auto; }
+        .footer-logo { display: flex; align-items: center; gap: 8px; }
+        .footer-logo-icon { width: 40px; height: 40px; background: var(--microhire-red); border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; }
+        .footer-logo-icon::after { content: 'M'; color: white; font-family: 'Montserrat', sans-serif; font-weight: 800; font-size: 16px; }
+        .footer-ref { font-size: 11px; color: var(--text-light); }
+        .footer-page-info { font-size: 11px; color: var(--text-light); }
+
+        /* Equipment Page */
+        .equipment-table { width: 100%; margin-bottom: 20px; }
+        .equipment-header { display: flex; padding: 12px 0; border-bottom: 2px solid var(--microhire-red); margin-bottom: 15px; }
+        .equipment-header-desc { font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 12px; color: var(--microhire-red); flex: 1; }
+        .equipment-header-qty { font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 12px; color: var(--microhire-red); width: 80px; text-align: center; }
+        .room-header { margin-bottom: 20px; }
+        .room-name { font-weight: 700; font-size: 14px; color: var(--text-dark); }
+        .room-times { font-style: italic; font-size: 12px; color: var(--text-gray); margin-top: 4px; }
+        .equipment-category-header { font-style: italic; font-weight: 700; font-size: 14px; color: var(--text-dark); margin: 20px 0 10px; }
+        .equipment-section { margin-bottom: 20px; }
+        .equipment-category { font-style: italic; font-weight: 600; font-size: 13px; color: var(--text-dark); margin-bottom: 8px; }
+        .equipment-subcategory { font-style: italic; text-decoration: underline; font-size: 13px; color: var(--text-dark); margin-bottom: 8px; }
+        .equipment-group-title { font-style: italic; font-size: 12px; color: var(--text-gray); margin-bottom: 5px; }
+        .equipment-row { display: flex; padding: 4px 0; align-items: center; }
+        .equipment-item { flex: 1; font-size: 13px; color: var(--text-dark); }
+        .equipment-item.main { font-weight: 600; }
+        .equipment-item.component { margin-left: 15px; font-style: italic; color: var(--text-gray); }
+        .equipment-qty { width: 80px; text-align: center; font-size: 13px; color: var(--text-dark); }
+        .equipment-note { font-style: italic; font-size: 13px; color: var(--text-dark); margin: 15px 0 15px 15px; }
+        .section-total { display: flex; justify-content: flex-end; padding: 15px 0; margin-top: 10px; border-top: 1px solid #eee; }
+        .section-total-label { font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 13px; color: var(--text-dark); margin-right: 30px; }
+        .section-total-amount { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 14px; color: var(--text-dark); }
+
+        /* Labour/Technical Services Page */
+        .labour-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .labour-table th { font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 11px; color: var(--microhire-red); text-transform: uppercase; text-align: left; padding: 10px 8px; border-bottom: 2px solid var(--microhire-red); }
+        .labour-table td { font-size: 12px; color: var(--text-dark); padding: 8px; border-bottom: 1px solid #eee; }
+        .labour-total { margin-top: 20px; }
+
+        /* Budget Summary Page */
+        .budget-table { max-width: 350px; margin-bottom: 30px; }
+        .budget-row { display: flex; justify-content: space-between; padding: 6px 0; }
+        .budget-label { font-size: 13px; color: var(--text-dark); }
+        .budget-value { font-size: 13px; color: var(--text-dark); text-align: right; }
+        .budget-divider .budget-value { color: var(--text-gray); }
+        .budget-total { font-weight: 700; }
+        .budget-total .budget-label, .budget-total .budget-value { font-size: 14px; }
+
+        .closing-text { font-size: 12px; color: var(--text-gray); line-height: 1.7; margin-bottom: 30px; }
+        .closing-text p { margin-bottom: 12px; }
+        .closing-text strong { color: var(--text-dark); }
+
+        .manager-signature { margin-top: 30px; }
+        .manager-name { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 16px; color: var(--text-dark); margin-bottom: 5px; }
+        .manager-name span { font-weight: 400; font-size: 13px; margin-left: 10px; }
+        .manager-company { font-size: 13px; color: var(--text-dark); margin-bottom: 3px; }
+        .manager-address { font-size: 12px; color: var(--text-gray); margin-bottom: 10px; }
+        .manager-contact { font-size: 12px; color: var(--text-dark); line-height: 1.8; }
+        .manager-contact .label { color: var(--microhire-red); font-weight: 600; margin-right: 10px; }
+
+        /* Confirmation Page */
+        .confirmation-page .confirmation-text { font-size: 12px; color: var(--text-gray); line-height: 1.7; margin-bottom: 30px; }
+        .confirmation-page .confirmation-text p { margin-bottom: 12px; }
+        .confirmation-page .confirmation-text a { color: var(--microhire-red); }
+        .confirmation-details { margin-bottom: 30px; }
+        .payment-details { margin-bottom: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; }
+        .payment-title { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 12px; color: var(--microhire-red); text-transform: uppercase; margin-bottom: 15px; }
+        .confirmation-row { display: flex; margin-bottom: 10px; }
+        .confirmation-label { font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 11px; color: var(--microhire-red); text-transform: uppercase; width: 150px; }
+        .confirmation-value { font-size: 13px; color: var(--text-dark); }
+        
+        .signature-section { margin-top: 30px; }
+        .signature-row { display: flex; gap: 30px; margin-bottom: 25px; }
+        .signature-field { flex: 1; }
+        .signature-field.full-width { flex: 1 1 100%; }
+        .signature-field label { font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 11px; color: var(--text-gray); text-transform: uppercase; display: block; margin-bottom: 8px; }
+        .signature-line { border-bottom: 1px solid var(--text-dark); height: 30px; }
+        .signature-box { height: 80px; border: 1px solid var(--text-dark); border-radius: 4px; }
+
+        @media print {
+            body { background: white; }
+            .page-container { padding: 0; }
+            .page { box-shadow: none; margin-bottom: 0; page-break-after: always; }
+            .page:last-child { page-break-after: avoid; }
+        }
+
+        @media (max-width: 600px) {
+            .page-container { padding: 10px; }
+            .cover-main { padding: 25px; }
+            .cover-footer { padding: 20px 25px; }
+            .page-header, .page-content, .page-footer { padding-left: 25px; padding-right: 25px; }
+            .detail-label, .schedule-label { width: 120px; }
+        }</style>
+</head>
+<body>
+    <div class="page-container">
+
+        <!-- PAGE 1: COVER -->
+        <div class="page cover-page">
+            <div class="cover-main">
+                <div class="cover-shape-1"></div>
+                <div class="cover-shape-2"></div>
+                
+                <div class="cover-logo">
+                    <div class="cover-logo-text"><span>M</span>icrohire.</div>
+                    <div class="cover-tagline">Events That Inspire</div>
+                </div>
+                
+                <div class="cover-title">
+                    <h1>Morel Enterprises</h1>
+                </div>
+            </div>
+            
+            <div class="cover-footer">
+                <div class="cover-info">
+                    <div class="cover-date">7 APRIL 2026</div>
+                    <div class="cover-ref">C1374900196 - 001</div>
+                </div>
+                <div class="cover-venue-logo">
+                    <div class="venue-name">WESTIN BRISBANE</div>
+                    <div class="venue-location">Brisbane</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE 2: OVERVIEW -->
+        <div class="page overview-page">
+            <div class="page-header">
+                <div class="page-section-title">OVERVIEW</div>
+                <div class="page-event-title">MOREL ENTERPRISES</div>
+            </div>
+            
+            <div class="page-content">
+                <div class="contact-block">
+                    <div class="contact-name">Daniel Morel</div>
+                    <div class="contact-company">Morel Enterprises</div>
+                    <div class="contact-details">
+                                                                          <br>
+                        20260407
+                    </div>
+                </div>
+                
+                <div class="greeting">Dear Daniel,</div>
+                
+                <p class="intro-text">
+                    Thank you for the opportunity to present our audio-visual production services for your upcoming event at Westin Brisbane. We are pleased to provide our proposal in the following pages, based on the information we have received and our recommendations for a seamless and successful event. Our team are committed to achieving your event objectives and welcome the opportunity to discuss your requirements and any budget parameters in further detail. If you have any questions or need further information, please do not hesitate to contact me on the details below. Thank you again and we look forward to speaking to you soon.
+                </p>
+                
+                <div class="details-table">
+                    <div class="detail-row">
+                        <div class="detail-label">Location</div>
+                        <div class="detail-value">Westin Brisbane</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Address</div>
+                        <div class="detail-value">Address TBD</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Room</div>
+                        <div class="detail-value">Thrive Boardroom</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Date</div>
+                        <div class="detail-value">Tuesday 7 April 2026 to Tuesday 7 April 2026</div>
+                    </div>
+                </div>
+                
+                <div class="section-divider"></div>
+                
+                <div class="manager-section">
+                    <div class="detail-row">
+                        <div class="detail-label">Event Account Manager</div>
+                        <div class="detail-value">JEJ</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Mobile Number</div>
+                        <div class="detail-value">+61 420 838 716</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Email</div>
+                        <div class="detail-value">Doug.Miller@microhire.com</div>
+                    </div>
+                </div>
+                
+                <p class="schedule-intro">Please confirm the following dates and times are accurate:</p>
+                
+                <div class="schedule-table">
+                    <div class="schedule-row">
+                        <div class="schedule-label">Setup By</div>
+                        <div class="schedule-date">Tuesday 7 April 2026</div>
+                        <div class="schedule-time">Time: 07:00</div>
+                    </div>
+                    <div class="schedule-row">
+                        <div class="schedule-label">Rehearsal</div>
+                        <div class="schedule-date">Tuesday 7 April 2026</div>
+                        <div class="schedule-time">Time: 09:30</div>
+                    </div>
+                    <div class="schedule-row">
+                        <div class="schedule-label">Event Start</div>
+                        <div class="schedule-date">Tuesday 7 April 2026</div>
+                        <div class="schedule-time">Time: 10:00</div>
+                    </div>
+                    <div class="schedule-row">
+                        <div class="schedule-label">Event End</div>
+                        <div class="schedule-date">Tuesday 7 April 2026</div>
+                        <div class="schedule-time">Time: 16:00</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="page-footer">
+                <div class="footer-logo">
+                    <div class="footer-logo-icon"></div>
+                </div>
+                <div class="footer-ref">Ref No: C1374900196 - 001</div>
+                <div class="footer-page-info">Microhire | Morel Enterprises 2</div>
+            </div>
+        </div>
+
+        <!-- PAGE 3: EQUIPMENT & SERVICES -->
+        <div class="page overview-page">
+            <div class="page-header">
+                <div class="page-section-title">EQUIPMENT & SERVICES</div>
+                <div class="page-event-title">MOREL ENTERPRISES</div>
+            </div>
+            
+            <div class="page-content">
+                <div class="equipment-header">
+                    <div class="equipment-header-desc">Description</div>
+                    <div class="equipment-header-qty">Qty.</div>
+                </div>
+
+                <div class="room-header">
+                    <div class="room-name">Thrive Boardroom</div>
+                    <div class="room-times">Event Starts - 1000<br>Event Ends - 1600</div>
+                </div>
+                
+                
+                <div class="equipment-category-header">Vision</div>
+                <div class="equipment-subcategory">Data Projector/Screen</div>
+                <div class="equipment-group-title">Includes:</div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item ">Macbook Pro 13&quot; - Show Laptop - PCIe</div>
+                        <div class="equipment-qty">2</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item component">Macbook Pro 13&quot; - Show Laptop L2 - PCIe</div>
+                        <div class="equipment-qty">2</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item component">Laptop Soft Carry Case</div>
+                        <div class="equipment-qty">2</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item component">Optical Mouse - USB</div>
+                        <div class="equipment-qty">2</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item component">MagSafe 2 Power Adapter</div>
+                        <div class="equipment-qty">2</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item ">QUAD Radio Mic Receiver - Shure ULXD4Q L51</div>
+                        <div class="equipment-qty">1</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item component">Wireless Handheld Mic - Shure ULXD2 L51</div>
+                        <div class="equipment-qty">4</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item component">Wireless Lapel Mic - Shure ULXD1 L51</div>
+                        <div class="equipment-qty">4</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item component">Microphone Clip</div>
+                        <div class="equipment-qty">4</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item ">Thrive Ceiling Speaker System</div>
+                        <div class="equipment-qty">1</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item component">Venue Installed Ceiling LoudSpeaker</div>
+                        <div class="equipment-qty">1</div>
+                    </div>
+
+                <div class="section-total">
+                    <div class="section-total-label">Vision Total</div>
+                    <div class="section-total-amount">$1,348.29</div>
+                </div>
+
+                <div class="equipment-category-header">Additional Equipment</div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item">Display Port to DVI - 2m</div>
+                        <div class="equipment-qty">1</div>
+                    </div>
+
+                    <div class="equipment-row">
+                        <div class="equipment-item">Logitech Spotlight Wireless Presenter</div>
+                        <div class="equipment-qty">1</div>
+                    </div>
+
+            </div>
+            
+            <div class="page-footer">
+                <div class="footer-logo">
+                    <div class="footer-logo-icon"></div>
+                </div>
+                <div class="footer-ref">Ref No: C1374900196 - 001</div>
+                <div class="footer-page-info">Microhire | Morel Enterprises 2</div>
+            </div>
+        </div>
+
+        <!-- PAGE 4: TECHNICAL SERVICES -->
+        <div class="page overview-page">
+            <div class="page-header">
+                <div class="page-section-title">TECHNICAL SERVICES</div>
+                <div class="page-event-title">MOREL ENTERPRISES</div>
+            </div>
+            
+            <div class="page-content">
+                <table class="labour-table">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th>Task</th>
+                            <th>Qty</th>
+                            <th>Start Date/Time</th>
+                            <th>Finish</th>
+                            <th>Hrs</th>
+                            <th>Total ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                    <tr>
+                        <td>AV Technician</td>
+                        <td>Setup</td>
+                        <td>1</td>
+                        <td>April 2026 07:00</td>
+                        <td>April 2026 07:30</td>
+                        <td>00:30</td>
+                        <td>$55.00</td>
+                    </tr>
+
+                    <tr>
+                        <td>AV Technician</td>
+                        <td>Operate</td>
+                        <td>1</td>
+                        <td>April 2026 10:00</td>
+                        <td>April 2026 16:00</td>
+                        <td>06:00</td>
+                        <td>$660.00</td>
+                    </tr>
+
+                    <tr>
+                        <td>AV Technician</td>
+                        <td>Pack Down</td>
+                        <td>1</td>
+                        <td>April 2026 18:00</td>
+                        <td>April 2026 18:30</td>
+                        <td>00:30</td>
+                        <td>$55.00</td>
+                    </tr>
+
+                    <tr>
+                        <td>AV Technician</td>
+                        <td>Rehearsal</td>
+                        <td>1</td>
+                        <td>April 2026 09:30</td>
+                        <td>April 2026 10:00</td>
+                        <td>00:30</td>
+                        <td>$55.00</td>
+                    </tr>
+
+                    </tbody>
+                </table>
+                
+                <div class="section-total labour-total">
+                    <div class="section-total-label">Labour Total</div>
+                    <div class="section-total-amount">$825.00</div>
+                </div>
+            </div>
+            
+            <div class="page-footer">
+                <div class="footer-logo">
+                    <div class="footer-logo-icon"></div>
+                </div>
+                <div class="footer-ref">Ref No: C1374900196 - 001</div>
+                <div class="footer-page-info">Microhire | Morel Enterprises 3</div>
+            </div>
+        </div>
+
+        <!-- PAGE 5: BUDGET SUMMARY -->
+        <div class="page overview-page">
+            <div class="page-header">
+                <div class="page-section-title">BUDGET SUMMARY</div>
+                <div class="page-event-title">MOREL ENTERPRISES</div>
+            </div>
+            
+            <div class="page-content">
+                <div class="budget-table">
+                    <div class="budget-row">
+                        <div class="budget-label">Rental Equipment</div>
+                        <div class="budget-value">$1,433.89</div>
+                    </div>
+                    <div class="budget-row">
+                        <div class="budget-label">Labour</div>
+                        <div class="budget-value">$825.00</div>
+                    </div>
+                    <div class="budget-row">
+                        <div class="budget-label">Service Charge</div>
+                        <div class="budget-value">$100.37</div>
+                    </div>
+                    <div class="budget-row budget-divider">
+                        <div class="budget-label"></div>
+                        <div class="budget-value">----------------------</div>
+                    </div>
+                    <div class="budget-row">
+                        <div class="budget-label">Sub Total (ex GST)</div>
+                        <div class="budget-value">$2,359.26</div>
+                    </div>
+                    <div class="budget-row">
+                        <div class="budget-label">GST</div>
+                        <div class="budget-value">$235.93</div>
+                    </div>
+                    <div class="budget-row budget-divider">
+                        <div class="budget-label"></div>
+                        <div class="budget-value">----------------------</div>
+                    </div>
+                    <div class="budget-row budget-total">
+                        <div class="budget-label">Total</div>
+                        <div class="budget-value">$2,595.19</div>
+                    </div>
+                </div>
+                
+                <div class="closing-text">
+                    <p>The team at Microhire look forward to working with you to make every aspect of your event a success. To ensure that your event receives the best possible equipment and technical personnel, please confirm that all details are correct including dates, timing and quantities. Note that our pricing is <strong>valid until SAT 11 APR 2026</strong> and our resources are subject to availability at the time of booking.</p>
+                    <p>Please confirm your acceptance of the proposal and its inclusions by returning a signed copy of the Confirmation of Services page, so we can proceed with your requirements.</p>
+                    <p>However, if you wish to discuss any additions or updates regarding our proposal, please do not hesitate to contact me on the details below.</p>
+                    <p>We look forward to working with you on a seamless and successful event.</p>
+                </div>
+                
+                <div class="manager-signature">
+                    <div class="manager-name">JEJ <span>Event Staging Manager</span></div>
+                    <div class="manager-company"><strong>Microhire</strong> | Westin Brisbane</div>
+                    <div class="manager-address">Microhire @ 111 Mary St, Brisbane City QLD 4000</div>
+                    <div class="manager-contact">
+                        <span class="label">M</span> +61 420 838 716<br>
+                        <span class="label">T</span><br>
+                        <span class="label">E</span> Doug.Miller@microhire.com
+                    </div>
+                </div>
+            </div>
+            
+            <div class="page-footer">
+                <div class="footer-logo">
+                    <div class="footer-logo-icon"></div>
+                </div>
+                <div class="footer-ref">Ref No: C1374900196 - 001</div>
+                <div class="footer-page-info">Microhire | Morel Enterprises 4</div>
+            </div>
+        </div>
+
+        <!-- PAGE 6: CONFIRMATION OF SERVICES -->
+        <div class="page overview-page confirmation-page">
+            <div class="page-header">
+                <div class="page-section-title">CONFIRMATION OF SERVICES</div>
+                <div class="page-event-title">MOREL ENTERPRISES</div>
+            </div>
+            
+            <div class="page-content">
+                <div class="confirmation-text">
+                    <p>On behalf of Morel Enterprises, I accept this proposal and wish to proceed with the details that are confirmed to be correct.</p>
+                    <p>Upon request, any additions or amendments will be updated to this proposal accordingly.</p>
+                    <p>We understand that equipment and personnel are not allocated until this document is signed and returned.</p>
+                    <p>This proposal and billing details are subject to Microhire's terms and conditions.<br>
+                    <a href="https://www.microhire.com.au/terms-conditions/" target="_blank">https://www.microhire.com.au/terms-conditions/</a></p>
+                </div>
+                
+                <div class="confirmation-details">
+                    <div class="confirmation-row">
+                        <div class="confirmation-label">Reference Number</div>
+                        <div class="confirmation-value">C1374900196 - 001</div>
+                    </div>
+                    <div class="confirmation-row">
+                        <div class="confirmation-label">Total Quotation</div>
+                        <div class="confirmation-value">$2,595.19 inc GST</div>
+                    </div>
+                </div>
+
+                <div class="payment-details">
+                    <div class="payment-title">Payment Details</div>
+                    <div class="confirmation-row">
+                        <div class="confirmation-label">Account Name</div>
+                        <div class="confirmation-value">Microhire Pty Ltd</div>
+                    </div>
+                    <div class="confirmation-row">
+                        <div class="confirmation-label">BSB</div>
+                        <div class="confirmation-value">064-000</div>
+                    </div>
+                    <div class="confirmation-row">
+                        <div class="confirmation-label">Account Number</div>
+                        <div class="confirmation-value">1527 3541</div>
+                    </div>
+                    <div class="confirmation-row">
+                        <div class="confirmation-label">Reference</div>
+                        <div class="confirmation-value">C1374900196</div>
+                    </div>
+                </div>
+                
+                <div class="signature-section">
+                    <div class="signature-row">
+                        <div class="signature-field">
+                            <label>Full Name</label>
+                            <div class="signature-line" style="border-bottom:1px solid #333;height:30px;line-height:30px;font-size:13px;color:#222;padding-left:4px">v xx</div>
+                        </div>
+                        <div class="signature-field">
+                            <label>Date</label>
+                            <div class="signature-line" style="border-bottom:1px solid #333;height:30px;line-height:30px;font-size:13px;color:#222;padding-left:4px">12 March 2026</div>
+                        </div>
+                    </div>
+                    <div class="signature-row">
+                        <div class="signature-field">
+                            <label>Title / Position</label>
+                            <div class="signature-line" style="border-bottom:1px solid #333;height:30px;line-height:30px;font-size:13px;color:#222;padding-left:4px">sfvs</div>
+                        </div>
+                        <div class="signature-field">
+                            <label>Purchase Order (if applicable)</label>
+                            <div class="signature-line" style="border-bottom:1px solid #333;height:30px;line-height:30px;font-size:13px;color:#222;padding-left:4px">vfs</div>
+                        </div>
+                    </div>
+                    <div class="signature-row">
+                        <div class="signature-field full-width">
+                            <label>Signature</label>
+                            <div class="signature-line signature-box" style="border:1px solid #333;border-radius:4px;height:80px;padding:4px;display:flex;align-items:center"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAA+IAAADwCAYAAACE7N5GAAAQAElEQVR4AezdzY4j13kG4OFAArKL7kCD6UaWCZS9kckdWNcRLZIrsOYKnIV0HdEdJAK8jg1kGTXVugLbKy9GZvurGZaanCbZVaxTVefnMXhEsn7Oz/PRGLxz2D0vX/gfAQIECBAgQIAAAQIECBAgsJjASkF8sfUZiAABAgQIECBAgAABAgQIZCXQVhDPit5kCBAgQIAAAQIECBAgQKBFAUF8gaobggABAgQIECBAgAABAgQI9AKCeC9R37MVESBAgAABAgQIECBAgECGAoJ4hkUpe0pmT4AAAQIECBAgQIAAAQKXBATxSzrOlSNgpgQIECBAgAABAgQIEChEQBAvpFCmmaeAWREgQIAAAQIECBAgQGCsgCA+Vsz1BNYXMAMCBAgQIECAAAECBAoWEMQLLp6pE1hWwGgECBAgQIAAAQIECKQQEMRTKOqDAIH5BPRMgAABAgQIECBAoDIBQbyygloOAQJpBPRCgAABAgQIECBAYC4BQXwuWf0SIEBgvIA7CBAgQIAAAQIEGhAQxBsosiUSIEDgsoCzBAgQIECAAAECSwoI4ktqG4sAAQIEHgW8IkCAAAECBAg0KiCIN1p4yyZAgECrAtZNgAABAgQIEFhbQBBfuwLGJ0CAAIEWBKyRAAECBAgQIPCLgCD+C4UXBAgQIECgNgHrIUCAAAECBHIUEMRzrIo5ESBAgACBkgXMnQABAgQIELgoIIhf5HGSAAECBAgQKEXAPAkQIECAQCkCgngplTJPAgQIECBAIEcBcyJAgAABAqMFBPHRZG4gQIAAAQIECKwtYHwCBAgQKFlAEC+5euZOgAABAgQIEFhSwFgECBAgkERAEE/CqBMCBAgQIECAAIG5BPRLgACB2gQE8doqaj0ECBAgQIAAAQIpBPRBgACB2QQE8dlodUyAAAECBAgQIEBgrIDrCRBoQUAQb6HK1kiAAAECBAgQIEDgkoBzBAgsKiCIL8ptMAIECBAgQIAAAQIEegHPBFoVEMRbrbx1EyBAgAABAgQIEGhTwKoJrC4giK9eAhMgQIAAAQIECBAgQKB+ASsk8CggiD9aeEWAAAECBAgQIECAAIG6BKwmSwFBPMuymBQBAgQIECBAgAABAgTKFTDzywKC+GUfZwkQIECAAAECBAgQIECgDIFiZimIF1MqEyVAgAABAgQIECBAgACB/ATGz0gQH2/mDgIECBAgQIAAAQIECBAgcLVAkiB+9ehuJECAAAECBAgQIECAAAECjQmUHMQbK5XlEiBAgAABAgQIECBAgEANAoL46Cq6gQABAgQIECBAgAABAgQIXC8giF9vt+ydRiNAgAABAgQIECBAgACBKgQE8SrKON8i9EyAAAECBAgQIECAAAECaQUE8bSeeksjoBcCBAgQIECAAAECBAhUKyCIV1taCxsv4A4CBAgQIECAAAECBAjMLyCIz29sBAKXBZwlQIAAAQIECBAgQKApAUG8qXJbLIFHAa8IECBAgAABAgQIEFhHQBBfx92oBFoVsG4CBAgQIECAAAECzQsI4s1/BAAQaEHAGgkQIECAAAECBAjkIyCI51MLMyFAoCKBm5ubP71+/frhdbTb29svKlqapRAgQIAAAQIECEwUEMQnArqdAAECpwQeHh7+vj++2+3+t3+9xLMxCBAgQIAAAQIE8hYQxPOuj9kRaF4gdpb/q2+xu/ynaLto73eac35usHCWTIAAAQIECBAgMFBAEB8I5TICBNIK9OG6e45A3QXsrnUhu2/vw3bsLP+6bzGDbpd5E88eBPYCnggQIECAAAEC5QkI4uXVzIwJZC/Qheu+7UN2H66753MBuw/ZXdDuWvbrNMGGBSydAAECBAgQIDBBQBCfgOdWAq0J9OG6e94H7DG72F247lprbNZLIJmAjggQIECAAIE6BATxOupoFQQmC3Thum/7kN3tXvdtzV3sh1hc3/4cr/+82Wy+i/a7zNr/xXyOWsz1/3e73Rfb7XYTrz0IlCpg3gQIECBAgEBiAUE8MajuCOQm0Ifr7nkfsHPaxT4VsLuQ/V0XXvftZTz37bN4/dnd3d2X0X6VWfvHmM9Ri7n+w/39/R9y+0yYD4EyBMySAAECBAjUKyCI11tbK2tAoAvXfduH7H4Hu3vOcRf7MGBvIqieCthdyP6ygfJZIgECOQqYEwECBAgQWEBAEF8A2RAExgr04bp73gfsWnaxBeyxHwbXEyDQhIBFEiBAgEBbAoJ4W/W22gwF9mG728Huml3sDGtkSgQIEKhUwLIIECBAYCUBQXwleMMSiJ3ubyKEv3t4ePh1aHS/zKtr8XKWx0P02rXDX3Y29Gex7WIHngcBAgQIpBLQDwECBAgI4j4DBBYW6AN4DPtvEcI/iecpjy5c9+0oZG+32+5nsPvmZ7GnKLuXAAECBMoXsAICBAhkJCCIZ1QMU6lb4IoAfjJgbzabw1941gfs7vnwN4rbxa7742R1BAgQIFCIgGkSIEDglIAgfkrFMQIJBYYE8AjXP0c7DNjdTnYXrrt2FLDv7u6E7IT10RUBAgQIEKhQwJIIEMhcQBDPvECmV65ABPD7aN2u9tmvoEf4/jlW+G2E60+jCdiB4UGAAAECBAiUKmDeBAgMFRDEh0q5jsBAgQjffQD//NwthwF8u91+de46xwkQIECAAAECBJ4RcJpAgQKCeIFFM+X8BCJ8v/8N6PHc7YAL4PmVyIwIECBAgAABAkkFdEZgioAgPkXPvc0LRPB+H8AD4uzXz+Nc9/gpdr43d3d3n8azHfBORCNAgAABAgQIEBgr4PpKBATxSgppGcsKjA3gEb5fLTtDoxEgQIAAAQIECBBIJaCf1AKCeGpR/VUtMCSA9z//HeG7+83nAnjVnwiLI0CAAAECBAgQmE2g4o4F8YqLa2npBMYEcF8/T+euJwIECBAgQIAAAQJLCywxniC+hLIxihUQwIstnYkTIECAAAECBAgQyFbgRBDPdq4mRmAxAQF8MWoDESBAgAABAgQIEGhOIJ8g3hy9BecoIIDnWBVzIkCAAAECBAgQIFCXQPNBvK5yWs21AhHA76M9xP1n/xmy/pew+RnwUPIgQIAAAQIECBAgQOBqAUH8arpJN7o5E4EI330A//zclATwczKOEyBAgAABAgQIECBwjYAgfo1asfeYeCcQ4fubm5ubd/Hc7YAL4B2KRoAAAQIECBAgQIDAYgKC+GLUDQ+UydIjeL8P4DGds18/j3Pd46ftdrvxFfSOQiNAgAABAgQIECBAILWAIJ5aVH/ZCPQTGRvAI4S/6u/1TIAAAQIECBAgQIAAgdQCgnhqUf1lIzAkgPc//x3hexMtRQDPZv0mQoAAAQIECBAgQIBAngKCeJ51MasJAmMCeD1fP58A5lYCBAgQIECAAAECBBYVEMQX5TbYnAIC+Jy6Z/p2mAABAgQIECBAgACB0QKC+GgyN+QmIIDnVpH552MEAgQIECBAgAABAiULCOIlV6/xuQvgjX8All++EQkQIECAAAECBAgkERDEkzDqZEmBCOD30bp/A/zsP0PW/xI2PwO+ZGWMNY+AXgkQIECAAAECBGoTEMRrq2jF64nw3Qfwz88tUwA/J+M4gZECLidAgAABAgQIEJhNQBCfjVbHKQQifH9zc3PzLp67HXABPAWqPghkLGBqBAgQIECAAIEWBATxFqpc4BojeL8P4DH1s18/j3Pd46ftdrvxFfSOQiNA4EoBtxEgQIAAAQIEFhUQxBflNthzAmMDeITwV8/16TwBAgTyFDArAgQIECBAoFUBQbzVyme27iEBvP/57wjfm2gCeGY1NB0CBAoRME0CBAgQIEBgdQFBfPUStD2BMQHc18/b/qxYPQECZQuYPQECBAgQIPAoIIg/Wni1oIAAviC2oQgQINCugJUTIECAAIEsBQTxLMtS76QE8Hpra2UECBAg0At4JkCAAAEClwUE8cs+ziYSEMATQeqGAAECDQvEnyW/j/bQaNvFui+3169zOf/Xm5ubd3O38PhLtD9OaD/GHP+7b9HP1w3/38vSCRBYWEAQXxi8teHiD7X7aA+x7rP/DFn/S9j8DHgoeRAgQIDAJYF/unSy8nObWF+W7cS8Xj48PHwyd4tx/y7aZxPaq5jjm75FP7/pQnk8exAgQGB2AUF8duI2B4jw3Qfwz88JCODnZBwnQIAAgTMCXRA9c8rhxgRmWW4XymfpWKcECBD4SEAQ/wjE2+sFInx/E3+T/C6eux1wAfx6SncSIECAwGmBv54+7CiBZAJvL/fkLAECBNIICOJpHJvuJYL3+wAeCGe/fh7nusdP2+124yvoHYVGgAABAmMF4s+QT3a73Rexa/n7zWbzu4bad7HWYlrU9duF2n/EOFe3ly9f/uthi8/XJlqePyceC/UgQKAuAUG8rnouupqxATz+cHu16AQNRoAAAQLVCdzf3//hxx9//Of4S91fNdS+jLUW0+LP+68Wav8Z41zdfvjhh/85bNX9nyXBgnRBgMB8AoL4fLbV9jwkgMff3P8cAN/GH5Dd3y4L4IHhQYAAAQIECBAg8KyACwg0ISCIN1HmdIuMEP7v0dvZr6D3ATz+5v7TCOFfxbUeBAgQIECAAAECBDIXMD0CywoI4st6Fz3aPoT/9tQiBPBTKo4RIECAAAECBAgQuCDgVLMCgnizpR+38HMhXAAf5+hqAgQIECBAgAABAmsLGH99AUF8/RpkP4MLIfx7X0HPvnwmSIAAAQIECBAgQCAHAXM4EBDEDzC8fCrwTAh/8/QORwgQIECAAAECBAgQIJCLQJ7zEMTzrEsWsxLCsyiDSRAgQIAAAQIECBAgUJrAM/MVxJ8BavW0EN5q5a2bAAECBAgQIECAAIG5BeYK4nPPW/8zCgjhM+LqmgABAgQIECBAgACB5gUqC+LN13MygBA+mVAHBAgQIECAAAECBAgQuCggiF/kGXiyksuE8EoKaRkECBAgQIAAAQIECGQtIIhnXZ7Lk0t5VghPqakvAgQIECBAgAABAgQInBcQxM/bNHNmZAhvxsVCCRAgQIAAAQIECBAgMIeAID6HakF9lhPCC0I1VQIECBAgQIAAAQIECFwQEMQv4NR+SggfUGGXECBAgAABAgQIECBAILGAIJ4YtJTuhPC8K2V2BAgQIECAAAECBAjUKyCI11vbsysTws/StH7C+gkQIECAAAECBAgQWEBAEF8AOachhPCcqmEuHwT8lwABAgQIECBAgEBbAoJ4Q/UWwhsqtqU+L+AKAgQIECBAgAABAisJCOIrwS89rBC+tLjxCJwWcJQAAQIECBAgQICAIN7AZ0AIb6DIlkjgsoCzBAgQIECAAAECGQkI4hkVY46pCOFzqOqTAIFhAq4iQIAAAQIECBA4JSCIn1Kp5JgQXkkhLYMAgXECriZAgAABAgQIZC4giGdeoGunJ4RfK+c+AgQIXCfgLgIECBAgQIDAUAFBfKhUQdcJ4QUVy1QJECAwTcDdjw1ksQAADPVJREFUBAgQIECAQIECgniBRbs0ZSH8ko5zBAgQIJBGQC8ECBAgQIDAFAFBfIpeZvcK4ZkVxHQIECBAIK2A3ggQIECAQCUCgnglhRTCKymkZRAgQIBAdgImRIAAAQIEUgsI4qlFV+hPCF8B3ZAECBAgQGBeAb0TIECAQMUCgnjhxRXCCy+g6RMgQIAAgawETIYAAQIElhAQxJdQnmkMIXwmWN0SIECAAAECywoYjQABAo0JCOKFFlwIL7Rwpk2AAAECBAhkI2AiBAgQWEtAEF9LfsK4QvgEPLcSIECAAAECBNYVMDoBAgReCOKFfQiE8MIKZroECBAgQIAAgSwETIIAgZwEBPGcqvHMXITwZ4CcJkCAAAECBAgQyEvAbAgQOCkgiJ9kye+gEJ5fTcyIAAECBAgQIEAgTwGzIpC7gCCee4VifkJ4IHgQIECAAAECBAgQyFvA7AgMFhDEB1Otc6EQvo67UQkQIECAAAECBAiUIWCWJQoI4hlXTQjPuDimRoAAAQIECBAgQKBlAWufJCCIT+Kb72YhfD5bPRMgQIAAAQIECBAgUKZALbMWxDOspBCeYVFMiQABAgQIECBAgACBVgWSr1sQT046rUMhfJqfuwkQIECAAAECBAgQIJC7wLAgnvsqKpmfEF5JIS2DAAECBAgQIECAAAECFwSyDuIX5l3dKSG8upJaEAECBAgQIECAAAECBE4KCOJPWRY/IoQvTm5AAgQIECBAgAABAgQIrCYgiK9G/2HgxxD+4X3/381m8/3d3d2b/r1nAgQIECBAgAABAgQIEKhDQBBfsY5ZhPAV129oAgQIECBAgAABAgQItCggiK9U9dZD+ErshiVAgAABAgQIECBAgMDqAoL4CiUQwldA/zCk/xIgQIAAAQIECBAgQGB1AUF84RII4QuDZzGcSRAgQIAAAQIECBAgQOBRQBB/tJj9lRA+O7EBDgW8JkCAAAECBAgQIEAgSwFBfKGyCOELQRtmdQETIECAAAECBAgQIEDgsoAgftknyVkhPAmjTghcEnCOAAECBAgQIECAQDECgvjMpRLCZwbWPYFVBQxOgAABAgQIECBAYLyAID7ebPAdQvhgKhcSIDBGwLUECBAgQIAAAQJFCwjiM5VPCJ8JVrcECKwmYGACBAgQIECAAIE0AoJ4GsejXoTwIw5vCBAgMEXAvQQIECBAgACB6gQE8cQlFcITg+qOAAECqwgYlAABAgQIECAwn4AgntBWCE+IqSsCBAi0KGDNBAgQIECAQBMCgnjaMv/24+42m833d3d3bz4+7j0BAgQIEMhFwDwIECBAgACBZQUE8UTesRv+9cddCeEfi3hPgAABAgR+EfCCAAECBAg0KyCIpyv9bw67EsIPNbwmQIAAAQK5CJgHAQIECBBYX0AQT1CDU7vhvo6eAFYXBAgQIECgFgHrIECAAAECBwKC+AHGhJdHu+HRz9toHgQIECBAgACBVQUMToAAAQJ5CgjiE+tyajd8u90++XnxicO4nQABAgQIECBQioB5EiBAgMAzAoL4M0ADTtsNH4DkEgIECBAgQIDAvAJ6J0CAQDkCgviEWtkNn4DnVgIECBAgQIBADQLWQIAAgSsEBPEr0Lpbbm9v38Sz3fBA8CBAgAABAgQIEFhWwGgECJQtIIhfWb/dbtcF8aO7/Wz4EYc3BAgQIECAAAECdQlYDQECiQQE8Ssg919Jtxt+hZ1bCBAgQIAAAQIECIwTcDWB+gQE8TQ1fWs3PA2kXggQIECAAAECBAhkIWASBGYUEMRH4p7ZDR/Zi8sJECBAgAABAgQIECDwVMCRNgQE8fF1fvKVdLvh4xHdQYAAAQIECBAgQIBANgImsrCAID4CfL8bfnSHEH7E4Q0BAgQIECBAgAABAgQGCrR7mSA+rvZPdsPH3e5qAgQIECBAgAABAgQIEFhVIIPBBfGBRbAbPhDKZQQIECBAgAABAgQIECDwRODwgCB+qHH5td3wyz7OEiBAgAABAgQIECBAgMAAgQWD+IDZZHqJ3fBMC2NaBAgQIECAAAECBAgQKFCg/iCepih2w9M46oUAAQIECBAgQIAAAQLNCwjiz3wErt0Nf6ZbpwkQIECAAAECBAgQIECgUQFB/ELhb29v38TpknbDY7oeBAgQIECAAAECBAgQIJCzgCB+oTq73a4L4kdX+HfDjzj2bzwRIECAAAECBAgQIECAwFABQfyM1P4r6XbDz/hkcdgkCBAgQIAAAQIECBAgUKCAID68aG/thg/HqvlKayNAgAABAgQIECBAgMAUAUH8hN6Z3fATVzpEYDEBAxEgQIAAAQIECBAgUImAIH66kE++km43/DSUo7ULWB8BAgQIECBAgAABAqkFBPGPRPe74UdHhfAjDm8IzC9gBAIECBAgQIAAAQIVCwjiT4v7ZDf86SWOECBQo4A1ESBAgAABAgQIEFhCQBA/ULYbfoDhJQECSwkYhwABAgQIECBAoDEBQfy44HbDjz28I0CgWgELI0CAAAECBAgQWEtAEN/L2w3fQ3giQIDAnAL6JkCAAAECBAgQeCGIP34I7IY/WnhFgACBqgQshgABAgQIECCQk4AgHtWwGx4IHgQIECCQWkB/BAgQIECAAIGTAs0H8dvb2zchYzc8EDwIECBAoAYBayBAgAABAgRyF2g+iO92uy6IH9Vpu91+fXTAGwIECBAgQOCygLMECBAgQIDAYIGmg/j+K+l2wwd/XFxIgAABAgTyEjAbAgQIECBQokDTQfxEwd7aDT+h4hABAgQIECBwKOA1AQIECBCYJNBsED+zGz4J080ECBAgQIAAgfkE9EyAAAECtQg0G8SjgE++km43PFQ8CBAgQIAAAQKHAl4TIECAQHKBJoP4fjf8CFMIP+LwhgABAgQIECCwqoDBCRAgULNAk0E8CvpkNzyOeRAgQIAAAQIECLQtYPUECBBYRKC5IG43fJHPlUEIECBAgAABAgQGC7iQAIHWBJoL4lFgu+GB4EGAAAECBAgQINC4gOUTILCaQFNB3G74ap8zAxMgQIAAAQIECBB4L+A/BAi8eNFUEI+C2w0PBA8CBAgQIECAAAECjQlYLoGsBJoJ4nbDs/rcmQwBAgQIECBAgACBBgQskcBpgSaC+O3t7ZtYvt3wQPAgQIAAAQIECBAgQKByAcvLXqCJIL7b7bogflSM7Xb79dEBbwgQIECAAAECBAgQIEDgagE3DheoPojvv5JuN3z4Z8KVBAgQIECAAAECBAgQKEWgyHlWH8RPVOWt3fATKg4RIECAAAECBAgQIECAwECBaZdVHcTP7IZPE3M3AQIECBAgQIAAAQIECBCYIHB1EJ8w5mK3bjabf/loMLvhH4F4S4AAAQIECBAgQIAAAQLLCpQWxCfp+Er6JD43EyBAgAABAgQIECBAgEACgaqD+MPDw/cHRm8PXo986XICBAgQIECAAAECBAgQIJBGoOog3u2AR9vsW3n/XFmaGuuFAAECBAgQIECAAAECBDISqDqIZ+Rc1FRMlgABAgQIECBAgAABAgTmExDE57PV8zgBVxMgQIAAAQIECBAgQKAJAUG8iTJb5HkBZwgQIECAAAECBAgQILCsgCC+rLfRCHwQ8F8CBAgQIECAAAECBJoVEMSbLb2FtyhgzQQIECBAgAABAgQIrC8giK9fAzMgULuA9REgQIAAAQIECBAgcCAgiB9geEmAQE0C1kKAAAECBAgQIEAgTwFBPM+6mBUBAqUKmDcBAgQIECBAgACBZwQE8WeAnCZAgEAJAuZIgAABAgQIECBQjoAgXk6tzJQAAQK5CZgPAQIECBAgQIDAFQKC+BVobiFAgACBNQWMTYAAAQIECBAoW0AQL7t+Zk+AAAECSwkYhwABAgQIECCQSEAQTwSpGwIECBAgMIeAPgkQIECAAIH6BATx+mpqRQQIECBAYKqA+wkQIECAAIEZBQTxGXF1TYAAAQIECIwRcC0BAgQIEGhDQBBvo85WSYAAAQIECJwTcJwAAQIECCwsIIgvDG44AgQIECBAgEAnoBEgQIBAuwKCeLu1t3ICBAgQIECgPQErJkCAAIEMBATxDIpgCgQIECBAgACBugWsjgABAgQOBQTxQw2vCRAgQIAAAQIE6hGwEgIECGQqIIhnWhjTIkCAAAECBAgQKFPArAkQIPCcgCD+nJDzBAgQIECAAAECBPIXMEMCBAoSEMQLKpapEiBAgAABAgQIEMhLwGwIELhGQBC/Rs09BAgQIECAAAECBAisJ2BkAoULCOKFF9D0CRAgQIAAAQIECBBYRsAoBFIJCOKpJPVDgAABAgQIECBAgACB9AJ6rFBAEK+wqJZEgAABAgQIECBAgACBaQLunlNAEJ9TV98ECBAgQIAAAQIECBAgMFygkSsF8UYKbZkECBAgQIAAAQIECBAgcFpg6aN/AwAA//9GKj9JAAAABklEQVQDAG+ttGjHR8DeAAAAAElFTkSuQmCC" style="max-width:100%;max-height:72px" alt="Signature" /></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="page-footer">
+                <div class="footer-logo">
+                    <div class="footer-logo-icon"></div>
+                </div>
+                <div class="footer-ref">Ref No: C1374900196 - 001</div>
+                <div class="footer-page-info">Microhire | Morel Enterprises 5</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

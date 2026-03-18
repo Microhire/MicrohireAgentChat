@@ -1,0 +1,462 @@
+using System.Text.Json;
+using MicrohireAgentChat.Data;
+using MicrohireAgentChat.Models;
+using MicrohireAgentChat.Services;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Logging.Abstractions;
+
+namespace MicrohireAgentChat.Tests;
+
+public sealed class EquipmentScalingRulesTests
+{
+    // Presenter-based switcher scaling (primary path when presenter_count is provided)
+    [Theory]
+    [InlineData(2, 1)]   // 2 presenters → 1 switcher
+    [InlineData(4, 1)]   // 4 presenters → 1 switcher
+    [InlineData(5, 2)]   // 5 presenters → 2 switchers
+    [InlineData(8, 2)]   // 8 presenters → 2 switchers
+    [InlineData(9, 3)]   // 9 presenters → 3 switchers
+    [InlineData(12, 3)]  // 12 presenters → 3 switchers
+    public async Task Switcher_ScalesV1HD_BasedOnPresenterCount(int presenterCount, int expectedSwitcherQty)
+    {
+        var webRoot = CreateDataRoot();
+        await using var db = CreateDb($"switcher_presenter_{presenterCount}");
+        SeedProduct(db, "V1HD", "COMP", "Roland V-1HD HDMI Video Switcher", dayRate: 150);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "conference",
+            ExpectedAttendees = 100,
+            NumberOfPresentations = presenterCount,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "switcher", Quantity = 1 }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        var switcher = result.Items.FirstOrDefault(i =>
+            string.Equals(i.ProductCode, "V1HD", StringComparison.OrdinalIgnoreCase));
+        Assert.NotNull(switcher);
+        Assert.Equal(expectedSwitcherQty, switcher!.Quantity);
+    }
+
+    [Fact]
+    public async Task Switcher_NotAdded_WhenSinglePresenter()
+    {
+        var webRoot = CreateDataRoot();
+        await using var db = CreateDb(nameof(Switcher_NotAdded_WhenSinglePresenter));
+        SeedProduct(db, "V1HD", "COMP", "Roland V-1HD HDMI Video Switcher", dayRate: 150);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "presentation",
+            ExpectedAttendees = 50,
+            NumberOfPresentations = 1,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "switcher", Quantity = 1 }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        var switcher = result.Items.FirstOrDefault(i =>
+            string.Equals(i.ProductCode, "V1HD", StringComparison.OrdinalIgnoreCase));
+        Assert.Null(switcher);
+    }
+
+    // Laptop-count-based switcher scaling (fallback when presenter_count is not provided)
+    [Theory]
+    [InlineData(6, 2)]
+    [InlineData(5, 2)]
+    [InlineData(4, 1)]
+    [InlineData(8, 2)]
+    [InlineData(9, 3)]
+    public async Task Switcher_ScalesV1HD_BasedOnLaptopCount_WhenNoPresenterCount(int laptopCount, int expectedSwitcherQty)
+    {
+        var webRoot = CreateDataRoot();
+        await using var db = CreateDb($"switcher_scale_{laptopCount}");
+        SeedProduct(db, "V1HD", "COMP", "Roland V-1HD HDMI Video Switcher", dayRate: 150);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "conference",
+            ExpectedAttendees = 100,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "laptop", Quantity = laptopCount },
+                new() { EquipmentType = "switcher", Quantity = 1 }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        var switcher = result.Items.FirstOrDefault(i =>
+            string.Equals(i.ProductCode, "V1HD", StringComparison.OrdinalIgnoreCase));
+        Assert.NotNull(switcher);
+        Assert.Equal(expectedSwitcherQty, switcher!.Quantity);
+    }
+
+    [Fact]
+    public async Task Switcher_KeepsPassedQuantity_WhenLaptopCountFitsOneUnit()
+    {
+        var webRoot = CreateDataRoot();
+        await using var db = CreateDb(nameof(Switcher_KeepsPassedQuantity_WhenLaptopCountFitsOneUnit));
+        SeedProduct(db, "V1HD", "COMP", "Roland V-1HD HDMI Video Switcher", dayRate: 150);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "conference",
+            ExpectedAttendees = 50,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "laptop", Quantity = 3 },
+                new() { EquipmentType = "switcher", Quantity = 1 }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        var switcher = result.Items.FirstOrDefault(i =>
+            string.Equals(i.ProductCode, "V1HD", StringComparison.OrdinalIgnoreCase));
+        Assert.NotNull(switcher);
+        Assert.Equal(1, switcher!.Quantity);
+    }
+
+    [Theory]
+    [InlineData(2, 1)]
+    [InlineData(6, 1)]
+    [InlineData(7, 2)]
+    [InlineData(12, 2)]
+    [InlineData(13, 3)]
+    public async Task Mixer_ScalesMIXER06_BasedOnMicCount(int micCount, int expectedMixerQty)
+    {
+        var webRoot = CreateDataRoot();
+        await using var db = CreateDb($"mixer_scale_{micCount}");
+        SeedProduct(db, "MIC-HH-01", "W/MIC", "Wireless Handheld Microphone", dayRate: 80);
+        SeedProduct(db, "MIXER06", "MIXER", "6 Channel Audio Mixer", dayRate: 120);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "conference",
+            ExpectedAttendees = 200,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "microphone", Quantity = micCount, MicrophoneType = "handheld" }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        var mixer = result.Items.FirstOrDefault(i =>
+            string.Equals(i.ProductCode, "MIXER06", StringComparison.OrdinalIgnoreCase));
+        Assert.NotNull(mixer);
+        Assert.Equal(expectedMixerQty, mixer!.Quantity);
+    }
+
+    [Fact]
+    public async Task Mixer_NotAdded_WhenSingleMic()
+    {
+        var webRoot = CreateDataRoot();
+        await using var db = CreateDb(nameof(Mixer_NotAdded_WhenSingleMic));
+        SeedProduct(db, "MIC-HH-01", "W/MIC", "Wireless Handheld Microphone", dayRate: 80);
+        SeedProduct(db, "MIXER06", "MIXER", "6 Channel Audio Mixer", dayRate: 120);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "presentation",
+            ExpectedAttendees = 30,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "microphone", Quantity = 1, MicrophoneType = "handheld" }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        var mixer = result.Items.FirstOrDefault(i =>
+            string.Equals(i.ProductCode, "MIXER06", StringComparison.OrdinalIgnoreCase));
+        Assert.Null(mixer);
+    }
+
+    [Fact]
+    public async Task Mixer_NotDuplicated_WhenAlreadyPresent()
+    {
+        var webRoot = CreateDataRoot();
+        await using var db = CreateDb(nameof(Mixer_NotDuplicated_WhenAlreadyPresent));
+        SeedProduct(db, "MIC-HH-01", "W/MIC", "Wireless Handheld Microphone", dayRate: 80);
+        SeedProduct(db, "MIXER06", "MIXER", "6 Channel Audio Mixer", dayRate: 120);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "conference",
+            ExpectedAttendees = 200,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "microphone", Quantity = 4, MicrophoneType = "handheld" }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        var mixers = result.Items.Where(i =>
+            string.Equals(i.ProductCode, "MIXER06", StringComparison.OrdinalIgnoreCase)).ToList();
+        Assert.Single(mixers);
+    }
+
+    [Fact]
+    public async Task WestinPackage_DoesNotInflateMicCount_ForMixerLogic()
+    {
+        var webRoot = CreateDataRoot(includeVenuePackages: true, includeWestinLaborRules: true);
+        await using var db = CreateDb(nameof(WestinPackage_DoesNotInflateMicCount_ForMixerLogic));
+        SeedProduct(db, "WSBALLAU", "WSB", "Westin Single Ballroom Ceiling Speaker System", dayRate: 300);
+        SeedProduct(db, "MIC-HH-01", "W/MIC", "Wireless Handheld Microphone", dayRate: 80);
+        SeedProduct(db, "MIXER06", "MIXER", "6 Channel Audio Mixer", dayRate: 120);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "conference",
+            VenueName = "Westin Brisbane",
+            RoomName = "Westin Ballroom 1",
+            ExpectedAttendees = 200,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "microphone", Quantity = 3, MicrophoneType = "handheld" },
+                new() { EquipmentType = "speaker", Quantity = 1 }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        var mixer = result.Items.FirstOrDefault(i =>
+            string.Equals(i.ProductCode, "MIXER06", StringComparison.OrdinalIgnoreCase));
+        Assert.NotNull(mixer);
+        Assert.Equal(1, mixer!.Quantity);
+    }
+
+    [Fact]
+    public async Task Screen_Request_DoesNotAddStandaloneScreen_WhenRoomVisionPackageExists()
+    {
+        var webRoot = CreateDataRoot(includeVenuePackages: true);
+        await using var db = CreateDb(nameof(Screen_Request_DoesNotAddStandaloneScreen_WhenRoomVisionPackageExists));
+        SeedProduct(db, "WSBBSPRO", "WSB", "Westin Single Ballroom Projector Package", dayRate: 500);
+        SeedProduct(db, "SCREEN16", "SCREEN", "16x9 Fastfold Screen", dayRate: 220);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "conference",
+            VenueName = "Westin Brisbane",
+            RoomName = "Westin Ballroom 1",
+            ExpectedAttendees = 100,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "screen", Quantity = 1 }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        Assert.DoesNotContain(result.Items, i => string.Equals(i.Category, "SCREEN", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task Speaker_Request_ExternalStyle_PrefersPortableSpeakerOverRoomInbuiltPackage()
+    {
+        var webRoot = CreateDataRoot(includeVenuePackages: true);
+        await using var db = CreateDb(nameof(Speaker_Request_ExternalStyle_PrefersPortableSpeakerOverRoomInbuiltPackage));
+        SeedProduct(db, "WSBALLAU", "WSB", "Westin Single Ballroom Ceiling Speaker System", dayRate: 300);
+        SeedProduct(db, "PA-PORT-01", "SPEAKER", "Portable PA Speaker System", dayRate: 180);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "conference",
+            VenueName = "Westin Brisbane",
+            RoomName = "Westin Ballroom 1",
+            ExpectedAttendees = 80,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "speaker", Quantity = 1, SpeakerStyle = "external portable" }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        Assert.Contains(result.Items, i => string.Equals(i.Category, "SPEAKER", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(result.Items, i => string.Equals(i.ProductCode, "WSBALLAU", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task Speaker_Request_InbuiltStyle_PrefersRoomPackage()
+    {
+        var webRoot = CreateDataRoot(includeVenuePackages: true);
+        await using var db = CreateDb(nameof(Speaker_Request_InbuiltStyle_PrefersRoomPackage));
+        SeedProduct(db, "WSBALLAU", "WSB", "Westin Single Ballroom Ceiling Speaker System", dayRate: 300);
+        SeedProduct(db, "PA-PORT-01", "SPEAKER", "Portable PA Speaker System", dayRate: 180);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "conference",
+            VenueName = "Westin Brisbane",
+            RoomName = "Westin Ballroom 1",
+            ExpectedAttendees = 80,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "speaker", Quantity = 1, SpeakerStyle = "inbuilt" }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        Assert.Contains(result.Items, i => string.Equals(i.ProductCode, "WSBALLAU", StringComparison.OrdinalIgnoreCase));
+    }
+
+    #region Test Helpers
+
+    private static BookingDbContext CreateDb(string dbName)
+    {
+        var options = new DbContextOptionsBuilder<BookingDbContext>()
+            .UseInMemoryDatabase(dbName)
+            .Options;
+        return new BookingDbContext(options);
+    }
+
+    private static void SeedProduct(BookingDbContext db, string code, string category, string description, double dayRate)
+    {
+        db.TblInvmas.Add(new TblInvmas
+        {
+            product_code = code,
+            category = category,
+            descriptionv6 = description
+        });
+        db.TblRatetbls.Add(new TblRatetbl
+        {
+            ID = db.TblRatetbls.Count() + new Random().Next(1000, 9999),
+            product_code = code,
+            TableNo = 0,
+            rate_1st_day = dayRate
+        });
+    }
+
+    private static SmartEquipmentRecommendationService CreateService(BookingDbContext db, string webRoot)
+    {
+        return new SmartEquipmentRecommendationService(
+            db,
+            new TestWebHostEnvironment(webRoot),
+            NullLogger<SmartEquipmentRecommendationService>.Instance,
+            new TestWestinRoomCatalog());
+    }
+
+    private static string CreateDataRoot(bool includeVenuePackages = false, bool includeWestinLaborRules = false)
+    {
+        var webRoot = Path.Combine(Path.GetTempPath(), "microhire-tests", Guid.NewGuid().ToString("N"));
+        var dataDir = Path.Combine(webRoot, "data");
+        Directory.CreateDirectory(dataDir);
+
+        var knowledgeJson = JsonSerializer.Serialize(new
+        {
+            categories = new object[]
+            {
+                new { id = "computers-playback", operationMode = "self_operated" },
+                new { id = "special-effects", operationMode = "operator_required" }
+            }
+        });
+        File.WriteAllText(Path.Combine(dataDir, "product-knowledge-master.json"), knowledgeJson);
+
+        if (includeVenuePackages)
+        {
+            var venueJson = JsonSerializer.Serialize(new Dictionary<string, object>
+            {
+                ["Westin Brisbane"] = new Dictionary<string, object>
+                {
+                    ["Westin Ballroom"] = new Dictionary<string, object>
+                    {
+                        ["audio"] = new[] { "WSBALLAU" },
+                        ["vision"] = new[] { "WSBBSPRO" }
+                    }
+                }
+            });
+            File.WriteAllText(Path.Combine(dataDir, "venue-room-packages.json"), venueJson);
+        }
+
+        if (includeWestinLaborRules)
+        {
+            const string rulesJson = """
+            {
+              "rooms": [
+                {
+                  "roomKey": "ballroom",
+                  "roomContains": ["ballroom"],
+                  "packageCodes": ["WSBBDPRO", "WSBBSPRO", "WSBALLAU"],
+                  "baselineLaborCode": "AVTECH",
+                  "visionSpecialistCode": "VXTECH",
+                  "audioSpecialistCode": "AXTECH",
+                  "microphoneOperatorThreshold": 2
+                }
+              ],
+              "specialRules": {
+                "switcherCode": "V1HD",
+                "mixerCode": "MIXER06",
+                "flipchartCode": "NATFLIPC",
+                "videoConferenceCode": "LOG4kCAM",
+                "lecternCodes": ["LECT1", "SHURE418"]
+              }
+            }
+            """;
+            File.WriteAllText(Path.Combine(dataDir, "westin-labor-rules.json"), rulesJson);
+        }
+
+        return webRoot;
+    }
+
+    private sealed class TestWestinRoomCatalog : IWestinRoomCatalog
+    {
+        public Task<List<WestinRoom>> GetRoomsAsync(CancellationToken ct = default)
+            => Task.FromResult(new List<WestinRoom>());
+    }
+
+    private sealed class TestWebHostEnvironment : IWebHostEnvironment
+    {
+        public TestWebHostEnvironment(string webRootPath)
+        {
+            WebRootPath = webRootPath;
+            ContentRootPath = webRootPath;
+            WebRootFileProvider = new NullFileProvider();
+            ContentRootFileProvider = new NullFileProvider();
+        }
+
+        public string ApplicationName { get; set; } = "MicrohireAgentChat.Tests";
+        public IFileProvider WebRootFileProvider { get; set; }
+        public string WebRootPath { get; set; }
+        public string EnvironmentName { get; set; } = "Development";
+        public string ContentRootPath { get; set; }
+        public IFileProvider ContentRootFileProvider { get; set; }
+    }
+
+    #endregion
+}

@@ -1,4 +1,18 @@
-﻿using System.Text.Json;
+using System.Text.Json;
+
+public class IslaGallery
+{
+    public string? Room { get; set; }
+    public List<IslaGalleryItem>? Items { get; set; }
+}
+
+public class IslaGalleryItem
+{
+    public string? Kind { get; set; }
+    public string? Label { get; set; }
+    public string? Url { get; set; }
+    public object? Select { get; set; }
+}
 
 public static class IslaBlocks
 {
@@ -94,6 +108,16 @@ public static class IslaBlocks
         if (max is int m && m > 0) items = items.Take(m).ToList();
 
         var payload = new { room = Norm(data.Room), items };
+        return GalleryBlock(payload);
+    }
+
+    public static string BuildCoverOnlyBlock(string roomName, string coverUrl, string? baseUrl = null)
+    {
+        var items = new List<object>
+        {
+            new { kind = "cover", label = "Room view", url = Absolute(coverUrl, baseUrl), select = new { } }
+        };
+        var payload = new { room = Norm(roomName), items };
         return GalleryBlock(payload);
     }
 

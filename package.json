@@ -1,0 +1,25 @@
+{
+  "name": "microhireagentchat",
+  "version": "1.0.0",
+  "description": "",
+  "main": "smoke-test.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "smoke:thrive": "node smoke-test-final.js",
+    "smoke:random": "node playwright-random-flows.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com-intent:Microhire/MicrohireAgentChat.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "playwright": "^1.58.2"
+  }
+}

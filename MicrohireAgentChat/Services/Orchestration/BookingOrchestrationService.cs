@@ -74,8 +74,11 @@ public sealed class BookingOrchestrationService
             _logger.LogInformation("Extracted contact: {Name}, org: {Org}", contactInfo.Name, orgName);
 
             // 2. Upsert Contact
+            // PER GUIDE: Only save contact when we have email OR phone - NOT just name alone (prevents duplicates)
             decimal? contactId = null;
-            if (!string.IsNullOrWhiteSpace(contactInfo.Name))
+            var hasEmail = !string.IsNullOrWhiteSpace(contactInfo.Email);
+            var hasPhone = !string.IsNullOrWhiteSpace(contactInfo.PhoneE164);
+            if (!string.IsNullOrWhiteSpace(contactInfo.Name) && (hasEmail || hasPhone))
             {
                 try
                 {
@@ -185,7 +188,8 @@ public sealed class BookingOrchestrationService
                 }
 
                 // 7. Save Crew (labor)
-                if (!string.IsNullOrWhiteSpace(bookingNo) && facts.ContainsKey("labor_summary"))
+                if (!string.IsNullOrWhiteSpace(bookingNo) &&
+                    (facts.ContainsKey("selected_labor") || facts.ContainsKey("labor_summary")))
                 {
                     try
                     {
@@ -204,7 +208,7 @@ public sealed class BookingOrchestrationService
                 {
                     try
                     {
-                        await _bookingService.SaveTranscriptAsync(bookingNo!, messages, ct);
+                        await _bookingService.SaveFullTranscriptToBooknoteAsync(bookingNo!, messages, ct);
                         _logger.LogInformation("Transcript saved for booking {BookingNo}", bookingNo);
                     }
                     catch (Exception ex)

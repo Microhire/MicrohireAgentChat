@@ -1,49 +1,68 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Playwright;
+using MicrohireAgentChat.Services;
 
 namespace MicrohireAgentChat.Controllers
 {
     public class QuotesController : Controller
     {
-        // GET /quotes/render?src=/files/quotes/latest.html&out=Quote-C1374000002-001.pdf
+        private readonly IWebHostEnvironment _env;
+        private readonly ILogger<QuotesController> _logger;
+
+        public QuotesController(
+            IWebHostEnvironment env,
+            ILogger<QuotesController> logger)
+        {
+            _env = env;
+            _logger = logger;
+        }
+
         [HttpGet("/quotes/render")]
         public async Task<IActionResult> RenderPdf([FromQuery] string src, [FromQuery] string outFile)
         {
             if (string.IsNullOrWhiteSpace(src)) return BadRequest("src is required");
-            if (string.IsNullOrWhiteSpace(outFile)) outFile = "quote.pdf";
+            if (string.IsNullOrWhiteSpace(outFile)) outFile = $"quote-{DateTime.UtcNow:yyyyMMddHHmmss}.pdf";
+            outFile = Path.GetFileName(outFile);
+            if (!outFile.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                outFile += ".pdf";
 
-            var webRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
-            var srcPath = Path.Combine(webRoot, src.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
-            if (!System.IO.File.Exists(srcPath)) return NotFound("HTML source not found");
+            var webRoot = _env.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot");
 
+            if (!TryResolveSourcePath(src, webRoot, out var srcPath) || !System.IO.File.Exists(srcPath))
+                return NotFound("HTML source not found");
+
+            // 1. Serve pre-generated PDF if it exists alongside the HTML
+            var preGenPdfPath = Path.ChangeExtension(srcPath, ".pdf");
+            if (System.IO.File.Exists(preGenPdfPath))
+            {
+                _logger.LogInformation("Serving pre-generated PDF for src {Source}", src);
+                var pdfStream = System.IO.File.OpenRead(preGenPdfPath);
+                return File(pdfStream, "application/pdf", fileDownloadName: outFile);
+            }
+
+            // 2. Generate on-the-fly with Playwright (SetContentAsync for reliable font loading)
             var outDir = Path.Combine(webRoot, "files", "quotes");
             Directory.CreateDirectory(outDir);
             var outPath = Path.Combine(outDir, outFile);
 
-            using var pw = await Playwright.CreateAsync();
-            await using var browser = await pw.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
-            var page = await browser.NewPageAsync();
             var html = await System.IO.File.ReadAllTextAsync(srcPath);
-            await page.SetContentAsync(html);
-            await page.PdfAsync(new PagePdfOptions
-            {
-                Path = outPath,
-                Format = "A4",
-                PrintBackground = true,
-                Margin = new() { Top = "10mm", Bottom = "12mm", Left = "10mm", Right = "10mm" }
-            });
+            await HtmlQuoteGenerationService.GeneratePdfFromHtmlAsync(html, outPath, _logger);
 
-            var req = HttpContext.Request;
-            var url = $"{req.Scheme}://{req.Host}/files/quotes/{Uri.EscapeDataString(outFile)}";
-            return Redirect(url);
+            if (!System.IO.File.Exists(outPath))
+                return StatusCode(500, "PDF generation failed");
+
+            _logger.LogInformation("Serving on-the-fly Playwright PDF for src {Source}", src);
+            var stream = System.IO.File.OpenRead(outPath);
+            return File(stream, "application/pdf", fileDownloadName: outFile);
         }// Controllers/QuotesController.cs
         [HttpGet("/quotes/render-static")]
         public async Task<IActionResult> RenderStatic([FromQuery] string? outFile)
         {
             var html = StaticQuoteHtml(); // your existing method that returns the full HTML string
-            if (string.IsNullOrWhiteSpace(outFile)) outFile = "quote.pdf";
+            if (string.IsNullOrWhiteSpace(outFile)) outFile = $"quote-{DateTime.UtcNow:yyyyMMddHHmmss}.pdf";
 
-            var webRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
+            var webRoot = _env.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot");
             var outDir = Path.Combine(webRoot, "files", "quotes");
             Directory.CreateDirectory(outDir);
             var outPath = Path.Combine(outDir, outFile);
@@ -63,6 +82,40 @@ namespace MicrohireAgentChat.Controllers
             var stream = System.IO.File.OpenRead(outPath);
             return File(stream, "application/pdf", fileDownloadName: outFile); // forces download
         }
+
+        private static bool TryResolveSourcePath(string src, string webRoot, out string fullPath)
+        {
+            fullPath = string.Empty;
+            if (string.IsNullOrWhiteSpace(src))
+            {
+                return false;
+            }
+
+            var sourcePath = src.Trim();
+            if (Uri.TryCreate(sourcePath, UriKind.Absolute, out var absoluteUri))
+            {
+                sourcePath = absoluteUri.AbsolutePath;
+            }
+
+            sourcePath = Uri.UnescapeDataString(sourcePath);
+            sourcePath = sourcePath.TrimStart('/');
+            sourcePath = sourcePath.Replace('/', Path.DirectorySeparatorChar);
+
+            var rootFull = Path.GetFullPath(webRoot);
+            var candidate = Path.GetFullPath(Path.Combine(rootFull, sourcePath));
+            var rootWithSep = rootFull.EndsWith(Path.DirectorySeparatorChar)
+                ? rootFull
+                : rootFull + Path.DirectorySeparatorChar;
+
+            if (!candidate.StartsWith(rootWithSep, StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            fullPath = candidate;
+            return true;
+        }
+
         private static string StaticQuoteHtml()
         {
             var css = """

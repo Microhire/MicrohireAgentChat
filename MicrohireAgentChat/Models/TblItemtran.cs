@@ -1,4 +1,4 @@
-﻿namespace MicrohireAgentChat.Models
+namespace MicrohireAgentChat.Models
 {
     public sealed class TblItemtran
     {
@@ -70,7 +70,7 @@
         public bool? NodeCollapsed { get; set; }                        // bit
         public bool AvailRecFlag { get; set; }                          // bit NOT NULL
 
-        public decimal? BookingId { get; set; }                         // decimal(10,0)
+        public int? BookingId { get; set; }                             // int
         public double? UndiscAmt { get; set; }                          // float
 
         public bool? ViewLogi { get; set; }                             // bit

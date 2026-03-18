@@ -68,10 +68,10 @@ public interface IBookingPersistence
         CancellationToken ct);
 
     /// <summary>
-    /// Generates next sequential booking number following C##### pattern.
+    /// Generates next sequential booking number for a customer code.
     /// Reads from tblbookings.booking_no (varchar 35).
     /// </summary>
-    Task<string> GenerateNextBookingNoAsync(CancellationToken ct);
+    Task<string> GenerateNextBookingNoAsync(string customerCode, CancellationToken ct);
 }
 
 /// <summary>

@@ -1,0 +1,54 @@
+---
+description: BrainGrid workflow for features, bugs, and existing project changes
+alwaysApply: true
+---
+
+# BrainGrid Workflow — MicrohireAgentChat (PROJ-1)
+
+Project is linked. No need to specify project IDs — they auto-resolve.
+
+## New Feature
+
+```bash
+/specify "what you want to build"   # AI refines it into a requirement
+/breakdown REQ-X                    # breaks it into tasks
+git checkout -b feature/REQ-X-desc  # branch name auto-detects REQ-X
+/build REQ-X                        # full plan with task prompts
+```
+
+## Bug Fix
+
+```bash
+/specify "Bug: <symptom> — <where it happens>"   # creates a tracked requirement
+/breakdown REQ-X                                  # breaks into investigation + fix tasks
+git checkout -b fix/REQ-X-short-desc
+/build REQ-X                                      # get the fix plan
+```
+
+## Existing Project Change (refactor, tweak, config)
+
+```bash
+/specify "Change: <what needs changing and why>"
+# Same flow as above — even small changes benefit from a tracked requirement
+```
+
+## Track Progress
+
+```bash
+braingrid task update TASK-X --status IN_PROGRESS   # before starting a task
+braingrid task update TASK-X --status COMPLETED     # after finishing
+braingrid requirement update REQ-X --status COMPLETED
+```
+
+## Useful Commands
+
+```bash
+braingrid requirement list                  # see all requirements
+braingrid task list -r REQ-X               # see tasks for a requirement
+braingrid requirement show                 # auto-detects from current branch
+```
+
+## Rules
+- Always create a requirement before writing code — even for bugs
+- Name branches `feature/REQ-X-*`, `fix/REQ-X-*`, or `chore/REQ-X-*`
+- Mark tasks IN_PROGRESS before starting, COMPLETED immediately after

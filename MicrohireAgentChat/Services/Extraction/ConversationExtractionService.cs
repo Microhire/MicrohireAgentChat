@@ -7,7 +7,7 @@ namespace MicrohireAgentChat.Services.Extraction;
 /// <summary>
 /// Extracts structured data from conversation messages using heuristic patterns
 /// </summary>
-public sealed class ConversationExtractionService
+public sealed partial class ConversationExtractionService
 {
     private readonly ILogger<ConversationExtractionService> _logger;
 
@@ -110,6 +110,147 @@ public sealed class ConversationExtractionService
     }
 
     /// <summary>
+    /// Extract room name from conversation. Used for Westin Brisbane / Four Points Brisbane
+    /// to recommend room-specific AV packages.
+    /// </summary>
+    public string? ExtractRoom(IEnumerable<DisplayMessage> messages)
+    {
+        var items = messages
+            ?.OrderBy(m => m.Timestamp)
+            .SelectMany(m => (m.Parts ?? Enumerable.Empty<string>())
+                .SelectMany(p => p.Replace("\r\n", "\n").Split('\n'))
+                .Select(line => (line: line.Trim(), role: m.Role ?? "")))
+            .Where(x => !string.IsNullOrWhiteSpace(x.line))
+            .ToList() ?? new List<(string line, string role)>();
+
+        var asstLines = items.Where(x => !string.Equals(x.role, "user", StringComparison.OrdinalIgnoreCase))
+            .Select(x => x.line).ToList();
+        var userLines = items.Where(x => string.Equals(x.role, "user", StringComparison.OrdinalIgnoreCase))
+            .Select(x => x.line).ToList();
+
+        // 1. "Room: X" or "• Room: X" in assistant summaries
+        foreach (var line in asstLines)
+        {
+            var m = Regex.Match(line, @"^(?:•\s*)?room\s*:\s*(.+)$", RegexOptions.IgnoreCase);
+            if (m.Success)
+            {
+                var val = m.Groups[1].Value.Trim();
+                if (val.Length > 2) return val;
+            }
+        }
+
+        // 2. Room names in user messages
+        var roomPatterns = new[]
+        {
+            @"(?:in\s+)?(?:the\s+)?(Westin\s+Ballroom(?:\s+[IV\d]+)?)",
+            @"(?:in\s+)?(?:the\s+)?(Ballroom)",
+            @"(?:in\s+)?(Elevate)",
+            @"(?:in\s+)?(?:the\s+)?(Thrive(?:\s+Boardroom)?)",
+            @"(?:in\s+)?(?:the\s+)?(Four\s+Points\s+Meeting\s+Room)",
+            @"(?:in\s+)?(?:the\s+)?(Meeting\s+Room)"
+        };
+
+        foreach (var line in userLines.Concat(asstLines))
+        {
+            var lineLower = line.ToLower();
+            if (lineLower.Contains("?") && (lineLower.Contains("which") || lineLower.Contains("what")))
+                continue;
+
+            foreach (var pat in roomPatterns)
+            {
+                var match = Regex.Match(line, pat, RegexOptions.IgnoreCase);
+                if (match.Success)
+                {
+                    var val = match.Groups[1].Value.Trim();
+                    if (val.Equals("Ballroom", StringComparison.OrdinalIgnoreCase))
+                        return "Westin Ballroom";
+                    if (val.Equals("Meeting Room", StringComparison.OrdinalIgnoreCase) && lineLower.Contains("four points"))
+                        return "Meeting Room";
+                    if (val.Length > 2) return val;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Extract projector placement area (A-F) from conversation.
+    /// Accepts phrases like "Area C", "projector area F". Also accepts bare single-letter replies
+    /// (e.g. "A") when the conversation contains a projector-area prompt from the assistant.
+    /// </summary>
+    public string? ExtractProjectorArea(IEnumerable<DisplayMessage> messages)
+    {
+        var items = messages
+            ?.OrderBy(m => m.Timestamp)
+            .SelectMany(m => (m.Parts ?? Enumerable.Empty<string>())
+                .SelectMany(p => p.Replace("\r\n", "\n").Split('\n'))
+                .Select(line => (line: line.Trim(), role: m.Role ?? "")))
+            .Where(x => !string.IsNullOrWhiteSpace(x.line))
+            .ToList() ?? new List<(string line, string role)>();
+
+        // Context flag: did the assistant ever ask the user to choose a projector area?
+        var inProjectorContext = items.Any(x =>
+            !string.Equals(x.role, "user", StringComparison.OrdinalIgnoreCase) &&
+            (x.line.Contains("projector placement area", StringComparison.OrdinalIgnoreCase) ||
+             x.line.Contains("floor-plan.png", StringComparison.OrdinalIgnoreCase)));
+
+        // Prefer user lines first, then assistant summaries.
+        var lines = items
+            .Where(x => string.Equals(x.role, "user", StringComparison.OrdinalIgnoreCase))
+            .Select(x => x.line)
+            .Concat(items.Where(x => !string.Equals(x.role, "user", StringComparison.OrdinalIgnoreCase)).Select(x => x.line))
+            .ToList();
+
+        foreach (var line in lines)
+        {
+            var parsed = ParseProjectorAreaFromText(line, inProjectorContext);
+            if (!string.IsNullOrWhiteSpace(parsed))
+                return parsed;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// Extract projector placement areas (A-F), preserving first-seen order and uniqueness.
+    /// Also accepts bare single-letter replies when the conversation contains a projector-area prompt.
+    /// </summary>
+    public List<string> ExtractProjectorAreas(IEnumerable<DisplayMessage> messages)
+    {
+        var items = messages
+            ?.OrderBy(m => m.Timestamp)
+            .SelectMany(m => (m.Parts ?? Enumerable.Empty<string>())
+                .SelectMany(p => p.Replace("\r\n", "\n").Split('\n'))
+                .Select(line => (line: line.Trim(), role: m.Role ?? "")))
+            .Where(x => !string.IsNullOrWhiteSpace(x.line))
+            .ToList() ?? new List<(string line, string role)>();
+
+        // Context flag: did the assistant ever ask the user to choose a projector area?
+        var inProjectorContext = items.Any(x =>
+            !string.Equals(x.role, "user", StringComparison.OrdinalIgnoreCase) &&
+            (x.line.Contains("projector placement area", StringComparison.OrdinalIgnoreCase) ||
+             x.line.Contains("floor-plan.png", StringComparison.OrdinalIgnoreCase)));
+
+        var lines = items
+            .Where(x => string.Equals(x.role, "user", StringComparison.OrdinalIgnoreCase))
+            .Select(x => x.line)
+            .Concat(items.Where(x => !string.Equals(x.role, "user", StringComparison.OrdinalIgnoreCase)).Select(x => x.line));
+
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var result = new List<string>();
+        foreach (var line in lines)
+        {
+            foreach (var area in ParseProjectorAreasFromText(line, inProjectorContext))
+            {
+                if (seen.Add(area))
+                    result.Add(area);
+            }
+        }
+        return result;
+    }
+
+    /// <summary>
     /// Extract contact information (name, email, phone, position) from conversation
     /// </summary>
     public ContactInfo ExtractContactInfo(IEnumerable<DisplayMessage> messages)
@@ -126,9 +267,11 @@ public sealed class ConversationExtractionService
                         .Select(x => x.line).ToList();
         var asst = lines.Where(x => !x.role.Equals("user", StringComparison.OrdinalIgnoreCase))
                         .Select(x => x.line).ToList();
+        var convo = lines.Select(x => (role: x.role, line: x.line)).ToList();
 
         // Parse embedded UI/JSON fields if present
         var (jsonName, jsonEmail, jsonPhone) = ParseIslaFields(lines.Select(x => x.line));
+        var cleanedJsonName = CleanExtractedName(jsonName);
 
         // EMAIL
         var (email, emailMatch) = !string.IsNullOrWhiteSpace(jsonEmail)
@@ -136,11 +279,19 @@ public sealed class ConversationExtractionService
             : FindEmail(user);
         if (email is null) (email, emailMatch) = FindEmail(asst);
 
-        // NAME
-        var (name, nameMatch) = !string.IsNullOrWhiteSpace(jsonName)
-            ? (jsonName, jsonName)
+        // NAME - filter out assistant names from jsonName before using it. Do NOT use assistant lines for contact name.
+        var (name, nameMatch) = !string.IsNullOrWhiteSpace(cleanedJsonName)
+            ? (cleanedJsonName, cleanedJsonName)
             : FindName(user);
-        if (name is null) (name, nameMatch) = FindName(asst);
+        if (name is null)
+        {
+            var shortReplyName = FindNameFromShortReplyAfterPrompt(convo);
+            if (!string.IsNullOrWhiteSpace(shortReplyName.Name))
+            {
+                name = shortReplyName.Name;
+                nameMatch = shortReplyName.Matched;
+            }
+        }
         if (name is null && !string.IsNullOrWhiteSpace(email))
         {
             var guess = GuessNameFromEmail(email!);
@@ -162,8 +313,14 @@ public sealed class ConversationExtractionService
         }
         var phoneE164 = NormalizePhoneAu(phoneRaw);
 
-        // POSITION
+        // POSITION - labelled/phrase first, then short-reply fallback
         var position = FindPosition(lines.Select(x => x.line));
+        if (string.IsNullOrWhiteSpace(position))
+        {
+            var shortReplyPos = FindPositionFromShortReplyAfterPrompt(convo);
+            if (!string.IsNullOrWhiteSpace(shortReplyPos))
+                position = shortReplyPos;
+        }
 
         return new ContactInfo
         {
@@ -279,1213 +436,125 @@ public sealed class ConversationExtractionService
     /// <summary>
     /// Extract structured fields from conversation (venue, date, equipment, etc.)
     /// </summary>
-    public Dictionary<string, string> ExtractExpectedFields(IEnumerable<DisplayMessage> messages)
+
+    /// <summary>
+    /// Detect whether a user message answered laptop ownership/preference prompts.
+    /// </summary>
+    public LaptopAnswerSignals DetectLaptopAnswerSignals(string? userText)
     {
-        var facts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(userText))
+            return new LaptopAnswerSignals();
 
-        var (eventDate, venueName, dateMatched, venueMatched) = ExtractVenueAndEventDate(messages);
-        if (eventDate.HasValue)
-            facts["event_date"] = eventDate.Value.ToString("yyyy-MM-dd");
-        if (!string.IsNullOrWhiteSpace(venueName))
-            facts["venue_name"] = venueName!;
+        var text = userText.Trim().ToLowerInvariant();
+        var signals = new LaptopAnswerSignals();
 
-        var contactInfo = ExtractContactInfo(messages);
-        if (!string.IsNullOrWhiteSpace(contactInfo.Name))
-            facts["contact_name"] = contactInfo.Name!;
-        if (!string.IsNullOrWhiteSpace(contactInfo.Email))
-            facts["contact_email"] = contactInfo.Email!;
-        if (!string.IsNullOrWhiteSpace(contactInfo.PhoneE164))
-            facts["contact_phone"] = contactInfo.PhoneE164!;
-        if (!string.IsNullOrWhiteSpace(contactInfo.Position))
-            facts["contact_position"] = contactInfo.Position!;
-
-        var (org, addr) = ExtractOrganisationFromTranscript(messages);
-        if (!string.IsNullOrWhiteSpace(org))
-            facts["organization"] = org!;
-        if (!string.IsNullOrWhiteSpace(addr))
-            facts["organization_address"] = addr!;
-
-        // Extract selected equipment from "Selected equipment: ..." messages
-        var equipment = ExtractSelectedEquipment(messages);
-        if (equipment.Any())
+        var ownLaptopPatterns = new[]
         {
-            // Store as JSON for the ItemPersistenceService
-            facts["selected_equipment"] = System.Text.Json.JsonSerializer.Serialize(equipment);
+            @"\b(bring|bringing|using|use|have|got)\s+(my|our|own)\s+(laptop|macbook|notebook)\b",
+            @"\b(my|our|own)\s+(laptop|macbook|notebook)\b",
+            @"\bwe(?:'ll| will)\s+bring\s+(our\s+)?(laptop|laptops|own laptop)\b",
+            @"\bown\s+laptop\b"
+        };
+
+        var providedLaptopPatterns = new[]
+        {
+            @"\bneed\s+(a\s+)?(laptop|macbook)\b",
+            @"\bprovide\s+(a\s+)?(laptop|macbook)\b",
+            @"\b(please\s+)?(add|include)\s+(a\s+)?(laptop|macbook)\b",
+            @"\b(laptop|macbook)\s+please\b",
+            @"\brent\s+(a\s+)?(laptop|macbook)\b",
+            @"\bhire\s+(a\s+)?(laptop|macbook)\b"
+        };
+
+        if (ownLaptopPatterns.Any(p => Regex.IsMatch(text, p, RegexOptions.IgnoreCase)))
+        {
+            signals.OwnershipAnswered = true;
+            signals.NeedsProvidedLaptop = false;
         }
 
-        // Extract times from "Schedule selected: ..." messages
-        var times = ExtractScheduleTimes(messages);
-        foreach (var kvp in times)
+        if (providedLaptopPatterns.Any(p => Regex.IsMatch(text, p, RegexOptions.IgnoreCase)))
         {
-            facts[kvp.Key] = kvp.Value;
+            signals.OwnershipAnswered = true;
+            signals.NeedsProvidedLaptop = true;
         }
 
-        return facts;
+        if (Regex.IsMatch(text, @"\bwindows\b|\bpc\b", RegexOptions.IgnoreCase))
+        {
+            signals.PreferenceAnswered = true;
+            signals.Preference = "windows";
+            signals.OwnershipAnswered = true;
+            signals.NeedsProvidedLaptop = true;
+        }
+        else if (Regex.IsMatch(text, @"\bmac\b|\bmacbook\b|\bapple\b", RegexOptions.IgnoreCase))
+        {
+            signals.PreferenceAnswered = true;
+            signals.Preference = "mac";
+            signals.OwnershipAnswered = true;
+            signals.NeedsProvidedLaptop = true;
+        }
+
+        return signals;
     }
 
     /// <summary>
-    /// Extract schedule times from "Schedule selected: Setup 7:00 AM; Rehearsal 9:30 AM; ..." messages
+    /// Extract cumulative laptop ownership/preference state from transcript.
     /// </summary>
-    public Dictionary<string, string> ExtractScheduleTimes(IEnumerable<DisplayMessage> messages)
+    public LaptopAnswerState ExtractLaptopAnswerState(IEnumerable<DisplayMessage> messages)
     {
-        var times = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var state = new LaptopAnswerState();
+        var ordered = messages.OrderBy(m => m.Timestamp);
 
-        // Pattern: "Schedule selected: Setup 7:00 AM; Rehearsal 9:30 AM; Start 10:00 AM; End 4:00 PM; Pack Up 6:00 PM"
-        var schedulePattern = @"Schedule selected:\s*(.+)";
-        
-        // Individual time patterns within the schedule - enhanced to distinguish semantic meaning
-        var timePatterns = new Dictionary<string, string[]>
+        foreach (var message in ordered)
         {
-            ["setup_time"] = new[] {
-                @"Setup\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)",
-                @"Set[- ]?up\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)"
-            },
-            ["rehearsal_time"] = new[] {
-                @"Rehearsal\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)",
-                @"Rehearsal\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)"
-            },
-            ["show_start_time"] = new[] {
-                @"(?:Event\s+)?Start\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)",
-                @"(?:Event\s+)?Start\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)",
-                @"Event\s+Start\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)",
-                @"Start\s+time\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)"
-            },
-            ["show_end_time"] = new[] {
-                @"(?:Event\s+)?(?:End|Finish)\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)",
-                @"(?:Event\s+)?(?:End|Finish)\s+at\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)",
-                @"Event\s+End\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)",
-                @"Finish\s+time\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)"
-            },
-            ["strike_time"] = new[] {
-                @"Pack[- ]?Up\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)",
-                @"Pack\s+Up\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)",
-                @"Pack\s+down\s+(\d{1,2}(?::\d{2})?\s*(?:AM|PM)?)"
-            }
-        };
-
-        foreach (var msg in messages)
-        {
-            if (!string.Equals(msg.Role, "user", StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(message.Role, "user", StringComparison.OrdinalIgnoreCase))
                 continue;
 
-            var text = string.Join("\n", msg.Parts ?? Enumerable.Empty<string>());
-            
-            var scheduleMatch = Regex.Match(text, schedulePattern, RegexOptions.IgnoreCase);
-            if (scheduleMatch.Success)
-            {
-                var scheduleText = scheduleMatch.Groups[1].Value;
-                _logger.LogInformation("Found schedule text: {Schedule}", scheduleText);
-
-                foreach (var kvp in timePatterns)
-                {
-                    foreach (var pattern in kvp.Value)
-                    {
-                        var match = Regex.Match(scheduleText, pattern, RegexOptions.IgnoreCase);
-                        if (match.Success)
-                        {
-                            var timeStr = match.Groups[1].Value.Trim();
-                            var normalized = NormalizeTimeToHHmm(timeStr);
-                            if (!string.IsNullOrWhiteSpace(normalized))
-                            {
-                                times[kvp.Key] = normalized;
-                                _logger.LogInformation("Extracted {Key}: {Value}", kvp.Key, normalized);
-                            }
-                            break; // Found a match for this key, move to next
-                        }
-                    }
-                }
-            }
+            var text = string.IsNullOrWhiteSpace(message.FullText)
+                ? string.Join(" ", message.Parts ?? Enumerable.Empty<string>())
+                : message.FullText;
+            var signals = DetectLaptopAnswerSignals(text);
+            state.Apply(signals);
         }
 
-        return times;
-    }
-
-    /// <summary>
-    /// Normalize time string like "7:00 AM" or "4:00 PM" to "HHmm" format
-    /// </summary>
-    private static string? NormalizeTimeToHHmm(string timeStr)
-    {
-        if (string.IsNullOrWhiteSpace(timeStr))
-            return null;
-
-        // Try parsing as DateTime to handle AM/PM
-        if (DateTime.TryParse(timeStr, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
-        {
-            return dt.ToString("HHmm");
-        }
-
-        // Try manual parsing for formats like "7:00 AM" or "7:30AM" or "16:00"
-        var match = Regex.Match(timeStr, @"(\d{1,2})(?::(\d{2}))?\s*(AM|PM)?", RegexOptions.IgnoreCase);
-        if (match.Success)
-        {
-            var hour = int.Parse(match.Groups[1].Value);
-            var minute = match.Groups[2].Success ? int.Parse(match.Groups[2].Value) : 0;
-            var ampm = match.Groups[3].Success ? match.Groups[3].Value.ToUpperInvariant() : null;
-
-            // Convert to 24-hour format
-            if (ampm == "PM" && hour < 12) hour += 12;
-            if (ampm == "AM" && hour == 12) hour = 0;
-
-            return $"{hour:D2}{minute:D2}";
-        }
-
-        return null;
-    }
-
-    /// <summary>
-    /// Extract event type from conversation messages (interviews, meetings, conferences, etc.)
-    /// </summary>
-    public (string? EventType, string? Match) ExtractEventType(IEnumerable<DisplayMessage> messages)
-    {
-        var ordered = messages.OrderBy(m => m.Timestamp).ToList();
-        static string JoinParts(DisplayMessage m) => string.Join(" ", m.Parts ?? Enumerable.Empty<string>());
-
-        // Common event types and their patterns
-        var eventTypePatterns = new Dictionary<string, string[]>
-        {
-            ["interviews"] = new[] {
-                @"running\s+interviews",
-                @"interview\s+process",
-                @"conducting\s+interviews",
-                @"holding\s+interviews",
-                @"interview\s+session",
-                @"interviews\s+for"
-            },
-            ["meeting"] = new[] {
-                @"(?:running|holding|organizing)\s+a?\s?meeting",
-                @"meeting\s+(?:with|for)",
-                @"business\s+meeting",
-                @"team\s+meeting"
-            },
-            ["conference"] = new[] {
-                @"conference\s+(?:call|meeting|session)",
-                @"running\s+a\s+conference",
-                @"conference\s+event"
-            },
-            ["seminar"] = new[] {
-                @"seminar\s+(?:session|event)",
-                @"running\s+a\s+seminar",
-                @"seminar\s+presentation"
-            },
-            ["workshop"] = new[] {
-                @"workshop\s+(?:session|event)",
-                @"running\s+a\s+workshop",
-                @"hands-on\s+workshop"
-            },
-            ["presentation"] = new[] {
-                @"presentation\s+(?:session|event)",
-                @"giving\s+a\s+presentation",
-                @"presentation\s+to"
-            },
-            ["training"] = new[] {
-                @"training\s+(?:session|program|course)",
-                @"conducting\s+training",
-                @"training\s+event"
-            },
-            ["ceremony"] = new[] {
-                @"ceremony\s+event",
-                @"award\s+ceremony",
-                @"graduation\s+ceremony"
-            },
-            ["wedding"] = new[] {
-                @"wedding\s+(?:ceremony|reception)",
-                @"wedding\s+event"
-            },
-            ["party"] = new[] {
-                @"party\s+event",
-                @"celebration\s+party",
-                @"birthday\s+party"
-            },
-            ["webinar"] = new[] {
-                @"webinar\s+(?:session|event)",
-                @"online\s+webinar",
-                @"virtual\s+webinar"
-            },
-            ["interview"] = new[] {
-                @"(?:conducting|doing|having)\s+an?\s+interview",
-                @"interview\s+(?:with|for)"
-            }
-        };
-
-        // Check user messages first (more reliable than assistant responses)
-        foreach (var m in ordered.Where(x => x.Role.Equals("user", StringComparison.OrdinalIgnoreCase)))
-        {
-            var text = JoinParts(m).ToLowerInvariant();
-
-            foreach (var kvp in eventTypePatterns)
-            {
-                foreach (var pattern in kvp.Value)
-                {
-                    if (Regex.IsMatch(text, pattern, RegexOptions.IgnoreCase))
-                    {
-                        return (kvp.Key, Regex.Match(JoinParts(m), pattern, RegexOptions.IgnoreCase).Value);
-                    }
-                }
-            }
-        }
-
-        // Also check assistant messages for confirmation
-        foreach (var m in ordered.Where(x => !x.Role.Equals("user", StringComparison.OrdinalIgnoreCase)))
-        {
-            var text = JoinParts(m).ToLowerInvariant();
-
-            // Look for confirmation patterns like "I see you mentioned interviews"
-            foreach (var kvp in eventTypePatterns)
-            {
-                foreach (var pattern in kvp.Value)
-                {
-                    if (Regex.IsMatch(text, pattern, RegexOptions.IgnoreCase))
-                    {
-                        return (kvp.Key, Regex.Match(JoinParts(m), pattern, RegexOptions.IgnoreCase).Value);
-                    }
-                }
-            }
-        }
-
-        return (null, null);
-    }
-
-    /// <summary>
-    /// Extract all event information from conversation messages
-    /// </summary>
-    public EventInformation ExtractAllEventInformation(IEnumerable<DisplayMessage> messages)
-    {
-        var ordered = messages.OrderBy(m => m.Timestamp).ToList();
-        static string JoinParts(DisplayMessage m) => string.Join(" ", m.Parts ?? Enumerable.Empty<string>());
-
-        var info = new EventInformation();
-
-        // Combine all user messages for comprehensive extraction
-        var userText = string.Join(" ", ordered
-            .Where(m => m.Role.Equals("user", StringComparison.OrdinalIgnoreCase))
-            .Select(JoinParts));
-
-        if (string.IsNullOrWhiteSpace(userText)) return info;
-
-        userText = userText.ToLowerInvariant();
-
-        // Extract budget
-        var budgetMatch = Regex.Match(userText, @"(?:\$|budget\s+(?:of\s+)?)(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)\s*(?:dollars?|budget)", RegexOptions.IgnoreCase);
-        if (budgetMatch.Success && decimal.TryParse(budgetMatch.Groups[1].Value.Replace(",", ""), out var budget))
-        {
-            info.Budget = budget;
-            info.BudgetMatch = budgetMatch.Value;
-        }
-
-        // Extract attendees count
-        var attendeesMatch = Regex.Match(userText, @"(\d{1,4})\s+(?:people|attendees|pax|participants|guests)", RegexOptions.IgnoreCase);
-        if (attendeesMatch.Success && int.TryParse(attendeesMatch.Groups[1].Value, out var attendees))
-        {
-            info.Attendees = attendees;
-            info.AttendeesMatch = attendeesMatch.Value;
-        }
-
-        // Extract setup style
-        var setupPatterns = new[] {
-            @"(?:setup|style|layout)\s+(?:is|will\s+be|should\s+be)?\s+(?:a\s+)?(?:classroom|theater|boardroom|banquet|u-shape|u\s+shape|reception|cocktail|dinner)",
-            @"(?:classroom|theater|boardroom|banquet|u-shape|u\s+shape|reception|cocktail|dinner)\s+(?:setup|style|layout)"
-        };
-
-        foreach (var pattern in setupPatterns)
-        {
-            var match = Regex.Match(userText, pattern, RegexOptions.IgnoreCase);
-            if (match.Success)
-            {
-                var setup = match.Value.ToLower()
-                    .Replace("setup", "").Replace("style", "").Replace("layout", "")
-                    .Replace("is", "").Replace("will be", "").Replace("should be", "")
-                    .Replace("a", "").Trim();
-
-                if (!string.IsNullOrWhiteSpace(setup))
-                {
-                    info.SetupStyle = setup;
-                    info.SetupMatch = match.Value;
-                    break;
-                }
-            }
-        }
-
-        // Extract venue/room information
-        var venueMatch = Regex.Match(userText, @"(?:at|in)\s+(?:the\s+)?([A-Za-z\s]+?)\s+(?:room|venue|ballroom|hall)", RegexOptions.IgnoreCase);
-        if (venueMatch.Success)
-        {
-            info.Venue = venueMatch.Groups[1].Value.Trim();
-            info.VenueMatch = venueMatch.Value;
-        }
-
-        // Extract special requests - look for phrases after keywords
-        var specialRequestPatterns = new[] {
-            @"(?:also|additionally|plus|furthermore| moreover)\s+(.+?)(?:\s+(?:that's|that is|and that's|etc|etc\.|$))",
-            @"(?:need|want|require)\s+(.+?)(?:\s+(?:as well|also|too|etc|etc\.|$))",
-            @"special\s+requests?\s*(?:include|are|is)?\s*(.+?)(?:\s+(?:that's|that is|$))"
-        };
-
-        foreach (var pattern in specialRequestPatterns)
-        {
-            var match = Regex.Match(userText, pattern, RegexOptions.IgnoreCase);
-            if (match.Success)
-            {
-                var request = match.Groups[1].Value.Trim();
-                if (request.Length > 5 && !string.IsNullOrWhiteSpace(request))
-                {
-                    info.SpecialRequests = request;
-                    info.SpecialRequestsMatch = match.Value;
-                    break;
-                }
-            }
-        }
-
-        // Extract all dates mentioned (for multi-day events)
-        var dateMatches = Regex.Matches(userText, @"(\d{1,2})(st|nd|rd|th)?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december)\s+(\d{4})", RegexOptions.IgnoreCase);
-        if (dateMatches.Count > 0)
-        {
-            info.Dates = new List<string>();
-            foreach (Match match in dateMatches)
-            {
-                info.Dates.Add(match.Value);
-            }
-        }
-
-        return info;
-    }
-
-    /// <summary>
-    /// Extract multi-day event details from conversation messages
-    /// </summary>
-    public MultiDayEventDetails? ExtractMultiDayEventDetails(IEnumerable<DisplayMessage> messages)
-    {
-        var ordered = messages.OrderBy(m => m.Timestamp).ToList();
-        static string JoinParts(DisplayMessage m) => string.Join(" ", m.Parts ?? Enumerable.Empty<string>());
-
-        var fullText = string.Join(" ", ordered.Select(JoinParts)).ToLowerInvariant();
-
-        // Check if this is a multi-day event
-        var dayCountMatch = Regex.Match(fullText, @"(\d+)\s+(?:day|days?)\s+(?:event|conference|meeting|seminar)", RegexOptions.IgnoreCase);
-        if (!dayCountMatch.Success)
-        {
-            // Check for specific day references
-            var dayRefs = Regex.Matches(fullText, @"\b(?:first|second|third|fourth|fifth|1st|2nd|3rd|4th|5th|day\s+\d+)\b", RegexOptions.IgnoreCase);
-            if (dayRefs.Count < 2) return null; // Need at least 2 day references for multi-day
-        }
-
-        var details = new MultiDayEventDetails();
-
-        // Extract start date
-        var (eventDate, _) = ExtractEventDate(messages);
-        if (eventDate.HasValue)
-        {
-            details.StartDate = eventDate.Value.DateTime;
-        }
-
-        // Determine duration
-        var durationMatch = Regex.Match(fullText, @"(\d+)\s+(?:day|days?)\s+(?:event|conference|meeting|seminar)", RegexOptions.IgnoreCase);
-        if (durationMatch.Success && int.TryParse(durationMatch.Groups[1].Value, out var days))
-        {
-            details.DurationDays = days;
-        }
-        else
-        {
-            // Count unique day references
-            var dayRefs = Regex.Matches(fullText, @"\b(?:first|second|third|fourth|fifth|1st|2nd|3rd|4th|5th)\b", RegexOptions.IgnoreCase);
-            details.DurationDays = Math.Max(dayRefs.Count, 1);
-        }
-
-        // Parse day-specific information
-        var dayPatterns = new Dictionary<string, int>
-        {
-            ["first"] = 1, ["1st"] = 1, ["day 1"] = 1,
-            ["second"] = 2, ["2nd"] = 2, ["day 2"] = 2,
-            ["third"] = 3, ["3rd"] = 3, ["day 3"] = 3,
-            ["fourth"] = 4, ["4th"] = 4, ["day 4"] = 4,
-            ["fifth"] = 5, ["5th"] = 5, ["day 5"] = 5
-        };
-
-        foreach (var kvp in dayPatterns)
-        {
-            var dayNumber = kvp.Value;
-            var dayDetails = new DayEventDetails
-            {
-                DayNumber = dayNumber,
-                Date = details.StartDate.AddDays(dayNumber - 1)
-            };
-
-            // Extract setup style for this day
-            var setupPattern = $@"(?:on|for|during)\s+(?:the\s+)?{Regex.Escape(kvp.Key)}\s+(?:day)?\s*(?:is|will\s+be|should\s+be)?\s*(?:a\s+)?(?:classroom|theater|boardroom|banquet|u-shape|u\s+shape|reception|cocktail|dinner)\s+(?:setup|style|layout)";
-            var setupMatch = Regex.Match(fullText, setupPattern, RegexOptions.IgnoreCase);
-            if (setupMatch.Success)
-            {
-                var setupText = setupMatch.Value.ToLower()
-                    .Replace("on", "").Replace("for", "").Replace("during", "").Replace("the", "")
-                    .Replace(kvp.Key, "").Replace("day", "").Replace("is", "").Replace("will be", "").Replace("should be", "")
-                    .Replace("a", "").Replace("setup", "").Replace("style", "").Replace("layout", "").Trim();
-
-                dayDetails.SetupStyle = setupText;
-            }
-
-            // Extract time information for this day
-            var timePattern = $@"(?:on|for|during)\s+(?:the\s+)?{Regex.Escape(kvp.Key)}\s+(?:day)?\s*(?:starts?|begins?|from)\s+(\d{{1,2}}(?::\d{{2}})?\s*(?:AM|PM)?)";
-            var timeMatch = Regex.Match(fullText, timePattern, RegexOptions.IgnoreCase);
-            if (timeMatch.Success)
-            {
-                // Parse time - simplified for now
-                dayDetails.StartTime = TimeSpan.TryParse(timeMatch.Groups[1].Value, out var time) ? time : null;
-            }
-
-            // Extract special notes for this day
-            var notesPattern = $@"(?:on|for|during)\s+(?:the\s+)?{Regex.Escape(kvp.Key)}\s+(?:day)?\s*(.+?)(?:\s+(?:on|for|during|day|$))";
-            var notesMatch = Regex.Match(fullText, notesPattern, RegexOptions.IgnoreCase);
-            if (notesMatch.Success)
-            {
-                var notes = notesMatch.Groups[1].Value.Trim();
-                if (notes.Length > 10 && !notes.Contains("setup") && !notes.Contains("style"))
-                {
-                    dayDetails.SpecialNotes = notes;
-                }
-            }
-
-            // Only add if we have some information for this day
-            if (!string.IsNullOrWhiteSpace(dayDetails.SetupStyle) ||
-                dayDetails.StartTime.HasValue ||
-                !string.IsNullOrWhiteSpace(dayDetails.SpecialNotes))
-            {
-                details.SetDayDetails(dayNumber, dayDetails);
-            }
-        }
-
-        // If we found day-specific information, return the details
-        return details.Days.Count > 0 ? details : null;
-    }
-
-    /// <summary>
-    /// Extract selected equipment from "Selected equipment: ProductName (PRODUCT_CODE)" messages
-    /// </summary>
-    public List<SelectedEquipmentItem> ExtractSelectedEquipment(IEnumerable<DisplayMessage> messages)
-    {
-        var items = new List<SelectedEquipmentItem>();
-        var seenCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        // Pattern: "Selected equipment: Description (PRODUCT_CODE)"
-        var pattern = @"Selected equipment:\s*(.+?)\s*\(([A-Z0-9\-_]+)\s*\)";
-
-        foreach (var msg in messages)
-        {
-            // Only check user messages (equipment selections come from button clicks)
-            if (!string.Equals(msg.Role, "user", StringComparison.OrdinalIgnoreCase))
-                continue;
-
-            var text = string.Join("\n", msg.Parts ?? Enumerable.Empty<string>());
-
-            foreach (Match m in Regex.Matches(text, pattern, RegexOptions.IgnoreCase))
-            {
-                var description = m.Groups[1].Value.Trim();
-                var productCode = m.Groups[2].Value.Trim();
-
-                // Skip duplicates (same product code)
-                if (seenCodes.Contains(productCode))
-                    continue;
-
-                seenCodes.Add(productCode);
-                items.Add(new SelectedEquipmentItem
-                {
-                    ProductCode = productCode,
-                    Description = description,
-                    Quantity = 1 // Default to 1, can be enhanced to parse quantity
-                });
-            }
-        }
-
-        _logger.LogInformation("Extracted {Count} equipment items from conversation", items.Count);
-        return items;
-    }
-
-    // ==================== PRIVATE HELPERS ====================
-
-    private bool TryParseDateToken(string token, out DateTimeOffset dto)
-    {
-        dto = default;
-        if (string.IsNullOrWhiteSpace(token)) return false;
-
-        token = token.Trim();
-        // Remove ordinal suffixes and "of" to normalize tokens like "15th of February"
-        token = Regex.Replace(token, @"\b(\d{1,2})(st|nd|rd|th)\b", "$1", RegexOptions.IgnoreCase);
-        token = Regex.Replace(token, @"\b(\d{1,2})\s+of\s+", "$1 ", RegexOptions.IgnoreCase);
-
-        var now = DateTimeOffset.Now;
-        // Consider the token missing a year if no 4-digit year is present
-        var hasExplicitYear = Regex.IsMatch(token, @"\b\d{4}\b");
-
-        // LOGGING: Initial parsing attempt
-        _logger.LogInformation("CONV EXTRACTION DATE PARSING: Starting to parse token '{Token}'. Has explicit year: {HasYear}, Current time: {Now}", token, hasExplicitYear, now);
-
-        var cultures = new[]
-        {
-            CultureInfo.GetCultureInfo("en-US"),
-            CultureInfo.GetCultureInfo("en-GB"),
-            CultureInfo.InvariantCulture
-        };
-
-        // If the year is missing, try parsing with the current year appended first
-        var candidates = hasExplicitYear
-            ? new[] { token }
-            : new[] { $"{token} {now.Year}", token };
-
-        _logger.LogInformation("CONV EXTRACTION DATE PARSING: Candidates to try: {Candidates}", string.Join(", ", candidates));
-
-        foreach (var candidate in candidates)
-        {
-            _logger.LogInformation("CONV EXTRACTION DATE PARSING: Trying candidate '{Candidate}'", candidate);
-
-            // ISO (yyyy-MM-dd)
-            if (Regex.IsMatch(candidate, @"^\d{4}-\d{2}-\d{2}$") &&
-                DateTime.TryParseExact(candidate, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var isoDt))
-            {
-                dto = new DateTimeOffset(isoDt);
-                _logger.LogInformation("CONV EXTRACTION DATE PARSING: Parsed ISO format '{Candidate}' to {ParsedDate}", candidate, dto);
-                break;
-            }
-
-            // Slash formats (dd/MM/yyyy, etc.)
-            if (Regex.IsMatch(candidate, @"^\d{1,2}/\d{1,2}/\d{2,4}$"))
-            {
-                var fmts = new[] { "dd/MM/yyyy", "d/M/yyyy", "dd/MM/yy", "d/M/yy", "MM/dd/yyyy", "M/d/yyyy" };
-                foreach (var fmt in fmts)
-                {
-                    if (DateTime.TryParseExact(candidate, fmt, CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out var dmy))
-                    {
-                        dto = new DateTimeOffset(dmy);
-                        _logger.LogInformation("CONV EXTRACTION DATE PARSING: Parsed slash format '{Candidate}' with format '{Format}' to {ParsedDate}", candidate, fmt, dto);
-                        break;
-                    }
-                }
-                if (dto != default) break;
-            }
-
-            // General parsing with culture fallbacks
-            foreach (var c in cultures)
-            {
-                if (DateTime.TryParse(candidate, c, DateTimeStyles.AssumeLocal, out var dt))
-                {
-                    dto = new DateTimeOffset(dt);
-                    _logger.LogInformation("CONV EXTRACTION DATE PARSING: Parsed with culture '{Culture}' '{Candidate}' to {ParsedDate}", c.Name, candidate, dto);
-                    break;
-                }
-            }
-
-            if (dto != default) break;
-        }
-
-        if (dto == default)
-        {
-            _logger.LogWarning("CONV EXTRACTION DATE PARSING: Failed to parse token '{Token}' with any method", token);
-            return false;
-        }
-
-        _logger.LogInformation("CONV EXTRACTION DATE PARSING: Initial parse result for '{Token}': {ParsedDate}", token, dto);
-
-        // Always apply smart date detection: roll forward until the date is in the future
-        // This handles both cases: explicit years that are wrong, and implicit years
-        var originalDate = dto;
-        var normalized = new DateTimeOffset(dto.Date, dto.Offset);
-
-        _logger.LogInformation("CONV EXTRACTION DATE PARSING: Before roll-forward - Original: {Original}, Normalized: {Normalized}, Current time: {Now}", originalDate, normalized, now);
-
-        int rollForwardCount = 0;
-        while (normalized.Date < now.Date)
-        {
-            var beforeRoll = normalized;
-            normalized = normalized.AddYears(1);
-            rollForwardCount++;
-            _logger.LogInformation("CONV EXTRACTION DATE PARSING: Rolled forward from {Before} to {After} (iteration {Count})", beforeRoll.Date, normalized.Date, rollForwardCount);
-        }
-
-        dto = normalized;
-
-        _logger.LogInformation("CONV EXTRACTION DATE PARSING: Final result for '{Token}': {FinalDate} (rolled forward {Count} times)", token, dto, rollForwardCount);
-
-        return true;
-    }
-
-    private DateTimeOffset? FindEventDate(IEnumerable<string> lines, int? yearHint, out string? matched)
-    {
-        matched = null;
-        var monthNames = "jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec|january|february|march|april|june|july|august|september|october|november|december";
-
-        var patterns = new[]
-        {
-            $@"\b(\d{{1,2}})(st|nd|rd|th)?\s+({monthNames})\s+(\d{{4}})\b",
-            $@"\b({monthNames})\s+(\d{{1,2}})(st|nd|rd|th)?(,?\s*(\d{{4}}))?\b",
-            @"\b(\d{1,2})/(\d{1,2})/(\d{2,4})\b",
-            @"\b(\d{4})-(\d{2})-(\d{2})\b"
-        };
-
-        foreach (var line in lines)
-        {
-            foreach (var pat in patterns)
-            {
-                foreach (Match m in Regex.Matches(line, pat, RegexOptions.IgnoreCase))
-                {
-                    var token = m.Value;
-                    if (TryParseDateToken(token, out var dto))
-                    {
-                        matched = token;
-                        return dto;
-                    }
-                }
-            }
-        }
-
-        return null;
-    }
-
-    private static string? FindVenue(IEnumerable<string> lines, out string? matched)
-    {
-        matched = null;
-        
-        // Known venue names/keywords to look for
-        var knownVenues = new[] {
-            "westin", "hilton", "marriott", "sheraton", "hyatt", "intercontinental", "sofitel",
-            "novotel", "mercure", "ibis", "pullman", "crowne plaza", "rydges", "stamford",
-            "convention centre", "convention center", "expo", "exhibition", "conference centre",
-            "ballroom", "grand ballroom", "function room", "banquet hall"
-        };
-
-        // First, look for known venue names in the text
-        foreach (var line in lines)
-        {
-            var lineLower = line.ToLower();
-            
-            // Skip lines that look like questions (from assistant)
-            if (lineLower.Contains("what is your") || lineLower.Contains("could you") || 
-                lineLower.Contains("please provide") || lineLower.Contains("?"))
-                continue;
-                
-            foreach (var venue in knownVenues)
-            {
-                if (lineLower.Contains(venue))
-                {
-                    // Try to extract the full venue name with context
-                    // Pattern: "Westin Brisbane" or "The Westin Brisbane" or "at Westin Brisbane"
-                    var pattern = $@"(?:at\s+)?(?:the\s+)?({Regex.Escape(venue)}[A-Za-z\s&'-]{{0,40}})";
-                    var m = Regex.Match(line, pattern, RegexOptions.IgnoreCase);
-                    if (m.Success)
-                    {
-                        matched = m.Groups[1].Value.Trim();
-                        // Clean up trailing words that aren't part of venue
-                        matched = Regex.Replace(matched, @"\s+(?:in|for|with|style|would|be|perfect|please).*$", "", RegexOptions.IgnoreCase).Trim();
-                        if (matched.Length > 3) return matched;
-                    }
-                }
-            }
-        }
-
-        // Explicit patterns
-        var venuePatterns = new[]
-        {
-            @"(?:venue|location):\s*([A-Z][^\n,.]{3,60})",
-            @"(?:venue|location)\s+(?:is|will be|would be)\s+(?:the\s+)?([A-Z][A-Za-z\s&'-]{3,60})",
-            @"at\s+(?:the\s+)?([A-Z][A-Za-z\s&'-]{3,60})(?:\s+(?:hotel|centre|center|ballroom|room))",
-            @"(?:the\s+)?([A-Z][A-Za-z\s&'-]{3,40})\s+(?:hotel|convention|conference|ballroom)"
-        };
-
-        foreach (var line in lines)
-        {
-            // Skip question lines
-            if (line.Contains("?")) continue;
-            
-            foreach (var pat in venuePatterns)
-            {
-                var m = Regex.Match(line, pat, RegexOptions.IgnoreCase);
-                if (m.Success)
-                {
-                    var candidate = m.Groups[1].Value.Trim();
-                    // Validate it's not a common word/phrase
-                    if (!IsCommonPhrase(candidate) && candidate.Length > 3)
-                    {
-                        matched = candidate;
-                        return matched;
-                    }
-                }
-            }
-        }
-
-        return null;
-    }
-    
-    /// <summary>
-    /// Check if a string is a common phrase that shouldn't be extracted as venue/org
-    /// </summary>
-    private static bool IsCommonPhrase(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text)) return true;
-        
-        var commonPhrases = new[] {
-            "what is your", "is your full", "full name", "your name", "your email", "your phone",
-            "could you", "please provide", "let me", "thank you", "hi there", "hello",
-            "how can", "i can", "we can", "i will", "we will"
-        };
-        
-        var lower = text.ToLower().Trim();
-        return commonPhrases.Any(p => lower.Contains(p)) || lower.Length < 4;
-    }
-
-    private static (string? name, string? email, string? phone) ParseIslaFields(IEnumerable<string> lines)
-    {
-        string? name = null, email = null, phone = null;
-
-        foreach (var line in lines)
-        {
-            var nameMatch = Regex.Match(line, @"Name:\s*(.+)", RegexOptions.IgnoreCase);
-            if (nameMatch.Success)
-                name = nameMatch.Groups[1].Value.Trim();
-
-            var emailMatch = Regex.Match(line, @"Email:\s*([^\s@]+@[^\s@]+\.[^\s@]+)", RegexOptions.IgnoreCase);
-            if (emailMatch.Success)
-                email = emailMatch.Groups[1].Value.Trim();
-
-            var phoneMatch = Regex.Match(line, @"(?:Phone|Mobile|Cell):\s*([\d\s\(\)\-\+]+)", RegexOptions.IgnoreCase);
-            if (phoneMatch.Success)
-                phone = phoneMatch.Groups[1].Value.Trim();
-        }
-
-        return (name, email, phone);
-    }
-
-    private static (string? value, string? matched) FindEmail(IEnumerable<string> lines)
-    {
-        var pattern = @"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b";
-
-        foreach (var line in lines)
-        {
-            var m = Regex.Match(line, pattern);
-            if (m.Success)
-                return (m.Value, m.Value);
-        }
-
-        return (null, null);
-    }
-
-    private static (string? value, string? matched) FindName(IEnumerable<string> lines)
-    {
-        var patterns = new[]
-        {
-            @"(?:my name is|i'?m|this is|contact:)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)",
-            @"\bName:\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)"
-        };
-
-        foreach (var line in lines)
-        {
-            foreach (var pat in patterns)
-            {
-                var m = Regex.Match(line, pat, RegexOptions.IgnoreCase);
-                if (m.Success)
-                {
-                    var name = m.Groups[1].Value.Trim();
-                    if (name.Split(' ').Length >= 2) // require at least first + last
-                        return (name, name);
-                }
-            }
-        }
-
-        return (null, null);
-    }
-
-    private static (string? value, string? matched) FindPhone(IEnumerable<string> lines)
-    {
-        var patterns = new[]
-        {
-            @"(?:phone|mobile|cell|tel):\s*([\d\s\(\)\-\+]{8,20})",
-            @"\b(\+?\d{1,3}[\s\-]?\(?\d{2,4}\)?[\s\-]?\d{3,4}[\s\-]?\d{3,4})\b"
-        };
-
-        foreach (var line in lines)
-        {
-            foreach (var pat in patterns)
-            {
-                var m = Regex.Match(line, pat, RegexOptions.IgnoreCase);
-                if (m.Success)
-                {
-                    var phone = m.Groups[1].Value.Trim();
-                    return (phone, phone);
-                }
-            }
-        }
-
-        return (null, null);
-    }
-
-    private static string? FindPosition(IEnumerable<string> lines)
-    {
-        var patterns = new[]
-        {
-            @"(?:position|title|role):\s*([A-Za-z\s]{3,50})",
-            @"i'?m\s+(?:a|an|the)\s+([A-Za-z\s]{3,50})\s+(?:at|for|with)"
-        };
-
-        foreach (var line in lines)
-        {
-            foreach (var pat in patterns)
-            {
-                var m = Regex.Match(line, pat, RegexOptions.IgnoreCase);
-                if (m.Success)
-                    return m.Groups[1].Value.Trim();
-            }
-        }
-
-        return null;
-    }
-
-    private static string? GuessNameFromEmail(string email)
-    {
-        var local = email.Split('@')[0];
-        var parts = Regex.Split(local, @"[._\-]");
-        if (parts.Length >= 2)
-        {
-            return string.Join(" ", parts.Select(p => CapitalizeWords(p)));
-        }
-        return null;
-    }
-
-    private static string? NormalizePhoneAu(string? phone)
-    {
-        if (string.IsNullOrWhiteSpace(phone)) return null;
-
-        var digits = Regex.Replace(phone, @"[^\d\+]", "");
-
-        if (digits.StartsWith("+61"))
-            return digits;
-
-        if (digits.StartsWith("61"))
-            return "+" + digits;
-
-        if (digits.StartsWith("0") && digits.Length == 10)
-            return "+61" + digits.Substring(1);
-
-        if (digits.Length == 9)
-            return "+61" + digits;
-
-        return digits.Length >= 8 ? digits : null;
-    }
-
-    private static string NormalizeText(string s)
-    {
-        s = s.Replace('\'', '\'').Replace('\'', '\'')
-             .Replace('"', '"').Replace('"', '"')
-             .Replace('–', '-').Replace('—', '-');
-        s = Regex.Replace(s, @"\s+", " ").Trim();
-        return s;
-    }
-
-    private static (string? org, string? addr) TryParseOrgAddress(string text)
-    {
-        if (string.IsNullOrWhiteSpace(text)) return (null, null);
-
-        // Normalize quotes to standard ASCII
-        text = text.Replace('\u2018', '\'').Replace('\u2019', '\'').Replace('\u201C', '"').Replace('\u201D', '"');
-        text = Regex.Replace(text, @"\s+", " ").Trim();
-        text = Regex.Replace(text, @"\b(adress|addess|addres|addrss|adreess|addrees|adrress)\b", "address", RegexOptions.IgnoreCase);
-        
-        // Preprocess: Strip leading verbs like "Called", "Named", "Is", etc. from the entire text
-        // This handles cases like "Called THE gully, located in winston glades"
-        var verbPrefixPattern = new Regex(@"^(?:called|named|is|are|company\s+is|business\s+is|organisation\s+is|organization\s+is|org\s+is|the\s+company\s+is|the\s+business\s+is)\s+(.+)$", RegexOptions.IgnoreCase);
-        var verbMatch = verbPrefixPattern.Match(text);
-        if (verbMatch.Success)
-            text = verbMatch.Groups[1].Value.Trim();
-        
-        // Common Australian suburbs for location matching
-        var ausSuburbs = new[] { 
-            "ascot", "kelvin grove", "fortitude valley", "south bank", "southbank", "brisbane", 
-            "sydney", "melbourne", "perth", "adelaide", "hobart", "darwin", "canberra",
-            "parramatta", "chatswood", "bondi", "surry hills", "newtown", "redfern",
-            "st kilda", "richmond", "carlton", "fitzroy", "south yarra", "toorak"
-        };
-        
-        Match m;
-        string pattern;
-
-        // ============= NATURAL LANGUAGE PATTERNS (highest priority) =============
-        
-        // Pattern: "it's X, our office is in Y" / "it's X, we're in Y" / "it's X, we are in Y"
-        pattern = @"^(?:it'?s|its)\s+(.+?),\s*(?:our\s+)?(?:office|we(?:'re|'re| are)?)\s+(?:is\s+)?(?:in|at)\s+(.+)$";
-        m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
-        if (m.Success)
-        {
-            var org = CleanOrgName(m.Groups[1].Value);
-            var addr = m.Groups[2].Value.Trim();
-            if (IsValidOrgCandidate(org)) return (org, addr);
-        }
-        
-        // Pattern: "it's X, located in Y" / "it's X, based in Y"
-        pattern = @"^(?:it'?s|its)\s+(.+?),\s*(?:located|based|situated)\s+(?:in|at)\s+(.+)$";
-        m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
-        if (m.Success)
-        {
-            var org = CleanOrgName(m.Groups[1].Value);
-            var addr = m.Groups[2].Value.Trim();
-            if (IsValidOrgCandidate(org)) return (org, addr);
-        }
-        
-        // Pattern: "X, our office is in Y" (without "it's")
-        pattern = @"^(.+?),\s*(?:our\s+)?office\s+is\s+(?:in|at)\s+(.+)$";
-        m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
-        if (m.Success)
-        {
-            var org = CleanOrgName(m.Groups[1].Value);
-            var addr = m.Groups[2].Value.Trim();
-            if (IsValidOrgCandidate(org)) return (org, addr);
-        }
-        
-        // Pattern: "X, we're in Y" / "X, we are in Y" / "X, we're based in Y"
-        pattern = @"^(.+?),\s*we(?:'re|'re| are)\s+(?:based\s+|located\s+)?(?:in|at)\s+(.+)$";
-        m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
-        if (m.Success)
-        {
-            var org = CleanOrgName(m.Groups[1].Value);
-            var addr = m.Groups[2].Value.Trim();
-            if (IsValidOrgCandidate(org)) return (org, addr);
-        }
-        
-        // Pattern: "we're X, in Y" / "we are X, in Y"
-        pattern = @"^we(?:'re|'re| are)\s+(.+?),\s*(?:in|at|based in|located in)\s+(.+)$";
-        m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
-        if (m.Success)
-        {
-            var org = CleanOrgName(m.Groups[1].Value);
-            var addr = m.Groups[2].Value.Trim();
-            if (IsValidOrgCandidate(org)) return (org, addr);
-        }
-
-        // ============= EXPLICIT PATTERNS =============
-        
-        // Pattern: "Organization, address: 123 Main St"
-        pattern = @"^([^,]+),\s*address:\s*(.+)$";
-        m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
-        if (m.Success)
-        {
-            var org = CleanOrgName(m.Groups[1].Value);
-            var addr = m.Groups[2].Value.Trim();
-            if (IsValidOrgCandidate(org)) return (org, addr);
-        }
-
-        // Pattern: "Organization at 123 Main St" (requires digit or suburb in addr)
-        pattern = @"^(.+?)\s+(?:at|@)\s+(.+)$";
-        m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
-        if (m.Success)
-        {
-            var org = CleanOrgName(m.Groups[1].Value);
-            var addr = m.Groups[2].Value.Trim().ToLower();
-            if (IsValidOrgCandidate(org) && (addr.Any(char.IsDigit) || ausSuburbs.Any(s => addr.Contains(s))))
-                return (org, m.Groups[2].Value.Trim());
-        }
-
-        // Pattern: "Organization headquartered in Location" or "Organization based in Location"
-        pattern = @"^(.+?)\s+(?:headquartered|based|located|situated)\s+(?:in|at)\s+(.+)$";
-        m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
-        if (m.Success)
-        {
-            var org = CleanOrgName(m.Groups[1].Value);
-            var addr = m.Groups[2].Value.Trim();
-            if (IsValidOrgCandidate(org)) return (org, addr);
-        }
-
-        // Pattern: "X is the name, address is Y" or "X is the organization, address is Y"
-        pattern = @"^(.+?)\s+is\s+the\s+(?:name|organization|organisation|company),\s*(?:address|location)\s+is\s+(.+)$";
-        m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
-        if (m.Success)
-        {
-            var org = CleanOrgName(m.Groups[1].Value);
-            var addr = m.Groups[2].Value.Trim();
-            if (IsValidOrgCandidate(org)) return (org, addr);
-        }
-
-        // Pattern: "Organization is X, address is Y"
-        pattern = @"^(?:organization|organisation|company|org)\s+(?:name\s+)?is\s+([^,]+),\s*(?:address|location)\s+is\s+(.+)$";
-        m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
-        if (m.Success)
-        {
-            var org = CleanOrgName(m.Groups[1].Value);
-            var addr = m.Groups[2].Value.Trim();
-            if (IsValidOrgCandidate(org)) return (org, addr);
-        }
-
-        // Pattern: "Organization is X address is Y" (no comma)
-        pattern = @"^(?:organization|organisation|company|org)\s+(?:name\s+)?is\s+(.+?)\s+(?:address|location)\s+is\s+(.+)$";
-        m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
-        if (m.Success)
-        {
-            var org = CleanOrgName(m.Groups[1].Value);
-            var addr = m.Groups[2].Value.Trim();
-            if (IsValidOrgCandidate(org)) return (org, addr);
-        }
-
-        // Pattern: "X (organization), Y (address)" - flexible comma separation
-        pattern = @"^(?:organization|organisation|company|org|name)\s*(?:is|:)?\s*(.+?),\s*(?:address|location|based\s+(?:in|at))\s*(?:is|:)?\s*(.+)$";
-        m = Regex.Match(text, pattern, RegexOptions.IgnoreCase);
-        if (m.Success)
-        {
-            var org = CleanOrgName(m.Groups[1].Value);
-            var addr = m.Groups[2].Value.Trim();
-            if (IsValidOrgCandidate(org)) return (org, addr);
-        }
-
-        // Pattern: "X is the company. Y is the" pattern
-        var re5 = new Regex(@"^(?<org>.+?)\s+is\s+the\s+company\.?\s*(?<addr>.+?)\s+is\s+the",
-            RegexOptions.IgnoreCase);
-        var m5 = re5.Match(text);
-        if (m5.Success)
-        {
-            var org = CleanOrgName(m5.Groups["org"].Value);
-            if (IsValidOrgCandidate(org)) return (org, m5.Groups["addr"].Value.Trim());
-        }
-
-        // Pattern: "company is X. address is Y"
-        var re6 = new Regex(@"company\s+is\s+(?<org>.+?)\.?\s+address\s+is\s+(?<addr>.+?)$",
-            RegexOptions.IgnoreCase);
-        var m6 = re6.Match(text);
-        if (m6.Success)
-        {
-            var org = CleanOrgName(m6.Groups["org"].Value);
-            if (IsValidOrgCandidate(org)) return (org, m6.Groups["addr"].Value.Trim());
-        }
-
-        // ============= SMART FALLBACK: comma-separated with location hint =============
-        // Pattern: "X, Y" where Y contains location words or is a known suburb
-        var commaIdx = text.IndexOf(',');
-        if (commaIdx > 3)
-        {
-            var part1 = text[..commaIdx].Trim();
-            var part2 = text[(commaIdx + 1)..].Trim();
-            
-            // Clean up part1 (remove "it's", "we're", etc.)
-            part1 = CleanOrgName(part1);
-            
-            // Check if part2 looks like a location
-            var part2Lower = part2.ToLower();
-            var locationWords = new[] { "in ", "at ", "office", "based", "located", "street", "st ", "road", "rd ", "avenue", "ave " };
-            var hasLocationWord = locationWords.Any(w => part2Lower.Contains(w));
-            var hasSuburb = ausSuburbs.Any(s => part2Lower.Contains(s));
-            
-            if (IsValidOrgCandidate(part1) && (hasLocationWord || hasSuburb))
-            {
-                // Extract just the location from part2
-                var addrMatch = Regex.Match(part2, @"(?:in|at)\s+(.+)$", RegexOptions.IgnoreCase);
-                var addr = addrMatch.Success ? addrMatch.Groups[1].Value.Trim() : part2;
-                return (part1, addr);
-            }
-        }
-
-        return (null, null);
-    }
-    
-    /// <summary>
-    /// Clean organization name by removing common prefixes
-    /// </summary>
-    private static string CleanOrgName(string name)
-    {
-        if (string.IsNullOrWhiteSpace(name)) return name;
-        
-        name = name.Trim().TrimEnd(',', '.', ';');
-        
-        // Remove common prefixes - including verbs like "called", "named", "is", etc.
-        var prefixes = new[] { 
-            "it's ", "its ", "it is ", "we're ", "we are ", "i work for ", "i work at ", "from ",
-            "called ", "named ", "is ", "are ", "company is ", "business is ", "organisation is ", 
-            "organization is ", "org is ", "the company is ", "the business is "
-        };
-        foreach (var prefix in prefixes)
-        {
-            if (name.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-                name = name[prefix.Length..].Trim();
-        }
-        
-        // Also handle patterns like "called THE gully" -> "THE gully"
-        var verbPattern = new Regex(@"^(?:called|named|is|are|company\s+is|business\s+is|organisation\s+is|organization\s+is|org\s+is|the\s+company\s+is|the\s+business\s+is)\s+(.+)$", RegexOptions.IgnoreCase);
-        var match = verbPattern.Match(name);
-        if (match.Success)
-            name = match.Groups[1].Value.Trim();
-        
-        return name;
-    }
-    
-    /// <summary>
-    /// Check if a string looks like a valid organization name candidate
-    /// </summary>
-    private static bool IsValidOrgCandidate(string? org)
-    {
-        if (string.IsNullOrWhiteSpace(org)) return false;
-        if (org.Length < 3 || org.Length > 60) return false;
-        
-        // Must not be common phrases
-        var invalidPhrases = new[] { "yes", "no", "ok", "okay", "sure", "thanks", "thank you", "please", "hello", "hi" };
-        if (invalidPhrases.Contains(org.ToLower())) return false;
-        
-        return true;
-    }
-
-    private static string? CleanAddress(string? addr)
-    {
-        if (string.IsNullOrWhiteSpace(addr)) return null;
-        var result = Regex.Replace(addr!, @"\s+", " ").Trim(',', ';', ':');
-        // Truncate to database column length (varchar(200))
-        return result.Length > 200 ? result[..200] : result;
-    }
-
-    private static string? CapitalizeWords(string? s)
-    {
-        if (string.IsNullOrWhiteSpace(s)) return s;
-        var result = CultureInfo.CurrentCulture.TextInfo.ToTitleCase(s!.ToLowerInvariant());
-        // Truncate to database column length (varchar(50))
-        return result.Length > 50 ? result[..50] : result;
+        return state;
     }
 }
 
-/// <summary>
-/// Contact information extracted from conversation
-/// </summary>
-public class ContactInfo
+public sealed class LaptopAnswerSignals
 {
-    public string? Name { get; set; }
-    public string? Email { get; set; }
-    public string? PhoneE164 { get; set; }
-    public string? Position { get; set; }
-    public string? NameMatch { get; set; }
-    public string? EmailMatch { get; set; }
-    public string? PhoneMatch { get; set; }
+    public bool OwnershipAnswered { get; set; }
+    public bool NeedsProvidedLaptop { get; set; }
+    public bool PreferenceAnswered { get; set; }
+    public string? Preference { get; set; }
 }
 
-/// <summary>
-/// Equipment item selected from gallery picker
-/// </summary>
-public class SelectedEquipmentItem
+public sealed class LaptopAnswerState
 {
-    public string ProductCode { get; set; } = "";
-    public string Description { get; set; } = "";
-    public int Quantity { get; set; } = 1;
-}
+    public bool OwnershipAnswered { get; private set; }
+    public bool NeedsProvidedLaptop { get; private set; }
+    public bool PreferenceAnswered { get; private set; }
+    public string? Preference { get; private set; }
 
-/// <summary>
-/// Comprehensive event information extracted from conversation
-/// </summary>
-public class EventInformation
-{
-    public decimal? Budget { get; set; }
-    public string? BudgetMatch { get; set; }
-    public int? Attendees { get; set; }
-    public string? AttendeesMatch { get; set; }
-    public string? SetupStyle { get; set; }
-    public string? SetupMatch { get; set; }
-    public string? Venue { get; set; }
-    public string? VenueMatch { get; set; }
-    public string? SpecialRequests { get; set; }
-    public string? SpecialRequestsMatch { get; set; }
-    public List<string>? Dates { get; set; }
-
-    /// <summary>
-    /// Check if any information was extracted
-    /// </summary>
-    public bool HasInformation()
+    public void Apply(LaptopAnswerSignals signals)
     {
-        return Budget.HasValue || Attendees.HasValue || !string.IsNullOrWhiteSpace(SetupStyle) ||
-               !string.IsNullOrWhiteSpace(Venue) || !string.IsNullOrWhiteSpace(SpecialRequests) ||
-               (Dates != null && Dates.Count > 0);
+        if (signals.OwnershipAnswered)
+        {
+            OwnershipAnswered = true;
+            NeedsProvidedLaptop = signals.NeedsProvidedLaptop;
+            if (!NeedsProvidedLaptop)
+            {
+                // Own laptop path means preference is not required anymore.
+                PreferenceAnswered = false;
+                Preference = null;
+            }
+        }
+
+        if (signals.PreferenceAnswered)
+        {
+            OwnershipAnswered = true;
+            NeedsProvidedLaptop = true;
+            PreferenceAnswered = true;
+            Preference = signals.Preference;
+        }
     }
 }

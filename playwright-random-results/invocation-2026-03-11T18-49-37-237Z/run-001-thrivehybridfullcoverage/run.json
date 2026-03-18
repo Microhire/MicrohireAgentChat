@@ -1,0 +1,28 @@
+{
+  "runId": "run-001-thrivehybridfullcoverage",
+  "startedAt": "2026-03-11T18:49:44.916Z",
+  "scenarioId": "thriveHybridFullCoverage",
+  "scenarioDescription": "Thrive Boardroom hybrid meeting with full technician coverage",
+  "status": "FAIL",
+  "reason": "Exception: page.waitForTimeout: Target page, context or browser has been closed",
+  "metrics": {
+    "assistantTurns": 0,
+    "attendeePromptCount": 0,
+    "attendeeReconfirmCount": 0,
+    "technicalIssueCount": 0,
+    "videoAssumptionCount": 0,
+    "technicianPromptCount": 0,
+    "quoteReached": false,
+    "timePickerSubmitted": false
+  },
+  "assertions": [],
+  "transcript": [
+    {
+      "ts": "2026-03-11T18:49:51.221Z",
+      "role": "user",
+      "text": "Daniel Morel"
+    }
+  ],
+  "screenshotOnFailure": null,
+  "endedAt": "2026-03-11T18:49:56.846Z"
+}

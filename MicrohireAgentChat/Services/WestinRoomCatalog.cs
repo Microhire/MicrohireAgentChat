@@ -1,4 +1,4 @@
-﻿// Services/WestinRoomCatalog.cs
+// Services/WestinRoomCatalog.cs
 using System.Text;
 using System.Text.Json;
 
@@ -12,8 +12,19 @@ public interface IWestinRoomCatalog
 
 public sealed class WestinRoomCatalog : IWestinRoomCatalog
 {
+    public const string VenueName = "Westin Brisbane";
+    public const string VenueAddress = "111 Mary Street, Brisbane City, Queensland 4000, Australia";
+
     private readonly string _jsonPath;
     private static readonly JsonSerializerOptions _opts = new() { PropertyNameCaseInsensitive = true };
+    private static readonly HashSet<string> _quotableRoomSlugs = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "westin-ballroom",
+        "westin-ballroom-1",
+        "westin-ballroom-2",
+        "elevate",
+        "thrive-boardroom"
+    };
 
     public WestinRoomCatalog(IWebHostEnvironment env)
         => _jsonPath = Path.Combine(env.WebRootPath, "data", "the_westin_brisbane_rooms.json");
@@ -47,6 +58,9 @@ public sealed class WestinRoomCatalog : IWestinRoomCatalog
             .Replace('\u2019', '\'').Replace('\u2018', '\'')
             .Replace('\u201C', '"').Replace('\u201D', '"');
 
-        return JsonSerializer.Deserialize<List<WestinRoom>>(text, _opts) ?? new();
+        var allRooms = JsonSerializer.Deserialize<List<WestinRoom>>(text, _opts) ?? new();
+        return allRooms
+            .Where(r => !string.IsNullOrWhiteSpace(r.Slug) && _quotableRoomSlugs.Contains(r.Slug))
+            .ToList();
     }
 }
