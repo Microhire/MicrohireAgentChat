@@ -9,7 +9,7 @@ namespace MicrohireAgentChat.Services;
 
 public partial class HtmlQuoteGenerationService
 {
-    private string GenerateHtml(QuoteHtmlData data, bool isShortForm = false)
+    private string GenerateHtml(QuoteHtmlData data)
     {
         var sb = new StringBuilder();
         
@@ -32,13 +32,13 @@ public partial class HtmlQuoteGenerationService
         sb.AppendLine(GenerateOverviewPage(data));
 
         // Page 3: Equipment page
-        sb.AppendLine(GenerateEquipmentPage(data, isShortForm));
+        sb.AppendLine(GenerateEquipmentPage(data));
 
         // Page 4: Technical Services (Labour)
         sb.AppendLine(GenerateTechnicalServicesPage(data));
 
         // Page 5: Budget Summary & Confirmation
-        sb.AppendLine(GenerateBudgetSummaryPage(data, isShortForm));
+        sb.AppendLine(GenerateBudgetSummaryPage(data));
 
         sb.AppendLine(@"    </div>
 </body>
@@ -181,160 +181,108 @@ public partial class HtmlQuoteGenerationService
         </div>";
     }
 
-    /// <summary>Order sections per Microhire short form: AUDIO, VISION, LIGHTING, GENERAL.</summary>
-    private static IEnumerable<QuoteEquipmentSection> OrderSectionsMicrohireShort(List<QuoteEquipmentSection> sections)
-    {
-        string Key(QuoteEquipmentSection s)
-        {
-            var c = (s.Category ?? "").ToUpperInvariant();
-            if (c.Contains("AUDIO") || c.Contains("MICROPHONE") || c.Contains("SPEAKER")) return "1_AUDIO";
-            if (c.Contains("VISION") || c.Contains("PROJECTOR") || c.Contains("SCREEN") || c.Contains("AV")) return "2_VISION";
-            if (c.Contains("LIGHTING") || c.Contains("LIGHT")) return "3_LIGHTING";
-            return "4_GENERAL";
-        }
-        return sections.OrderBy(Key).ToList();
-    }
-
-    private string GenerateEquipmentPage(QuoteHtmlData data, bool isShortForm = false)
+    private string GenerateEquipmentPage(QuoteHtmlData data)
     {
         var equipmentHtml = new StringBuilder();
 
-        // Short form: BRIEF section
-        if (isShortForm && !string.IsNullOrWhiteSpace(data.Brief))
+        // Group equipment by Vision/Audio/etc
+        var visionItems = data.EquipmentSections
+            .Where(s => s.Category.Contains("Vision") || s.Category.Contains("Projector") || s.Category.Contains("Screen"))
+            .SelectMany(s => s.Items).ToList();
+        var audioItems = data.EquipmentSections
+            .Where(s => s.Category.Contains("Audio") || s.Category.Contains("Microphone") || s.Category.Contains("Speaker"))
+            .SelectMany(s => s.Items).ToList();
+
+        // Vision section
+        if (visionItems.Any() || data.EquipmentSections.Any())
         {
             equipmentHtml.AppendLine(@"
-                <div class=""equipment-brief"">
-                    <div class=""equipment-brief-label"">BRIEF:</div>
-                    <div class=""equipment-brief-text"">" + HttpUtility.HtmlEncode(data.Brief) + @"</div>
-                </div>");
-        }
-
-        var sectionsToRender = isShortForm ? OrderSectionsMicrohireShort(data.EquipmentSections) : data.EquipmentSections;
-
-        // Long form: Vision first, then Audio, then others. Short form: AUDIO, VISION, LIGHTING, GENERAL
-        if (!isShortForm)
-        {
-            // Vision section
-            var visionSections = data.EquipmentSections.Where(s =>
-                s.Category.Contains("Vision") || s.Category.Contains("Projector") ||
-                s.Category.Contains("Screen") || s.Category.Contains("AV")).ToList();
-            if (visionSections.Any())
-            {
-                equipmentHtml.AppendLine(@"
                 <div class=""equipment-category-header"">Vision</div>");
-                foreach (var section in visionSections)
+            
+            foreach (var section in data.EquipmentSections.Where(s => 
+                s.Category.Contains("Vision") || s.Category.Contains("Projector") || 
+                s.Category.Contains("Screen") || s.Category.Contains("AV")))
+            {
+                if (!string.IsNullOrEmpty(section.SubCategory))
                 {
-                    if (!string.IsNullOrEmpty(section.SubCategory))
-                        equipmentHtml.AppendLine($@"                <div class=""equipment-subcategory"">{HttpUtility.HtmlEncode(section.SubCategory)}</div>");
-                    equipmentHtml.AppendLine($@"                <div class=""equipment-group-title"">Includes:</div>");
-                    foreach (var item in section.Items)
-                    {
-                        var itemClass = item.IsComponent ? "component" : "";
-                        equipmentHtml.AppendLine($@"
+                    equipmentHtml.AppendLine($@"                <div class=""equipment-subcategory"">{HttpUtility.HtmlEncode(section.SubCategory)}</div>");
+                }
+                equipmentHtml.AppendLine($@"                <div class=""equipment-group-title"">Includes:</div>");
+
+                foreach (var item in section.Items)
+                {
+                    var itemClass = item.IsComponent ? "component" : "";
+                    equipmentHtml.AppendLine($@"
                     <div class=""equipment-row"">
                         <div class=""equipment-item {itemClass}"">{HttpUtility.HtmlEncode(item.Description)}</div>
                         <div class=""equipment-qty"">{(item.Quantity > 0 ? item.Quantity : 1)}</div>
                     </div>");
-                    }
                 }
-                var visionTotal = visionSections.Sum(s => s.Items.Sum(i => i.LineTotal));
-                equipmentHtml.AppendLine($@"
+            }
+
+            // Vision total
+            decimal visionTotal = data.EquipmentSections
+                .Where(s => s.Category.Contains("Vision") || s.Category.Contains("Projector") || 
+                    s.Category.Contains("Screen") || s.Category.Contains("AV"))
+                .Sum(s => s.Items.Sum(i => i.LineTotal));
+            equipmentHtml.AppendLine($@"
                 <div class=""section-total"">
                     <div class=""section-total-label"">Vision Total</div>
                     <div class=""section-total-amount"">{visionTotal:C}</div>
                 </div>");
-            }
+        }
 
-            // Audio section
-            var audioSections = data.EquipmentSections.Where(s =>
-                s.Category.Contains("Audio") || s.Category.Contains("Microphone") || s.Category.Contains("Speaker")).ToList();
-            if (audioSections.Any())
-            {
-                equipmentHtml.AppendLine(@"
+        // Audio section
+        if (data.EquipmentSections.Any(s => s.Category.Contains("Audio") || s.Category.Contains("Microphone") || s.Category.Contains("Speaker")))
+        {
+            equipmentHtml.AppendLine(@"
                 <div class=""equipment-category-header"">Audio</div>");
-                foreach (var section in audioSections)
+
+            foreach (var section in data.EquipmentSections.Where(s => 
+                s.Category.Contains("Audio") || s.Category.Contains("Microphone") || s.Category.Contains("Speaker")))
+            {
+                foreach (var item in section.Items)
                 {
-                    foreach (var item in section.Items)
-                    {
-                        var itemClass = item.IsComponent ? "component" : "";
-                        equipmentHtml.AppendLine($@"
+                    var itemClass = item.IsComponent ? "component" : "";
+                    equipmentHtml.AppendLine($@"
                     <div class=""equipment-row"">
                         <div class=""equipment-item {itemClass}"">{HttpUtility.HtmlEncode(item.Description)}</div>
                         <div class=""equipment-qty"">{(item.Quantity > 0 ? item.Quantity : 1)}</div>
                     </div>");
-                    }
                 }
-                var audioTotal = audioSections.Sum(s => s.Items.Sum(i => i.LineTotal));
-                equipmentHtml.AppendLine($@"
+            }
+
+            // Audio total
+            decimal audioTotal = data.EquipmentSections
+                .Where(s => s.Category.Contains("Audio") || s.Category.Contains("Microphone") || s.Category.Contains("Speaker"))
+                .Sum(s => s.Items.Sum(i => i.LineTotal));
+            equipmentHtml.AppendLine($@"
                 <div class=""section-total"">
                     <div class=""section-total-label"">Audio Total</div>
                     <div class=""section-total-amount"">{audioTotal:C}</div>
                 </div>");
-            }
+        }
 
-            // Other sections
-            var otherSections = data.EquipmentSections.Where(s =>
-                !s.Category.Contains("Vision") && !s.Category.Contains("Projector") &&
-                !s.Category.Contains("Screen") && !s.Category.Contains("AV") &&
-                !s.Category.Contains("Audio") && !s.Category.Contains("Microphone") &&
-                !s.Category.Contains("Speaker")).ToList();
-            foreach (var section in otherSections)
+        // Other equipment sections
+        var otherSections = data.EquipmentSections.Where(s => 
+            !s.Category.Contains("Vision") && !s.Category.Contains("Projector") && 
+            !s.Category.Contains("Screen") && !s.Category.Contains("AV") &&
+            !s.Category.Contains("Audio") && !s.Category.Contains("Microphone") && 
+            !s.Category.Contains("Speaker")).ToList();
+
+        foreach (var section in otherSections)
+        {
+            equipmentHtml.AppendLine($@"
+                <div class=""equipment-category-header"">{HttpUtility.HtmlEncode(section.Category)}</div>");
+
+            foreach (var item in section.Items)
             {
                 equipmentHtml.AppendLine($@"
-                <div class=""equipment-category-header"">{HttpUtility.HtmlEncode(section.Category)}</div>");
-                foreach (var item in section.Items)
-                {
-                    equipmentHtml.AppendLine($@"
                     <div class=""equipment-row"">
                         <div class=""equipment-item"">{HttpUtility.HtmlEncode(item.Description)}</div>
                         <div class=""equipment-qty"">{(item.Quantity > 0 ? item.Quantity : 1)}</div>
                     </div>");
-                }
             }
-        }
-        else
-        {
-            // Short form: render in AUDIO, VISION, LIGHTING, GENERAL order
-            string CurrentCategory(QuoteEquipmentSection s)
-            {
-                var c = (s.Category ?? "").ToUpperInvariant();
-                if (c.Contains("AUDIO") || c.Contains("MICROPHONE") || c.Contains("SPEAKER")) return "AUDIO";
-                if (c.Contains("VISION") || c.Contains("PROJECTOR") || c.Contains("SCREEN") || c.Contains("AV")) return "VISION";
-                if (c.Contains("LIGHTING") || c.Contains("LIGHT")) return "LIGHTING";
-                return "GENERAL";
-            }
-            var byCategory = sectionsToRender.GroupBy(CurrentCategory).ToList();
-            foreach (var grp in byCategory)
-            {
-                equipmentHtml.AppendLine($@"
-                <div class=""equipment-category-header"">{grp.Key}</div>");
-                foreach (var section in grp)
-                {
-                    foreach (var item in section.Items)
-                    {
-                        var itemClass = item.IsComponent ? "component" : "";
-                        equipmentHtml.AppendLine($@"
-                    <div class=""equipment-row"">
-                        <div class=""equipment-item {itemClass}"">{HttpUtility.HtmlEncode(item.Description)}</div>
-                        <div class=""equipment-qty"">{(item.Quantity > 0 ? item.Quantity : 1)}</div>
-                    </div>");
-                    }
-                }
-                var catTotal = grp.Sum(s => s.Items.Sum(i => i.LineTotal));
-                equipmentHtml.AppendLine($@"
-                <div class=""section-total"">
-                    <div class=""section-total-label"">{grp.Key} Total</div>
-                    <div class=""section-total-amount"">{catTotal:C}</div>
-                </div>");
-            }
-
-            // Short form: NOTES section
-            equipmentHtml.AppendLine(@"
-                <div class=""equipment-notes"">
-                    <div class=""equipment-notes-label"">NOTES</div>
-                    <div class=""equipment-notes-text"">Please note that our tech support team will be available to assist with the setup, testing, and connection of equipment prior to the commencement of event, unless a full-day onsite Tech booking has been arranged in advance.</div>
-                    <div class=""equipment-notes-text"">If additional tech support is needed during the event, it can be arranged at an hourly rate. Please be aware that the response time for on-site support ranges from 15 minutes to one hour on business days, depending on availability.</div>
-                </div>");
         }
 
         return $@"
@@ -470,11 +418,10 @@ public partial class HtmlQuoteGenerationService
         </div>";
     }
 
-    private string GenerateBudgetSummaryPage(QuoteHtmlData data, bool isShortForm = false)
+    private string GenerateBudgetSummaryPage(QuoteHtmlData data)
     {
         decimal serviceCharge = data.ServiceCharge;
-        decimal transport = isShortForm ? data.Transport : 0;
-        decimal subTotalExGst = data.EquipmentTotal + transport + data.LabourTotal + serviceCharge;
+        decimal subTotalExGst = data.EquipmentTotal + data.LabourTotal + serviceCharge;
         decimal gst = subTotalExGst * 0.10m;
         decimal grandTotal = subTotalExGst + gst;
 
@@ -499,11 +446,6 @@ public partial class HtmlQuoteGenerationService
                         <div class=""budget-label"">Rental Equipment</div>
                         <div class=""budget-value"">{data.EquipmentTotal:C}</div>
                     </div>
-                    {(isShortForm ? $@"
-                    <div class=""budget-row"">
-                        <div class=""budget-label"">Transport</div>
-                        <div class=""budget-value"">{transport:C}</div>
-                    </div>" : "")}
                     <div class=""budget-row"">
                         <div class=""budget-label"">Labour</div>
                         <div class=""budget-value"">{data.LabourTotal:C}</div>

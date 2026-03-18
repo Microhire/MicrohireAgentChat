@@ -534,18 +534,8 @@ namespace MicrohireAgentChat.Services
                                                     _logger.LogWarning(ex, "[QUOTE GEN] Failed to sync session labor to booking {BookingNo}; continuing", bookingNo);
                                                 }
 
-                                                // Parse format from tool args (optional: "long" | "short")
-                                                var quoteFormat = "long";
-                                                try
-                                                {
-                                                    var args = JsonSerializer.Deserialize<JsonElement>(argsJson);
-                                                    if (args.TryGetProperty("format", out var fmtProp) && fmtProp.ValueKind == JsonValueKind.String)
-                                                        quoteFormat = fmtProp.GetString() ?? "long";
-                                                }
-                                                catch { /* use default */ }
-
                                                 // Use HtmlQuoteGenerationService to generate HTML from booking data
-                                                var (success, htmlUrl, error) = await _htmlQuoteGen.GenerateHtmlQuoteForBookingAsync(bookingNo, ct, session, quoteFormat);
+                                                var (success, htmlUrl, error) = await _htmlQuoteGen.GenerateHtmlQuoteForBookingAsync(bookingNo, ct, session);
                                                 
                                                 if (!success || string.IsNullOrEmpty(htmlUrl))
                                                 {

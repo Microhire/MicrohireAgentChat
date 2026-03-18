@@ -117,12 +117,6 @@ public partial class HtmlQuoteGenerationService
         .equipment-item.component { margin-left: 15px; font-style: italic; color: var(--text-gray); }
         .equipment-qty { width: 80px; text-align: center; font-size: 13px; color: var(--text-dark); }
         .equipment-note { font-style: italic; font-size: 13px; color: var(--text-dark); margin: 15px 0 15px 15px; }
-        .equipment-brief { margin: 15px 0 20px 0; }
-        .equipment-brief-label { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 12px; color: var(--text-dark); text-transform: uppercase; margin-bottom: 6px; }
-        .equipment-brief-text { font-size: 13px; color: var(--text-gray); line-height: 1.6; }
-        .equipment-notes { margin: 25px 0 15px 0; padding-top: 15px; border-top: 1px solid #eee; }
-        .equipment-notes-label { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 12px; color: var(--text-dark); text-transform: uppercase; margin-bottom: 8px; }
-        .equipment-notes-text { font-size: 12px; color: var(--text-gray); line-height: 1.6; margin-bottom: 8px; }
         .section-total { display: flex; justify-content: flex-end; padding: 15px 0; margin-top: 10px; border-top: 1px solid #eee; }
         .section-total-label { font-family: 'Montserrat', sans-serif; font-weight: 600; font-size: 13px; color: var(--text-dark); margin-right: 30px; }
         .section-total-amount { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 14px; color: var(--text-dark); }
@@ -286,14 +280,10 @@ public class QuoteHtmlData
     public List<QuoteEquipmentSection> EquipmentSections { get; set; } = new();
     public List<QuoteLaborItem> LaborItems { get; set; } = new();
     public decimal EquipmentTotal { get; set; }
-    public decimal Transport { get; set; }
     public decimal LabourTotal { get; set; }
     public decimal ServiceCharge { get; set; }
     public decimal Gst { get; set; }
     public decimal GrandTotal { get; set; }
-
-    /// <summary>Event brief/description (used in short form).</summary>
-    public string Brief { get; set; } = "";
 }
 
 public class QuoteLaborItem

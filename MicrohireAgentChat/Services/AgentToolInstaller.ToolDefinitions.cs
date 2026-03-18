@@ -224,12 +224,11 @@ public sealed partial class AgentToolInstaller
                     }),
 
                 FunctionTool("generate_quote", 
-                    "Generate quote. Call IMMEDIATELY when user confirms equipment - do NOT ask for additional confirmation! Use format='short' when user explicitly asks for short form, Microhire short form, or condensed quote.",
+                    "Generate quote. Call IMMEDIATELY when user confirms equipment - do NOT ask for additional confirmation!",
                     new {
                         type = "object",
                         properties = new { 
-                            threadSnapshot = new { type = "object" },
-                            format = new { type = "string", @enum = new[] { "long", "short" }, description = "Quote format: 'long' (default) or 'short' (Microhire short form with Transport, Brief, Notes)" }
+                            threadSnapshot = new { type = "object" }
                         },
                         required = Array.Empty<string>()
                     }),

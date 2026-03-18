@@ -28,12 +28,10 @@ public partial class HtmlQuoteGenerationService
         _logger = logger;
     }
 
-    /// <param name="quoteFormat">"long" (default) = current full format; "short" = Microhire short form (Transport in budget, Brief, Notes).</param>
     public async Task<(bool success, string? htmlUrl, string? error)> GenerateHtmlQuoteForBookingAsync(
         string bookingNo,
         CancellationToken ct = default,
-        ISession? session = null,
-        string quoteFormat = "long")
+        ISession? session = null)
     {
         var startTime = DateTime.UtcNow;
         _logger.LogInformation("[QUOTE GEN] Starting HTML quote generation for booking {BookingNo} at {StartTime}", bookingNo, startTime);
@@ -136,12 +134,8 @@ public partial class HtmlQuoteGenerationService
             var quoteData = BuildQuoteData(booking, venue, contact, organization, items, inventoryItems, rateItems,
                 crewRows, sessionVenueName, sessionContactName, sessionOrganisation);
 
-            // Resolve format: session override > param > default "long"
-            var resolvedFormat = session?.GetString("Draft:QuoteFormat") ?? quoteFormat;
-            var isShortForm = string.Equals(resolvedFormat, "short", StringComparison.OrdinalIgnoreCase);
-
             // 8. Generate HTML
-            var html = GenerateHtml(quoteData, isShortForm);
+            var html = GenerateHtml(quoteData);
 
             // 9. Save to file
             var webRoot = _env.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot");
@@ -270,18 +264,6 @@ public partial class HtmlQuoteGenerationService
 
         var laborItems = BuildLaborItems(crewRows, eventDate.Value);
 
-        // Transport (used in short form budget) - from booking.delivery when positive
-        decimal transport = 0;
-        if (booking.delivery.HasValue && booking.delivery.Value > 0)
-            transport = (decimal)booking.delivery.Value;
-
-        // Brief/event description (used in short form)
-        var brief = !string.IsNullOrWhiteSpace(booking.showName)
-            ? booking.showName
-            : !string.IsNullOrWhiteSpace(resolvedOrgName)
-                ? $"Event for {resolvedOrgName}"
-                : "";
-
         return new QuoteHtmlData
         {
             EventTitle = booking.showName ?? resolvedOrgName ?? "Event",
@@ -325,11 +307,9 @@ public partial class HtmlQuoteGenerationService
             EquipmentSections = equipmentSections,
             LaborItems = laborItems,
             EquipmentTotal = equipmentTotal,
-            Transport = transport,
             ServiceCharge = serviceCharge,
             Gst = gst,
-            GrandTotal = grandTotal,
-            Brief = brief
+            GrandTotal = grandTotal
         };
     }
 
