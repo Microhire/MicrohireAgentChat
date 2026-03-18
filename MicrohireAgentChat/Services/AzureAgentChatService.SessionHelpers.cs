@@ -195,25 +195,9 @@ namespace MicrohireAgentChat.Services
                     _logger.LogInformation("[PROACTIVE] Stored OrgId={OrgId} in session", orgId.Value);
                 }
 
-                if (contactId.HasValue && string.IsNullOrWhiteSpace(session.GetString("Draft:BookingNo")))
-                {
-                    var bookingNo = await _bookingPersistence.CreateBookingOnTheFlyAsync(session, messageList, ct);
-                    if (!string.IsNullOrWhiteSpace(bookingNo))
-                    {
-                        session.SetString("Draft:BookingNo", bookingNo);
-                        _logger.LogInformation("[PROACTIVE] Draft booking created: {BookingNo}", bookingNo);
-
-                        try
-                        {
-                            await _bookingPersistence.SaveFullTranscriptToBooknoteAsync(bookingNo, messageList, ct);
-                            _logger.LogInformation("[PROACTIVE] Transcript saved for new booking {BookingNo}", bookingNo);
-                        }
-                        catch (Exception txEx)
-                        {
-                            _logger.LogWarning(txEx, "[PROACTIVE] Failed to save transcript for booking {BookingNo}", bookingNo);
-                        }
-                    }
-                }
+                // Booking creation is intentionally deferred until explicit quote generation.
+                // This avoids early database writes during contact capture/schedule collection
+                // and keeps the flow consistent with user confirmation.
             }
             catch (Exception ex)
             {
