@@ -1,6 +1,8 @@
 // Controllers/ChatController.cs
+using Azure.Identity;
 using MicrohireAgentChat.Config;
 using MicrohireAgentChat.Data;
+using MicrohireAgentChat.Helpers;
 using MicrohireAgentChat.Models; // for DisplayMessage if needed
 using MicrohireAgentChat.Services;
 using MicrohireAgentChat.Services.Extraction;
@@ -14,6 +16,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using System.Collections.Concurrent;
 using System.Globalization;
+using System.Net.Mail;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -27,6 +30,7 @@ namespace MicrohireAgentChat.Controllers;
 public sealed class ChatController : Controller
 {
     private readonly AzureAgentChatService _chat;
+    private readonly AppDbContext _appDb;
     private readonly BookingDbContext _bookingDb;
     private readonly BookingOrchestrationService _orchestration;
     private readonly HtmlQuoteGenerationService _htmlQuoteGen;
@@ -35,6 +39,7 @@ public sealed class ChatController : Controller
     private readonly BookingPersistenceService _bookingPersistence;
     private readonly ConversationReplayService _replayService;
     private readonly AutoTestCustomerService _autoTestService;
+    private readonly BookingQueryService _bookingQuery;
     private readonly DevModeOptions _devOptions;
     private readonly AutoTestOptions _autoTestOptions;
     private readonly IWebHostEnvironment _env;
@@ -51,6 +56,30 @@ public sealed class ChatController : Controller
         new(@"^\s*Choose\s+schedule\s*:\s*(.+)$",
             RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
+    private static readonly Regex ContactFormRe =
+        new(@"^\s*Contact\s*:\s*(.+)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex EventFormRe =
+        new(@"^\s*Event\s*:\s*(.+)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex AvExtrasFormRe =
+        new(@"^\s*AV\s+Extras\s*:\s*(.+)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex EmailFormRe =
+        new(@"^\s*Email\s*:\s*(.+)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex VenueConfirmFormRe =
+        new(@"^\s*VenueConfirm\s*:\s*(.+)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex EventDetailsFormRe =
+        new(@"^\s*EventDetails\s*:\s*(.+)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex BaseAvFormRe =
+        new(@"^\s*BaseAv\s*:\s*(.+)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex FollowUpAvFormRe =
+        new(@"^\s*FollowUpAv\s*:\s*(.+)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
     /// <summary>True if the name is the assistant's (Isla, Microhire, or both). Used to avoid saving assistant name as contact.</summary>
     private static bool LooksLikeAssistantName(string? s)
     {
@@ -59,9 +88,9 @@ public sealed class ChatController : Controller
         return t == "isla" || t == "microhire" || (t.Contains("isla") && t.Contains("microhire"));
     }
 
-    // Exact scripted greeting per your "Final Script for AI"
+    // Opening line for Azure thread (intro only — email gate copy lives on the structured email form message)
     private const string GreetingText =
-        "Hello, my name is Isla from Microhire. What is your full name?";
+        "Hello, my name is Isla from Microhire. I'm here to help you plan AV equipment hire and quotes for your event.";
     private const string AwaitingQuoteReviewPromptKey = "Draft:AwaitingQuoteReviewPrompt";
     private const string QuoteReviewPromptShownKey = "Draft:QuoteReviewPromptShown";
     private const string ProjectorPromptShownKey = "Draft:ProjectorPromptShown";
@@ -71,6 +100,7 @@ public sealed class ChatController : Controller
 
     public ChatController(
         AzureAgentChatService chat,
+        AppDbContext appDb,
         BookingDbContext bookingDb,
         BookingOrchestrationService orchestration,
         HtmlQuoteGenerationService htmlQuoteGen,
@@ -79,6 +109,7 @@ public sealed class ChatController : Controller
         BookingPersistenceService bookingPersistence,
         ConversationReplayService replayService,
         AutoTestCustomerService autoTestService,
+        BookingQueryService bookingQuery,
         IOptions<DevModeOptions> devOptions,
         IOptions<AutoTestOptions> autoTestOptions,
         IWebHostEnvironment env,
@@ -86,6 +117,7 @@ public sealed class ChatController : Controller
         ILogger<ChatController> logger)
     {
         _chat = chat;
+        _appDb = appDb;
         _bookingDb = bookingDb;
         _orchestration = orchestration;
         _htmlQuoteGen = htmlQuoteGen;
@@ -94,6 +126,7 @@ public sealed class ChatController : Controller
         _bookingPersistence = bookingPersistence;
         _replayService = replayService;
         _autoTestService = autoTestService;
+        _bookingQuery = bookingQuery;
         _devOptions = devOptions.Value;
         _autoTestOptions = autoTestOptions.Value;
         _env = env;
@@ -115,6 +148,40 @@ public sealed class ChatController : Controller
         }
         return sid!;
     }
+
+    #region agent log
+    private const string Debug105ef6LogPath = "/Users/nitwit-watson/INTENT/repos/Microhire-sales-portal/.cursor/debug-105ef6.log";
+
+    private void Debug105ef6(string hypothesisId, string location, string message, Dictionary<string, object?> data)
+    {
+        try
+        {
+            var line = JsonSerializer.Serialize(new Dictionary<string, object?>
+            {
+                ["sessionId"] = "105ef6",
+                ["hypothesisId"] = hypothesisId,
+                ["location"] = location,
+                ["message"] = message,
+                ["data"] = data,
+                ["timestamp"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+            });
+            try
+            {
+                System.IO.File.AppendAllText(Debug105ef6LogPath, line + "\n");
+            }
+            catch
+            {
+                /* Azure App Service: path not on server */
+            }
+
+            _logger.LogWarning("AGENT_DEBUG_105ef6 {Payload}", line);
+        }
+        catch
+        {
+            /* never throw from debug log */
+        }
+    }
+    #endregion
 
     // Check if user has completed quote
     private bool IsQuoteComplete()
@@ -177,6 +244,32 @@ public sealed class ChatController : Controller
         HttpContext.Session.Remove("Draft:LaptopPreference");
         HttpContext.Session.Remove("ContactSavePending");
         HttpContext.Session.Remove("ContactSaveCompleted");
+        HttpContext.Session.Remove("Draft:EntrySource");
+        HttpContext.Session.Remove("Draft:EmailGateCompleted");
+        HttpContext.Session.Remove("Draft:LeadVerifyEmail");
+        HttpContext.Session.Remove("Draft:NeedManualContact");
+        HttpContext.Session.Remove("Draft:BookingLookupApplied");
+        HttpContext.Session.Remove("Draft:VenueConfirmSubmitted");
+        HttpContext.Session.Remove("Draft:BaseAvSubmitted");
+        HttpContext.Session.Remove("Draft:FollowUpAvSubmitted");
+        HttpContext.Session.Remove("Draft:EventEndDate");
+        HttpContext.Session.Remove("Draft:WantsOperator");
+        HttpContext.Session.Remove("Draft:BuiltInProjector");
+        HttpContext.Session.Remove("Draft:BuiltInScreen");
+        HttpContext.Session.Remove("Draft:BuiltInSpeakers");
+        HttpContext.Session.Remove("Draft:ProjectorPlacementChoice");
+        HttpContext.Session.Remove("Draft:Flipchart");
+        HttpContext.Session.Remove("Draft:LaptopMode");
+        HttpContext.Session.Remove("Draft:LaptopQty");
+        HttpContext.Session.Remove("Draft:AdapterOwnLaptops");
+        HttpContext.Session.Remove("Draft:MicType");
+        HttpContext.Session.Remove("Draft:MicQty");
+        HttpContext.Session.Remove("Draft:Lectern");
+        HttpContext.Session.Remove("Draft:FoldbackMonitor");
+        HttpContext.Session.Remove("Draft:WirelessPresenter");
+        HttpContext.Session.Remove("Draft:LaptopSwitcher");
+        HttpContext.Session.Remove("Draft:StageLaptop");
+        HttpContext.Session.Remove("Draft:VideoConference");
     }
 
     private void PersistProjectorAreaSelection(string threadId, IReadOnlyList<string> projectorAreas)
@@ -242,6 +335,105 @@ public sealed class ChatController : Controller
     {
         try
         {
+            var userKey = GetUserKey();
+            var startedFreshLeadChat = false;
+            var leadDatabaseHit = false;
+
+            // Sales-portal lead link: new Azure thread + cleared draft so we never merge an old chat with this enquiry.
+            var leadIdStr = Request.Query["leadId"].FirstOrDefault();
+            // #region agent log
+            Debug105ef6("H5", "ChatController.Index:entry", "Index start", new Dictionary<string, object?>
+            {
+                ["env"] = _env.EnvironmentName,
+                ["userKeyLen"] = userKey.Length,
+                ["hasLeadIdQuery"] = !string.IsNullOrWhiteSpace(leadIdStr),
+                ["sessionIsAvailable"] = HttpContext.Session.IsAvailable
+            });
+            // #endregion
+
+            if (!string.IsNullOrWhiteSpace(leadIdStr) && Guid.TryParse(leadIdStr, out var leadToken))
+            {
+                var lead = await _appDb.WestinLeads.AsNoTracking()
+                    .FirstOrDefaultAsync(l => l.Token == leadToken, ct);
+                leadDatabaseHit = lead != null;
+                if (lead != null)
+                {
+                    ClearBookingAndQuoteDraftState();
+                    HttpContext.Session.Remove("Draft:ContactFormSubmitted");
+                    HttpContext.Session.Remove("Draft:EventFormSubmitted");
+                    HttpContext.Session.Remove("Draft:ShowContactSummary");
+                    HttpContext.Session.Remove("AgentThreadId");
+                    HttpContext.Session.Remove("IslaGreeted");
+                    HttpContext.Session.Remove("Draft:ContactId");
+                    HttpContext.Session.Remove("Draft:CustomerCode");
+                    HttpContext.Session.Remove("Draft:OrgId");
+                    HttpContext.Session.Remove("Ack:Budget");
+                    HttpContext.Session.Remove("Ack:Attendees");
+                    HttpContext.Session.Remove("Ack:SetupStyle");
+                    HttpContext.Session.Remove("Ack:Venue");
+                    HttpContext.Session.Remove("Ack:SpecialRequests");
+                    HttpContext.Session.Remove("Ack:Dates");
+
+                    HttpContext.Session.SetString("Draft:EntrySource", "lead");
+                    var contactName = $"{lead.FirstName} {lead.LastName}".Trim();
+                    if (!string.IsNullOrWhiteSpace(contactName)) HttpContext.Session.SetString("Draft:ContactName", contactName);
+                    if (!string.IsNullOrWhiteSpace(lead.Email) && TryValidateEmailFormat(lead.Email, out var leadEmailNorm))
+                    {
+                        HttpContext.Session.Remove("Draft:ContactEmail");
+                        HttpContext.Session.SetString("Draft:LeadVerifyEmail", leadEmailNorm);
+                    }
+                    else
+                    {
+                        HttpContext.Session.Remove("Draft:ContactEmail");
+                        HttpContext.Session.Remove("Draft:LeadVerifyEmail");
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(lead.PhoneNumber)) HttpContext.Session.SetString("Draft:ContactPhone", lead.PhoneNumber);
+                    if (!string.IsNullOrWhiteSpace(lead.Organisation)) HttpContext.Session.SetString("Draft:Organisation", lead.Organisation);
+                    if (!string.IsNullOrWhiteSpace(lead.OrganisationAddress)) HttpContext.Session.SetString("Draft:OrganisationAddress", lead.OrganisationAddress);
+                    if (!string.IsNullOrWhiteSpace(lead.Venue)) HttpContext.Session.SetString("Draft:VenueName", lead.Venue);
+                    if (!string.IsNullOrWhiteSpace(lead.Room)) HttpContext.Session.SetString("Draft:RoomName", lead.Room);
+                    if (!string.IsNullOrWhiteSpace(lead.EventStartDate)) HttpContext.Session.SetString("Draft:EventDate", NormalizeToIsoDateOrEmpty(lead.EventStartDate));
+                    if (!string.IsNullOrWhiteSpace(lead.EventEndDate)) HttpContext.Session.SetString("Draft:EventEndDate", NormalizeToIsoDateOrEmpty(lead.EventEndDate));
+                    if (!string.IsNullOrWhiteSpace(lead.Attendees)) HttpContext.Session.SetString("Draft:ExpectedAttendees", lead.Attendees);
+
+                    if (!string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:LeadVerifyEmail")))
+                    {
+                        HttpContext.Session.Remove("Draft:EmailGateCompleted");
+                        HttpContext.Session.Remove("Draft:ContactFormSubmitted");
+                        HttpContext.Session.Remove("Draft:NeedManualContact");
+                    }
+                    else
+                    {
+                        HttpContext.Session.SetString("Draft:EmailGateCompleted", "1");
+                        HttpContext.Session.SetString("Draft:ContactFormSubmitted", "1");
+                        HttpContext.Session.Remove("Draft:NeedManualContact");
+                    }
+
+                    _logger.LogInformation("Pre-filled session from lead {LeadId} for {Email}; starting new chat thread.", lead.Id, lead.Email);
+
+                    // Contact already exists on the lead record — skip Azure two-phase "saving contact" bubble.
+                    HttpContext.Session.SetString("ContactSaveCompleted", "1");
+
+                    var newThreadId = _chat.EnsureThreadId(HttpContext.Session);
+                    await _chat.ReplacePersistedThreadAsync(userKey, newThreadId, ct);
+                    await _chat.EnsureGreetingAsync(HttpContext.Session, GreetingText, ct);
+                    startedFreshLeadChat = true;
+                }
+
+                // #region agent log
+                Debug105ef6("H2", "ChatController.Index:afterLeadLookup", "Lead token lookup", new Dictionary<string, object?>
+                {
+                    ["leadDatabaseHit"] = leadDatabaseHit,
+                    ["startedFreshLeadChat"] = startedFreshLeadChat
+                });
+                // #endregion
+            }
+            else if (string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:EntrySource")))
+            {
+                HttpContext.Session.SetString("Draft:EntrySource", "general");
+            }
+
             // Check for existing quote based on booking number in session
             var bookingNo = HttpContext.Session.GetString("Draft:BookingNo");
             if (!string.IsNullOrWhiteSpace(bookingNo))
@@ -263,24 +455,55 @@ public sealed class ChatController : Controller
                 }
             }
 
-            var userKey = GetUserKey();
-            var threadId = await _chat.EnsureThreadIdPersistedAsync(HttpContext.Session, userKey, ct);
-            await _chat.EnsureGreetingAsync(HttpContext.Session, GreetingText, ct);
+            if (!startedFreshLeadChat)
+            {
+                await _chat.EnsureThreadIdPersistedAsync(HttpContext.Session, userKey, ct);
+                await _chat.EnsureGreetingAsync(HttpContext.Session, GreetingText, ct);
+            }
 
+            var threadId = _chat.EnsureThreadId(HttpContext.Session);
             var (_, messages) = _chat.GetTranscript(threadId);
-            RedactPricesForUiInPlace(messages);
+            var msgList = messages.ToList();
+            // #region agent log
+            Debug105ef6("H3", "ChatController.Index:beforeForms", "Transcript before EnsureStructuredFormsInChat", new Dictionary<string, object?>
+            {
+                ["threadIdSuffix"] = threadId.Length > 8 ? threadId[^8..] : threadId,
+                ["msgCount"] = msgList.Count,
+                ["quoteComplete"] = HttpContext.Session.GetString("Draft:QuoteComplete") ?? "",
+                ["entrySource"] = HttpContext.Session.GetString("Draft:EntrySource") ?? ""
+            });
+            // #endregion
+            EnsureStructuredFormsInChat(msgList);
+            // #region agent log
+            Debug105ef6("H4", "ChatController.Index:afterForms", "Messages after EnsureStructuredFormsInChat", new Dictionary<string, object?>
+            {
+                ["msgCount"] = msgList.Count,
+                ["quoteComplete"] = HttpContext.Session.GetString("Draft:QuoteComplete") ?? ""
+            });
+            // #endregion
+            RedactPricesForUiInPlace(msgList);
             ViewData["DevModeEnabled"] = _devOptions.Enabled;
             ViewData["IsDevelopment"] = _env.IsDevelopment();
             _logger.LogInformation("DevMode enabled: {_devOptions.Enabled}", _devOptions.Enabled);
             ViewData["QuoteComplete"] = false;
             ViewData["QuoteAccepted"] = HttpContext.Session.GetString("Draft:QuoteAccepted") ?? "0";
             SetScheduleTimesInViewData();
-            ViewData["ProgressStep"] = DetermineProgressStep(messages);
-            return View(messages);
+            ViewData["ProgressStep"] = DetermineProgressStep(msgList);
+            return View(msgList);
         }
         catch (Exception ex)
         {
-            ModelState.AddModelError(string.Empty, ex.Message);
+            // #region agent log
+            Debug105ef6("H1", "ChatController.Index:catch", "Index exception", new Dictionary<string, object?>
+            {
+                ["exType"] = ex.GetType().FullName ?? "",
+                ["exMessage"] = ex.Message.Length > 300 ? ex.Message[..300] : ex.Message
+            });
+            // #endregion
+            var userMessage = ex is AuthenticationFailedException
+                ? "Chat could not sign in to Azure (check AZURE_CLIENT_ID, AZURE_TENANT_ID, and AZURE_CLIENT_SECRET on the App Service, or use Managed Identity)."
+                : ex.Message;
+            ModelState.AddModelError(string.Empty, userMessage);
             return View(Enumerable.Empty<DisplayMessage>());
         }
     }
@@ -430,6 +653,7 @@ public sealed class ChatController : Controller
             {
                 _logger.LogWarning("[CHAT_FLOW] ContinuePartial completed without assistant delta for thread {ThreadId}. Skipping fallback injection to avoid error-loop message.", threadId);
             }
+            EnsureStructuredFormsInChat(msgList);
             EnsureImmediateQuoteReviewPromptAfterQuoteSuccess(msgList);
             RedactPricesForUiInPlace(msgList);
             SetScheduleTimesInViewData();
@@ -449,6 +673,7 @@ public sealed class ChatController : Controller
                 var (_, messages) = _chat.GetTranscript(threadId);
                 var msgList = messages.ToList();
                 await AddAssistantMessageAndPersistAsync(msgList, BuildTransientFailureFallbackMessage(), ct);
+                EnsureStructuredFormsInChat(msgList);
                 RedactPricesForUiInPlace(msgList);
                 SetScheduleTimesInViewData();
                 ViewData["ShowQuoteCta"] = WasLastAssistantASummaryAsk(msgList) ? "1" : "0";
@@ -547,63 +772,8 @@ public sealed class ChatController : Controller
         if (lastAssistant == null) return false;
 
         var raw = string.Join("\n\n", lastAssistant.Parts ?? Enumerable.Empty<string>());
-        var t = Normalize(raw);
-        return LooksLikeSummaryAsk(t);
-
-        static string Normalize(string s)
-        {
-            if (string.IsNullOrWhiteSpace(s)) return string.Empty;
-            s = s.ToLowerInvariant();
-            s = s.Replace('’', '\'').Replace('‘', '\'')
-                 .Replace('“', '"').Replace('”', '"')
-                 .Replace('–', '-').Replace('—', '-');
-            return Regex.Replace(s, @"\s+", " ").Trim();
-        }
-
-        // A "summary ask" = assistant showed the summary and asked to confirm before quoting
-        static bool LooksLikeSummaryAsk(string t) =>
-               t.Contains("here is your summary")
-            || t.Contains("here's your summary")
-            || t.Contains("here's what i have so far")
-            || t.Contains("here's a summary")
-            || t.Contains("let me summarise") || t.Contains("let me summarize")  // Support both AUS and US spelling
-            || t.Contains("does everything look correct")
-            || t.Contains("does this look correct")
-            || t.Contains("please confirm")
-            || t.Contains("can you confirm")
-            || t.Contains("could you confirm")
-            || t.Contains("before i create your quote")
-            || t.Contains("before creating your quote")
-            || t.Contains("before generating your quote")
-            || t.Contains("before proceeding to your quote")
-            || t.Contains("before i proceed")
-            || t.Contains("before i generate your quote")
-            || t.Contains("before i proceed to generate the quote")
-            || t.Contains("are there any other details")
-            || t.Contains("anything else you'd like to add")
-            || t.Contains("would you like to add anything else")
-            || t.Contains("is there anything else")
-            || t.Contains("anything else to add")
-            || t.Contains("ready to create the quote")
-            || t.Contains("shall i create the quote")
-            || t.Contains("shall i generate the quote")
-            || t.Contains("shall we move ahead")
-            || t.Contains("shall we proceed")
-            || t.Contains("would you like me to create")
-            || t.Contains("would you like me to generate")
-            || t.Contains("finalise the quote") || t.Contains("finalize the quote")  // Support both AUS and US spelling
-            || t.Contains("finalised equipment") || t.Contains("finalized equipment")  // Support both AUS and US spelling
-            || t.Contains("equipment lineup")
-            || t.Contains("equipment selection")
-            || t.Contains("here's your finalised") || t.Contains("here's your finalized")  // Support both AUS and US spelling
-            || t.Contains("here's the equipment")
-            // New summary format from smart equipment recommendation
-            || t.Contains("quote summary")
-            || t.Contains("recommended equipment")
-            || t.Contains("equipment looks correct")
-            || t.Contains("i can create your quote")
-            || t.Contains("create your quote now")
-            || t.Contains("estimated total");
+        var t = QuoteSummaryAskHelpers.NormalizeForSummaryAsk(raw);
+        return QuoteSummaryAskHelpers.LooksLikeSummaryAskNormalized(t);
     }
 
     [HttpPost]
@@ -1110,24 +1280,140 @@ public sealed class ChatController : Controller
             text = text.Trim();
             var rawUserTextForContact = text;   // keep original text for contact parsing
 
+            if (TryCaptureEmailFormSubmission(text, out var emailNorm))
+            {
+                var leadVerify = HttpContext.Session.GetString("Draft:LeadVerifyEmail");
+                if (!string.IsNullOrEmpty(leadVerify)
+                    && !string.Equals(emailNorm, leadVerify, StringComparison.OrdinalIgnoreCase))
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        error = "That email doesn’t match the address this enquiry was sent to. Please use the same email or ask your Microhire contact for help."
+                    });
+                }
+
+                HttpContext.Session.SetString("Draft:ContactEmail", emailNorm);
+                HttpContext.Session.SetString("Draft:EmailGateCompleted", "1");
+                HttpContext.Session.Remove("Draft:LeadVerifyEmail");
+
+                if (IsLeadEntry())
+                {
+                    HttpContext.Session.Remove("Draft:NeedManualContact");
+                    HttpContext.Session.Remove("Draft:BookingLookupApplied");
+                    HttpContext.Session.SetString("ContactSaveCompleted", "1");
+                    text = $"Email confirmed for enquiry: {emailNorm}. Continue with venue and event details already captured from the sales team.";
+                }
+                else
+                {
+                    var lookup = await _bookingQuery.FindLatestUpcomingBookingForEmailAsync(emailNorm, ct);
+                    if (lookup == null)
+                    {
+                        HttpContext.Session.SetString("Draft:NeedManualContact", "1");
+                        HttpContext.Session.Remove("Draft:BookingLookupApplied");
+                        text = BuildEmailIntakeSyntheticMessage(emailNorm, null);
+                    }
+                    else if (lookup.Booking == null)
+                    {
+                        ApplyContactOnlyFromLookup(lookup.Contact);
+                        HttpContext.Session.SetString("Draft:NeedManualContact", "1");
+                        HttpContext.Session.Remove("Draft:BookingLookupApplied");
+                        text = BuildEmailIntakeSyntheticMessage(emailNorm, lookup);
+                    }
+                    else
+                    {
+                        ApplyBookingPrefillToSession(lookup);
+                        HttpContext.Session.SetString("Draft:BookingLookupApplied", "1");
+                        // Contact is already on file from booking lookup — skip Azure two-phase "saving contact" bubble.
+                        HttpContext.Session.SetString("ContactSaveCompleted", "1");
+                        text = BuildEmailIntakeSyntheticMessage(emailNorm, lookup);
+                    }
+                }
+            }
+
+            if (TryCaptureVenueConfirmFormSubmission(text, out var venueConfirm))
+            {
+                SaveVenueConfirmToSession(venueConfirm);
+                text = BuildVenueConfirmSyntheticMessage(venueConfirm);
+            }
+
+            if (TryCaptureEventDetailsFormSubmission(text, out var eventDetails))
+            {
+                SaveEventDetailsToSession(eventDetails);
+                text = BuildEventDetailsSyntheticMessage(eventDetails);
+            }
+
+            if (TryCaptureBaseAvFormSubmission(text, out var baseAv))
+            {
+                SaveBaseAvToSession(baseAv);
+                text = BuildBaseAvSyntheticMessage(baseAv);
+            }
+
+            var followUpAvThisRequest = false;
+            if (TryCaptureFollowUpAvFormSubmission(text, out var followUp))
+            {
+                SaveFollowUpAvToSession(followUp);
+                text = BuildFollowUpAvSyntheticMessage(followUp);
+                followUpAvThisRequest = true;
+            }
+
+            if (TryCaptureContactFormSubmission(text, out var contactForm))
+            {
+                SaveContactFormToSession(contactForm);
+                text =
+                    $"Contact details provided: Name {contactForm.FirstName} {contactForm.LastName}; " +
+                    $"Organisation {contactForm.Organisation}; Location {contactForm.Location}; " +
+                    $"Email {contactForm.Email}; Phone {contactForm.Phone}.";
+            }
+
+            if (TryCaptureEventFormSubmission(text, out var eventForm))
+            {
+                SaveEventFormToSession(eventForm);
+                text =
+                    $"Event details provided: venue {eventForm.Venue}; event type {eventForm.EventType}; " +
+                    $"setup style {eventForm.SetupStyle}; attendees {eventForm.Attendees}; date {eventForm.Date}; " +
+                    $"schedule setup {eventForm.SetupTime}, rehearsal {eventForm.RehearsalTime}, " +
+                    $"start {eventForm.StartTime}, end {eventForm.EndTime}, pack up {eventForm.PackupTime}.";
+            }
+
+            if (TryCaptureAvExtrasFormSubmission(text, out var avExtras))
+            {
+                SaveAvExtrasToSession(avExtras);
+                text =
+                    $"AV extras provided: presenters {avExtras.Presenters}; speakers {avExtras.Speakers}; " +
+                    $"wireless clicker {avExtras.Clicker}; audio video recording {avExtras.Recording}; " +
+                    $"technician from {avExtras.TechStart} to {avExtras.TechEnd}; whole event coverage {avExtras.TechWholeEvent}.";
+            }
+
             if (LooksLikeNewQuoteIntent(text))
             {
                 ClearBookingAndQuoteDraftState();
                 _logger.LogInformation("[QUOTE FLOW] New quote intent detected in SendPartial, cleared booking/quote draft state. UserText={UserText}", text.Length > 100 ? text.Substring(0, 100) + "..." : text);
             }
 
-            // Only unlock generate_quote when user explicitly confirms quote creation
-            // in direct response to a summary/CTA ask.
+            // Unlock generate_quote: explicit phrases ("yes create quote") are unambiguous — set flag without
+            // requiring last-assistant summary detection (matches isConsentToSummary + tool loop).
+            // Conversational consent ("yes", "go ahead") still requires a prior summary ask to limit false positives.
             HttpContext.Session.Remove(GenerateQuoteFlag);
             var explicitCreateConsent = LooksLikeExplicitCreateQuoteConsent(text);
             var conversationalConsent = LooksLikeConsent(text);
-            if (explicitCreateConsent || conversationalConsent)
+            if (explicitCreateConsent)
+            {
+                HttpContext.Session.SetString(GenerateQuoteFlag, "1");
+            }
+            else if (conversationalConsent)
             {
                 var (_, preMessages) = _chat.GetTranscript(threadId);
                 if (WasLastAssistantASummaryAsk(preMessages.ToList()))
                 {
                     HttpContext.Session.SetString(GenerateQuoteFlag, "1");
                 }
+            }
+
+            // Structured wizard: follow-up AV form submit ("Get quote" / "Generate quote") is explicit quote intent.
+            if (followUpAvThisRequest)
+            {
+                HttpContext.Session.SetString(GenerateQuoteFlag, "1");
             }
 
             if (TryCaptureTimeSelection(text, out var start, out var end))
@@ -1221,6 +1507,7 @@ public sealed class ChatController : Controller
             {
                 var partialList = sendResult.Messages.ToList();
                 SyncProjectorPromptMarkers(partialList, threadId);
+                EnsureStructuredFormsInChat(partialList);
                 EnsureImmediateQuoteReviewPromptAfterQuoteSuccess(partialList);
                 RedactPricesForUiInPlace(partialList);
                 SetScheduleTimesInViewData();
@@ -1232,10 +1519,12 @@ public sealed class ChatController : Controller
 
             var msgList = sendResult.Messages is List<DisplayMessage> ml ? ml : sendResult.Messages.ToList();
             SyncProjectorPromptMarkers(msgList, threadId);
+            EnsureStructuredFormsInChat(msgList);
             if (!HasAssistantDelta(assistantCountBeforeTurn, msgList))
             {
                 _logger.LogWarning("[CHAT_FLOW] SendPartial produced no assistant delta for thread {ThreadId} (sendFailed={SendFailed}). Appending fallback reply.", threadId, sendFailed);
                 await AddAssistantMessageAndPersistAsync(msgList, BuildTransientFailureFallbackMessage(), ct);
+                EnsureStructuredFormsInChat(msgList);
             }
             EnsureImmediateQuoteReviewPromptAfterQuoteSuccess(msgList);
 
@@ -2408,9 +2697,11 @@ public sealed class ChatController : Controller
                     var safePo = System.Net.WebUtility.HtmlEncode(purchaseOrder ?? "");
                     var filledLineStyle = "style=\"border-bottom:1px solid #333;height:30px;line-height:30px;font-size:13px;color:#222;padding-left:4px\"";
 
+                    // Match empty or pre-filled full name line (generated quotes may pre-fill ContactName).
                     html = Regex.Replace(html,
-                        @"(<label>Full Name</label>\s*)<div class=""signature-line""></div>",
-                        $"$1<div class=\"signature-line\" {filledLineStyle}>{safeName}</div>");
+                        @"(<label>Full Name</label>\s*)<div class=""signature-line""[^>]*>.*?</div>",
+                        $"$1<div class=\"signature-line\" {filledLineStyle}>{safeName}</div>",
+                        RegexOptions.Singleline);
                     html = Regex.Replace(html,
                         @"(<label>Date</label>\s*)<div class=""signature-line""></div>",
                         $"$1<div class=\"signature-line\" {filledLineStyle}>{safeDate}</div>");
@@ -2783,7 +3074,7 @@ public sealed class ChatController : Controller
     {
         if (string.IsNullOrWhiteSpace(sessionValue)) return new List<string>();
         return sessionValue
-            .Split(new[] { ',', ';', '&', ' ' }, StringSplitOptions.RemoveEmptyEntries)
+            .Split(new[] { ',', ';', '&', '+', ' ' }, StringSplitOptions.RemoveEmptyEntries)
             .Select(p => p.Trim().ToUpperInvariant())
             .Where(p => p.Length == 1 && p[0] >= 'A' && p[0] <= 'F')
             .Distinct()
@@ -3043,6 +3334,1163 @@ public sealed class ChatController : Controller
         return $"/quotes/render?src={Uri.EscapeDataString(srcPath)}&outFile={Uri.EscapeDataString(fileName)}";
     }
 
+    private sealed class ContactFormSubmission
+    {
+        public string FirstName { get; set; } = "";
+        public string LastName { get; set; } = "";
+        public string Organisation { get; set; } = "";
+        public string Location { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Phone { get; set; } = "";
+    }
+
+    private sealed class EventFormSubmission
+    {
+        public string Venue { get; set; } = "";
+        public string EventType { get; set; } = "";
+        public string SetupStyle { get; set; } = "";
+        public int Attendees { get; set; }
+        public string Date { get; set; } = "";
+        public string SetupTime { get; set; } = "";
+        public string RehearsalTime { get; set; } = "";
+        public string StartTime { get; set; } = "";
+        public string EndTime { get; set; } = "";
+        public string PackupTime { get; set; } = "";
+    }
+
+    private sealed class AvExtrasFormSubmission
+    {
+        public int Presenters { get; set; }
+        public int Speakers { get; set; }
+        public string Clicker { get; set; } = "no";
+        public string Recording { get; set; } = "no";
+        public string TechStart { get; set; } = "";
+        public string TechEnd { get; set; } = "";
+        public string TechWholeEvent { get; set; } = "no";
+    }
+
+    private sealed class VenueConfirmFormSubmission
+    {
+        public string VenueField { get; set; } = "";
+        public string StartDate { get; set; } = "";
+        public string EndDate { get; set; } = "";
+        public int Attendees { get; set; }
+    }
+
+    private sealed class EventDetailsFormSubmission
+    {
+        public string EventType { get; set; } = "";
+        public string SetupStyle { get; set; } = "";
+        public string SetupTime { get; set; } = "";
+        public string RehearsalTime { get; set; } = "";
+        public string StartTime { get; set; } = "";
+        public string EndTime { get; set; } = "";
+        public string PackupTime { get; set; } = "";
+        public string WantsOperator { get; set; } = "no";
+    }
+
+    private sealed class BaseAvFormSubmission
+    {
+        public bool BuiltInProjector { get; set; } = true;
+        public bool BuiltInScreen { get; set; } = true;
+        public bool BuiltInSpeakers { get; set; } = true;
+        public string ProjectorPlacement { get; set; } = "";
+        public int Presenters { get; set; }
+        public string Flipchart { get; set; } = "no";
+        public string LaptopMode { get; set; } = "none";
+        public int LaptopQty { get; set; }
+        public string AdapterOwnLaptops { get; set; } = "no";
+    }
+
+    private sealed class FollowUpAvFormSubmission
+    {
+        public string MicType { get; set; } = "";
+        public int MicQty { get; set; }
+        public string Lectern { get; set; } = "";
+        public string FoldbackMonitor { get; set; } = "no";
+        public string WirelessPresenter { get; set; } = "no";
+        public string LaptopSwitcher { get; set; } = "no";
+        public string StageLaptop { get; set; } = "no";
+        public string VideoConference { get; set; } = "no";
+    }
+
+    private static bool TryCaptureEmailFormSubmission(string text, out string normalizedEmail)
+    {
+        normalizedEmail = "";
+        var m = EmailFormRe.Match(text ?? "");
+        if (!m.Success) return false;
+        var data = ParseKeyValueBlob(m.Groups[1].Value);
+        var raw = GetDecodedValue(data, "email");
+        return TryValidateEmailFormat(raw, out normalizedEmail);
+    }
+
+    private static bool TryCaptureVenueConfirmFormSubmission(string text, out VenueConfirmFormSubmission submission)
+    {
+        submission = new VenueConfirmFormSubmission();
+        var m = VenueConfirmFormRe.Match(text ?? "");
+        if (!m.Success) return false;
+        var data = ParseKeyValueBlob(m.Groups[1].Value);
+        submission.VenueField = GetDecodedValue(data, "venue");
+        submission.StartDate = GetDecodedValue(data, "startDate");
+        submission.EndDate = GetDecodedValue(data, "endDate");
+        if (!int.TryParse(GetDecodedValue(data, "attendees"), out var att) || att < 1)
+            return false;
+        submission.Attendees = att;
+        return !string.IsNullOrWhiteSpace(submission.VenueField)
+               && !string.IsNullOrWhiteSpace(submission.StartDate);
+    }
+
+    private static bool TryCaptureEventDetailsFormSubmission(string text, out EventDetailsFormSubmission submission)
+    {
+        submission = new EventDetailsFormSubmission();
+        var m = EventDetailsFormRe.Match(text ?? "");
+        if (!m.Success) return false;
+        var data = ParseKeyValueBlob(m.Groups[1].Value);
+        submission.EventType = GetDecodedValue(data, "eventType");
+        submission.SetupStyle = GetDecodedValue(data, "setupStyle");
+        submission.SetupTime = GetDecodedValue(data, "setup");
+        submission.RehearsalTime = GetDecodedValue(data, "rehearsal");
+        submission.StartTime = GetDecodedValue(data, "start");
+        submission.EndTime = GetDecodedValue(data, "end");
+        submission.PackupTime = GetDecodedValue(data, "packup");
+        submission.WantsOperator = GetDecodedValue(data, "wantsOperator");
+        return !string.IsNullOrWhiteSpace(submission.EventType)
+               && !string.IsNullOrWhiteSpace(submission.SetupTime)
+               && !string.IsNullOrWhiteSpace(submission.RehearsalTime)
+               && !string.IsNullOrWhiteSpace(submission.StartTime)
+               && !string.IsNullOrWhiteSpace(submission.EndTime)
+               && !string.IsNullOrWhiteSpace(submission.PackupTime);
+    }
+
+    private static bool TryCaptureBaseAvFormSubmission(string text, out BaseAvFormSubmission submission)
+    {
+        submission = new BaseAvFormSubmission();
+        var m = BaseAvFormRe.Match(text ?? "");
+        if (!m.Success) return false;
+        var data = ParseKeyValueBlob(m.Groups[1].Value);
+        submission.BuiltInProjector = string.Equals(GetDecodedValue(data, "builtInProjector"), "yes", StringComparison.OrdinalIgnoreCase);
+        submission.BuiltInScreen = string.Equals(GetDecodedValue(data, "builtInScreen"), "yes", StringComparison.OrdinalIgnoreCase);
+        submission.BuiltInSpeakers = string.Equals(GetDecodedValue(data, "builtInSpeakers"), "yes", StringComparison.OrdinalIgnoreCase);
+        submission.ProjectorPlacement = GetDecodedValue(data, "projectorPlacement");
+        if (int.TryParse(GetDecodedValue(data, "presenters"), out var p))
+            submission.Presenters = Math.Max(0, p);
+        submission.Flipchart = GetDecodedValue(data, "flipchart");
+        submission.LaptopMode = GetDecodedValue(data, "laptopMode");
+        if (int.TryParse(GetDecodedValue(data, "laptopQty"), out var lq))
+            submission.LaptopQty = Math.Max(0, lq);
+        submission.AdapterOwnLaptops = GetDecodedValue(data, "adapterOwnLaptops");
+        return true;
+    }
+
+    private static bool TryCaptureFollowUpAvFormSubmission(string text, out FollowUpAvFormSubmission submission)
+    {
+        submission = new FollowUpAvFormSubmission();
+        var m = FollowUpAvFormRe.Match(text ?? "");
+        if (!m.Success) return false;
+        var data = ParseKeyValueBlob(m.Groups[1].Value);
+        submission.MicType = GetDecodedValue(data, "micType");
+        if (int.TryParse(GetDecodedValue(data, "micQty"), out var mq))
+            submission.MicQty = Math.Max(0, mq);
+        submission.Lectern = GetDecodedValue(data, "lectern");
+        submission.FoldbackMonitor = GetDecodedValue(data, "foldbackMonitor");
+        submission.WirelessPresenter = GetDecodedValue(data, "wirelessPresenter");
+        submission.LaptopSwitcher = GetDecodedValue(data, "laptopSwitcher");
+        submission.StageLaptop = GetDecodedValue(data, "stageLaptop");
+        submission.VideoConference = GetDecodedValue(data, "videoConference");
+        return true;
+    }
+
+    private static bool TryCaptureContactFormSubmission(string text, out ContactFormSubmission submission)
+    {
+        submission = new ContactFormSubmission();
+        var m = ContactFormRe.Match(text ?? "");
+        if (!m.Success) return false;
+
+        var data = ParseKeyValueBlob(m.Groups[1].Value);
+        submission.FirstName = GetDecodedValue(data, "firstName");
+        submission.LastName = GetDecodedValue(data, "lastName");
+        submission.Organisation = GetDecodedValue(data, "organisation");
+        submission.Location = GetDecodedValue(data, "location");
+        submission.Email = GetDecodedValue(data, "email");
+        submission.Phone = GetDecodedValue(data, "phone");
+
+        return !string.IsNullOrWhiteSpace(submission.FirstName)
+               && !string.IsNullOrWhiteSpace(submission.LastName)
+               && !string.IsNullOrWhiteSpace(submission.Organisation)
+               && !string.IsNullOrWhiteSpace(submission.Location)
+               && (!string.IsNullOrWhiteSpace(submission.Email) || !string.IsNullOrWhiteSpace(submission.Phone));
+    }
+
+    private static bool TryCaptureEventFormSubmission(string text, out EventFormSubmission submission)
+    {
+        submission = new EventFormSubmission();
+        var m = EventFormRe.Match(text ?? "");
+        if (!m.Success) return false;
+
+        var data = ParseKeyValueBlob(m.Groups[1].Value);
+        submission.Venue = GetDecodedValue(data, "venue");
+        submission.EventType = GetDecodedValue(data, "eventType");
+        submission.SetupStyle = GetDecodedValue(data, "setupStyle");
+        submission.Date = GetDecodedValue(data, "date");
+        submission.SetupTime = GetDecodedValue(data, "setup");
+        submission.RehearsalTime = GetDecodedValue(data, "rehearsal");
+        submission.StartTime = GetDecodedValue(data, "start");
+        submission.EndTime = GetDecodedValue(data, "end");
+        submission.PackupTime = GetDecodedValue(data, "packup");
+        var attendeesText = GetDecodedValue(data, "attendees");
+        if (!int.TryParse(attendeesText, out var attendees))
+        {
+            attendees = 0;
+        }
+        submission.Attendees = attendees;
+
+        return !string.IsNullOrWhiteSpace(submission.Venue)
+               && !string.IsNullOrWhiteSpace(submission.EventType)
+               && submission.Attendees > 0
+               && !string.IsNullOrWhiteSpace(submission.Date);
+    }
+
+    private static bool TryCaptureAvExtrasFormSubmission(string text, out AvExtrasFormSubmission submission)
+    {
+        submission = new AvExtrasFormSubmission();
+        var m = AvExtrasFormRe.Match(text ?? "");
+        if (!m.Success) return false;
+
+        var data = ParseKeyValueBlob(m.Groups[1].Value);
+        if (int.TryParse(GetDecodedValue(data, "presenters"), out var presenters))
+            submission.Presenters = Math.Max(0, presenters);
+        if (int.TryParse(GetDecodedValue(data, "speakers"), out var speakers))
+            submission.Speakers = Math.Max(0, speakers);
+        submission.Clicker = GetDecodedValue(data, "clicker");
+        submission.Recording = GetDecodedValue(data, "recording");
+        submission.TechStart = GetDecodedValue(data, "techStart");
+        submission.TechEnd = GetDecodedValue(data, "techEnd");
+        submission.TechWholeEvent = GetDecodedValue(data, "techWholeEvent");
+
+        return true;
+    }
+
+    private void SaveContactFormToSession(ContactFormSubmission submission)
+    {
+        var wasManual = HttpContext.Session.GetString("Draft:NeedManualContact") == "1";
+        var fullName = $"{submission.FirstName} {submission.LastName}".Trim();
+        HttpContext.Session.SetString("Draft:ContactName", fullName);
+        HttpContext.Session.SetString("Draft:ContactFirstName", submission.FirstName);
+        HttpContext.Session.SetString("Draft:ContactLastName", submission.LastName);
+        HttpContext.Session.SetString("Draft:Organisation", submission.Organisation);
+        HttpContext.Session.SetString("Draft:OrganisationAddress", submission.Location);
+        HttpContext.Session.SetString("Draft:ContactFormSubmitted", "1");
+        if (!string.IsNullOrWhiteSpace(submission.Email))
+            HttpContext.Session.SetString("Draft:ContactEmail", submission.Email);
+        if (!string.IsNullOrWhiteSpace(submission.Phone))
+            HttpContext.Session.SetString("Draft:ContactPhone", submission.Phone);
+        HttpContext.Session.Remove("Draft:NeedManualContact");
+        if (wasManual)
+            HttpContext.Session.SetString("Draft:ShowContactSummary", "1");
+    }
+
+    private void SaveEventFormToSession(EventFormSubmission submission)
+    {
+        var (venueName, roomName) = ResolveVenueAndRoom(submission.Venue);
+        if (!string.IsNullOrWhiteSpace(venueName))
+            HttpContext.Session.SetString("Draft:VenueName", venueName);
+        if (!string.IsNullOrWhiteSpace(roomName))
+            HttpContext.Session.SetString("Draft:RoomName", roomName);
+
+        HttpContext.Session.SetString("Draft:EventType", submission.EventType);
+        HttpContext.Session.SetString("Draft:ExpectedAttendees", submission.Attendees.ToString(CultureInfo.InvariantCulture));
+        HttpContext.Session.SetString("Draft:EventFormSubmitted", "1");
+        if (!string.IsNullOrWhiteSpace(submission.SetupStyle))
+            HttpContext.Session.SetString("Draft:SetupStyle", submission.SetupStyle);
+
+        if (DateTime.TryParse(submission.Date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var eventDate)
+            && TimeSpan.TryParse(submission.SetupTime, CultureInfo.InvariantCulture, out var setup)
+            && TimeSpan.TryParse(submission.RehearsalTime, CultureInfo.InvariantCulture, out var rehearsal)
+            && TimeSpan.TryParse(submission.PackupTime, CultureInfo.InvariantCulture, out var packup))
+        {
+            TimeSpan? start = TimeSpan.TryParse(submission.StartTime, CultureInfo.InvariantCulture, out var startTs) ? startTs : null;
+            TimeSpan? end = TimeSpan.TryParse(submission.EndTime, CultureInfo.InvariantCulture, out var endTs) ? endTs : null;
+            SaveScheduleToSession(setup, rehearsal, start, end, packup, eventDate);
+        }
+    }
+
+    private void SaveAvExtrasToSession(AvExtrasFormSubmission submission)
+    {
+        HttpContext.Session.SetString("Draft:PresenterCount", submission.Presenters.ToString(CultureInfo.InvariantCulture));
+        HttpContext.Session.SetString("Draft:SpeakerCount", submission.Speakers.ToString(CultureInfo.InvariantCulture));
+        HttpContext.Session.SetString("Draft:NeedsClicker", submission.Clicker);
+        HttpContext.Session.SetString("Draft:NeedsRecording", submission.Recording);
+        HttpContext.Session.SetString("Draft:TechStartTime", submission.TechStart);
+        HttpContext.Session.SetString("Draft:TechEndTime", submission.TechEnd);
+        HttpContext.Session.SetString("Draft:TechWholeEvent", submission.TechWholeEvent);
+        HttpContext.Session.SetString("Draft:AvExtrasSubmitted", "1");
+    }
+
+    private void SaveVenueConfirmToSession(VenueConfirmFormSubmission submission)
+    {
+        var (venueName, roomName) = ResolveVenueAndRoom(submission.VenueField);
+        if (!string.IsNullOrWhiteSpace(venueName))
+            HttpContext.Session.SetString("Draft:VenueName", venueName);
+        if (!string.IsNullOrWhiteSpace(roomName))
+            HttpContext.Session.SetString("Draft:RoomName", roomName);
+        HttpContext.Session.SetString("Draft:EventDate", submission.StartDate);
+        HttpContext.Session.SetString("Draft:EventEndDate",
+            string.IsNullOrWhiteSpace(submission.EndDate) ? submission.StartDate : submission.EndDate);
+        HttpContext.Session.SetString("Draft:ExpectedAttendees", submission.Attendees.ToString(CultureInfo.InvariantCulture));
+        HttpContext.Session.SetString("Draft:VenueConfirmSubmitted", "1");
+    }
+
+    /// <summary>
+    /// Maps free-text event type to a canonical Westin setup for capacity and equipment (UI no longer asks explicitly).
+    /// </summary>
+    private static string InferSetupStyleFromEventType(string eventType)
+    {
+        if (string.IsNullOrWhiteSpace(eventType)) return "Theatre";
+        var t = eventType.ToLowerInvariant();
+
+        static bool Has(string s, params string[] needles)
+        {
+            foreach (var n in needles)
+                if (s.Contains(n, StringComparison.Ordinal)) return true;
+            return false;
+        }
+
+        // Boardroom / small formal meetings
+        if (Has(t, "board meeting", "boardroom", "board room", "executive meeting", "board retreat"))
+            return "Boardroom";
+
+        // Classroom-style / collaborative learning
+        if (Has(t, "hackathon", "workshop", "training", "coding", "bootcamp", "classroom", "school", "course", "tutorial", "seminar", "lecture"))
+            return "Classroom";
+
+        // Seated dining / awards
+        if (Has(t, "banquet", "gala dinner", "awards dinner", "seated dinner", "wedding breakfast", "wedding reception"))
+            return "Banquet";
+
+        // Standing / mingling
+        if (Has(t, "cocktail", "networking", "drinks reception", "reception only", "mixer"))
+            return "Cocktail";
+
+        // Collaborative table layout
+        if (Has(t, "u-shape", "u shape", "hollow square", "breakout"))
+            return "U-Shape";
+
+        // Presentations, showcases, keynotes
+        if (Has(t, "showcase", "product launch", "product demo", "demo day", "keynote", "pitch", "theatre", "theater",
+                "conference", "presentation", "town hall", "all-hands", "all hands", "webinar", "annual general", "agm"))
+            return "Theatre";
+
+        return "Theatre";
+    }
+
+    private void SaveEventDetailsToSession(EventDetailsFormSubmission submission)
+    {
+        HttpContext.Session.SetString("Draft:EventType", submission.EventType);
+        if (!string.IsNullOrWhiteSpace(submission.SetupStyle))
+            HttpContext.Session.SetString("Draft:SetupStyle", submission.SetupStyle);
+        else
+        {
+            var room = HttpContext.Session.GetString("Draft:RoomName") ?? "";
+            if (room.Contains("Thrive", StringComparison.OrdinalIgnoreCase))
+                HttpContext.Session.SetString("Draft:SetupStyle", "Boardroom");
+            else
+                HttpContext.Session.SetString("Draft:SetupStyle", InferSetupStyleFromEventType(submission.EventType));
+        }
+
+        submission.SetupStyle = HttpContext.Session.GetString("Draft:SetupStyle") ?? submission.SetupStyle;
+        HttpContext.Session.SetString("Draft:WantsOperator", submission.WantsOperator);
+
+        var dateStr = HttpContext.Session.GetString("Draft:EventDate") ?? "";
+        if (DateTime.TryParse(dateStr, CultureInfo.InvariantCulture, DateTimeStyles.None, out var eventDate)
+            && TimeSpan.TryParse(submission.SetupTime, CultureInfo.InvariantCulture, out var setup)
+            && TimeSpan.TryParse(submission.RehearsalTime, CultureInfo.InvariantCulture, out var rehearsal)
+            && TimeSpan.TryParse(submission.PackupTime, CultureInfo.InvariantCulture, out var packup))
+        {
+            TimeSpan? start = TimeSpan.TryParse(submission.StartTime, CultureInfo.InvariantCulture, out var startTs) ? startTs : null;
+            TimeSpan? end = TimeSpan.TryParse(submission.EndTime, CultureInfo.InvariantCulture, out var endTs) ? endTs : null;
+            SaveScheduleToSession(setup, rehearsal, start, end, packup, eventDate);
+        }
+
+        HttpContext.Session.SetString("Draft:EventFormSubmitted", "1");
+    }
+
+    private void SaveBaseAvToSession(BaseAvFormSubmission s)
+    {
+        HttpContext.Session.SetString("Draft:BuiltInProjector", s.BuiltInProjector ? "yes" : "no");
+        HttpContext.Session.SetString("Draft:BuiltInScreen", s.BuiltInScreen ? "yes" : "no");
+        HttpContext.Session.SetString("Draft:BuiltInSpeakers", s.BuiltInSpeakers ? "yes" : "no");
+        HttpContext.Session.SetString("Draft:ProjectorPlacementChoice", s.ProjectorPlacement);
+        HttpContext.Session.SetString("Draft:PresenterCount", s.Presenters.ToString(CultureInfo.InvariantCulture));
+        HttpContext.Session.SetString("Draft:SpeakerCount", "0");
+        HttpContext.Session.SetString("Draft:Flipchart", s.Flipchart);
+        HttpContext.Session.SetString("Draft:LaptopMode", s.LaptopMode);
+        HttpContext.Session.SetString("Draft:LaptopQty", s.LaptopQty.ToString(CultureInfo.InvariantCulture));
+        HttpContext.Session.SetString("Draft:AdapterOwnLaptops", s.AdapterOwnLaptops);
+        HttpContext.Session.SetString("Draft:NeedsClicker", "no");
+        HttpContext.Session.SetString("Draft:NeedsRecording", "no");
+        var ts = HttpContext.Session.GetString("Draft:StartTime") ?? "10:00";
+        var te = HttpContext.Session.GetString("Draft:EndTime") ?? "16:00";
+        HttpContext.Session.SetString("Draft:TechStartTime", ts);
+        HttpContext.Session.SetString("Draft:TechEndTime", te);
+        HttpContext.Session.SetString("Draft:TechWholeEvent", "yes");
+        HttpContext.Session.SetString("Draft:BaseAvSubmitted", "1");
+
+        if (!string.IsNullOrWhiteSpace(s.ProjectorPlacement))
+            HttpContext.Session.SetString("Draft:ProjectorArea", s.ProjectorPlacement);
+
+        var mode = (s.LaptopMode ?? "").ToLowerInvariant();
+        if (mode is "windows" or "mac")
+        {
+            HttpContext.Session.SetString("Draft:LaptopOwnershipAnswered", "1");
+            HttpContext.Session.SetString("Draft:NeedsProvidedLaptop", "yes");
+            HttpContext.Session.SetString("Draft:LaptopPreference", mode);
+        }
+        else
+        {
+            HttpContext.Session.SetString("Draft:LaptopOwnershipAnswered", "1");
+            HttpContext.Session.SetString("Draft:NeedsProvidedLaptop", "no");
+            HttpContext.Session.Remove("Draft:LaptopPreference");
+        }
+    }
+
+    private void SaveFollowUpAvToSession(FollowUpAvFormSubmission s)
+    {
+        var presenterCount = 0;
+        _ = int.TryParse(HttpContext.Session.GetString("Draft:PresenterCount"), out presenterCount);
+
+        if (presenterCount <= 0)
+        {
+            HttpContext.Session.SetString("Draft:MicType", "");
+            HttpContext.Session.SetString("Draft:MicQty", "0");
+            HttpContext.Session.SetString("Draft:Lectern", "none");
+            HttpContext.Session.SetString("Draft:FoldbackMonitor", "no");
+            HttpContext.Session.SetString("Draft:WirelessPresenter", "no");
+        }
+        else
+        {
+            HttpContext.Session.SetString("Draft:MicType", s.MicType);
+            HttpContext.Session.SetString("Draft:MicQty", s.MicQty.ToString(CultureInfo.InvariantCulture));
+            HttpContext.Session.SetString("Draft:Lectern", s.Lectern);
+            HttpContext.Session.SetString("Draft:FoldbackMonitor", s.FoldbackMonitor);
+            HttpContext.Session.SetString("Draft:WirelessPresenter", s.WirelessPresenter);
+        }
+
+        HttpContext.Session.SetString("Draft:LaptopSwitcher", s.LaptopSwitcher);
+
+        var lecternForStage = presenterCount <= 0 ? "none" : (s.Lectern ?? "").Trim();
+        var lecternNotNone = lecternForStage.Length > 0
+            && !string.Equals(lecternForStage, "none", StringComparison.OrdinalIgnoreCase);
+        var stageQuestionApplicable = string.Equals(s.LaptopSwitcher, "yes", StringComparison.OrdinalIgnoreCase)
+            && lecternNotNone;
+        var stageLaptop = stageQuestionApplicable && string.Equals(s.StageLaptop, "yes", StringComparison.OrdinalIgnoreCase)
+            ? "yes"
+            : "no";
+        s.StageLaptop = stageLaptop;
+        HttpContext.Session.SetString("Draft:StageLaptop", stageLaptop);
+        HttpContext.Session.SetString("Draft:VideoConference", s.VideoConference);
+        HttpContext.Session.SetString("Draft:FollowUpAvSubmitted", "1");
+        HttpContext.Session.SetString("Draft:AvExtrasSubmitted", "1");
+
+        if (string.Equals(stageLaptop, "yes", StringComparison.OrdinalIgnoreCase))
+            HttpContext.Session.SetString("Draft:NeedsSdiCross", "2");
+        else
+            HttpContext.Session.Remove("Draft:NeedsSdiCross");
+    }
+
+    private static Dictionary<string, string> ParseKeyValueBlob(string blob)
+    {
+        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        if (string.IsNullOrWhiteSpace(blob)) return map;
+
+        foreach (var segment in blob.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var parts = segment.Split('=', 2, StringSplitOptions.TrimEntries);
+            if (parts.Length != 2) continue;
+            map[parts[0]] = parts[1];
+        }
+
+        return map;
+    }
+
+    private static string GetDecodedValue(Dictionary<string, string> map, string key)
+    {
+        if (!map.TryGetValue(key, out var raw) || string.IsNullOrWhiteSpace(raw))
+            return "";
+        try
+        {
+            return Uri.UnescapeDataString(raw).Trim();
+        }
+        catch
+        {
+            return raw.Trim();
+        }
+    }
+
+    private static (string venueName, string roomName) ResolveVenueAndRoom(string venueField)
+    {
+        var value = (venueField ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(value))
+            return ("", "");
+
+        var lower = value.ToLowerInvariant();
+        if (lower.Contains("westin ballroom 1", StringComparison.Ordinal))
+            return ("The Westin Brisbane", "Westin Ballroom 1");
+        if (lower.Contains("westin ballroom 2", StringComparison.Ordinal))
+            return ("The Westin Brisbane", "Westin Ballroom 2");
+        if (lower.Contains("westin ballroom full", StringComparison.Ordinal) || lower.Equals("westin ballroom", StringComparison.Ordinal))
+            return ("The Westin Brisbane", "Westin Ballroom");
+        if (lower.Contains("elevate 1", StringComparison.Ordinal))
+            return ("The Westin Brisbane", "Elevate 1");
+        if (lower.Contains("elevate 2", StringComparison.Ordinal))
+            return ("The Westin Brisbane", "Elevate 2");
+        if (lower.Contains("elevate full", StringComparison.Ordinal) || lower.Equals("elevate", StringComparison.Ordinal))
+            return ("The Westin Brisbane", "Elevate");
+        if (lower.Contains("thrive", StringComparison.Ordinal))
+            return ("The Westin Brisbane", "Thrive Boardroom");
+
+        return ("The Westin Brisbane", value);
+    }
+
+    private static string NormalizeToIsoDateOrEmpty(string raw)
+    {
+        if (string.IsNullOrWhiteSpace(raw)) return "";
+        if (DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
+            return dt.ToString("yyyy-MM-dd");
+        return raw.Trim();
+    }
+
+    private bool IsLeadEntry() =>
+        string.Equals(HttpContext.Session.GetString("Draft:EntrySource"), "lead", StringComparison.OrdinalIgnoreCase);
+
+    private static bool TryValidateEmailFormat(string email, out string normalized)
+    {
+        normalized = "";
+        if (string.IsNullOrWhiteSpace(email)) return false;
+        try
+        {
+            var addr = new MailAddress(email.Trim());
+            normalized = addr.Address.ToLowerInvariant();
+            return normalized.Contains('@', StringComparison.Ordinal) && normalized.Length <= 254;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private void ApplyBookingPrefillToSession(BookingPrefillFromEmailResult lookup)
+    {
+        var c = lookup.Contact;
+        var name = (c.Contactname ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(name))
+            name = $"{c.Firstname ?? ""} {c.Surname ?? ""}".Trim();
+        if (!string.IsNullOrWhiteSpace(name))
+            HttpContext.Session.SetString("Draft:ContactName", name);
+
+        if (!string.IsNullOrWhiteSpace(c.Email))
+            HttpContext.Session.SetString("Draft:ContactEmail", c.Email.Trim().ToLowerInvariant());
+
+        var b = lookup.Booking!;
+        if (!string.IsNullOrWhiteSpace(b.OrganizationV6))
+            HttpContext.Session.SetString("Draft:Organisation", b.OrganizationV6.Trim());
+        else if (string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:Organisation")))
+            HttpContext.Session.SetString("Draft:Organisation", "Event");
+
+        if (!string.IsNullOrWhiteSpace(b.booking_no))
+            HttpContext.Session.SetString("Draft:BookingNo", b.booking_no);
+
+        var venueName = (lookup.VenueDisplayName ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(venueName))
+            venueName = "The Westin Brisbane";
+        HttpContext.Session.SetString("Draft:VenueName", venueName);
+
+        var room = (b.VenueRoom ?? "").Trim();
+        if (!string.IsNullOrWhiteSpace(room))
+            HttpContext.Session.SetString("Draft:RoomName", room);
+
+        var startDay = b.ShowSDate ?? b.dDate ?? b.SDate;
+        if (startDay.HasValue)
+            HttpContext.Session.SetString("Draft:EventDate", startDay.Value.ToString("yyyy-MM-dd"));
+
+        var endDay = b.ShowEdate ?? b.rDate;
+        if (endDay.HasValue)
+            HttpContext.Session.SetString("Draft:EventEndDate", endDay.Value.ToString("yyyy-MM-dd"));
+        else if (startDay.HasValue)
+            HttpContext.Session.SetString("Draft:EventEndDate", startDay.Value.ToString("yyyy-MM-dd"));
+
+        if (b.expAttendees is > 0)
+            HttpContext.Session.SetString("Draft:ExpectedAttendees", b.expAttendees.Value.ToString(CultureInfo.InvariantCulture));
+
+        HttpContext.Session.SetString("Draft:ContactFormSubmitted", "1");
+        HttpContext.Session.Remove("Draft:NeedManualContact");
+    }
+
+    private void ApplyContactOnlyFromLookup(TblContact c)
+    {
+        var name = (c.Contactname ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(name))
+            name = $"{c.Firstname ?? ""} {c.Surname ?? ""}".Trim();
+        if (!string.IsNullOrWhiteSpace(name))
+            HttpContext.Session.SetString("Draft:ContactName", name);
+        if (!string.IsNullOrWhiteSpace(c.Email))
+            HttpContext.Session.SetString("Draft:ContactEmail", c.Email.Trim().ToLowerInvariant());
+    }
+
+    private static string BuildEmailIntakeSyntheticMessage(string email, BookingPrefillFromEmailResult? lookup)
+    {
+        if (lookup?.Booking != null)
+            return $"Structured intake: email {email}; booking lookup found proposal {lookup.Booking.booking_no}.";
+        if (lookup != null)
+            return $"Structured intake: email {email}; booking lookup: no upcoming booking — manual contact required.";
+        return $"Structured intake: email {email}; contact not found in system — manual contact required.";
+    }
+
+    private static string BuildVenueConfirmSyntheticMessage(VenueConfirmFormSubmission s) =>
+        $"Venue confirm: venue {s.VenueField}; start {s.StartDate}; end {s.EndDate}; attendees {s.Attendees}.";
+
+    private static string BuildEventDetailsSyntheticMessage(EventDetailsFormSubmission s) =>
+        $"Event details provided: event type {s.EventType}; setup style {s.SetupStyle}; " +
+        $"operator {s.WantsOperator}; schedule setup {s.SetupTime}, rehearsal {s.RehearsalTime}, " +
+        $"start {s.StartTime}, end {s.EndTime}, pack up {s.PackupTime}.";
+
+    private static string BuildBaseAvSyntheticMessage(BaseAvFormSubmission s) =>
+        $"Base AV provided: built-in projector {s.BuiltInProjector}; screen {s.BuiltInScreen}; speakers {s.BuiltInSpeakers}; " +
+        $"placement {s.ProjectorPlacement}; presenters {s.Presenters}; flipchart {s.Flipchart}; " +
+        $"laptop mode {s.LaptopMode}; laptop qty {s.LaptopQty}; adapter for own laptops {s.AdapterOwnLaptops}.";
+
+    private string BuildFollowUpAvSyntheticMessage(FollowUpAvFormSubmission s)
+    {
+        var pr = HttpContext.Session.GetString("Draft:PresenterCount") ?? "0";
+        return
+            $"AV extras provided: presenters {pr}; speakers 0; wireless clicker no; audio video recording no; " +
+            $"technician from {HttpContext.Session.GetString("Draft:TechStartTime")} to {HttpContext.Session.GetString("Draft:TechEndTime")}; " +
+            $"whole event coverage yes. " +
+            $"Follow-up: mic {s.MicType} qty {s.MicQty}; lectern {s.Lectern}; foldback {s.FoldbackMonitor}; " +
+            $"wireless presenter {s.WirelessPresenter}; laptop switcher {s.LaptopSwitcher}; stage laptop {s.StageLaptop}; " +
+            $"video conference {s.VideoConference}.";
+    }
+
+    private void EnsureStructuredFormsInChat(List<DisplayMessage> messages)
+    {
+        if (messages == null)
+            return;
+
+        // Do not bail on empty transcript: EnsureGreetingAsync may not have persisted yet, or
+        // Azure thread fetch can be empty briefly — lead links still need email gate / forms on first paint.
+
+        // If QuoteComplete is set but we have no rows yet (empty thread + stale session), still run the wizard
+        // below so the user never sees a blank chat.
+        if (HttpContext.Session.GetString("Draft:QuoteComplete") == "1" && messages.Count > 0)
+            return;
+
+        var hasQuoteSummary = messages.Any(m =>
+            string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase)
+            && (m.FullText ?? string.Join("\n", m.Parts ?? Enumerable.Empty<string>()))
+                .Contains("Would you like me to create the quote now?", StringComparison.OrdinalIgnoreCase));
+        if (hasQuoteSummary)
+            return;
+
+        var entrySource = HttpContext.Session.GetString("Draft:EntrySource") ?? "general";
+        var emailGateComplete = HttpContext.Session.GetString("Draft:EmailGateCompleted") == "1";
+        var needManualContact = HttpContext.Session.GetString("Draft:NeedManualContact") == "1";
+        var contactFormSubmitted = HttpContext.Session.GetString("Draft:ContactFormSubmitted") == "1";
+        var venueConfirmSubmitted = HttpContext.Session.GetString("Draft:VenueConfirmSubmitted") == "1";
+        var eventFormSubmitted = HttpContext.Session.GetString("Draft:EventFormSubmitted") == "1";
+        var baseAvSubmitted = HttpContext.Session.GetString("Draft:BaseAvSubmitted") == "1";
+        var followUpAvSubmitted = HttpContext.Session.GetString("Draft:FollowUpAvSubmitted") == "1";
+
+        var hasContactDraft = contactFormSubmitted
+            || (!string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:ContactName"))
+                && !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:Organisation"))
+                && (!string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:ContactEmail"))
+                    || !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:ContactPhone"))));
+
+        var attendeesRaw = HttpContext.Session.GetString("Draft:ExpectedAttendees");
+        _ = int.TryParse(attendeesRaw, out var attendees);
+        var hasEventCoreDraft =
+            !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:VenueName")) &&
+            !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:RoomName")) &&
+            !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:EventType")) &&
+            attendees > 0 &&
+            !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:EventDate")) &&
+            !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:StartTime")) &&
+            !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:EndTime"));
+
+        // 1) Email gate (direct visitors and sales-portal lead links — confirm email before continuing)
+        if ((string.Equals(entrySource, "general", StringComparison.OrdinalIgnoreCase)
+             || string.Equals(entrySource, "lead", StringComparison.OrdinalIgnoreCase))
+            && !emailGateComplete)
+        {
+            messages.RemoveAll(IsLegacyContactPromptMessage);
+            if (!messages.Any(m => MessageContainsUiType(m, "emailForm")))
+            {
+                var emailIntro = string.Equals(entrySource, "lead", StringComparison.OrdinalIgnoreCase)
+                    ? "Please confirm the email address you used for your enquiry so we can verify it’s you."
+                    : "Please enter your email address so I can verify your booking request.";
+                messages.Add(BuildUiAssistantMessage(emailIntro, BuildEmailFormUiJson()));
+            }
+            return;
+        }
+
+        // 2) Manual contact when lookup did not return a booking
+        if (needManualContact && !contactFormSubmitted)
+        {
+            messages.RemoveAll(IsLegacyContactPromptMessage);
+            if (!messages.Any(m => MessageContainsUiType(m, "contactForm")))
+            {
+                messages.Add(BuildUiAssistantMessage("Please complete this quick contact form:", BuildContactFormUiJson()));
+            }
+            return;
+        }
+
+        // 3) Contact details on file
+        if (!hasContactDraft)
+        {
+            messages.RemoveAll(IsLegacyContactPromptMessage);
+            if (!messages.Any(m => MessageContainsUiType(m, "contactForm")))
+            {
+                messages.Add(BuildUiAssistantMessage("Please complete this quick contact form:", BuildContactFormUiJson()));
+            }
+            return;
+        }
+        else if (contactFormSubmitted && HttpContext.Session.GetString("Draft:ShowContactSummary") == "1")
+        {
+            messages.RemoveAll(m => MessageContainsUiType(m, "contactForm"));
+            if (!messages.Any(m => MessageContainsUiType(m, "submittedForm") && (m.FullText ?? "").Contains("Contact details submitted")))
+            {
+                messages.Add(BuildUiAssistantMessage("Contact details submitted:", BuildSubmittedContactFormViewJson()));
+            }
+        }
+
+        // 4) Venue + dates + attendees
+        if (!venueConfirmSubmitted)
+        {
+            // While two-phase contact save is in flight ("One moment, please!"), do not inject the venue form —
+            // it appeared above the follow-up "saved successfully" message and confused users.
+            if (string.Equals(HttpContext.Session.GetString("ContactSavePending"), "1", StringComparison.Ordinal))
+            {
+                messages.RemoveAll(m => MessageContainsUiType(m, "venueConfirmForm"));
+                return;
+            }
+
+            if (!messages.Any(m => MessageContainsUiType(m, "venueConfirmForm")))
+            {
+                var intro = HttpContext.Session.GetString("Draft:BookingLookupApplied") == "1"
+                    ? "I've found your booking details. Please review and confirm."
+                    : "Please confirm your venue, room, and event dates.";
+                messages.Add(BuildUiAssistantMessage(intro, BuildVenueConfirmFormUiJson()));
+            }
+            return;
+        }
+        else
+        {
+            messages.RemoveAll(m => MessageContainsUiType(m, "venueConfirmForm"));
+        }
+
+        // 5) Event type + schedule + operator
+        if (!hasEventCoreDraft)
+        {
+            if (!messages.Any(m => MessageContainsUiType(m, "eventDetailsForm")))
+            {
+                messages.Add(BuildUiAssistantMessage("Please tell me more about your event.", BuildEventDetailsFormUiJson()));
+            }
+            return;
+        }
+        else if (eventFormSubmitted)
+        {
+            messages.RemoveAll(m => MessageContainsUiType(m, "eventDetailsForm"));
+        }
+
+        // 6) Base AV package
+        if (!baseAvSubmitted)
+        {
+            if (!messages.Any(m => MessageContainsUiType(m, "baseAvForm")))
+            {
+                messages.Add(BuildUiAssistantMessage(
+                    $"The base AV package for {HttpContext.Session.GetString("Draft:RoomName") ?? "your room"} is:",
+                    BuildBaseAvFormUiJson()));
+            }
+            return;
+        }
+        else
+        {
+            messages.RemoveAll(m => MessageContainsUiType(m, "baseAvForm"));
+        }
+
+        // 7) Follow-up AV questions
+        if (!followUpAvSubmitted)
+        {
+            if (!messages.Any(m => MessageContainsUiType(m, "followUpAvForm")))
+            {
+                messages.Add(BuildUiAssistantMessage("I have a few follow-up questions.", BuildFollowUpAvFormUiJson()));
+            }
+            return;
+        }
+        else if (HttpContext.Session.GetString("Draft:AvExtrasSubmitted") == "1"
+            && !messages.Any(m => MessageContainsUiType(m, "submittedForm") && (m.FullText ?? "").Contains("AV selections confirmed")))
+        {
+            messages.RemoveAll(IsFollowUpAvFormMessage);
+            messages.Add(BuildUiAssistantMessage("AV selections confirmed:", BuildSubmittedFollowUpAvViewJson()));
+        }
+    }
+
+    private static bool IsLegacyContactPromptMessage(DisplayMessage message)
+    {
+        if (!string.Equals(message.Role, "assistant", StringComparison.OrdinalIgnoreCase))
+            return false;
+        var text = (message.FullText ?? string.Join("\n", message.Parts ?? Enumerable.Empty<string>())).Trim();
+        if (string.IsNullOrWhiteSpace(text))
+            return false;
+        if (text.Contains("{\"ui\":", StringComparison.OrdinalIgnoreCase))
+            return false;
+        var lower = text.ToLowerInvariant();
+        return lower.Contains("what is your full name")
+            || lower.Contains("share your full name")
+            || lower.Contains("please share your full name")
+            || lower.Contains("could you please share your full name")
+            || lower.Contains("full name to get started");
+    }
+
+    private static bool MessageContainsUiType(DisplayMessage message, string type)
+    {
+        var marker = $"\"type\":\"{type}\"";
+        foreach (var part in message.Parts ?? Enumerable.Empty<string>())
+        {
+            if (!string.IsNullOrWhiteSpace(part) && part.Contains(marker, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return !string.IsNullOrWhiteSpace(message.FullText)
+            && message.FullText.Contains(marker, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsAvExtrasFormMessage(DisplayMessage message)
+    {
+        if (MessageContainsUiType(message, "avExtrasForm"))
+            return true;
+
+        if (!string.Equals(message.Role, "assistant", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var text = (message.FullText ?? string.Join("\n", message.Parts ?? Enumerable.Empty<string>())).Trim();
+        if (string.IsNullOrWhiteSpace(text))
+            return false;
+
+        return text.Contains("Please confirm these AV extras:", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Please complete this AV extras form:", StringComparison.OrdinalIgnoreCase)
+            || text.Contains("Finally, confirm your AV extras", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsFollowUpAvFormMessage(DisplayMessage message)
+    {
+        if (MessageContainsUiType(message, "followUpAvForm"))
+            return true;
+        if (!string.Equals(message.Role, "assistant", StringComparison.OrdinalIgnoreCase))
+            return false;
+        var text = (message.FullText ?? string.Join("\n", message.Parts ?? Enumerable.Empty<string>())).Trim();
+        return text.Contains("I have a few follow-up questions.", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static DisplayMessage BuildUiAssistantMessage(string preface, string uiJson)
+    {
+        var body = $"{preface}\n\n{uiJson}";
+        return new DisplayMessage
+        {
+            Role = "assistant",
+            Timestamp = DateTimeOffset.UtcNow,
+            Parts = new List<string> { body },
+            FullText = body,
+            Html = preface
+        };
+    }
+
+    private static string BuildContactFormUiJson()
+    {
+        var payload = new
+        {
+            ui = new
+            {
+                type = "contactForm",
+                title = "Before we begin, please share your details",
+                submitLabel = "Send details"
+            }
+        };
+        return JsonSerializer.Serialize(payload);
+    }
+
+    private string BuildEmailFormUiJson()
+    {
+        var defaultEmail = IsLeadEntry()
+            ? ""
+            : (HttpContext.Session.GetString("Draft:ContactEmail") ?? "");
+        var payload = new { ui = new { type = "emailForm", title = "Email", submitLabel = "Continue", defaultEmail } };
+        return JsonSerializer.Serialize(payload);
+    }
+
+    private string BuildVenueConfirmFormUiJson()
+    {
+        var todayIso = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
+        var start = HttpContext.Session.GetString("Draft:EventDate") ?? todayIso;
+        var end = HttpContext.Session.GetString("Draft:EventEndDate") ?? start;
+        var payload = new
+        {
+            ui = new
+            {
+                type = "venueConfirmForm",
+                title = "Confirm your event",
+                submitLabel = "Continue",
+                attendees = HttpContext.Session.GetString("Draft:ExpectedAttendees") ?? "",
+                startDate = start,
+                endDate = end,
+                minDate = todayIso,
+                venueOptions = new object[]
+                {
+                    new { id = "westin-ballroom", label = "Westin Ballroom", splits = new[] { new { id = "full", label = "Full" }, new { id = "1", label = "Ballroom 1" }, new { id = "2", label = "Ballroom 2" } } },
+                    new { id = "elevate", label = "Elevate", splits = new[] { new { id = "full", label = "Full" }, new { id = "1", label = "Elevate 1" }, new { id = "2", label = "Elevate 2" } } },
+                    new { id = "thrive-boardroom", label = "Thrive Boardroom", splits = Array.Empty<object>() }
+                }
+            }
+        };
+        return JsonSerializer.Serialize(payload);
+    }
+
+    private string BuildEventDetailsFormUiJson()
+    {
+        var todayIso = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
+        var payload = new
+        {
+            ui = new
+            {
+                type = "eventDetailsForm",
+                title = "Event details",
+                submitLabel = "Next",
+                eventType = HttpContext.Session.GetString("Draft:EventType") ?? "",
+                wantsOperator = HttpContext.Session.GetString("Draft:WantsOperator") ?? "",
+                minDate = todayIso,
+                schedule = new
+                {
+                    setup = HttpContext.Session.GetString("Draft:SetupTime") ?? "07:00",
+                    rehearsal = HttpContext.Session.GetString("Draft:RehearsalTime") ?? "09:30",
+                    start = HttpContext.Session.GetString("Draft:StartTime") ?? "10:00",
+                    end = HttpContext.Session.GetString("Draft:EndTime") ?? "16:00",
+                    packup = HttpContext.Session.GetString("Draft:PackupTime") ?? "18:00",
+                    stepMinutes = 30
+                }
+            }
+        };
+        return JsonSerializer.Serialize(payload);
+    }
+
+    private string BuildBaseAvFormUiJson()
+    {
+        var room = HttpContext.Session.GetString("Draft:RoomName") ?? "";
+        var showPlacement = RoomSupportsProjectorPlacement(room);
+        var payload = new
+        {
+            ui = new
+            {
+                type = "baseAvForm",
+                title = $"Base AV package for {room}",
+                submitLabel = "Next",
+                roomName = room,
+                showProjectorPlacement = showPlacement,
+                projectorPlacement = HttpContext.Session.GetString("Draft:ProjectorPlacementChoice") ?? "",
+                placementOptions = GetProjectorPlacementOptionsForRoom(room),
+                presenters = HttpContext.Session.GetString("Draft:PresenterCount") ?? "0",
+                flipchart = HttpContext.Session.GetString("Draft:Flipchart") ?? "no",
+                laptopMode = HttpContext.Session.GetString("Draft:LaptopMode") ?? "none",
+                laptopQty = HttpContext.Session.GetString("Draft:LaptopQty") ?? "0",
+                adapterOwnLaptops = HttpContext.Session.GetString("Draft:AdapterOwnLaptops") ?? "no"
+            }
+        };
+        return JsonSerializer.Serialize(payload);
+    }
+
+    private string BuildFollowUpAvFormUiJson()
+    {
+        var presenters = 0;
+        _ = int.TryParse(HttpContext.Session.GetString("Draft:PresenterCount"), out presenters);
+        var laptopQty = 0;
+        _ = int.TryParse(HttpContext.Session.GetString("Draft:LaptopQty"), out laptopQty);
+        var payload = new
+        {
+            ui = new
+            {
+                type = "followUpAvForm",
+                title = "Follow-up AV",
+                submitLabel = "Generate quote",
+                presenterCount = presenters,
+                laptopQty,
+                micType = HttpContext.Session.GetString("Draft:MicType") ?? "",
+                micQty = HttpContext.Session.GetString("Draft:MicQty") ?? "0",
+                lectern = HttpContext.Session.GetString("Draft:Lectern") ?? "",
+                foldbackMonitor = HttpContext.Session.GetString("Draft:FoldbackMonitor") ?? "no",
+                wirelessPresenter = HttpContext.Session.GetString("Draft:WirelessPresenter") ?? "no",
+                laptopSwitcher = HttpContext.Session.GetString("Draft:LaptopSwitcher") ?? "no",
+                stageLaptop = HttpContext.Session.GetString("Draft:StageLaptop") ?? "no",
+                videoConference = HttpContext.Session.GetString("Draft:VideoConference") ?? "no"
+            }
+        };
+        return JsonSerializer.Serialize(payload);
+    }
+
+    private static bool RoomSupportsProjectorPlacement(string? roomName)
+    {
+        var r = (roomName ?? "").ToLowerInvariant();
+        return r.Contains("westin ballroom 1", StringComparison.Ordinal)
+            || r.Contains("westin ballroom 2", StringComparison.Ordinal)
+            || r.Contains("westin ballroom", StringComparison.Ordinal) && !r.Contains("elevate");
+    }
+
+    private static object[] GetProjectorPlacementOptionsForRoom(string? roomName)
+    {
+        var allowed = GetAllowedProjectorAreasForRoom(roomName);
+        var list = new List<object>();
+        foreach (var a in allowed)
+            list.Add(new { id = a, label = a });
+
+        var room = (roomName ?? "").Trim().ToLowerInvariant();
+        var isSplit = room is "westin ballroom 1" or "ballroom 1" or "westin ballroom 2" or "ballroom 2";
+        if (!isSplit && allowed.Count == 6)
+        {
+            list.Add(new { id = "B+C", label = "B+C" });
+            list.Add(new { id = "E+F", label = "E+F" });
+        }
+
+        return list.ToArray();
+    }
+
+    private string BuildSubmittedFollowUpAvViewJson()
+    {
+        var items = new List<(string label, string value)>();
+        if (int.TryParse(HttpContext.Session.GetString("Draft:PresenterCount"), out var pc) && pc > 0)
+        {
+            items.Add(("Microphone", HttpContext.Session.GetString("Draft:MicType") ?? ""));
+            items.Add(("Video conference", HttpContext.Session.GetString("Draft:VideoConference") ?? ""));
+        }
+        var payload = new { ui = new { type = "submittedForm", title = "AV selections confirmed", items } };
+        return JsonSerializer.Serialize(payload);
+    }
+
+    private string BuildEventFormUiJson()
+    {
+        var todayIso = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
+        var payload = new
+        {
+            ui = new
+            {
+                type = "eventForm",
+                title = "Great, now let's capture your event details",
+                submitLabel = "Send event details",
+                eventType = HttpContext.Session.GetString("Draft:EventType") ?? "",
+                attendees = HttpContext.Session.GetString("Draft:ExpectedAttendees") ?? "",
+                eventDate = HttpContext.Session.GetString("Draft:EventDate") ?? todayIso,
+                minDate = todayIso,
+                setupStyle = HttpContext.Session.GetString("Draft:SetupStyle") ?? "",
+                venueOptions = new object[]
+                {
+                    new { id = "westin-ballroom", label = "Westin Ballroom", splits = new[] { new { id = "full", label = "Full" }, new { id = "1", label = "Ballroom 1" }, new { id = "2", label = "Ballroom 2" } } },
+                    new { id = "elevate", label = "Elevate", splits = new[] { new { id = "full", label = "Full" }, new { id = "1", label = "Elevate 1" }, new { id = "2", label = "Elevate 2" } } },
+                    new { id = "thrive-boardroom", label = "Thrive Boardroom", splits = Array.Empty<object>() }
+                },
+                setupOptions = new[] { "Theatre", "Classroom", "Banquet", "Cocktail", "U-Shape", "Boardroom" },
+                schedule = new
+                {
+                    setup = HttpContext.Session.GetString("Draft:SetupTime") ?? "07:00",
+                    rehearsal = HttpContext.Session.GetString("Draft:RehearsalTime") ?? "09:30",
+                    start = HttpContext.Session.GetString("Draft:StartTime") ?? "10:00",
+                    end = HttpContext.Session.GetString("Draft:EndTime") ?? "16:00",
+                    packup = HttpContext.Session.GetString("Draft:PackupTime") ?? "18:00",
+                    stepMinutes = 30
+                }
+            }
+        };
+        return JsonSerializer.Serialize(payload);
+    }
+
+    private string BuildAvExtrasFormUiJson()
+    {
+        var eventStart = HttpContext.Session.GetString("Draft:StartTime") ?? "10:00";
+        var eventEnd = HttpContext.Session.GetString("Draft:EndTime") ?? "16:00";
+        var payload = new
+        {
+            ui = new
+            {
+                type = "avExtrasForm",
+                title = "Finally, confirm your AV extras",
+                submitLabel = "Send AV extras",
+                presenters = HttpContext.Session.GetString("Draft:PresenterCount") ?? "0",
+                speakers = HttpContext.Session.GetString("Draft:SpeakerCount") ?? "0",
+                clicker = string.Equals(HttpContext.Session.GetString("Draft:NeedsClicker"), "yes", StringComparison.OrdinalIgnoreCase),
+                recording = string.Equals(HttpContext.Session.GetString("Draft:NeedsRecording"), "yes", StringComparison.OrdinalIgnoreCase),
+                techStart = HttpContext.Session.GetString("Draft:TechStartTime") ?? eventStart,
+                techEnd = HttpContext.Session.GetString("Draft:TechEndTime") ?? eventEnd,
+                eventStart,
+                eventEnd,
+                stepMinutes = 30
+            }
+        };
+        return JsonSerializer.Serialize(payload);
+    }
+
+    private string BuildSubmittedContactFormViewJson()
+    {
+        var firstName = HttpContext.Session.GetString("Draft:ContactFirstName") ?? "";
+        var lastName = HttpContext.Session.GetString("Draft:ContactLastName") ?? "";
+        var org = HttpContext.Session.GetString("Draft:Organisation") ?? "";
+        var location = HttpContext.Session.GetString("Draft:OrganisationAddress") ?? "";
+        var email = HttpContext.Session.GetString("Draft:ContactEmail") ?? "";
+        var phone = HttpContext.Session.GetString("Draft:ContactPhone") ?? "";
+
+        var items = new List<(string label, string value)>();
+        if (!string.IsNullOrWhiteSpace(firstName)) items.Add(("First name", firstName));
+        if (!string.IsNullOrWhiteSpace(lastName)) items.Add(("Last name", lastName));
+        if (!string.IsNullOrWhiteSpace(org)) items.Add(("Organisation", org));
+        if (!string.IsNullOrWhiteSpace(location)) items.Add(("Location", location));
+        if (!string.IsNullOrWhiteSpace(email)) items.Add(("Email", email));
+        if (!string.IsNullOrWhiteSpace(phone)) items.Add(("Phone", phone));
+
+        var payload = new
+        {
+            ui = new
+            {
+                type = "submittedForm",
+                title = "Contact details submitted",
+                items
+            }
+        };
+        return JsonSerializer.Serialize(payload);
+    }
+
+    private string BuildSubmittedAvExtrasFormViewJson()
+    {
+        var presenters = HttpContext.Session.GetString("Draft:PresenterCount") ?? "0";
+        var speakers = HttpContext.Session.GetString("Draft:SpeakerCount") ?? "0";
+        var clicker = HttpContext.Session.GetString("Draft:NeedsClicker") ?? "no";
+        var recording = HttpContext.Session.GetString("Draft:NeedsRecording") ?? "no";
+        var techStart = HttpContext.Session.GetString("Draft:TechStartTime") ?? "";
+        var techEnd = HttpContext.Session.GetString("Draft:TechEndTime") ?? "";
+
+        var items = new List<(string label, string value)>();
+        if (int.TryParse(presenters, out var pCount) && pCount > 0) items.Add(("Presenters", presenters));
+        if (int.TryParse(speakers, out var sCount) && sCount > 0) items.Add(("Speakers", speakers));
+        items.Add(("Wireless clicker", clicker.Equals("yes", StringComparison.OrdinalIgnoreCase) ? "Yes" : "No"));
+        items.Add(("Audio/video recording", recording.Equals("yes", StringComparison.OrdinalIgnoreCase) ? "Yes" : "No"));
+        if (!string.IsNullOrWhiteSpace(techStart) && !string.IsNullOrWhiteSpace(techEnd))
+            items.Add(("Technician coverage", $"{techStart} to {techEnd}"));
+
+        var payload = new
+        {
+            ui = new
+            {
+                type = "submittedForm",
+                title = "AV extras confirmed",
+                items
+            }
+        };
+        return JsonSerializer.Serialize(payload);
+    }
+
     private void SaveTimeSelectionToSession(TimeSpan start, TimeSpan end)
     {
         HttpContext.Session.SetString("Draft:StartTime", start.ToString(@"hh\:mm"));
@@ -3247,12 +4695,29 @@ public sealed class ChatController : Controller
             return "fourth-step-active";
 
         var list = messages as IReadOnlyList<DisplayMessage> ?? messages?.ToList();
+        var sess = HttpContext.Session;
 
         if (list != null && WasLastAssistantASummaryAsk(list))
             return "third-step-active";
 
-        if (!string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:SetupTime")))
+        if (string.Equals(sess.GetString("Draft:FollowUpAvSubmitted"), "1", StringComparison.Ordinal)
+            || string.Equals(sess.GetString("Draft:AvExtrasSubmitted"), "1", StringComparison.Ordinal))
+            return "third-step-active";
+
+        if (string.Equals(sess.GetString("Draft:BaseAvSubmitted"), "1", StringComparison.Ordinal)
+            || string.Equals(sess.GetString("Draft:EventFormSubmitted"), "1", StringComparison.Ordinal))
             return "second-step-active";
+
+        if (string.Equals(sess.GetString("Draft:VenueConfirmSubmitted"), "1", StringComparison.Ordinal)
+            || !string.IsNullOrWhiteSpace(sess.GetString("Draft:SetupTime")))
+            return "second-step-active";
+
+        if (string.Equals(sess.GetString("Draft:EmailGateCompleted"), "1", StringComparison.Ordinal)
+            || string.Equals(sess.GetString("Draft:ContactFormSubmitted"), "1", StringComparison.Ordinal))
+            return "first-step-active";
+
+        if (string.Equals(sess.GetString("Draft:EntrySource"), "lead", StringComparison.OrdinalIgnoreCase))
+            return "first-step-active";
 
         if (list != null && list.Count > 1)
             return "first-step-active";
@@ -3417,12 +4882,13 @@ public sealed class ChatController : Controller
             }
 
             // At this point we have at least one of: email / phone / position
-            return await _contactPersistence.UpsertContactByEmailAsync(
+            var upsert = await _contactPersistence.UpsertContactByEmailAsync(
                 name,
                 email,
                 phone,
                 position,
                 ct);
+            return upsert.Id;
         }
         catch
         {

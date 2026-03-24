@@ -156,8 +156,8 @@ public sealed partial class SmartEquipmentRecommendationService
 
             case "laptop_at_stage":
             case "laptop at stage":
-                // Laptop at stage = 2x SDICROSS (HDMI extension from lectern to operator desk)
-                items.AddRange(await RecommendProductByCodeAsync("SDICROSS", 2, "SDI/HDMI extension for laptop at stage", context, ct));
+                // Laptop on stage = 2× SDICROSS (signal path for lectern/operator when switcher + lectern)
+                items.AddRange(await RecommendProductByCodeAsync("SDICROSS", 2, "SDI/HDMI path for laptop on stage", context, ct));
                 break;
 
             case "flipchart":
@@ -255,9 +255,11 @@ public sealed partial class SmartEquipmentRecommendationService
         _logger.LogInformation("Looking for laptop packages: category={Category}, SubCategory={SubCategory} (isMac={IsMac}, isHighPerf={IsHighPerf})",
             targetCategory, targetSubCategory, isMac, isHighPerformance);
 
+        var aiCodes = await GetAiCatalogCodesAsync(ct);
         // Get all packages from the correct SubCategory with product_Config=1 (package)
         var packages = await _db.TblInvmas
             .AsNoTracking()
+            .Where(p => aiCodes.Count == 0 || aiCodes.Contains((p.product_code ?? "").Trim()))
             .Where(p => (p.category ?? "").Trim() == targetCategory)
             .Where(p => (p.SubCategory ?? "").Trim() == targetSubCategory)
             .Where(p => p.ProductConfig == 1) // Only packages, not individual items
@@ -389,8 +391,10 @@ public sealed partial class SmartEquipmentRecommendationService
     {
         var items = new List<RecommendedEquipmentItem>();
 
-        // Small rooms (e.g. Thrive Boardroom, max 10): use attendee-based specs, not room vision package (16x9 too large)
-        bool skipRoomPackages = await IsSmallRoomAsync(context.VenueName, context.RoomName, ct);
+        // Thrive must use its dedicated room package (WSBTHAV) when projection/display is needed.
+        var isThriveBoardroom = (context.RoomName ?? "").Contains("thrive", StringComparison.OrdinalIgnoreCase);
+        // Other very small rooms can still fall back to attendee-based standalone projector logic.
+        bool skipRoomPackages = !isThriveBoardroom && await IsSmallRoomAsync(context.VenueName, context.RoomName, ct);
         if (!skipRoomPackages)
         {
             // Room-aware: try venue-installed WSB vision/AV packages first when Westin/Four Points + room known
@@ -452,8 +456,10 @@ public sealed partial class SmartEquipmentRecommendationService
         }
 
         // Search for projectors with pricing
+        var aiCodes = await GetAiCatalogCodesAsync(ct);
         var products = await _db.TblInvmas
             .AsNoTracking()
+            .Where(p => aiCodes.Count == 0 || aiCodes.Contains((p.product_code ?? "").Trim()))
             .Where(p => (p.category ?? "").Trim() == "PROJECTR")
             .Where(p =>
                 !(p.descriptionv6 ?? "").ToLower().Contains("lens") &&
@@ -547,7 +553,7 @@ public sealed partial class SmartEquipmentRecommendationService
         if (normalized.Count == 0) return null;
 
         var room = (roomName ?? "").Trim().ToLowerInvariant();
-        var isFullBallroom = room is "westin ballroom" or "ballroom" or "";
+        var isFullBallroom = room is "westin ballroom" or "ballroom" or "full westin ballroom" or "westin ballroom full" or "full ballroom";
 
         // Dual projector (WSBBDPRO) only available for full Westin Ballroom, and only valid pairs B+C or E+F.
         if (normalized.Count >= 2 && isFullBallroom)
@@ -633,8 +639,10 @@ public sealed partial class SmartEquipmentRecommendationService
             sizeCategory = "extra large";
         }
 
+        var aiCodes = await GetAiCatalogCodesAsync(ct);
         var products = await _db.TblInvmas
             .AsNoTracking()
+            .Where(p => aiCodes.Count == 0 || aiCodes.Contains((p.product_code ?? "").Trim()))
             .Where(p => (p.category ?? "").Trim() == "SCREEN")
             .Where(p =>
                 !(p.descriptionv6 ?? "").ToLower().Contains("drape") &&
@@ -743,8 +751,10 @@ public sealed partial class SmartEquipmentRecommendationService
             ? new[] { "handheld", "wireless handheld", "hand held" }
             : new[] { "lapel", "lavalier", "beltpack", "clip" };
 
+        var aiCodes = await GetAiCatalogCodesAsync(ct);
         var products = await _db.TblInvmas
             .AsNoTracking()
+            .Where(p => aiCodes.Count == 0 || aiCodes.Contains((p.product_code ?? "").Trim()))
             .Where(p => (p.category ?? "").Trim() == "W/MIC")
             .Where(p =>
                 !(p.descriptionv6 ?? "").ToLower().Contains("receiver") &&
@@ -875,8 +885,10 @@ public sealed partial class SmartEquipmentRecommendationService
             sizeCategory = "line array";
         }
 
+        var aiCodes = await GetAiCatalogCodesAsync(ct);
         var products = await _db.TblInvmas
             .AsNoTracking()
+            .Where(p => aiCodes.Count == 0 || aiCodes.Contains((p.product_code ?? "").Trim()))
             .Where(p => (p.category ?? "").Trim() == "SPEAKER")
             .Where(p =>
                 !(p.descriptionv6 ?? "").ToLower().Contains("stand") &&
@@ -1000,10 +1012,12 @@ public sealed partial class SmartEquipmentRecommendationService
             useCase = "recording";
         }
 
-        // Search for cameras - try CAMERA category first, then VIDEO
+        // Search for cameras - support CAMERA, CAMERAS, and VIDEO category variants.
+        var aiCodes = await GetAiCatalogCodesAsync(ct);
         var products = await _db.TblInvmas
             .AsNoTracking()
-            .Where(p => (p.category ?? "").Trim() == "CAMERA" || (p.category ?? "").Trim() == "VIDEO")
+            .Where(p => aiCodes.Count == 0 || aiCodes.Contains((p.product_code ?? "").Trim()))
+            .Where(p => (p.category ?? "").Trim() == "CAMERA" || (p.category ?? "").Trim() == "CAMERAS" || (p.category ?? "").Trim() == "VIDEO")
             .Where(p =>
                 !(p.descriptionv6 ?? "").ToLower().Contains("cable") &&
                 !(p.descriptionv6 ?? "").ToLower().Contains("battery") &&
@@ -1093,8 +1107,10 @@ public sealed partial class SmartEquipmentRecommendationService
         foreach (var preferredCode in preferredCodes)
         {
             var codeLower = preferredCode.Trim().ToLowerInvariant();
+            var aiCodes = await GetAiCatalogCodesAsync(ct);
             var byCode = await _db.TblInvmas
                 .AsNoTracking()
+                .Where(p => aiCodes.Count == 0 || aiCodes.Contains((p.product_code ?? "").Trim()))
                 .Where(p => p.product_code != null && p.product_code.Trim().ToLower() == codeLower)
                 .Select(p => new { p.product_code, p.descriptionv6, p.PrintedDesc, p.category, p.PictureFileName })
                 .FirstOrDefaultAsync(ct);
@@ -1131,8 +1147,10 @@ public sealed partial class SmartEquipmentRecommendationService
         }
 
         // Fallback: search by description for presenter/clicker (exclude microphone)
+        var aiCodesFallback = await GetAiCatalogCodesAsync(ct);
         var products = await _db.TblInvmas
             .AsNoTracking()
+            .Where(p => aiCodesFallback.Count == 0 || aiCodesFallback.Contains((p.product_code ?? "").Trim()))
             .Where(p =>
                 ((p.descriptionv6 ?? "").ToLower().Contains("presenter") || (p.descriptionv6 ?? "").ToLower().Contains("clicker")) &&
                 !(p.descriptionv6 ?? "").ToLower().Contains("microphone") &&
@@ -1210,11 +1228,26 @@ public sealed partial class SmartEquipmentRecommendationService
 
         // EF Core cannot translate string.Equals with StringComparison to SQL - use ToLower() for case-insensitive match
         var codeLower = codeTrim.ToLowerInvariant();
+        var aiCodes = await GetAiCatalogCodesAsync(ct);
         var byCode = await _db.TblInvmas
             .AsNoTracking()
+            .Where(p => aiCodes.Count == 0 || aiCodes.Contains((p.product_code ?? "").Trim()))
             .Where(p => p.product_code != null && p.product_code.Trim().ToLower() == codeLower)
             .Select(p => new { p.product_code, p.descriptionv6, p.PrintedDesc, p.category, p.PictureFileName })
             .FirstOrDefaultAsync(ct);
+
+        if (byCode == null && codeTrim.Equals("LCD40", StringComparison.OrdinalIgnoreCase))
+        {
+            byCode = await _db.TblInvmas
+                .AsNoTracking()
+                .Where(p => aiCodes.Count == 0 || aiCodes.Contains((p.product_code ?? "").Trim()))
+                .Where(p =>
+                    (p.descriptionv6 ?? "").ToLower().Contains("foldback") ||
+                    (p.descriptionv6 ?? "").ToLower().Contains("confidence monitor") ||
+                    ((p.descriptionv6 ?? "").ToLower().Contains("40") && (p.descriptionv6 ?? "").ToLower().Contains("monitor")))
+                .Select(p => new { p.product_code, p.descriptionv6, p.PrintedDesc, p.category, p.PictureFileName })
+                .FirstOrDefaultAsync(ct);
+        }
 
         if (byCode == null)
         {

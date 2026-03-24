@@ -223,6 +223,45 @@ public sealed partial class AgentToolInstaller
                         additionalProperties = false
                     }),
 
+                FunctionTool("build_contact_form",
+                    "Display a single contact form to collect customer details in one message. CRITICAL: Output outputToUser EXACTLY AS-IS so the form renders.",
+                    new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            title = new { type = "string" },
+                            submitLabel = new { type = "string" }
+                        },
+                        additionalProperties = false
+                    }),
+
+                FunctionTool("build_event_form",
+                    "Display a single event details form with venue selector, date, schedule times, and attendee count. CRITICAL: Output outputToUser EXACTLY AS-IS so the form renders.",
+                    new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            title = new { type = "string" },
+                            submitLabel = new { type = "string" }
+                        },
+                        additionalProperties = false
+                    }),
+
+                FunctionTool("build_av_extras_form",
+                    "Display a single AV extras form for presenters/speakers, clicker, recording, and technician coverage. CRITICAL: Output outputToUser EXACTLY AS-IS so the form renders.",
+                    new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            title = new { type = "string" },
+                            submitLabel = new { type = "string" }
+                        },
+                        additionalProperties = false
+                    }),
+
                 FunctionTool("generate_quote", 
                     "Generate quote. Call IMMEDIATELY when user confirms equipment - do NOT ask for additional confirmation!",
                     new {
@@ -447,7 +486,7 @@ public sealed partial class AgentToolInstaller
                 "7. **SWITCHER — two separate scenarios:**\n" +
                 "   - **Multiple presenters (with slides):** Automatically include a switcher — do NOT ask. Quantity = ceil(presenter_count/4): 2–4 presenters → 1; 5–8 → 2; 9–12 → 3. Do NOT include for a single presenter.\n" +
                 "   - **Multiple rental laptops (non-presentation, e.g. training/hackathon):** If more than 1 laptop at a time, ask: 'Do you want to be able to seamlessly switch between the laptops?' If yes, include equipment_type='switcher' with quantity=1 (system auto-scales based on laptop count). Recommend operator assistance.\n" +
-                "8. **OPERATOR + LAPTOP AT STAGE:** When user has requested operator assistance AND presentations/slides: ask 'Would you like a laptop at the stage, or will all equipment stay at the operator's desk?' If they want laptop at stage, include equipment_type='laptop_at_stage' (adds 2x SDICROSS for HDMI extension from lectern to operator desk).\n" +
+                "8. **LECTERN + SWITCHER — LAPTOP ON STAGE (2× SDICROSS):** Ask ONLY when a video switcher is included AND lectern is not NONE: 'Will you require a laptop on stage?' If yes, include equipment_type='laptop_at_stage' (adds 2× SDICROSS). If no, do not add.\n" +
                 "9. **For video calls (Teams, Zoom, etc.):** This requires camera, microphone, speakers, display - ask about these if video conferencing is mentioned (one question at a time). For Elevate or Thrive, ask: 'Are you holding a video conference? Using Teams/Zoom etc?' If yes, include equipment_type='video_conference_unit'.\n" +
                 "10. **When slides/PowerPoint/presentations are mentioned:** Ask: 'Would you like a wireless clicker (presentation remote) for slide control?' (Default presenter remote: LOGISPOT. Ask this alone, one question per message.)\n" +
                 "11. **Flipchart:** Ask: 'Would you like a flipchart?' If yes, include equipment_type='flipchart'.\n" +
@@ -588,7 +627,7 @@ public sealed partial class AgentToolInstaller
                 "   - Include hdmi_adaptor when own laptop and user needs adaptor (equipment_type='hdmi_adaptor', quantity=1)\n" +
                 "   - Include switcher when presenter_count ≥ 2 (equipment_type='switcher', quantity=ceil(presenter_count/4)): 2–4 → 1; 5–8 → 2; 9–12 → 3. Do NOT include switcher for a single presenter. NEVER include switcher for Thrive Boardroom.\n" +
                 "   - Include switcher for multiple rental laptops (non-presentation context) when user wants seamless switching (equipment_type='switcher', quantity=1)\n" +
-                "   - Include laptop_at_stage when operator + user wants laptop at stage (equipment_type='laptop_at_stage', quantity=1)\n" +
+                "   - Include laptop_at_stage when switcher is included AND lectern is not NONE AND user confirms they need a laptop on stage (equipment_type='laptop_at_stage', quantity=1; adds 2× SDICROSS)\n" +
                 "   - Include flipchart when user wants one (equipment_type='flipchart', quantity=1 or more)\n" +
                 "   - Include lectern when user wants one (equipment_type='lectern', quantity=1) — EXCEPT for Thrive Boardroom\n" +
                 "   - Include foldback_monitor when user wants presenter to see screen without turning (equipment_type='foldback_monitor', quantity=1) — EXCEPT for Thrive Boardroom\n" +
@@ -624,9 +663,10 @@ public sealed partial class AgentToolInstaller
                 "   - Example: User says 'are there other screens?' → call show_equipment_alternatives with equipment_type='screen' once only.\n" +
                 "   - Then OUTPUT the outputToUser from that call EXACTLY including [[ISLA_GALLERY]] content\n\n" +
                 "### GENERATE QUOTE VS QUOTE SUMMARY (CRITICAL DISTINCTION)\n" +
-                "1. **MANDATORY SUMMARY STEP:** No matter what, before creating a quote, the summary step MUST be done first. Even if the user says 'yes create quote' or 'I'm ready for the quote', you MUST first show the quote summary message by calling recommend_equipment_for_event and outputting the result. This summary includes the confirmation 'Yes, create quote' and 'No, not yet' buttons.\n" +
-                "2. **ONLY GENERATE ON BUTTON CLICK:** You are strictly forbidden from calling **generate_quote** automatically. The actual quote document/PDF must ONLY be generated when the user explicitly clicks the 'Yes, create quote' button (which sends the message 'yes create quote').\n" +
-                "3. **NEVER call both tools** in the same response. Your first priority is ALWAYS to show the summary. Only after the summary is shown and the user confirms via the 'Yes' button should the quote be generated.\n\n" +
+                "1. **Default (non-wizard) flow — summary first:** Before creating a quote, you MUST show the quote summary by calling recommend_equipment_for_event and outputting the result — **unless** **structured wizard Follow-up AV** (item 4) applies.\n" +
+                "2. **ONLY GENERATE ON BUTTON CLICK (default flow):** Outside the structured wizard, do not call **generate_quote** until the user explicitly clicks 'Yes, create quote' or sends equivalent consent ('yes create quote').\n" +
+                "3. **Do not call recommend_equipment_for_event and generate_quote in the same response** — **except** for **structured wizard Follow-up AV** (item 4).\n" +
+                "4. **STRUCTURED WIZARD — Follow-up AV (`FollowUpAv:` / Generate quote button):** When the user submits follow-up AV (message starts with FollowUpAv:), the form submit **is** the quote consent; the server unlocks **generate_quote** for this turn. You MUST call **recommend_equipment_for_event** first, then **generate_quote** in the **same** assistant turn. **Do NOT** output the recommend_equipment **outputToUser** text to the user and **do NOT** ask 'Would you like me to create the quote now?' — output **only** the **generate_quote** tool result (success message with view/download links and confirmation ask). If recommend_equipment fails, follow its error instruction; do not call generate_quote until requirements are satisfied.\n\n" +
                 "### GENERATE QUOTE (internal - do not show this heading or any step number to user)\n" +
                 "When user clicks 'Yes, create quote' or says yes/looks good/perfect, IMMEDIATELY call generate_quote.\n" +
                 "DO NOT ask 'Shall I create the quote now?' - the summary already asks that.\n\n" +
@@ -684,7 +724,7 @@ public sealed partial class AgentToolInstaller
                 "- **get_product_knowledge** → Output outputToUser EXACTLY (warehouse names, counts, and event recommendations shown verbatim)\n" +
                 "- **get_westin_venue_guide** → Output outputToUser EXACTLY (venue capacities, AV, and room setup types)\n" +
                 "- **get_capacity_table** → Output outputToUser EXACTLY (Markdown table of sorted capacities)\n" +
-                "- **recommend_equipment_for_event** → Output the quote summary EXACTLY AS-IS (no alternative galleries in this response; show alternatives only when user asks via show_equipment_alternatives)\n" +
+                "- **recommend_equipment_for_event** → Output the quote summary EXACTLY AS-IS (no alternative galleries in this response; show alternatives only when user asks via show_equipment_alternatives). **Exception:** When the user message is structured follow-up AV (`FollowUpAv:`), do not output this summary; chain to **generate_quote** in the same turn per structured wizard rules.\n" +
                 "- **update_equipment** → Output the returned outputToUser (updated quote summary) EXACTLY AS-IS. Do not call generate_quote in the same response.\n" +
                 "- **regenerate_quote** → Output the message with the new View Quote link.\n" +
                 "- **build_time_picker** → Output the JSON picker definition exactly as returned\n" +

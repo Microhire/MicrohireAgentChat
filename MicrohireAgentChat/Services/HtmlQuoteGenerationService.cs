@@ -240,7 +240,8 @@ public partial class HtmlQuoteGenerationService
 
         // Calculate totals
         decimal equipmentTotal = equipmentSections.Sum(s => s.Items.Sum(i => i.LineTotal));
-        decimal serviceCharge = (decimal)(booking.sundry_total ?? 0);
+        // Business rule: 10% service charge on total hire amount (rental equipment).
+        decimal serviceCharge = equipmentTotal * 0.10m;
         decimal gst = equipmentTotal * 0.10m;
         decimal grandTotal = equipmentTotal + gst;
 

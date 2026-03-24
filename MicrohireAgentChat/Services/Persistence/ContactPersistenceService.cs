@@ -21,20 +21,10 @@ public sealed class ContactPersistenceService
     }
 
     /// <summary>
-    /// Upserts contact by email (primary lookup key).
-    /// Schema: tblContact with columns: 
-    /// - ID (decimal 10,0 PK)
-    /// - Contactname (varchar 35)
-    /// - firstname (varchar 25)
-    /// - MidName (varchar 35)
-    /// - surname (varchar 35)
-    /// - Email (varchar 80) - used for lookup
-    /// - Cell (varchar 16) - phone
-    /// - position (varchar 50)
-    /// - Active (char 1)
-    /// - CreateDate, LastContact, LastAttempt, LastUpdate (datetime)
+    /// Upserts contact: lookup by email, then normalized phone (when email unmatched), then contact name.
+    /// Schema: tblContact — Email / Cell / Contactname used for matching.
     /// </summary>
-    public async Task<decimal?> UpsertContactAsync(
+    public async Task<ContactUpsertResult> UpsertContactAsync(
         string? fullName,
         string? email,
         string? phoneE164,
@@ -45,16 +35,13 @@ public sealed class ContactPersistenceService
         {
             var now = NowAest();
 
-            // Split name into components
             var (first, middle, last, displayRaw) = SplitName(fullName);
-            
-            // Filter out assistant name artifacts
+
             if (string.Equals(middle, "from", StringComparison.OrdinalIgnoreCase))
                 middle = null;
 
             string? display = LooksLikeAssistantName(displayRaw) ? null : displayRaw;
 
-            // Do not persist first/middle/last when the full name is the assistant's (keeps e.g. "Isla Smith")
             if (LooksLikeAssistantName(displayRaw))
             {
                 first = null;
@@ -62,37 +49,25 @@ public sealed class ContactPersistenceService
                 last = null;
             }
 
-            // Lookup by email first (most reliable), then by name if no email
-            TblContact? existing = null;
-            if (!string.IsNullOrWhiteSpace(email))
-            {
-                var e = email.Trim().ToLowerInvariant();
-                existing = await _db.Contacts
-                    .FirstOrDefaultAsync(c => c.Email != null && c.Email.ToLower() == e, ct);
+            var existing = await FindExistingContactAsync(
+                email,
+                phoneE164,
+                display,
+                allowPhoneLookup: true,
+                ct);
 
-                if (existing != null)
-                    RepairAssistantNameArtifacts(existing, display, first, middle, last);
-            }
-            // If no email match, try lookup by full name (case-insensitive)
-            else if (!string.IsNullOrWhiteSpace(display))
-            {
-                var nameNorm = display.Trim().ToLowerInvariant();
-                existing = await _db.Contacts
-                    .FirstOrDefaultAsync(c => c.Contactname != null && c.Contactname.ToLower() == nameNorm, ct);
-            }
+            if (existing != null)
+                RepairAssistantNameArtifacts(existing, display, first, middle, last);
 
-            // Normalize position (DB column position has max 35 chars)
             string? pos = Trunc(NormalizePosition(position), 35);
 
-            // CREATE new contact
             if (existing is null)
             {
-                // Require at least one piece of info
                 if (string.IsNullOrWhiteSpace(display) &&
                     string.IsNullOrWhiteSpace(email) &&
                     string.IsNullOrWhiteSpace(phoneE164) &&
                     string.IsNullOrWhiteSpace(pos))
-                    return null;
+                    return new ContactUpsertResult(null, "skipped");
 
                 var row = new TblContact
                 {
@@ -112,10 +87,9 @@ public sealed class ContactPersistenceService
 
                 _db.Contacts.Add(row);
                 await _db.SaveChangesAsync(ct);
-                return row.Id;
+                return new ContactUpsertResult(row.Id, "created");
             }
 
-            // UPDATE existing contact
             if (!string.IsNullOrWhiteSpace(display))
                 existing.Contactname = Trunc(display, 35);
 
@@ -144,7 +118,7 @@ public sealed class ContactPersistenceService
             existing.LastUpdate = now;
 
             await _db.SaveChangesAsync(ct);
-            return existing.Id;
+            return new ContactUpsertResult(existing.Id, "updated");
         }
         catch (OperationCanceledException) { throw; }
         catch (DbUpdateException ex)
@@ -155,10 +129,9 @@ public sealed class ContactPersistenceService
     }
 
     /// <summary>
-    /// Upserts contact by email only (no name-based fallback lookup).
-    /// Used by ChatController for post-conversation contact persistence.
+    /// Upserts contact by email only (no phone or name fallback). Used by ChatController.
     /// </summary>
-    public async Task<decimal?> UpsertContactByEmailAsync(
+    public async Task<ContactUpsertResult> UpsertContactByEmailAsync(
         string? fullName,
         string? email,
         string? phoneE164,
@@ -203,7 +176,7 @@ public sealed class ContactPersistenceService
                     string.IsNullOrWhiteSpace(email) &&
                     string.IsNullOrWhiteSpace(phoneE164) &&
                     string.IsNullOrWhiteSpace(pos))
-                    return null;
+                    return new ContactUpsertResult(null, "skipped");
 
                 var row = new TblContact
                 {
@@ -223,7 +196,7 @@ public sealed class ContactPersistenceService
 
                 _db.Contacts.Add(row);
                 await _db.SaveChangesAsync(ct);
-                return row.Id;
+                return new ContactUpsertResult(row.Id, "created");
             }
 
             if (!string.IsNullOrWhiteSpace(display))
@@ -254,7 +227,7 @@ public sealed class ContactPersistenceService
             existing.LastUpdate = now;
 
             await _db.SaveChangesAsync(ct);
-            return existing.Id;
+            return new ContactUpsertResult(existing.Id, "updated");
         }
         catch (OperationCanceledException) { throw; }
         catch (DbUpdateException ex)
@@ -262,6 +235,53 @@ public sealed class ContactPersistenceService
             var root = GetRootException(ex);
             throw new InvalidOperationException($"tblContact upsert failed: {root.Message}", ex);
         }
+    }
+
+    /// <summary>Email first, then optional phone (digits), then contact name.</summary>
+    private async Task<TblContact?> FindExistingContactAsync(
+        string? email,
+        string? phoneE164,
+        string? displayForNameMatch,
+        bool allowPhoneLookup,
+        CancellationToken ct)
+    {
+        if (!string.IsNullOrWhiteSpace(email))
+        {
+            var e = email.Trim().ToLowerInvariant();
+            var byEmail = await _db.Contacts
+                .FirstOrDefaultAsync(c => c.Email != null && c.Email.ToLower() == e, ct);
+            if (byEmail != null) return byEmail;
+        }
+
+        if (allowPhoneLookup)
+        {
+            var phoneKey = ContactLookupNormalization.NormalizePhoneDigits(phoneE164);
+            if (!string.IsNullOrEmpty(phoneKey) && phoneKey.Length >= 8)
+            {
+                var last4 = phoneKey[^4..];
+                var candidates = await _db.Contacts
+                    .AsNoTracking()
+                    .Where(c => c.Cell != null && c.Cell.Contains(last4))
+                    .ToListAsync(ct);
+
+                var match = candidates.FirstOrDefault(c =>
+                    ContactLookupNormalization.NormalizePhoneDigits(c.Cell) == phoneKey);
+                if (match != null)
+                {
+                    return await _db.Contacts
+                        .FirstOrDefaultAsync(c => c.Id == match.Id, ct);
+                }
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(displayForNameMatch))
+        {
+            var nameNorm = displayForNameMatch.Trim().ToLowerInvariant();
+            return await _db.Contacts
+                .FirstOrDefaultAsync(c => c.Contactname != null && c.Contactname.ToLower() == nameNorm, ct);
+        }
+
+        return null;
     }
 
     // ==================== PRIVATE HELPERS ====================

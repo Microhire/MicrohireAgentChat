@@ -128,6 +128,13 @@ public sealed partial class ItemPersistenceService
                     continue;
                 }
 
+                // Prevent known placeholder/meta item from being persisted into quotes.
+                if (string.Equals(productCode, "ELEVIND", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogInformation("Skipping blocked product code {ProductCode}", productCode);
+                    continue;
+                }
+
                 // Verify product exists in inventory
                 var product = await _db.TblInvmas
                     .Where(p => p.product_code.Trim() == productCode)
@@ -140,6 +147,12 @@ public sealed partial class ItemPersistenceService
                 }
 
                 var description = item.Description ?? product?.descriptionv6?.Trim() ?? product?.PrintedDesc?.Trim() ?? productCode;
+                if (!string.IsNullOrWhiteSpace(description) &&
+                    description.Contains("independent items", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogInformation("Skipping blocked placeholder item by description: {Description}", description);
+                    continue;
+                }
                 if (!string.IsNullOrWhiteSpace(item.Comment))
                 {
                     var commentSuffix = $" (Client: {item.Comment})";

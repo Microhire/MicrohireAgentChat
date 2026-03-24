@@ -26,6 +26,8 @@ public sealed partial class SmartEquipmentRecommendationService
     private readonly IWebHostEnvironment _env;
     private readonly ILogger<SmartEquipmentRecommendationService> _logger;
     private readonly IWestinRoomCatalog _roomCatalog;
+    private List<string>? _aiCatalogCodes;
+    private readonly SemaphoreSlim _aiCatalogCodesLock = new(1, 1);
 
     public SmartEquipmentRecommendationService(
         BookingDbContext db,
@@ -152,6 +154,140 @@ public sealed partial class SmartEquipmentRecommendationService
         };
         await RecommendLaborAsync(result, context, ct);
         return result.LaborItems;
+    }
+
+    /// <summary>
+    /// Returns the AI-approved catalog product codes.
+    /// Source order:
+    /// 1) item-rules.json product_code entries
+    /// 2) venue-room-packages.json package codes
+    /// 3) known fixed accessory/package codes used by recommendation logic
+    /// </summary>
+    private async Task<List<string>> GetAiCatalogCodesAsync(CancellationToken ct)
+    {
+        if (_aiCatalogCodes is { Count: > 0 })
+            return _aiCatalogCodes;
+
+        await _aiCatalogCodesLock.WaitAsync(ct);
+        try
+        {
+            if (_aiCatalogCodes is { Count: > 0 })
+                return _aiCatalogCodes;
+
+            var codes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var dataPath = Path.Combine(_env.WebRootPath ?? string.Empty, "data");
+
+            // item-rules.json (extract all "product_code" values recursively)
+            var itemRulesPath = Path.Combine(dataPath, "item-rules.json");
+            if (File.Exists(itemRulesPath))
+            {
+                try
+                {
+                    using var fs = File.OpenRead(itemRulesPath);
+                    using var doc = await JsonDocument.ParseAsync(fs, cancellationToken: ct);
+                    CollectProductCodesRecursive(doc.RootElement, codes);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed reading item-rules.json for AI catalog code extraction");
+                }
+            }
+
+            // venue-room-packages.json (extract all string package codes recursively)
+            var roomPackagesPath = Path.Combine(dataPath, "venue-room-packages.json");
+            if (File.Exists(roomPackagesPath))
+            {
+                try
+                {
+                    using var fs = File.OpenRead(roomPackagesPath);
+                    using var doc = await JsonDocument.ParseAsync(fs, cancellationToken: ct);
+                    CollectCodesFromStringArraysRecursive(doc.RootElement, codes);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed reading venue-room-packages.json for AI catalog code extraction");
+                }
+            }
+
+            // Safety net for fixed codes used directly by recommendation logic
+            foreach (var fixedCode in new[]
+            {
+                "USBCMX2", "V1HD", "SDICROSS", "NATFLIPC", "LOG4kCAM", "LECT1", "SHURE418",
+                "NATFLSTD", "LCD40", "MIXER06", "LOGISPOT", "WIRPRES", "QLXD2SK",
+                "WSBTHAV", "WSBTHAUD", "WSBTHPRO",
+                "WSBBDPRO", "WSBBSPRO", "WSBNSPRO", "WSBSSPRO", "WSBFBALL", "WSBALLAU",
+                "WSBELSAD", "WSBELAUD",
+                "PCLPRO", "PCLP-L1", "PCLP-L2", "PCLP-L3", "PCPROLT1",
+                "13MBP-LM", "13MBP-LT", "13MBP-L1", "13MBP-L2"
+            })
+            {
+                codes.Add(fixedCode);
+            }
+
+            _aiCatalogCodes = codes
+                .Where(c => !string.IsNullOrWhiteSpace(c))
+                .Select(c => c.Trim())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            _logger.LogInformation("Loaded {Count} AI-catalog equipment codes", _aiCatalogCodes.Count);
+            return _aiCatalogCodes;
+        }
+        finally
+        {
+            _aiCatalogCodesLock.Release();
+        }
+    }
+
+    private static void CollectProductCodesRecursive(JsonElement element, HashSet<string> codes)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                foreach (var prop in element.EnumerateObject())
+                {
+                    if (prop.NameEquals("product_code") && prop.Value.ValueKind == JsonValueKind.String)
+                    {
+                        var code = prop.Value.GetString();
+                        if (!string.IsNullOrWhiteSpace(code))
+                            codes.Add(code.Trim());
+                    }
+                    CollectProductCodesRecursive(prop.Value, codes);
+                }
+                break;
+
+            case JsonValueKind.Array:
+                foreach (var item in element.EnumerateArray())
+                    CollectProductCodesRecursive(item, codes);
+                break;
+        }
+    }
+
+    private static void CollectCodesFromStringArraysRecursive(JsonElement element, HashSet<string> codes)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Array:
+                foreach (var item in element.EnumerateArray())
+                {
+                    if (item.ValueKind == JsonValueKind.String)
+                    {
+                        var code = item.GetString();
+                        if (!string.IsNullOrWhiteSpace(code))
+                            codes.Add(code.Trim());
+                    }
+                    else
+                    {
+                        CollectCodesFromStringArraysRecursive(item, codes);
+                    }
+                }
+                break;
+
+            case JsonValueKind.Object:
+                foreach (var prop in element.EnumerateObject())
+                    CollectCodesFromStringArraysRecursive(prop.Value, codes);
+                break;
+        }
     }
 }
 

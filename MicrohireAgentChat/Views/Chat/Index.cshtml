@@ -61,6 +61,7 @@
     </div>
 
     <div class="chat-box-body">
+        <div asp-validation-summary="All" class="text-danger" role="alert" style="margin: 8px 12px; font-size: 14px;"></div>
         <!-- Image Preview Modal -->
         <div id="islaPreviewOverlay" class="isla-preview-overlay" style="display: none;">
             <div class="isla-preview-backdrop"></div>
@@ -589,6 +590,13 @@
             scrollToBottom();
           }
           function removeTypingBubble() { const t = document.getElementById('typing-bubble'); if (t) t.remove(); }
+          /** innerHTML on messagesWrap removes the typing bubble; call this after every replace while a send is active */
+          function ensureOutboundTypingVisible() {
+            if ((window.__islaOutboundSendDepth || 0) > 0) {
+              addTypingBubble();
+              scrollToBottom();
+            }
+          }
           const REQUEST_TIMEOUT_MS = 90000;
 
           function createRequestTimeout(timeoutMs = REQUEST_TIMEOUT_MS) {
@@ -748,6 +756,130 @@
 
                   holder.appendChild(wrap);
                 }
+
+                if (item.type === 'contactForm') {
+                  const wrap = document.createElement('div');
+                  wrap.className = 'isla-form-card isla-contact-form';
+                  wrap.setAttribute('data-contact-form', '');
+                  wrap.innerHTML = `
+                    <div class="isla-form-title">${item.title || 'Before we begin, please share your details'}</div>
+                    <div class="isla-form-grid two-col">
+                      <div class="isla-form-field"><label>First name</label><input type="text" data-cf-first-name autocomplete="given-name" /></div>
+                      <div class="isla-form-field"><label>Last name</label><input type="text" data-cf-last-name autocomplete="family-name" /></div>
+                      <div class="isla-form-field"><label>Organisation</label><input type="text" data-cf-organisation autocomplete="organization" /></div>
+                      <div class="isla-form-field"><label>Location</label><input type="text" data-cf-location autocomplete="address-level2" /></div>
+                      <div class="isla-form-field"><label>Email</label><input type="email" data-cf-email autocomplete="email" /></div>
+                      <div class="isla-form-field"><label>Phone (optional)</label><input type="tel" data-cf-phone autocomplete="tel" /></div>
+                    </div>
+                    <div class="isla-form-actions">
+                      <button type="button" class="isla-form-submit" data-contact-submit>${item.submitLabel || 'Send details'}</button>
+                    </div>
+                    <div class="isla-form-error" data-contact-error style="display:none"></div>`;
+                  holder.appendChild(wrap);
+                }
+
+                if (item.type === 'eventForm') {
+                  const wrap = document.createElement('div');
+                  wrap.className = 'isla-form-card isla-event-form';
+                  wrap.setAttribute('data-event-form', '');
+
+                  const venues = item.venueOptions || [];
+                  const setupOptions = item.setupOptions || [];
+                  const schedule = item.schedule || {};
+
+                  const venuesHtml = venues.map((venue, idx) => {
+                    const splits = venue.splits || [];
+                    const splitsHtml = splits.length ? `
+                      <div class="isla-venue-split" data-event-split-wrap style="display:none">
+                        <select data-event-venue-split>
+                          ${splits.map(sp => `<option value="${sp.id || ''}">${sp.label || sp.id || ''}</option>`).join('')}
+                        </select>
+                      </div>` : '';
+                    return `
+                      <div class="isla-venue-option">
+                        <label class="isla-venue-option-header">
+                          <input type="radio" name="event-venue-radio" value="${venue.id || ''}" data-event-venue-radio ${idx === 0 ? 'checked' : ''} />
+                          <span>${venue.label || venue.id || ''}</span>
+                        </label>
+                        ${splitsHtml}
+                      </div>`;
+                  }).join('');
+
+                  const setupHtml = setupOptions.map(opt => {
+                    const selected = (item.setupStyle || '').toLowerCase() === String(opt || '').toLowerCase() ? 'selected' : '';
+                    return `<option value="${opt || ''}" ${selected}>${opt || ''}</option>`;
+                  }).join('');
+
+                  wrap.innerHTML = `
+                    <div class="isla-form-title">${item.title || 'Please share your event details'}</div>
+                    <div class="isla-form-field">
+                      <label>Venue</label>
+                      <div class="isla-venue-options" data-event-venues>${venuesHtml}</div>
+                    </div>
+                    <div class="isla-form-grid two-col">
+                      <div class="isla-form-field"><label>Event type</label><input type="text" value="${item.eventType || ''}" data-event-type /></div>
+                      <div class="isla-form-field"><label>Attendee count</label><input type="number" min="1" step="1" value="${item.attendees || ''}" data-event-attendees /></div>
+                      <div class="isla-form-field"><label>Date</label><input type="date" value="${item.eventDate || ''}" min="${item.minDate || ''}" data-event-date /></div>
+                      <div class="isla-form-field" data-event-setup-wrap><label>Room setup style</label><select data-event-setup>${setupHtml}</select></div>
+                    </div>
+                    <div class="isla-inline-note">Schedule</div>
+                    <div class="isla-form-grid two-col">
+                      <div class="isla-form-field"><label>Setup</label><input type="time" value="${schedule.setup || '07:00'}" step="1800" data-event-setup-time /></div>
+                      <div class="isla-form-field"><label>Rehearsal</label><input type="time" value="${schedule.rehearsal || '09:30'}" step="1800" data-event-rehearsal-time /></div>
+                      <div class="isla-form-field"><label>Start</label><input type="time" value="${schedule.start || '10:00'}" step="1800" data-event-start-time /></div>
+                      <div class="isla-form-field"><label>End</label><input type="time" value="${schedule.end || '16:00'}" step="1800" data-event-end-time /></div>
+                      <div class="isla-form-field"><label>Pack up</label><input type="time" value="${schedule.packup || '18:00'}" step="1800" data-event-packup-time /></div>
+                    </div>
+                    <div class="isla-form-actions">
+                      <button type="button" class="isla-form-submit" data-event-submit>${item.submitLabel || 'Send event details'}</button>
+                    </div>
+                    <div class="isla-form-error" data-event-error style="display:none"></div>`;
+                  holder.appendChild(wrap);
+                }
+
+                if (item.type === 'avExtrasForm') {
+                  const wrap = document.createElement('div');
+                  wrap.className = 'isla-form-card isla-av-extras-form';
+                  wrap.setAttribute('data-av-extras-form', '');
+                  wrap.setAttribute('data-event-start', item.eventStart || item.techStart || '10:00');
+                  wrap.setAttribute('data-event-end', item.eventEnd || item.techEnd || '16:00');
+                  wrap.innerHTML = `
+                    <div class="isla-form-title">${item.title || 'Confirm AV extras'}</div>
+                    <div class="isla-form-grid two-col">
+                      <div class="isla-form-field"><label>Presenters (with slides)</label><input type="number" min="0" step="1" value="${item.presenters || 0}" data-av-presenters /></div>
+                      <div class="isla-form-field"><label>Speakers (without slides)</label><input type="number" min="0" step="1" value="${item.speakers || 0}" data-av-speakers /></div>
+                    </div>
+                    <div class="isla-form-grid">
+                      <label class="isla-form-checkbox"><input type="checkbox" data-av-clicker ${item.clicker ? 'checked' : ''} /> Wireless clicker</label>
+                      <label class="isla-form-checkbox"><input type="checkbox" data-av-recording ${item.recording ? 'checked' : ''} /> Audio/video recording</label>
+                    </div>
+                    <div class="isla-inline-note">Technician coverage</div>
+                    <div class="isla-form-tech-row">
+                      <div class="isla-form-field"><label>Start</label><input type="time" step="1800" value="${item.techStart || item.eventStart || '10:00'}" data-av-tech-start /></div>
+                      <div class="isla-form-field"><label>End</label><input type="time" step="1800" value="${item.techEnd || item.eventEnd || '16:00'}" data-av-tech-end /></div>
+                    </div>
+                    <div class="isla-form-actions">
+                      <button type="button" class="isla-form-secondary" data-av-whole-duration>Whole event duration</button>
+                      <button type="button" class="isla-form-submit" data-av-submit>${item.submitLabel || 'Send AV extras'}</button>
+                    </div>
+                    <div class="isla-form-error" data-av-error style="display:none"></div>`;
+                  holder.appendChild(wrap);
+                }
+
+                // Submitted form read-only display
+                if (item.type === 'submittedForm') {
+                  const wrap = document.createElement('div');
+                  wrap.className = 'isla-form-summary-card';
+                  const items = item.items || [];
+                  const itemsHtml = items.map(it => {
+                    if (!it.value) return '';
+                    return `<div class="isla-form-summary-item"><span class="isla-form-summary-label">${it.label || ''}</span><span class="isla-form-summary-value">${it.value}</span></div>`;
+                  }).join('');
+                  wrap.innerHTML = `
+                    <div class="isla-form-summary-title">${item.title || 'Submitted'}</div>
+                    <div class="isla-form-summary-grid">${itemsHtml}</div>`;
+                  holder.appendChild(wrap);
+                }
               });
 
               if (holder.children.length > 0) {
@@ -755,56 +887,142 @@
                 node.remove(); // hide raw JSON
               }
             });
+            if (typeof window.initWizardForms === 'function') window.initWizardForms(root || messagesWrap);
           }
 
-          // Send a UI selection as a compact user message to keep the flow going
-          async function sendSelection(kind, value) {
-            const text = `[UI_SELECT] ${JSON.stringify({ kind, value })}`;
-            sendBtn.disabled = true;
-            addTypingBubble();
+          // Form buttons (email, venue, etc.) use postChat in _Messages.cshtml — they must hydrate ui-json the same way as the main send box.
+          window.hydrateUiBlocks = hydrateUiBlocks;
+
+          function getCsrfToken() {
+            const el = document.querySelector('input[name="__RequestVerificationToken"]');
+            return el ? el.value : '';
+          }
+
+          window.__islaChatSendChain = Promise.resolve();
+          window.__islaOutboundSendDepth = 0;
+
+          function syncWizardSubmitButtonsToOutboundDepth() {
+            const busy = (window.__islaOutboundSendDepth || 0) > 0;
+            messagesWrap.querySelectorAll('button.isla-form-submit').forEach(function(b) {
+              b.disabled = busy;
+            });
+          }
+
+          function beginOutboundChatUi() {
+            window.__islaOutboundSendDepth = (window.__islaOutboundSendDepth || 0) + 1;
+            if (window.__islaOutboundSendDepth === 1) {
+              addTypingBubble();
+              sendBtn.disabled = true;
+              if (input) input.disabled = true;
+            }
+            syncWizardSubmitButtonsToOutboundDepth();
+          }
+
+          function endOutboundChatUi() {
+            window.__islaOutboundSendDepth = Math.max(0, (window.__islaOutboundSendDepth || 1) - 1);
+            syncWizardSubmitButtonsToOutboundDepth();
+            if (window.__islaOutboundSendDepth === 0) {
+              removeTypingBubble();
+              sendBtn.disabled = false;
+              if (input) input.disabled = false;
+              input.focus();
+            }
+          }
+
+          window.queueChatSend = function(work) {
+            beginOutboundChatUi();
+            const p = window.__islaChatSendChain
+              .then(function() { return work(); })
+              .finally(function() { endOutboundChatUi(); });
+            window.__islaChatSendChain = p.catch(function() { return undefined; });
+            return p;
+          };
+
+          async function runChatSendInternal(text, options) {
+            options = options || {};
+            const busyEl = options.busyEl;
+            const helpers = window.__islaChatHelpers || {};
             let sendReqTimeout = null;
             let continueReqTimeout = null;
 
             try {
+              const token = getCsrfToken();
               sendReqTimeout = createRequestTimeout();
               const res = await fetch('@Url.Action("SendPartial", "Chat")', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                  'RequestVerificationToken': sendToken
+                  'RequestVerificationToken': token
                 },
                 body: new URLSearchParams({ text }),
                 signal: sendReqTimeout.signal
               });
               sendReqTimeout.clear();
+              sendReqTimeout = null;
               if (!res.ok) throw new Error('Request failed');
               const textRes = await res.text();
+
+              let parsed = null;
+              try { parsed = JSON.parse(textRes); } catch (_) {}
+
+              if (parsed && parsed.success === false && parsed.error) {
+                if (busyEl && busyEl.isConnected) {
+                  if (helpers.clearBusy) helpers.clearBusy(busyEl);
+                  if (helpers.clearThinkingNear) helpers.clearThinkingNear(busyEl);
+                }
+                const emailForm = busyEl && busyEl.closest && busyEl.closest('[data-email-form]');
+                if (emailForm && helpers.showFormError) {
+                  helpers.showFormError(emailForm.querySelector('[data-email-error]'), parsed.error);
+                } else {
+                  alert(parsed.error);
+                }
+                return;
+              }
+
               let html = textRes;
               let continueNeeded = false;
-              try {
-                const j = JSON.parse(textRes);
-                if (j.continueNeeded && j.html) { html = j.html; continueNeeded = true; }
-              } catch (_) {}
+              if (parsed && typeof parsed === 'object' && parsed.continueNeeded) {
+                const fragment = parsed.html != null ? parsed.html : parsed.Html;
+                if (!fragment || typeof fragment !== 'string') {
+                  throw new Error('Incomplete server response');
+                }
+                html = fragment;
+                continueNeeded = true;
+              }
+
+              if (!html || typeof html !== 'string' || !html.trim()) {
+                throw new Error('Empty response');
+              }
+
               messagesWrap.innerHTML = html;
               hydrateUiBlocks(messagesWrap);
+              syncWizardSubmitButtonsToOutboundDepth();
+              ensureOutboundTypingVisible();
               updateProgressBar();
               scrollToBottom();
+
               if (continueNeeded) {
                 continueReqTimeout = createRequestTimeout();
                 const contRes = await fetch('@Url.Action("ContinuePartial", "Chat")', {
                   method: 'POST',
                   headers: {
                     'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                    'RequestVerificationToken': sendToken
+                    'RequestVerificationToken': getCsrfToken()
                   },
-                  body: new URLSearchParams({ __RequestVerificationToken: sendToken }),
+                  body: new URLSearchParams({ __RequestVerificationToken: getCsrfToken() }),
                   signal: continueReqTimeout.signal
                 });
                 continueReqTimeout.clear();
+                continueReqTimeout = null;
                 if (!contRes.ok) throw new Error('Continue failed');
                 const fullHtml = await contRes.text();
+                if (!fullHtml || typeof fullHtml !== 'string' || !fullHtml.trim()) {
+                  throw new Error('Empty continue response');
+                }
                 messagesWrap.innerHTML = fullHtml;
                 hydrateUiBlocks(messagesWrap);
+                syncWizardSubmitButtonsToOutboundDepth();
+                ensureOutboundTypingVisible();
                 updateProgressBar();
                 scrollToBottom();
               }
@@ -814,10 +1032,32 @@
             } finally {
               if (sendReqTimeout) sendReqTimeout.clear();
               if (continueReqTimeout) continueReqTimeout.clear();
-              removeTypingBubble();
-              sendBtn.disabled = false;
-              input.focus();
+              if (busyEl && busyEl.isConnected) {
+                if (helpers.clearBusy) helpers.clearBusy(busyEl);
+                if (helpers.clearThinkingNear) helpers.clearThinkingNear(busyEl);
+              }
             }
+          }
+
+          window.__islaVenueConfirmQueuedOrBusy = false;
+          window.runChatSend = function(text, opts) {
+            const t = (text || '').trim();
+            const isVenueConfirm = /^VenueConfirm:/i.test(t);
+            if (isVenueConfirm && window.__islaVenueConfirmQueuedOrBusy) {
+              return Promise.resolve();
+            }
+            if (isVenueConfirm) window.__islaVenueConfirmQueuedOrBusy = true;
+            const p = window.queueChatSend(function() { return runChatSendInternal(text, opts || {}); });
+            p.finally(function() {
+              if (isVenueConfirm) window.__islaVenueConfirmQueuedOrBusy = false;
+            });
+            return p;
+          };
+
+          // Send a UI selection as a compact user message to keep the flow going
+          async function sendSelection(kind, value) {
+            const text = `[UI_SELECT] ${JSON.stringify({ kind, value })}`;
+            await window.runChatSend(text, {});
           }
           window.sendSelection = sendSelection; // expose for gallery buttons
 
@@ -832,7 +1072,6 @@
             const text = (input.value || '').trim();
             if (!text) return;
 
-            // Immediately add user message to conversation
             const userMessageDiv = document.createElement('div');
             userMessageDiv.className = 'chat-message message-sent';
             userMessageDiv.innerHTML = `
@@ -845,68 +1084,7 @@
             input.value = '';
             scrollToBottom();
 
-            sendBtn.disabled = true;
-            addTypingBubble();
-            let sendReqTimeout = null;
-            let continueReqTimeout = null;
-
-            try {
-              sendReqTimeout = createRequestTimeout();
-              const res = await fetch('@Url.Action("SendPartial", "Chat")', {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                  'RequestVerificationToken': sendToken
-                },
-                body: new URLSearchParams({ text }),
-                signal: sendReqTimeout.signal
-              });
-              sendReqTimeout.clear();
-              if (!res.ok) throw new Error('Request failed');
-              const textRes = await res.text();
-              let html = textRes;
-              let continueNeeded = false;
-              try {
-                const j = JSON.parse(textRes);
-                if (j.continueNeeded && j.html) {
-                  html = j.html;
-                  continueNeeded = true;
-                }
-              } catch (_) { /* not JSON, use as HTML */ }
-              messagesWrap.innerHTML = html;
-              hydrateUiBlocks(messagesWrap);
-              updateProgressBar();
-              scrollToBottom();
-
-              if (continueNeeded) {
-                continueReqTimeout = createRequestTimeout();
-                const contRes = await fetch('@Url.Action("ContinuePartial", "Chat")', {
-                  method: 'POST',
-                  headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-                    'RequestVerificationToken': sendToken
-                  },
-                  body: new URLSearchParams({ __RequestVerificationToken: sendToken }),
-                  signal: continueReqTimeout.signal
-                });
-                continueReqTimeout.clear();
-                if (!contRes.ok) throw new Error('Continue failed');
-                const fullHtml = await contRes.text();
-                messagesWrap.innerHTML = fullHtml;
-                hydrateUiBlocks(messagesWrap);
-                updateProgressBar();
-                scrollToBottom();
-              }
-            } catch (err) {
-              console.error(err);
-              appendAssistantFallbackMessage(fallbackMessageForError(err));
-            } finally {
-              if (sendReqTimeout) sendReqTimeout.clear();
-              if (continueReqTimeout) continueReqTimeout.clear();
-              removeTypingBubble();
-              sendBtn.disabled = false;
-              input.focus();
-            }
+            await window.runChatSend(text, { useTypingBubble: true });
           });
 
           // ----- RESET (New Thread) -----
@@ -936,6 +1114,7 @@
           const startReplayBtn = document.getElementById('startReplayBtn');
           const nextReplayBtn = document.getElementById('nextReplayBtn');
           const replayStatus = document.getElementById('replayStatus');
+          const startAutoTestBtn = document.getElementById('startAutoTestBtn');
           const testScenarioModal = document.getElementById('testScenarioModal');
           const closeModalBtn = document.getElementById('closeModalBtn');
           const scenarioBtns = document.querySelectorAll('.scenario-btn');

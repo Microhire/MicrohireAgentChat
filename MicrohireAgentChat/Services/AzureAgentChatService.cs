@@ -213,8 +213,6 @@ namespace MicrohireAgentChat.Services
 
         public async Task EnsureGreetingAsync(ISession session, string greeting, CancellationToken ct)
         {
-            if (session.GetInt32(SessionKeyGreeted) == 1) return;
-
             var threadId = EnsureThreadId(session);
             var hasAny = AgentsClient.Messages.GetMessages(threadId).Any();
             if (!hasAny)
@@ -520,8 +518,13 @@ namespace MicrohireAgentChat.Services
                 var (_, messagesAfterUser) = GetTranscript(threadId);
                 var messagesAfterUserList = messagesAfterUser as IList<DisplayMessage> ?? messagesAfterUser.ToList();
                 var assistantMessagesBeforeRun = CountAssistantMessagesRaw(threadId);
+                // Lead portal: contact already exists on WestinLeads — never use two-phase save (avoids extra
+                // Continue round that often fails with "temporary issue" and confused ordering vs venue form).
+                var isLeadEntry = string.Equals(session.GetString("Draft:EntrySource"), "lead", StringComparison.OrdinalIgnoreCase);
                 if (session.GetString(SessionKeyContactSaveCompleted) != "1"
-                    && ShouldShowContactSavePending(messagesAfterUserList))
+                    && !isLeadEntry
+                    && !IsStructuredWizardUserText(userText)
+                    && ShouldShowContactSavePending(messagesAfterUserList, session))
                 {
                     AddContactSavePendingMessage(threadId);
                     session.SetString(SessionKeyContactSavePending, "1");

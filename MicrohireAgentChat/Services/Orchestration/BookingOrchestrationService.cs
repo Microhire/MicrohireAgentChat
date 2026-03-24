@@ -82,15 +82,16 @@ public sealed class BookingOrchestrationService
             {
                 try
                 {
-                    contactId = await _contactService.UpsertContactAsync(
+                    var contactUpsert = await _contactService.UpsertContactAsync(
                         contactInfo.Name,
                         contactInfo.Email,
                         contactInfo.PhoneE164,
                         contactInfo.Position,
                         ct);
+                    contactId = contactUpsert.Id;
 
                     result.ContactId = contactId;
-                    _logger.LogInformation("Contact upserted: ID={ContactId}", contactId);
+                    _logger.LogInformation("Contact upserted: ID={ContactId} ({Action})", contactId, contactUpsert.Action);
                 }
                 catch (Exception ex)
                 {
@@ -118,11 +119,12 @@ public sealed class BookingOrchestrationService
                     else
                     {
                         // Create new - IMPORTANT: pass contactId to link contact
-                        orgId = await _orgService.UpsertOrganisationAsync(orgName!, orgAddress, contactId, ct);
+                        var orgUpsert = await _orgService.UpsertOrganisationAsync(orgName!, orgAddress, contactId, ct);
+                        orgId = orgUpsert.Id;
                         if (orgId.HasValue)
                         {
                             customerCode = await _orgService.GetCustomerCodeByIdAsync(orgId.Value, ct);
-                            _logger.LogInformation("Created new org: {Org} (ID={OrgId})", orgName, orgId);
+                            _logger.LogInformation("Created new org: {Org} (ID={OrgId}) ({Action})", orgName, orgId, orgUpsert.Action);
                         }
                     }
 
@@ -263,12 +265,13 @@ public sealed class BookingOrchestrationService
             
             if (!string.IsNullOrWhiteSpace(contactInfo.Name) && (hasEmail || hasPhone))
             {
-                contactId = await _contactService.UpsertContactAsync(
+                var contactUpsert = await _contactService.UpsertContactAsync(
                     contactInfo.Name,
                     contactInfo.Email,
                     contactInfo.PhoneE164,
                     contactInfo.Position,
                     ct);
+                contactId = contactUpsert.Id;
             }
 
             // Save organization
@@ -281,7 +284,8 @@ public sealed class BookingOrchestrationService
                 }
                 else
                 {
-                    orgId = await _orgService.UpsertOrganisationAsync(orgName!, orgAddress, contactId, ct);
+                    var orgUpsert = await _orgService.UpsertOrganisationAsync(orgName!, orgAddress, contactId, ct);
+                    orgId = orgUpsert.Id;
                 }
             }
 

@@ -469,6 +469,21 @@ public sealed partial class SmartEquipmentRecommendationService
         if (packageCodes == null || packageCodes.Count == 0)
             return new List<RecommendedEquipmentItem>();
 
+        // Westin Ballroom audio package routing:
+        // - Full Ballroom -> WSBFBALL
+        // - Ballroom 1/2 -> WSBALLAU
+        if ((equipmentType.Contains("speaker", StringComparison.OrdinalIgnoreCase) || equipmentType.Contains("audio", StringComparison.OrdinalIgnoreCase)) &&
+            roomNorm.Contains("ballroom"))
+        {
+            var isBallroomOneOrTwo = roomNorm.Contains("ballroom 1") || roomNorm.Contains("ballroom 2");
+            packageCodes = isBallroomOneOrTwo
+                ? packageCodes.Where(c => string.Equals(c, "WSBALLAU", StringComparison.OrdinalIgnoreCase)).ToList()
+                : packageCodes.Where(c => string.Equals(c, "WSBFBALL", StringComparison.OrdinalIgnoreCase)).ToList();
+
+            if (packageCodes.Count == 0)
+                return new List<RecommendedEquipmentItem>();
+        }
+
         // Elevate audio: WSBELSAD for Elevate 1/2 (half), WSBELAUD for Elevate (combined) - per question.txt
         if (roomKey == "Elevate" && (equipmentType.Contains("speaker", StringComparison.OrdinalIgnoreCase) || equipmentType.Contains("audio", StringComparison.OrdinalIgnoreCase)))
         {

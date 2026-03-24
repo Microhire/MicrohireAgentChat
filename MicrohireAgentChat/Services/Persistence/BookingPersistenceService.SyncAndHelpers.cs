@@ -122,8 +122,9 @@ public sealed partial class BookingPersistenceService
         {
             try
             {
-                contactId = await _contactService.UpsertContactAsync(
+                var contactUpsert = await _contactService.UpsertContactAsync(
                     contactName, contactEmail, contactPhone, null, ct);
+                contactId = contactUpsert.Id;
                 if (contactId.HasValue)
                 {
                     if (booking.ContactID != contactId)
@@ -166,7 +167,8 @@ public sealed partial class BookingPersistenceService
                 }
                 else
                 {
-                    orgId = await _orgService.UpsertOrganisationAsync(organisation, null, contactId, ct);
+                    var orgUpsert = await _orgService.UpsertOrganisationAsync(organisation, null, contactId, ct);
+                    orgId = orgUpsert.Id;
                     orgCode = orgId.HasValue ? await _orgService.GetCustomerCodeByIdAsync(orgId.Value, ct) : null;
                 }
 

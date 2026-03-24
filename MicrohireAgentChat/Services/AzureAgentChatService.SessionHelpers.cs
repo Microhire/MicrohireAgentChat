@@ -142,11 +142,77 @@ namespace MicrohireAgentChat.Services
             => _chatExtraction.ExtractEventTime(messages);
 
         /// <summary>
+        /// True when the latest user message is a structured wizard / form payload (not free-typed contact in chat).
+        /// Those lines often contain an email address; <see cref="ChatExtractionService.ExtractContactInfo"/> can
+        /// still infer a "name" via <c>GuessNameFromEmail</c>, which must NOT trigger the two-phase contact bubble.
+        /// </summary>
+        private static bool LastUserMessageIsStructuredWizardPayload(IEnumerable<DisplayMessage> messages)
+        {
+            var lastUser = messages
+                .Where(m => string.Equals(m.Role, "user", StringComparison.OrdinalIgnoreCase))
+                .LastOrDefault();
+            if (lastUser == null) return false;
+
+            var raw = string.Join("\n", lastUser.Parts ?? Enumerable.Empty<string>()).Trim();
+            if (string.IsNullOrWhiteSpace(raw))
+                raw = (lastUser.FullText ?? "").Trim();
+            if (string.IsNullOrWhiteSpace(raw)) return false;
+
+            var firstLine = raw.TrimStart().Split('\n', 2, StringSplitOptions.TrimEntries)[0];
+            if (firstLine.StartsWith("Email confirmed for enquiry:", StringComparison.OrdinalIgnoreCase))
+                return true;
+            return IsStructuredWizardFirstLine(firstLine);
+        }
+
+        /// <summary>
+        /// Defense in depth: same check as <see cref="LastUserMessageIsStructuredWizardPayload"/> but on the
+        /// raw text we are sending, in case the transcript has not yet materialized the new user message.
+        /// </summary>
+        private static bool IsStructuredWizardUserText(string? userText)
+        {
+            if (string.IsNullOrWhiteSpace(userText)) return false;
+            var trimmed = userText.TrimStart();
+            var firstLine = trimmed.Split('\n', 2, StringSplitOptions.TrimEntries)[0];
+            if (firstLine.StartsWith("Email confirmed for enquiry:", StringComparison.OrdinalIgnoreCase))
+                return true;
+            return IsStructuredWizardFirstLine(firstLine);
+        }
+
+        private static bool IsStructuredWizardFirstLine(string line)
+        {
+            if (string.IsNullOrWhiteSpace(line)) return false;
+            var t = line.TrimStart();
+            return t.StartsWith("Structured intake:", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("Venue confirm:", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("VenueConfirm:", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("Event details provided:", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("EventDetails:", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("Base AV provided:", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("BaseAv:", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("AV extras provided:", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("FollowUpAv:", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("Email:", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("Contact:", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("Event:", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("AV Extras:", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("Choose schedule:", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("Choose time:", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("I've selected this schedule:", StringComparison.OrdinalIgnoreCase)
+                || t.StartsWith("[UI_SELECT]", StringComparison.OrdinalIgnoreCase);
+        }
+
+        /// <summary>
         /// Returns true when transcript has name + (email or phone), matching PostProcessAfterRunAsync save logic.
         /// </summary>
-        private bool ShouldShowContactSavePending(IEnumerable<DisplayMessage> messages)
+        private bool ShouldShowContactSavePending(IEnumerable<DisplayMessage> messages, ISession session)
         {
+            if (string.Equals(session.GetString("Draft:EntrySource"), "lead", StringComparison.OrdinalIgnoreCase))
+                return false;
+
             var messageList = messages.ToList();
+            if (LastUserMessageIsStructuredWizardPayload(messageList))
+                return false;
+
             var transcript = string.Join(" ", messageList.Select(m => m.FullText ?? ""));
             if (!transcript.Contains('@') && !Regex.IsMatch(transcript, @"\+?\d{10,}"))
                 return false;
@@ -166,7 +232,7 @@ namespace MicrohireAgentChat.Services
             AgentsClient.Messages.CreateMessage(threadId, Azure.AI.Agents.Persistent.MessageRole.Agent, text);
         }
 
-        private async Task PostProcessAfterRunAsync(IEnumerable<DisplayMessage> messages, CancellationToken ct)
+        private async Task PostProcessAfterRunAsync(IEnumerable<DisplayMessage> messages, CancellationToken _)
         {
             try
             {
@@ -178,8 +244,11 @@ namespace MicrohireAgentChat.Services
                 {
                     return;
                 }
-                
-                var (contactId, orgId) = await _orchestration.SaveContactAndOrganizationAsync(messageList, ct);
+
+                // Do not pass the HTTP/chat timeout token: after a long agent run the request token is often
+                // already cancelled, which aborts opening a second DB (e.g. AITESTDB) mid-flight and causes
+                // intermittent TaskCanceledException on RelationalConnection.OpenAsync. SQL command timeout still applies.
+                var (contactId, orgId) = await _orchestration.SaveContactAndOrganizationAsync(messageList, CancellationToken.None);
 
                 var session = _http.HttpContext?.Session;
                 if (session == null) return;

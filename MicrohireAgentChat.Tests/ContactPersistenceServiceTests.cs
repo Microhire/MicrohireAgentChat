@@ -34,14 +34,15 @@ public sealed class ContactPersistenceServiceTests
 
         var service = new ContactPersistenceService(db, NullLogger<ContactPersistenceService>.Instance);
 
-        var id = await service.UpsertContactAsync(
+        var contactRes = await service.UpsertContactAsync(
             "Dhan Manalo",
             "dhan@dhancorp.com",
             "+61411111111",
             null,
             CancellationToken.None);
 
-        Assert.Equal(1001, (int?)id);
+        Assert.Equal(1001, (int?)contactRes.Id);
+        Assert.Equal("updated", contactRes.Action);
 
         var saved = await db.Contacts.SingleAsync(c => c.Email == "dhan@dhancorp.com");
         Assert.Equal("Dhan Manalo", saved.Contactname);
@@ -68,14 +69,15 @@ public sealed class ContactPersistenceServiceTests
 
         var service = new ContactPersistenceService(db, NullLogger<ContactPersistenceService>.Instance);
 
-        var id = await service.UpsertContactAsync(
+        var contactRes = await service.UpsertContactAsync(
             "Dhan Manalo",
             "dhan@dhancorp.com",
             null,
             "Director",
             CancellationToken.None);
 
-        Assert.Equal(2001, (int?)id);
+        Assert.Equal(2001, (int?)contactRes.Id);
+        Assert.Equal("updated", contactRes.Action);
 
         var saved = await db.Contacts.SingleAsync(c => c.Email == "dhan@dhancorp.com");
         Assert.Equal("Dhan", saved.Firstname);
@@ -100,14 +102,15 @@ public sealed class ContactPersistenceServiceTests
 
         var service = new ContactPersistenceService(db, NullLogger<ContactPersistenceService>.Instance);
 
-        var id = await service.UpsertContactAsync(
+        var contactRes = await service.UpsertContactAsync(
             "Isla from Microhire",
             "client@example.com",
             null,
             null,
             CancellationToken.None);
 
-        Assert.Equal(3001, (int?)id);
+        Assert.Equal(3001, (int?)contactRes.Id);
+        Assert.Equal("updated", contactRes.Action);
 
         var saved = await db.Contacts.SingleAsync(c => c.Email == "client@example.com");
         Assert.Null(saved.Contactname);

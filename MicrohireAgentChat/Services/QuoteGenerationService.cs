@@ -403,7 +403,8 @@ public class QuoteGenerationService
         // Calculate totals
         var equipmentSubtotal = visionTotal + audioTotal + lightingTotal + recordingTotal + drapeTotal;
         var rentalTotal = equipmentSubtotal;
-        var serviceCharge = (decimal)(booking.sundry_total ?? 0);
+        // Business rule: 10% service charge on total hire amount (rental equipment).
+        var serviceCharge = rentalTotal * 0.10m;
         var subtotalExGst = rentalTotal + labourTotal + serviceCharge;
         var gstRate = 0.10m; // 10% GST
         var gst = subtotalExGst * gstRate;

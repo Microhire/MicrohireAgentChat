@@ -1,0 +1,15 @@
+{
+  "ConnectionStrings": {
+    "BookingsDb": "Server=YOUR_SQL_SERVER;Database=AITESTDB;User Id=YOUR_USER;Password=YOUR_PASSWORD;TrustServerCertificate=True;"
+  },
+  "LeadEmail": {
+    "LocalDevelopment": true,
+    "LocalChatBaseUrl": "http://localhost:5216",
+    "SmtpHost": "smtp.gmail.com",
+    "SmtpPort": 587,
+    "FromAddress": "your-email@gmail.com",
+    "FromName": "Microhire",
+    "SmtpUsername": "your-email@gmail.com",
+    "SmtpPassword": "your-16-char-app-password"
+  }
+}

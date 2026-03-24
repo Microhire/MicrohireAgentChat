@@ -19,84 +19,144 @@ public sealed class OrganizationPersistenceService
         _logger = logger;
     }
 
-    /// <summary>
-    /// Upserts organization by name (case-insensitive lookup).
-    /// Schema: tblcust with columns:
-    /// - ID (decimal 10,0 PK)
-    /// - Customer_code (varchar 30) UNIQUE - generated as "C#####" from ID
-    /// - OrganisationV6 (varchar 50) - used for lookup
-    /// - Address_l1V6 (char 50)
-    /// - iLink_ContactID (decimal 10,0) - CRITICAL: link to tblContact.ID
-    /// - CustCDate (datetime) - creation date
-    /// </summary>
-    public async Task<decimal?> UpsertOrganisationAsync(
+    /// <param name="leadAuthoritative">When true (sales lead sync): resolve org via contact links + normalized name key; refresh OrganisationV6 and primary contact.</param>
+    public async Task<OrganisationUpsertResult> UpsertOrganisationAsync(
         string organisation,
         string? address,
         decimal? contactId,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool leadAuthoritative = false)
     {
         var org = Normalize(organisation);
         var addr = Normalize(address);
 
         if (string.IsNullOrWhiteSpace(org) && string.IsNullOrWhiteSpace(addr))
-            return null;
+            return new OrganisationUpsertResult(null, "skipped");
 
         try
         {
-            // NOTE: No transaction here - caller (BookingOrchestrationService) manages the transaction
-            
-            // Try existing by name (case-insensitive)
-            var existing = await _db.TblCusts
-                .AsTracking()
-                .FirstOrDefaultAsync(c =>
-                    c.OrganisationV6 != null &&
-                    c.OrganisationV6.ToLower() == org.ToLower(), ct);
+            TblCust? existing = null;
+
+            if (leadAuthoritative && contactId.HasValue && contactId.Value > 0)
+                existing = await FindOrganisationByContactIdAsync(contactId.Value, org, ct);
 
             if (existing is null)
             {
-                // 1) Insert with unique placeholder to satisfy UNIQUE constraint on Customer_code
+                if (leadAuthoritative)
+                    existing = await FindByOrganisationKeyAsync(org, ct);
+                else
+                {
+                    existing = await _db.TblCusts
+                        .AsTracking()
+                        .FirstOrDefaultAsync(c =>
+                            c.OrganisationV6 != null &&
+                            c.OrganisationV6.ToLower() == org.ToLower(), ct);
+                }
+            }
+
+            if (existing is null)
+            {
                 var now = NowAest();
                 var row = new TblCust
                 {
                     OrganisationV6 = Trunc(org, 50),
                     Address_l1V6 = Trunc(addr, 50),
-                    Customer_code = MakeTempCustomerCode(), // unique placeholder
-                    ILink_ContactID = contactId ?? 0, // 0 = no contact linked (DB column does not allow null)
+                    Customer_code = MakeTempCustomerCode(),
+                    ILink_ContactID = contactId ?? 0,
                     CustCDate = now
                 };
 
                 await _db.TblCusts.AddAsync(row, ct);
-                await _db.SaveChangesAsync(ct); // ID is now generated
+                await _db.SaveChangesAsync(ct);
 
-                // 2) Replace placeholder with final ID-based code (C#####)
                 row.Customer_code = MakeCustomerCodeFromId(row.ID);
                 await _db.SaveChangesAsync(ct);
 
-                return row.ID;
+                return new OrganisationUpsertResult(row.ID, "created");
             }
-            else
-            {
-                // UPDATE existing
-                if (!string.IsNullOrWhiteSpace(addr))
-                    existing.Address_l1V6 = Trunc(addr, 50);
 
-                // Ensure Customer_code is set
-                if (string.IsNullOrWhiteSpace(existing.Customer_code))
-                    existing.Customer_code = MakeCustomerCodeFromId(existing.ID);
+            if (!string.IsNullOrWhiteSpace(org))
+                existing.OrganisationV6 = Trunc(org, 50);
+            if (!string.IsNullOrWhiteSpace(addr))
+                existing.Address_l1V6 = Trunc(addr, 50);
 
-                // Update contact link if provided and not already set
-                if (contactId.HasValue && !existing.ILink_ContactID.HasValue)
-                    existing.ILink_ContactID = contactId;
+            if (string.IsNullOrWhiteSpace(existing.Customer_code))
+                existing.Customer_code = MakeCustomerCodeFromId(existing.ID);
 
-                await _db.SaveChangesAsync(ct);
-                return existing.ID;
-            }
+            if (leadAuthoritative && contactId.HasValue && contactId.Value > 0)
+                existing.ILink_ContactID = contactId;
+            else if (contactId.HasValue && !existing.ILink_ContactID.HasValue)
+                existing.ILink_ContactID = contactId;
+
+            await _db.SaveChangesAsync(ct);
+            return new OrganisationUpsertResult(existing.ID, "updated");
         }
         catch (DbUpdateException ex)
         {
             var detail = ex.InnerException?.Message ?? ex.Message;
             throw new InvalidOperationException($"Failed to save organisation record: {detail}", ex);
         }
+    }
+
+    private async Task<TblCust?> FindOrganisationByContactIdAsync(decimal contactId, string submittedOrg, CancellationToken ct)
+    {
+        var key = ContactLookupNormalization.NormalizeOrganisationKey(submittedOrg);
+
+        var byPrimary = await _db.TblCusts
+            .AsTracking()
+            .Where(c => c.ILink_ContactID == contactId)
+            .ToListAsync(ct);
+        if (byPrimary.Count == 1)
+            return byPrimary[0];
+        if (byPrimary.Count > 1)
+            return PickBestOrgByKey(byPrimary, key);
+
+        var codes = await _db.TblLinkCustContacts
+            .AsNoTracking()
+            .Where(l => l.ContactID == contactId && l.Customer_Code != null)
+            .Select(l => l.Customer_Code!)
+            .Distinct()
+            .ToListAsync(ct);
+        if (codes.Count == 0)
+            return null;
+
+        var linked = await _db.TblCusts
+            .AsTracking()
+            .Where(c => c.Customer_code != null && codes.Contains(c.Customer_code))
+            .ToListAsync(ct);
+        if (linked.Count == 0)
+            return null;
+        if (linked.Count == 1)
+            return linked[0];
+        return PickBestOrgByKey(linked, key);
+    }
+
+    private static TblCust? PickBestOrgByKey(List<TblCust> rows, string normalizedKey)
+    {
+        if (rows.Count == 0) return null;
+        if (string.IsNullOrEmpty(normalizedKey))
+            return rows[0];
+        var hit = rows.FirstOrDefault(r =>
+            ContactLookupNormalization.NormalizeOrganisationKey(r.OrganisationV6) == normalizedKey);
+        return hit ?? rows[0];
+    }
+
+    /// <summary>Suffix-stripped key match; narrows with prefix then verifies in memory.</summary>
+    private async Task<TblCust?> FindByOrganisationKeyAsync(string orgDisplay, CancellationToken ct)
+    {
+        var key = ContactLookupNormalization.NormalizeOrganisationKey(orgDisplay);
+        if (string.IsNullOrEmpty(key))
+            return null;
+
+        var prefixLen = Math.Min(4, key.Length);
+        var prefix = key[..prefixLen];
+        var candidates = await _db.TblCusts
+            .AsTracking()
+            .Where(c => c.OrganisationV6 != null && c.OrganisationV6.ToLower().Contains(prefix))
+            .ToListAsync(ct);
+
+        return candidates.FirstOrDefault(c =>
+            ContactLookupNormalization.NormalizeOrganisationKey(c.OrganisationV6) == key);
     }
 
     /// <summary>

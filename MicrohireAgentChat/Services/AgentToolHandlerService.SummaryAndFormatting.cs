@@ -196,8 +196,6 @@ public sealed partial class AgentToolHandlerService
         return value.Contains("hdmi", StringComparison.OrdinalIgnoreCase)
             || value.Contains("adaptor", StringComparison.OrdinalIgnoreCase)
             || value.Contains("adapter", StringComparison.OrdinalIgnoreCase)
-            || value.Contains("clicker", StringComparison.OrdinalIgnoreCase)
-            || value.Contains("presentation remote", StringComparison.OrdinalIgnoreCase)
             || value.Contains("switcher", StringComparison.OrdinalIgnoreCase);
     }
 
@@ -272,6 +270,9 @@ public sealed partial class AgentToolHandlerService
         if (text.Contains("screen")) return "screen";
         if (text.Contains("projector")) return "projector";
         if (text.Contains("speaker")) return "speaker";
+        if (text.Contains("laptop at stage") || text.Contains("laptop on stage") || text.Contains("sdicross")
+            || (text.Contains("sdi") && (text.Contains("cross") || text.Contains("extension"))))
+            return "laptop_at_stage";
         if (text.Contains("laptop") || text.Contains("macbook") || text.Contains("notebook")) return "laptop";
         if (text.Contains("clicker") || text.Contains("presenter")) return "clicker";
         if (text.Contains("camera")) return "camera";
@@ -281,7 +282,6 @@ public sealed partial class AgentToolHandlerService
         if (text.Contains("foldback") || text.Contains("confidence monitor")) return "foldback_monitor";
         if (text.Contains("switcher") || text.Contains("v1hd")) return "switcher";
         if (text.Contains("usbc") || text.Contains("hdmi adaptor")) return "hdmi_adaptor";
-        if (text.Contains("sdi") && text.Contains("extension")) return "laptop_at_stage";
         return "equipment item";
     }
 

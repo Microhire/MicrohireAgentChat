@@ -7,6 +7,60 @@ namespace MicrohireAgentChat.Services;
 
 public sealed partial class AgentToolHandlerService
 {
+    private static bool IsThriveBoardroomRoom(string? roomName)
+    {
+        var room = (roomName ?? "").Trim().ToLowerInvariant();
+        return room.Contains("thrive");
+    }
+
+    private static bool IsProjectionEquipmentType(string? equipmentType)
+    {
+        var type = (equipmentType ?? "").Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(type)) return false;
+        return type.Contains("projector")
+            || type.Contains("screen")
+            || type.Contains("display")
+            || type.Contains("vision");
+    }
+
+    private static bool IsSpeakerOrMicrophoneEquipmentType(string? equipmentType)
+    {
+        var type = (equipmentType ?? "").Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(type)) return false;
+        return type.Contains("speaker")
+            || type.Contains("audio")
+            || type.Contains("microphone")
+            || type.Contains("mic");
+    }
+
+    private static bool IsDisallowedThriveAccessoryType(string? equipmentType)
+    {
+        var type = (equipmentType ?? "").Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(type)) return false;
+        return type.Contains("lectern")
+            || type.Contains("foldback")
+            || type.Contains("switcher");
+    }
+
+    private static void EnsureEquipmentRequest(List<EquipmentRequest> requests, string equipmentType, int quantity = 1)
+    {
+        if (requests.Any(r => string.Equals((r.EquipmentType ?? "").Trim(), equipmentType, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        requests.Add(new EquipmentRequest
+        {
+            EquipmentType = equipmentType,
+            Quantity = Math.Max(1, quantity)
+        });
+    }
+
+    private static bool ConversationIndicatesProjectionNeed(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return false;
+        return Regex.IsMatch(text, @"\b(slides?|powerpoint|ppt|projector|screen|display|presentation)\b", RegexOptions.IgnoreCase)
+            || Regex.IsMatch(text, @"\b(video|videos)\b", RegexOptions.IgnoreCase);
+    }
+
     private static bool RequiresProjectorPlacementArea(IEnumerable<EquipmentRequest> requests)
     {
         foreach (var request in requests)

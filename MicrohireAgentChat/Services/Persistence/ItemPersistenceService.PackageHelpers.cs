@@ -132,12 +132,20 @@ public sealed partial class ItemPersistenceService
         foreach (var pi in parentInfos.Where(p => p.ParentCode != null))
         {
             var trimmedParent = pi.ParentCode!.Trim();
+            if (string.Equals(trimmedParent, "ELEVIND", StringComparison.OrdinalIgnoreCase))
+                continue;
             
             // Get parent details
             var parentProduct = await _db.TblInvmas
                 .Where(p => p.product_code.Trim() == trimmedParent)
                 .Select(p => new { p.descriptionv6, p.category })
                 .FirstOrDefaultAsync(ct);
+
+            if (!string.IsNullOrWhiteSpace(parentProduct?.descriptionv6) &&
+                parentProduct.descriptionv6.Contains("independent items", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
 
             var parentCategory = parentProduct?.category?.Trim();
 

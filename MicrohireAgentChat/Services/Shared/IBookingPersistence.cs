@@ -17,8 +17,8 @@ public interface IBookingPersistence
     /// <param name="phoneE164">Phone in E164 format (max 16 chars) - mapped to Cell column</param>
     /// <param name="position">Job title/position (max 50 chars)</param>
     /// <param name="ct">Cancellation token</param>
-    /// <returns>Contact ID (decimal from tblContact.ID column)</returns>
-    Task<decimal?> UpsertContactAsync(
+    /// <returns>Contact ID and created/updated/skipped</returns>
+    Task<ContactUpsertResult> UpsertContactAsync(
         string? name,
         string? email,
         string? phoneE164,
@@ -32,12 +32,16 @@ public interface IBookingPersistence
     /// </summary>
     /// <param name="organisationName">Organization name (max 50 chars) - mapped to OrganisationV6</param>
     /// <param name="address">Physical address (max 50 chars) - mapped to Address_l1V6</param>
+    /// <param name="contactId">Primary contact link (tblcust.iLink_ContactID)</param>
     /// <param name="ct">Cancellation token</param>
-    /// <returns>Organization ID (decimal from tblcust.ID column)</returns>
-    Task<decimal?> UpsertOrganisationAsync(
+    /// <param name="leadAuthoritative">Sales lead sync: contact-linked org resolution + refresh primary contact</param>
+    /// <returns>Organization ID and created/updated/skipped</returns>
+    Task<OrganisationUpsertResult> UpsertOrganisationAsync(
         string organisationName,
         string? address,
-        CancellationToken ct);
+        decimal? contactId,
+        CancellationToken ct,
+        bool leadAuthoritative = false);
 
     /// <summary>
     /// Finds an existing organization by name (case-insensitive).

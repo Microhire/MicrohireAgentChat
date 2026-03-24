@@ -11,6 +11,8 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Local overrides (gitignored) - copy appsettings.Development.Local.json.example and fill in your Gmail
+builder.Configuration.AddJsonFile("appsettings.Development.Local.json", optional: true, reloadOnChange: true);
 
 var azureAgentSection = builder.Configuration.GetSection("AzureAgent");
 var azureAgentOptions = azureAgentSection.Get<AzureAgentOptions>() ?? new AzureAgentOptions();
@@ -31,6 +33,7 @@ builder.Services.Configure<DevModeOptions>(builder.Configuration.GetSection("Dev
 builder.Services.Configure<AutoTestOptions>(builder.Configuration.GetSection("AutoTest"));
 builder.Services.Configure<AzureOpenAIOptions>(builder.Configuration.GetSection("AzureOpenAI"));
 builder.Services.Configure<RentalPointDefaultsOptions>(builder.Configuration.GetSection("RentalPointDefaults"));
+builder.Services.Configure<LeadEmailOptions>(builder.Configuration.GetSection("LeadEmail"));
 Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
 
 var credentialOptions = new DefaultAzureCredentialOptions
@@ -109,7 +112,18 @@ builder.Services.AddScoped<QuoteGenerationService>();
 builder.Services.AddScoped<HtmlQuoteGenerationService>();
 builder.Services.AddScoped<ConversationReplayService>();
 builder.Services.AddScoped<AutoTestCustomerService>();
+builder.Services.AddScoped<ILeadEmailService, LeadEmailService>();
+builder.Services.AddScoped<ILeadSubmissionFollowUp, LeadSubmissionFollowUpService>();
 builder.Services.AddControllersWithViews();
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader();
+    });
+});
 builder.Services.AddSession(options =>
 {
     options.Cookie.Name = ".MicrohireAgent.Session";
@@ -130,8 +144,10 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
-app.UseSession(); 
+app.UseCors();
+app.UseSession();
 
+app.MapControllers();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Chat}/{action=Index}/{id?}");

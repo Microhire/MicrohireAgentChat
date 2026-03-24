@@ -214,8 +214,9 @@ public sealed partial class BookingPersistenceService
             {
                 try
                 {
-                    contactId = await _contactService.UpsertContactAsync(
+                    var contactUpsert = await _contactService.UpsertContactAsync(
                         contactName, contactEmail, contactPhone, null, ct);
+                    contactId = contactUpsert.Id;
                 }
                 catch (Exception ex)
                 {
@@ -236,7 +237,8 @@ public sealed partial class BookingPersistenceService
                     }
                     else
                     {
-                        orgId = await _orgService.UpsertOrganisationAsync(organisation, organisationAddress, contactId, ct);
+                        var orgUpsert = await _orgService.UpsertOrganisationAsync(organisation, organisationAddress, contactId, ct);
+                        orgId = orgUpsert.Id;
                         if (orgId.HasValue)
                         {
                             custCode = await _orgService.GetCustomerCodeByIdAsync(orgId.Value, ct);

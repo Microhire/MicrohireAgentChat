@@ -66,6 +66,9 @@ public sealed partial class AgentToolHandlerService
                 "get_now_aest" => HandleGetNowAest(),
                 "list_westin_rooms" => await HandleListRoomsAsync(ct),
                 "build_time_picker" => HandleBuildTimePicker(argsJson, threadId),
+                "build_contact_form" => HandleBuildContactForm(argsJson),
+                "build_event_form" => HandleBuildEventForm(argsJson),
+                "build_av_extras_form" => HandleBuildAvExtrasForm(argsJson),
                 "get_room_images" => await HandleGetRoomImagesAsync(argsJson, ct),
                 "get_product_info" => await HandleGetProductInfoAsync(argsJson, ct),
                 "get_product_images" => await HandleGetProductImagesAsync(argsJson, ct),
@@ -260,14 +263,33 @@ public sealed partial class AgentToolHandlerService
     private async Task<string> HandleCheckAvailabilityAsync(string argsJson, string threadId, CancellationToken ct)
     {
         using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(argsJson) ? "{}" : argsJson);
-        var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var map = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
 
         foreach (var prop in doc.RootElement.EnumerateObject())
         {
             if (prop.Value.ValueKind == JsonValueKind.String)
-                map[prop.Name] = prop.Value.GetString() ?? "";
-            else if (prop.Value.ValueKind == JsonValueKind.Number && prop.Name.Equals("venueId", StringComparison.OrdinalIgnoreCase))
-                map["venueId"] = prop.Value.GetInt32().ToString(System.Globalization.CultureInfo.InvariantCulture);
+            {
+                var stringValue = prop.Value.GetString() ?? "";
+                if (prop.Name.Equals("venueId", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (int.TryParse(stringValue, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out var venueId))
+                        map["venueId"] = venueId;
+                }
+                else
+                {
+                    map[prop.Name] = stringValue;
+                }
+            }
+            else if (prop.Value.ValueKind == JsonValueKind.Number)
+            {
+                if (prop.Name.Equals("venueId", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (prop.Value.TryGetInt32(out var venueId))
+                        map["venueId"] = venueId;
+                }
+                else if (prop.Value.TryGetDouble(out var d))
+                    map[prop.Name] = d;
+            }
         }
 
         // Merge from draft if available
@@ -283,8 +305,22 @@ public sealed partial class AgentToolHandlerService
         }
 
         var opts = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-        var args = JsonSerializer.Deserialize<CheckDateArgs>(JsonSerializer.Serialize(map), opts)
+        CheckDateArgs args;
+        try
+        {
+            args = JsonSerializer.Deserialize<CheckDateArgs>(JsonSerializer.Serialize(map), opts)
                    ?? throw new InvalidOperationException("check_date_availability: missing/invalid args");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "check_date_availability: failed to parse args from model");
+            return JsonSerializer.Serialize(new
+            {
+                error = "Invalid check_date_availability arguments",
+                detail = ex.Message,
+                received = map
+            });
+        }
 
         var result = await CheckAvailabilityInternalAsync(args, ct);
         return JsonSerializer.Serialize(result);
@@ -500,6 +536,168 @@ public sealed partial class AgentToolHandlerService
         };
 
         return JsonSerializer.Serialize(payload);
+    }
+
+    private string HandleBuildContactForm(string argsJson)
+    {
+        using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(argsJson) ? "{}" : argsJson);
+        var title = doc.RootElement.TryGetProperty("title", out var t) && t.ValueKind == JsonValueKind.String
+            ? t.GetString()
+            : "Before we begin, please share your details";
+        var submitLabel = doc.RootElement.TryGetProperty("submitLabel", out var s) && s.ValueKind == JsonValueKind.String
+            ? s.GetString()
+            : "Send details";
+
+        var payload = new
+        {
+            ui = new
+            {
+                type = "contactForm",
+                title,
+                submitLabel
+            }
+        };
+
+        var jsonToEmbed = JsonSerializer.Serialize(payload);
+        return JsonSerializer.Serialize(new
+        {
+            success = true,
+            outputToUser = $"Please complete this quick contact form:\n\n{jsonToEmbed}",
+            instruction = "OUTPUT THE 'outputToUser' VALUE EXACTLY AS-IS in your response so the form renders."
+        });
+    }
+
+    private string HandleBuildEventForm(string argsJson)
+    {
+        using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(argsJson) ? "{}" : argsJson);
+        var session = _http.HttpContext?.Session;
+
+        var title = doc.RootElement.TryGetProperty("title", out var t) && t.ValueKind == JsonValueKind.String
+            ? t.GetString()
+            : "Great, now let's capture your event details";
+        var submitLabel = doc.RootElement.TryGetProperty("submitLabel", out var s) && s.ValueKind == JsonValueKind.String
+            ? s.GetString()
+            : "Send event details";
+
+        var todayIso = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
+        var eventDate = session?.GetString("Draft:EventDate") ?? todayIso;
+        var eventType = session?.GetString("Draft:EventType") ?? "";
+        var attendees = session?.GetString("Draft:ExpectedAttendees") ?? "";
+        var setupStyle = session?.GetString("Draft:SetupStyle") ?? "";
+
+        var venueOptions = new object[]
+        {
+            new
+            {
+                id = "westin-ballroom",
+                label = "Westin Ballroom",
+                splits = new[]
+                {
+                    new { id = "full", label = "Full" },
+                    new { id = "1", label = "Ballroom 1" },
+                    new { id = "2", label = "Ballroom 2" }
+                }
+            },
+            new
+            {
+                id = "elevate",
+                label = "Elevate",
+                splits = new[]
+                {
+                    new { id = "full", label = "Full" },
+                    new { id = "1", label = "Elevate 1" },
+                    new { id = "2", label = "Elevate 2" }
+                }
+            },
+            new
+            {
+                id = "thrive-boardroom",
+                label = "Thrive Boardroom",
+                splits = Array.Empty<object>()
+            }
+        };
+
+        var setupOptions = new[]
+        {
+            "Theatre", "Classroom", "Banquet", "Cocktail", "U-Shape", "Boardroom"
+        };
+
+        var payload = new
+        {
+            ui = new
+            {
+                type = "eventForm",
+                title,
+                submitLabel,
+                eventType,
+                attendees,
+                eventDate,
+                minDate = todayIso,
+                setupStyle,
+                venueOptions,
+                setupOptions,
+                schedule = new
+                {
+                    setup = session?.GetString("Draft:SetupTime") ?? "07:00",
+                    rehearsal = session?.GetString("Draft:RehearsalTime") ?? "09:30",
+                    start = session?.GetString("Draft:StartTime") ?? "10:00",
+                    end = session?.GetString("Draft:EndTime") ?? "16:00",
+                    packup = session?.GetString("Draft:PackupTime") ?? "18:00",
+                    stepMinutes = 30
+                }
+            }
+        };
+
+        var jsonToEmbed = JsonSerializer.Serialize(payload);
+        return JsonSerializer.Serialize(new
+        {
+            success = true,
+            outputToUser = $"Please complete this event form:\n\n{jsonToEmbed}",
+            instruction = "OUTPUT THE 'outputToUser' VALUE EXACTLY AS-IS in your response so the form renders."
+        });
+    }
+
+    private string HandleBuildAvExtrasForm(string argsJson)
+    {
+        using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(argsJson) ? "{}" : argsJson);
+        var session = _http.HttpContext?.Session;
+
+        var title = doc.RootElement.TryGetProperty("title", out var t) && t.ValueKind == JsonValueKind.String
+            ? t.GetString()
+            : "Finally, confirm your AV extras";
+        var submitLabel = doc.RootElement.TryGetProperty("submitLabel", out var s) && s.ValueKind == JsonValueKind.String
+            ? s.GetString()
+            : "Send AV extras";
+
+        var eventStart = session?.GetString("Draft:StartTime") ?? "10:00";
+        var eventEnd = session?.GetString("Draft:EndTime") ?? "16:00";
+
+        var payload = new
+        {
+            ui = new
+            {
+                type = "avExtrasForm",
+                title,
+                submitLabel,
+                presenters = "",
+                speakers = "",
+                clicker = false,
+                recording = false,
+                techStart = eventStart,
+                techEnd = eventEnd,
+                eventStart,
+                eventEnd,
+                stepMinutes = 30
+            }
+        };
+
+        var jsonToEmbed = JsonSerializer.Serialize(payload);
+        return JsonSerializer.Serialize(new
+        {
+            success = true,
+            outputToUser = $"Please complete this AV extras form:\n\n{jsonToEmbed}",
+            instruction = "OUTPUT THE 'outputToUser' VALUE EXACTLY AS-IS in your response so the form renders."
+        });
     }
 
     private async Task<string> HandleGetRoomImagesAsync(string argsJson, CancellationToken ct)
@@ -1001,8 +1199,8 @@ public sealed partial class AgentToolHandlerService
             setupStyle = null;
         }
 
-        var roomNameFromArgs = doc.RootElement.TryGetProperty("room_name", out var rn) ? rn.GetString() : null;
-        var roomNameFromSession = session?.GetString("Draft:RoomName");
+        var roomNameFromArgs = NormalizeRoomNameAlias(doc.RootElement.TryGetProperty("room_name", out var rn) ? rn.GetString() : null);
+        var roomNameFromSession = NormalizeRoomNameAlias(session?.GetString("Draft:RoomName"));
         var userStatedRoom = conversationMessages.Count > 0
             ? ExtractRoomFromUserMessages(conversationMessages)
             : null;
@@ -1026,6 +1224,8 @@ public sealed partial class AgentToolHandlerService
                 });
             // #endregion
         }
+
+        userStatedRoom = NormalizeRoomNameAlias(userStatedRoom);
 
         if (!string.IsNullOrWhiteSpace(userStatedRoom) &&
             !string.IsNullOrWhiteSpace(roomNameFromArgs) &&
@@ -1121,6 +1321,8 @@ public sealed partial class AgentToolHandlerService
             }
         }
 
+        MergeWizardSessionIntoEquipmentRequests(session, eventContext);
+
         eventContext.SpeakerStylePreference = eventContext.EquipmentRequests
             .Where(r => (r.EquipmentType ?? string.Empty).Contains("speaker", StringComparison.OrdinalIgnoreCase) ||
                         (r.EquipmentType ?? string.Empty).Contains("audio", StringComparison.OrdinalIgnoreCase))
@@ -1132,9 +1334,37 @@ public sealed partial class AgentToolHandlerService
                 .Where(m => string.Equals(m.Role, "user", StringComparison.OrdinalIgnoreCase))
                 .SelectMany(m => m.Parts ?? Enumerable.Empty<string>()));
         var mentionsZoomOrTeams = Regex.IsMatch(userConversationTextForEquipmentSignals, @"\b(zoom|teams|video\s+conference|video\s+conferencing|virtual\s+call)\b", RegexOptions.IgnoreCase);
+        var mentionsProjectionNeed = ConversationIndicatesProjectionNeed(userConversationTextForEquipmentSignals);
         var userExplicitCamera = Regex.IsMatch(userConversationTextForEquipmentSignals, @"\b(camera|webcam|ptz)\b", RegexOptions.IgnoreCase);
         var userExplicitMicrophone = Regex.IsMatch(userConversationTextForEquipmentSignals, @"\b(microphone|mic|lapel|handheld)\b", RegexOptions.IgnoreCase);
         var userExplicitSpeaker = Regex.IsMatch(userConversationTextForEquipmentSignals, @"\b(speaker|speakers|audio playback|pa)\b", RegexOptions.IgnoreCase);
+
+        // Thrive-specific guardrails: do not allow speaker/microphone/lectern/foldback/switcher requests.
+        if (IsThriveBoardroomRoom(eventContext.RoomName))
+        {
+            eventContext.EquipmentRequests = eventContext.EquipmentRequests
+                .Where(r => !IsSpeakerOrMicrophoneEquipmentType(r.EquipmentType))
+                .Where(r => !IsDisallowedThriveAccessoryType(r.EquipmentType))
+                .ToList();
+        }
+
+        // If projection intent is present in conversation but AI omitted projector/screen request,
+        // add a projection request so projector-placement validation is enforced.
+        var hasProjectionRequest = eventContext.EquipmentRequests.Any(r => IsProjectionEquipmentType(r.EquipmentType));
+        if (!hasProjectionRequest && mentionsProjectionNeed)
+        {
+            EnsureEquipmentRequest(eventContext.EquipmentRequests, "projector", 1);
+            hasProjectionRequest = true;
+        }
+
+        // If user confirmed clicker in conversation/session but request was omitted, add it.
+        var clickerFromSession = string.Equals(session?.GetString("Draft:NeedsClicker"), "yes", StringComparison.OrdinalIgnoreCase);
+        var clickerFromConversation = Regex.IsMatch(userConversationTextForEquipmentSignals, @"\b(clicker|wireless presenter|presentation remote)\b", RegexOptions.IgnoreCase);
+        if (!eventContext.EquipmentRequests.Any(r => (r.EquipmentType ?? "").Contains("clicker", StringComparison.OrdinalIgnoreCase))
+            && (clickerFromSession || clickerFromConversation))
+        {
+            EnsureEquipmentRequest(eventContext.EquipmentRequests, "clicker", 1);
+        }
         var requestedEquipmentTypes = eventContext.EquipmentRequests
             .Select(r => (r.EquipmentType ?? "").Trim().ToLowerInvariant())
             .Where(t => !string.IsNullOrWhiteSpace(t))
@@ -1159,7 +1389,10 @@ public sealed partial class AgentToolHandlerService
 
         var includesVideoConferenceUnit = requestedEquipmentTypes.Contains("video_conference_unit")
                                           || requestedEquipmentTypes.Contains("video conference unit");
-        var hasExplicitVideoConferenceConfirmation = HasExplicitVideoConferenceConfirmation(conversationMessages);
+        var sessionVc = (session?.GetString("Draft:VideoConference") ?? "").Trim().ToLowerInvariant();
+        var wizardConfirmedVideoConference = sessionVc is "yes" or "teams";
+        var hasExplicitVideoConferenceConfirmation = HasExplicitVideoConferenceConfirmation(conversationMessages)
+            || wizardConfirmedVideoConference;
         if (includesVideoConferenceUnit && !hasExplicitVideoConferenceConfirmation)
         {
             _logger.LogWarning("Equipment recommendation blocked - video conferencing package not explicitly confirmed for thread {ThreadId}", threadId);
@@ -1212,6 +1445,16 @@ public sealed partial class AgentToolHandlerService
         var effectiveNeedsProvidedLaptop = laptopState.OwnershipAnswered
             ? laptopState.NeedsProvidedLaptop
             : sessionNeedsProvidedLaptop;
+
+        // HDMI adaptor must only be considered when the customer is bringing their own laptop.
+        if (effectiveOwnershipAnswered && effectiveNeedsProvidedLaptop)
+        {
+            eventContext.EquipmentRequests = eventContext.EquipmentRequests
+                .Where(r => !(r.EquipmentType ?? "").Contains("hdmi_adaptor", StringComparison.OrdinalIgnoreCase))
+                .Where(r => !(r.EquipmentType ?? "").Contains("hdmi adaptor", StringComparison.OrdinalIgnoreCase))
+                .Where(r => !(r.EquipmentType ?? "").Contains("usbc adaptor", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+        }
 
         var hasLaptopDependentAccessories = eventContext.EquipmentRequests.Any(r => IsLaptopDependentAccessoryType(r.EquipmentType));
         var hasLaptopWorkflowSignals = ConversationIndicatesLaptopWorkflow(conversationMessages);
@@ -1273,9 +1516,10 @@ public sealed partial class AgentToolHandlerService
         }
 
         // Projector-area capture for Westin Ballroom family.
-        var projectionNeeded = RequiresProjectorPlacementArea(eventContext.EquipmentRequests);
-        var requestedProjectorCount = GetRequestedProjectorCount(eventContext.EquipmentRequests);
         var isWestinBallroomFamily = IsWestinBallroomFamilyRoom(eventContext.VenueName, eventContext.RoomName);
+        var projectionNeeded = RequiresProjectorPlacementArea(eventContext.EquipmentRequests)
+            || (isWestinBallroomFamily && mentionsProjectionNeed);
+        var requestedProjectorCount = GetRequestedProjectorCount(eventContext.EquipmentRequests);
         // Full Westin Ballroom requires dual projector coverage (minimum two areas).
         // Other rooms follow requested projector quantity (default 1).
         var requiredAreaCount = projectionNeeded
@@ -1921,6 +2165,136 @@ public sealed partial class AgentToolHandlerService
             // Debug instrumentation must never break runtime flow.
             Console.Error.WriteLine($"[DEBUG7953] EmitAgentDebugLog write failed: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// When the chat wizard has submitted follow-up AV, merge session-captured fields into
+    /// <see cref="EventContext.EquipmentRequests"/> so recommend_equipment_for_event succeeds even if the model
+    /// sends a sparse <c>equipment_requests</c> array.
+    /// </summary>
+    private static void MergeWizardSessionIntoEquipmentRequests(ISession? session, EventContext eventContext)
+    {
+        if (session == null) return;
+        if (!string.Equals(session.GetString("Draft:FollowUpAvSubmitted"), "1", StringComparison.Ordinal))
+            return;
+
+        var requests = eventContext.EquipmentRequests;
+        if (requests is null) return;
+
+        static bool HasAnyEquipmentType(List<EquipmentRequest> list, Func<string?, bool> predicate)
+        {
+            foreach (var r in list)
+            {
+                var t = (r.EquipmentType ?? "").Trim();
+                if (string.IsNullOrEmpty(t)) continue;
+                if (predicate(t)) return true;
+            }
+            return false;
+        }
+
+        static string NormalizeWizardMic(string? raw)
+        {
+            var t = (raw ?? "").Trim().ToLowerInvariant();
+            return t == "lapel" ? "lapel" : "handheld";
+        }
+
+        if (int.TryParse(session.GetString("Draft:PresenterCount") ?? "", out var presCount) && presCount > 0)
+            eventContext.NumberOfPresentations = Math.Max(eventContext.NumberOfPresentations, presCount);
+
+        if (!string.Equals(session.GetString("Draft:BuiltInProjector") ?? "", "yes", StringComparison.OrdinalIgnoreCase)
+            && !HasAnyEquipmentType(requests, t => (t ?? "").Contains("projector", StringComparison.OrdinalIgnoreCase)))
+            EnsureEquipmentRequest(requests, "projector", 1);
+
+        if (!string.Equals(session.GetString("Draft:BuiltInScreen") ?? "", "yes", StringComparison.OrdinalIgnoreCase)
+            && !HasAnyEquipmentType(requests, t =>
+                (t ?? "").Contains("screen", StringComparison.OrdinalIgnoreCase)
+                || (t ?? "").Contains("display", StringComparison.OrdinalIgnoreCase)))
+            EnsureEquipmentRequest(requests, "screen", 1);
+
+        if (!string.Equals(session.GetString("Draft:BuiltInSpeakers") ?? "", "yes", StringComparison.OrdinalIgnoreCase)
+            && !HasAnyEquipmentType(requests, t =>
+                (t ?? "").Contains("speaker", StringComparison.OrdinalIgnoreCase)
+                || (t ?? "") is "pa" or "audio"))
+            EnsureEquipmentRequest(requests, "speaker", 1);
+
+        if (string.Equals(session.GetString("Draft:Flipchart") ?? "", "yes", StringComparison.OrdinalIgnoreCase))
+            EnsureEquipmentRequest(requests, "flipchart", 1);
+
+        var laptopMode = (session.GetString("Draft:LaptopMode") ?? "").Trim().ToLowerInvariant();
+        _ = int.TryParse(session.GetString("Draft:LaptopQty") ?? "", out var laptopQty);
+        if (laptopQty > 0 && !HasAnyEquipmentType(requests, IsLaptopEquipmentType))
+        {
+            if (laptopMode is "windows" or "mac")
+            {
+                requests.Add(new EquipmentRequest
+                {
+                    EquipmentType = "laptop",
+                    Quantity = laptopQty,
+                    Preference = laptopMode
+                });
+            }
+        }
+
+        if (string.Equals(session.GetString("Draft:AdapterOwnLaptops") ?? "", "yes", StringComparison.OrdinalIgnoreCase))
+            EnsureEquipmentRequest(requests, "hdmi_adaptor", Math.Max(1, laptopQty));
+
+        if (int.TryParse(session.GetString("Draft:MicQty") ?? "", out var micQty) && micQty > 0
+            && !HasAnyEquipmentType(requests, t => (t ?? "").Contains("mic", StringComparison.OrdinalIgnoreCase)))
+        {
+            requests.Add(new EquipmentRequest
+            {
+                EquipmentType = "microphone",
+                Quantity = micQty,
+                MicrophoneType = NormalizeWizardMic(session.GetString("Draft:MicType"))
+            });
+        }
+
+        var lectern = (session.GetString("Draft:Lectern") ?? "").Trim().ToLowerInvariant();
+        if (lectern is "lectern-only" or "lectern-mic")
+            EnsureEquipmentRequest(requests, "lectern", 1);
+
+        if (string.Equals(session.GetString("Draft:FoldbackMonitor") ?? "", "yes", StringComparison.OrdinalIgnoreCase))
+            EnsureEquipmentRequest(requests, "foldback_monitor", 1);
+
+        if (string.Equals(session.GetString("Draft:WirelessPresenter") ?? "", "yes", StringComparison.OrdinalIgnoreCase))
+            EnsureEquipmentRequest(requests, "wireless presenter", 1);
+
+        if (string.Equals(session.GetString("Draft:LaptopSwitcher") ?? "", "yes", StringComparison.OrdinalIgnoreCase))
+            EnsureEquipmentRequest(requests, "switcher", 1);
+
+        if (string.Equals(session.GetString("Draft:StageLaptop") ?? "", "yes", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(session.GetString("Draft:NeedsSdiCross") ?? "", "2", StringComparison.Ordinal))
+            EnsureEquipmentRequest(requests, "laptop_at_stage", 1);
+
+        var vc = (session.GetString("Draft:VideoConference") ?? "").Trim().ToLowerInvariant();
+        if (vc is "yes" or "teams")
+            EnsureEquipmentRequest(requests, "video_conference_unit", 1);
+    }
+
+    private static string? NormalizeRoomNameAlias(string? roomName)
+    {
+        if (string.IsNullOrWhiteSpace(roomName))
+            return roomName;
+
+        var value = roomName.Trim();
+        var lower = value.ToLowerInvariant();
+
+        if (lower.Contains("westin ballroom 1", StringComparison.Ordinal) || Regex.IsMatch(lower, @"\bballroom\s*1\b"))
+            return "Westin Ballroom 1";
+        if (lower.Contains("westin ballroom 2", StringComparison.Ordinal) || Regex.IsMatch(lower, @"\bballroom\s*2\b"))
+            return "Westin Ballroom 2";
+        if (lower.Contains("westin ballroom full", StringComparison.Ordinal) || lower.Contains("full westin ballroom", StringComparison.Ordinal) || lower.Equals("westin ballroom", StringComparison.Ordinal))
+            return "Westin Ballroom";
+        if (lower.Contains("elevate 1", StringComparison.Ordinal))
+            return "Elevate 1";
+        if (lower.Contains("elevate 2", StringComparison.Ordinal))
+            return "Elevate 2";
+        if (lower.Contains("elevate full", StringComparison.Ordinal) || lower.Equals("elevate", StringComparison.Ordinal))
+            return "Elevate";
+        if (lower.Contains("thrive", StringComparison.Ordinal))
+            return "Thrive Boardroom";
+
+        return value;
     }
 
 }

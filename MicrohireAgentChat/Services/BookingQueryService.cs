@@ -116,5 +116,73 @@ public sealed class BookingQueryService
             .OrderBy(b => b.dDate)
             .ToListAsync(ct);
     }
+
+    /// <summary>
+    /// Finds contact by email, then the best "upcoming" booking (soonest event day on/after today).
+    /// If none upcoming, returns the most recently ordered booking for that contact.
+    /// </summary>
+    public async Task<BookingPrefillFromEmailResult?> FindLatestUpcomingBookingForEmailAsync(string email, CancellationToken ct)
+    {
+        var contact = await FindContactByEmailAsync(email, ct);
+        if (contact == null)
+            return null;
+
+        var bookings = await _db.TblBookings
+            .AsNoTracking()
+            .Where(b => b.ContactID == contact.Id && b.booking_no != null)
+            .ToListAsync(ct);
+
+        if (bookings.Count == 0)
+            return new BookingPrefillFromEmailResult { Contact = contact, Booking = null, VenueDisplayName = null };
+
+        var today = DateTime.Today;
+
+        static DateTime? EventDay(TblBooking b) =>
+            b.ShowSDate ?? b.dDate ?? b.SDate;
+
+        TblBooking? pick = bookings
+            .Where(b => EventDay(b) is { } d && d.Date >= today)
+            .OrderBy(b => EventDay(b))
+            .FirstOrDefault();
+
+        if (pick == null)
+        {
+            pick = bookings
+                .OrderByDescending(b => b.order_date ?? EventDay(b) ?? DateTime.MinValue)
+                .FirstOrDefault();
+        }
+
+        if (pick == null)
+            return new BookingPrefillFromEmailResult { Contact = contact, Booking = null, VenueDisplayName = null };
+
+        string? venueDisplay = null;
+        try
+        {
+            var vid = (decimal)pick.VenueID;
+            venueDisplay = await _db.TblVenues.AsNoTracking()
+                .Where(v => v.ID == vid)
+                .Select(v => v.VenueName)
+                .FirstOrDefaultAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug(ex, "Venue lookup failed for VenueID {VenueId}", pick.VenueID);
+        }
+
+        return new BookingPrefillFromEmailResult
+        {
+            Contact = contact,
+            Booking = pick,
+            VenueDisplayName = venueDisplay
+        };
+    }
+}
+
+/// <summary>Result of email-based booking lookup for chat pre-fill.</summary>
+public sealed class BookingPrefillFromEmailResult
+{
+    public required TblContact Contact { get; init; }
+    public TblBooking? Booking { get; init; }
+    public string? VenueDisplayName { get; init; }
 }
 

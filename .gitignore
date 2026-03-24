@@ -365,3 +365,9 @@ FodyWeavers.xsddeploy.zip
 monacip_prod_copy.dump
 # BrainGrid temp files
 .braingrid/temp/
+
+# Local dev secrets (copy from appsettings.Development.Local.json.example)
+MicrohireAgentChat/appsettings.Development.Local.json
+
+# DB purge helper (copy from Scripts/delete-email.env.example)
+Scripts/delete-email.env

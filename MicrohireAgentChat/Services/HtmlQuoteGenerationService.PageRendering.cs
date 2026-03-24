@@ -555,7 +555,7 @@ public partial class HtmlQuoteGenerationService
                     <div class=""signature-row"">
                         <div class=""signature-field"">
                             <label>Full Name</label>
-                            <div class=""signature-line""></div>
+                            <div class=""signature-line"" style=""border-bottom:1px solid #333;height:30px;line-height:30px;font-size:13px;color:#222;padding-left:4px"">{HttpUtility.HtmlEncode(data.ContactName)}</div>
                         </div>
                         <div class=""signature-field"">
                             <label>Date</label>

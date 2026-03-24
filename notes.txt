@@ -1,18 +1,4636 @@
-after the user tells the bot what equpment he wants, look at availabiluty and dont send a picker, user does not know exactlyu what he wantsd because tyhey are most of the time not tech savyy. what we have to do is get requirements and then look whats available and send mesasage to confirm not pick, like dont ask but say for your requiremtn this seems like best liost of p[products
+Here are recommended equipment for each room based on the answer to the questions. (Highlighted in GREEN)
+Please note that we can use the Rental Point to set these up as accessories of each packages.
 
-Laptop
-Dell G15 package
+Once there is an operator the equipment inc laptops etc is assumed at the operator’s desk. We will need to ask the client if they want a laptop anything at stage. This question is not being asked in my testing (Jenny)
+Laptop @ stage = 2 xSDICROSS
+These boxes extend the HDMI signal via a long SDI cable from the lectern to the operator’s desk so that they can switch between the laptops
+  
 
-Vision
-bla bla bla
+Ballroom
+ Alignment of package to floorplan
+WSBSSPRO = A
+WSBNSPRO = D
+WSBBSPRO = B, C, E or F
+WSBBDPRO = B & C or E & F
 
-like that so on\
 
-make sure to get the proper product code and packages if its part of a package from db  and make sure when making the booking the equipmentr is also added to the db and make sutr the proper prices and proper equipment with packages if they are part of a package is included properlyt
+  
+Package
+WSBBDPRO, WSBBSPRO, WSBNSPRO, WSBSSPRO
+Projector & Screen
+ 
+Questions/Accessories
+Are you bringing your own laptop or do you need one?
+Own laptop
+We will provide a HDMI connection to the projector. Do you need any adaptors?
+Typically, we just need a USBC adaptor –USBCMX2
+More than 1 laptop at a time will require a switcher so we would need to ask, do you want to be able to seamlessly switch between the 2 laptops?
+Yes – We would suggest an operator
+V1HD= 4 inputs so max 4 laptops My quote should have had a quantity of 2??
+Add 1 hr for AVTECH Setup
+AVTECHT&C =VXTECHReh 30mins
+VXTECH Op from show start to show end
+Would you like a remote mouse/wireless presenter?
+LOGISPOT
+Would you like a flipchart? In quote C1374900148 it did not ask me if I wanted flipcharts (Jenny)
+NATFLIPC
+Add to min labourAVTECH15mins setup per FC
+Flipchart with paper and markers
+Does your presentation have any audio, video etc?
+WSBELSAD or WBELAUD depending on whether they are in Elevate ½ or Elevate (Combined) respectively
+Would you like a foldback monitor so the presenter doesn’t have to turn around and look at the screen?
+LCD40 + NATFLSTD + SDICROSS x 2 In quote C1374900148 it did not ask me if I wanted flipcharts (Jenny)
+ 
+WSBFBALL or WSBALLAU
+Ceiling Speakers
+ 
+Questions/Accessories
+Would you like a Lectern? In quote C1374900148 it did not ask me if I wanted a lecturn (Jenny)
+LECT1
+With a microphone?
+SHURE418
+Add to min labour AVTECH 15mins setup & PD
+Do you require any wireless microphones?
+Handheld or Lapel?
+How Many?
+QLXD2SKx how many they want
+This package includes both and handheld and a lapel as it is a kit but we would need to “comment” in the job what they have asked for
+Add to min labour AVTECH 15mins setup & PD
+Note on microphones once there is more than 1 in this room we need to add a mixer.
+MIXER06 = 6ch so 6 microphones
+More than 2 microphones ask the question do you want an operator? (This questions wasn't asked, it was assumed (Jenny)
+YES
+AVTECHT&C =AXTECH Reh 30mins
+AXTECHOp from show start to show end
+ 
+**If you end up with a MIXER06 and a V1HD then you would just need an AVTECH for the duration of the event.** I presume the Quote I did, didn't ask because of this rule? Is this correct   
+ 
+Elevate 
+Package
+WSBELPRO
+Projector & Screen
+ 
+Questions/Accessories
+Are you bringing your own laptop or do you need one?
+Own laptop
+We will provide a HDMI connection to the projector. Do you need any adaptors?
+Typically, we just need a USBC adaptor –USBCMX2
+More than 1 laptop at a time will require a switcher so we would need to ask, do you want to be able to seamlessly switch between the 2 laptops?
+Yes – We would suggest an operator
+V1HD= 4 inputs so max 4 laptops
+Add 1 hr for AVTECH Setup
+AVTECH T&C =VXTECH Reh 30mins
+VXTECHOp from show start to show end
+Would you like a remote mouse/wireless presenter?
+LOGISPOT
+Are you holding a video conference? Using Teams/Zoom etc?
+LOG4kCAM
+Add to min labour AVTECH 15mins SU, 15mins T&C, 15 mins PD
+Video Conference Unit
+Would you like a flipchart?
+NATFLIPC
+Add to min labour AVTECH 15mins setup per FC
+Flipchart with paper and markers
+Does your presentation have any audio, video etc?
+WSBELSAD or WBELAUD depending on whether they are in Elevate ½ or Elevate (Combined) respectively
+ 
+WSBELSAD or WBELAUD
+Ceiling Speakers
+ 
+Questions/Accessories
+Would you like a Lectern?
+LECT1
+With a microphone?
+SHURE418
+Add to min labourAVTECH15mins setup & PD
+Do you require any wireless microphones?
+Handheld or Lapel?
+How Many?
+QLXD2SKx how many they want
+This package includes both and handheld and a lapel as it is a kit but we would need to “comment” in the job what they have asked for
+Add to min labour AVTECH 15mins setup & PD
+Note on microphones once there is more than 1 in this room we need to add a mixer.
+MIXER06 = 6ch so 6 microphones
+More than 2 microphones ask the question do you want an operator?
+YES
+AVTECHT&C =AXTECH Reh 30mins
+AXTECH Op from show start to show end
+ 
+**If you end up with a MIXER06 and a V1HD then you would just need an AVTECH for the duration of the event.**
+ 
+Thrive
+Package
+WSBTHAV
+Projector & Screen & ceiling speakers (PC Audio ONLY)
+ 
+Questions/Accessories
+Are you bringing your own laptop or do you need one?
+Own laptop
+We will provide a HDMI connection to the projector. Do you need any adaptors?
+Typically, we just need a USBC adaptor –USBCMX2
+Would you like a remote mouse/wireless presenter?
+LOGISPOT
+Are you holding a video conference? Using Teams/Zoom etc?
+LOG4kCAM
+Add to min labour AVTECH 15mins SU, 15mins T&C, 15 mins PD
+Video Conference Unit
+Would you like a flipchart?
+NATFLIPC
+Add to min labour AVTECH 15mins setup per FC
+Flipchart with paper and markers
+  
 
-if you need to make a script and explore the db to understand how it is
 
-i need proper quote
 
-like the same way its being done now (when we ask user to selectwhat they want the proper stuff gets added to booking and to the quote with proper prices)
+Intent Workspace
 
+Search
+⌘ K
+
+
+Home
+53
+Chat
+Planner
+19
+AI
+Teams
+
+Invite
+Chat
+53
+Number of unseen notifications
+
+
+
+Create
+Intent Squad
+Yesterday
+Dhan Manalo: Heading off as well
+Jenny Junkeer
+Yesterday
+Jenny Junkeer: Nith I am disappointed that you spent your entire day on cleanup, its not what you said earlier today. You said you would finish that in the first half of the day. Yes please commence Decise
+ForByTo Projects
+Yesterday
+Mary Franklin: Hi @Raffy Ipac, To ensure the RunSubscriptionMembershipAsync function on Stripe operates correctly, if a sponsor exists, it should use the sponsor's member ID instead of the member ID.
+Defit Group
+Yesterday
+Dhan Manalo: Perfect. I'm in. Thanks @Jenny Junkeer
+Microhire Group
+Yesterday
+Jenny Junkeer: Let’s look at it together
+Dhan Manalo
+Mar 17
+You: Sure
+Investor Partner Group (IPG)
+Mar 12
+Jenny Junkeer: Have the Revenue drill through be a pie chart not a table list please
+INTENT Internal
+Mar 11
+Jenny Junkeer: @Raffy Ipac @Dhan Manalo @Mary Franklin @Nith Nenuka lets review this company's services to add greater security and governance to our next projects PeakhourApplication Security Platform | CDN+ with Advanced Security | Peakhour
+Powerband Electrical
+Mar 4
+Jenny Junkeer: Great thanks @Nith Nenuka
+Decise
+Mar 2
+Jenny Junkeer: Lessons learnt is not saving either
+Mary Franklin
+Feb 25
+Mary Franklin: yes wait a min
+2
+Mary Franklin, Raffy Ipac
+Feb 22
+Mary Franklin: ok thank you Nith!
+Mona
+Jan 21
+Roselle Sanchez: Hi @Jenny Junkeer Kindly see the forwarded email from Naz requiring your response. Thank you
+Raffy Ipac
+Jan 15
+Raffy Ipac: { "success": false, "message": "All database sync methods failed", "error": "Command failed: npx prisma db push --force-reset\nLoaded Prisma config from prisma.config.ts.\n\nError: P1000: Authentication failed against database server, the provided database credentials for raffyipac are not valid.\n\nPlease make sure to provide valid database credentials for the database server at the configured address.\n", "methods": [ "db-push", "migrate-deploy", "force-reset" ] }
+Nith Nenuka
+You
+Dec 19, 2025
+You: Sent an image
+Donna McGoldrick
+Nov 28, 2025
+You: Gotcha
+Roselle Sanchez
+Nov 23, 2025
+Roselle Sanchez: No worries!
+Nidhi Tamakuwala
+Nov 17, 2025
+You: hey?
+User
+Start chatting!
+User
+Start chatting!
+Welcome
+Start chatting!
+General
+ - Intent Workspace
+Nov 19, 2024
+Jenny Junkeer: Hi Team, this is the equivalent of the Intent Squad chat group, we can discuss all things Intent here
+Client Projects
+/
+
+Add description
+Change priority
+Change start and due dates
+
+
+
+
+Ask AI
+
+Share
+Channel
+Overview
+Microhire Project Admin
+Board
+Team
+Calendar
+Gantt
+Doc
+List
+
+Subtasks: Collapsed
+
+Adjust your status filter to show closed tasks
+
+
+
+
+
+Task
+
+Offline
+
+
+
+
+View Update
+
+Activity
+
+Tasks
+(6)
+
+Comments
+(10)
+
+Calendar
+jenny@intent.do
+7:24 am | 5.5h ahead
+
+Consulting Team
+, 
+Intent Team
+Priorities
+Trending Tasks
+In the last 24 hours
+
+Create the feature for a member to transfer their membership to new members
+
+94%
+Update the Edit Profile page
+
+2%
+Create a notification to the new member that has received a transferred membership
+
+1%
+Redesign the purpose view page
+
+1%
+Fix why the purposes in the Member portal do not match the admin portal
+
+Other
+
+2%
+Activity
+
+Today
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: not started
+Update the word Archive to Archived
+Jenny Junkeer assigned to: Mary Franklin
+26 mins
+Jenny Junkeer added follower: Mary Franklin
+26 mins
+Jenny Junkeer uploaded a file
+27 mins
+
+image.png
+Jenny Junkeer edited the task description
+27 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: in review
+UI/UX
+Jenny Junkeer created subtask: Update the word Archive to Archived
+27 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: not started
+Update the word Archive to Archived
+Jenny Junkeer created this task
+27 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: done
+HOME / OVERVIEW
+Jenny Junkeer changed status from  in review to  done
+28 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: complete
+Fix why when I add an Update I receive this message
+Jenny Junkeer changed status from  in review to  Complete
+28 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: in progress
+Display all of the people that have registered with FBT through the Tell a Friend feature
+Jenny Junkeer commented:
+29 mins
+Jenny Junkeer
+29 mins
+@Mary Franklin please read the description area of this task for the update required to this ticket
+
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: in progress
+Create the feature for a member to transfer their membership to new members
+Jenny Junkeer commented:
+30 mins
+Jenny Junkeer
+30 mins
+@Mary Franklin I can see this task is complete, so I am happy to tick it off. BUT the one thing I can't test is IF the new member is going to be prompted to pay for a subscription when the original membership gifted expires. How can we test that now, to know that it is working?
+
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: not started
+Update the memberships to show an expiry date
+Jenny Junkeer assigned to: Mary Franklin
+32 mins
+Jenny Junkeer added follower: Mary Franklin
+32 mins
+Jenny Junkeer edited the task description
+33 mins
+Jenny Junkeer uploaded a file
+33 mins
+
+image.png
+Jenny Junkeer created this task
+33 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: not started
+UI/UX
+Jenny Junkeer created subtask: Update the memberships to show an expiry date
+33 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: not started
+Fix why the Tell a friend list of someone else is appearing on my memberships page
+Jenny Junkeer assigned to: Mary Franklin
+34 mins
+Jenny Junkeer added follower: Mary Franklin
+34 mins
+Jenny Junkeer uploaded 2 files
+35 mins
+
+image.png
+
+image.png
+Jenny Junkeer edited the task description
+36 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: in progress
+TELL A FRIEND
+Jenny Junkeer created subtask: Fix why the Tell a friend list of someone else is appearing on my memberships page
+36 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: not started
+Fix why the Tell a friend list of someone else is appearing on my memberships page
+Jenny Junkeer created this task
+36 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: in progress
+Display all of the people that have registered with FBT through the Tell a Friend feature
+Jenny Junkeer changed status from  not started to  In progress
+38 mins
+Jenny Junkeer removed assignee: Raffy Ipac
+38 mins
+Jenny Junkeer added follower: Mary Franklin
+38 mins
+Jenny Junkeer assigned to: Mary Franklin
+38 mins
+Jenny Junkeer edited the task description
+39 mins
+Jenny Junkeer uploaded a file
+40 mins
+
+image.png
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: complete
+Display all of the people I have invited through the Tell a Friend feature
+Jenny Junkeer changed status from  In progress to  Complete
+40 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: not started
+Update it so that it doesn't take me away from the screen I was in
+Jenny Junkeer assigned to: Mary Franklin
+41 mins
+
+
+Client Projects
+Microhire Group
+Microhire DL
+Created Mar 16
+
+
+Ask AI
+
+Share
+
+Fix the issue where the AI is adding irrelevant equipment on the generated quote
+Nith Nenuka
+
+
+4
+
+Add Cover
+Subtask of
+Current status: waiting on other task
+Go to parent task:
+Make sure the AI pick the right equipment for the selected room based on the questions asked and answered
+Fix the issue where the AI is adding irrelevant equipment on the generated quote
+Fix the issue where the AI is adding irrelevant equipment on the generated quote
+
+Ask Brain tocreate a summary
+generate subtasks
+or
+find similar tasks
+
+Status
+Assignees
+Nith Nenuka
+Dates
+Change start and due dates
+Priority
+Time estimate
+Sprint points
+Empty
+Track time
+
+Start
+Tags
+
+Collapse empty fields
+In my testing, it just added ELEVIND Independent Items
+
+
+
+Also, since the booking requires both speakers and projector, it should just added the AV package instead of separating the projector from the speaker system.
+
+
+
+
+Collapse
+
+
+
+
+
+
+Full screen
+
+Add
+Priority Number
+
+–
+Governance - Risk Framework
+
+–
+Information Management Lens Framework
+
+–
+Strategy Lens
+
+–
+Strategy Lens Framework
+
+–
+
+Hide 4 empty fields
+Add subtask
+Create checklist
+
+
+4
+
+Download All
+
+Tiles
+
+List
+
+Full screen
+
+Add attachment
+
+image
+.png
+Mar 16 at 7:22 am
+
+image
+.png
+Mar 16 at 7:22 am
+
+image
+.png
+Mar 16 at 7:20 am
+
+
+Collapse
+
+Activity
+
+Related items
+
+Add links
+Activity
+
+Dhan Manalo
+
+
+
+
+Reply
+This is also happening on Westin Ballroom not just thrive
+
+
+image.png
+
+Reply
+
+Show more
+Dhan Manalo
+Mar 16 at 7:19 am
+@Nith Nenuka 
+
+Thread id
+
+thread_n4sgSNtBcLv2KioPHX7yGJXN
+
+Created
+
+16 Mar 2026 8:47 AM
+
+Reply
+Dhan Manalo changed name: Fix the issue where the AI is adding irrelevant equipment on the generated quote equipment
+
+Mar 16 at 7:19 am
+Dhan Manalo created this task
+
+Mar 16 at 7:19 am
+
+
+Comment
+
+
+
+
+1
+1 person will be notified about your comment
+
+
+Schedule for later
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+
+This is also happening on Westin Ballroom not just thrive
+
+
+
+Agent
+Hello, my name is Isla from Microhire. What is your full name?
+User
+Peter Parker
+Agent
+Thank you, Peter Parker. Are you a new or an existing customer with Microhire?
+User
+new
+Agent
+Great, Peter. Could you share the name of your organisation?
+User
+Parker Corporation
+Agent
+Thank you! What's the location or address of Parker Corporation?
+User
+Melbourne
+Agent
+Got it, Peter. Could you please provide either your email address or contact number so I can reach you if needed?
+User
+peterparker@test.com, 0417852693
+Agent
+Thank you for providing your contact details. I've noted your phone number and email address. I'll now save your contact details to proceed further. One moment, please!
+Agent
+Your contact details have been saved successfully. Could you please share a bit about your event? For instance, what type of event you're organising and the venue or room you're considering?
+User
+it's a team meeting at the westin brisbane
+Agent
+Thank you for sharing! For your team meeting at The Westin Brisbane, could you let me know the specific room you're considering? For example, Thrive Boardroom, Elevate, or Westin Ballroom (Full, 1, or 2)?
+User
+Thrive Boardroom
+Agent
+Great choice! Could you let me know the date of your team meeting?
+User
+April 27
+Agent
+Your team meeting has been noted for 27th April 2026 in the Thrive Boardroom. How many attendees are you expecting?
+User
+10 attendees
+Agent
+Thanks for confirming, Peter. I’ll now proceed to the next step. What time will your team meeting start and end? Here’s a time picker to make it easier — feel free to select the appropriate times.
+Agent
+Here's a time picker for you. Please confirm your schedule for 27 April 2026: {"ui":{"type":"multitime","title":"Confirm your schedule for 27 April 2026","date":"2026-04-27","pickers":[{"name":"setup","label":"Room setup by (optional)","default":"07:00"},{"name":"rehearsal","label":"Rehearsal time (optional)","default":"09:30"},{"name":"start","label":"Event start time","default":"10:00"},{"name":"end","label":"Event end time","default":"16:00"},{"name":"packup","label":"Pack up time from (optional)","default":"18:00"}],"stepMinutes":30,"submitLabel":"Submit"}}
+User
+I've selected this schedule: on Monday, April 27, 2026: Setup 7AM; Rehearsal 8AM; Event Start 9AM; Event End 5PM; Pack Up 6PM. Please confirm this schedule.
+Agent
+Your schedule for Monday, 27th April 2026 in the Thrive Boardroom has been successfully recorded. The event starts at 9:00 AM and ends at 5:00 PM, with room setup at 7:00 AM, rehearsal at 8:00 AM, and pack up by 6:00 PM. Now, moving to AV requirements—will there be any speakers giving speeches without slides or a screen?
+User
+Yes there will be 3 speakers
+Agent
+Thank you for confirming there will be 3 speakers. Will there be any presentations using slides or a screen during the meeting?
+User
+yes there will be video and powerpoint presentations as well
+Agent
+Got it! For your video and PowerPoint presentations, would you like to show them using a projector and screen?
+User
+yes please
+Agent
+Thank you, I'll include a projector and screen in the AV setup. Does your presentation include audio playback?
+User
+yes
+Agent
+Would you like to use the inbuilt ceiling speakers in Thrive Boardroom, or would you prefer external portable speakers for audio playback?
+User
+built in speakers will do
+Agent
+Noted! Are you bringing your own laptop for the presentations or would you like to hire one from us?
+User
+please provide a windows laptop
+Agent
+Certainly, I'll include a Windows laptop for your presentations. We will provide an HDMI connection to the projector. Do you need any adaptors, such as a USB-C adaptor?
+User
+yes
+Agent
+Thank you, I'll include a USB-C adaptor for the HDMI connection. Would you like a wireless clicker (presentation remote) for slide control?
+User
+yes
+Agent
+I'll include a wireless clicker for slide control. Moving on to microphones—how many microphones would you need for your 3 speakers, and would you prefer handheld or lapel microphones?
+User
+we don't need any microphone
+Agent
+Understood, no microphones will be included. Lastly, would you like a flipchart for the meeting?
+User
+yes please
+Agent
+Thank you, I'll include a flipchart. Based on our conversation, I've noted the following requirements: - Projector and screen for video and PowerPoint presentations - Audio playback using the inbuilt ceiling speakers - A Windows laptop along with a USB-C adaptor - A wireless clicker for slide control - A flipchart Have I captured everything you mentioned? Let me know if anything is missing.
+User
+Looks good
+Agent
+To tailor staffing, which stages would you like technician support for: setup, rehearsal/test & connect, operate during the event, and/or pack down? If you'd like full coverage, just say all stages.
+User
+setup, rehearsal/test & connect
+Agent
+## 🗂️ Quote Summary ### Event Details **Venue:** The Westin Brisbane **Room:** Thrive Boardroom **Event Type:** team meeting **Attendees:** 10 **Date:** Monday 27 April 2026 **Start Time:** 09:00 **End Time:** 17:00 **Room capacity (Boardroom):** 10 — your event fits. ### Requirement Summary - 1 clicker - 1 flipchart - 1 laptop - 1 projector - 1 screen - 1 speaker ### Technician Support - **1x AV Technician (Setup | 45m)** - **1x AV Technician (Rehearsal / Test & Connect | 30m)** Would you like me to create the quote now?
+User
+yes create quote
+Agent
+Great news! I have successfully generated your quote for booking C1484700001. You can view it [here](https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/files/quotes/Quote-C1484700001-20260316012813.html) or [download it](https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/files/quotes/Quote-C1484700001-20260316012813.html) 📥. Would you like to confirm this quote?
+Agent
+Your quote C1484700001, for a booking on 27 April 2026 is confirmed. Kindly attend to the booking payment of $839.95 inc GST, payment details are noted on the Quote document. One of our team members will be in contact with you shortly. You can view or download your signed quote using the buttons below. <div style="margin-top:1rem;display:flex;gap:.75rem;flex-wrap:wrap;justify-content:center"><a href="/files/quotes/Quote-C1484700001-20260316012813.html" target="_blank" rel="noopener noreferrer" class="isla-quote-download-btn isla-quote-open" data-quote-open="1">View Signed Quote</a><a href="/quotes/render?src=%2Ffiles%2Fquotes%2FQuote-C1484700001-20260316012813.html&outFile=Quote-C1484700001.pdf" rel="noopener noreferrer" class="isla-quote-download-btn isla-quote-download" data-quote-download="1" data-download-name="Quote-C1484700001.pdf">Download Signed Quote</a></div>
+
+
+
+Intent Workspace
+
+Search
+⌘ K
+
+
+Home
+53
+Chat
+Planner
+19
+AI
+Teams
+
+Invite
+Chat
+53
+Number of unseen notifications
+
+
+
+Create
+Intent Squad
+Yesterday
+Dhan Manalo: Heading off as well
+Jenny Junkeer
+Yesterday
+Jenny Junkeer: Nith I am disappointed that you spent your entire day on cleanup, its not what you said earlier today. You said you would finish that in the first half of the day. Yes please commence Decise
+ForByTo Projects
+Yesterday
+Mary Franklin: Hi @Raffy Ipac, To ensure the RunSubscriptionMembershipAsync function on Stripe operates correctly, if a sponsor exists, it should use the sponsor's member ID instead of the member ID.
+Defit Group
+Yesterday
+Dhan Manalo: Perfect. I'm in. Thanks @Jenny Junkeer
+Microhire Group
+Yesterday
+Jenny Junkeer: Let’s look at it together
+Dhan Manalo
+Mar 17
+You: Sure
+Investor Partner Group (IPG)
+Mar 12
+Jenny Junkeer: Have the Revenue drill through be a pie chart not a table list please
+INTENT Internal
+Mar 11
+Jenny Junkeer: @Raffy Ipac @Dhan Manalo @Mary Franklin @Nith Nenuka lets review this company's services to add greater security and governance to our next projects PeakhourApplication Security Platform | CDN+ with Advanced Security | Peakhour
+Powerband Electrical
+Mar 4
+Jenny Junkeer: Great thanks @Nith Nenuka
+Decise
+Mar 2
+Jenny Junkeer: Lessons learnt is not saving either
+Mary Franklin
+Feb 25
+Mary Franklin: yes wait a min
+2
+Mary Franklin, Raffy Ipac
+Feb 22
+Mary Franklin: ok thank you Nith!
+Mona
+Jan 21
+Roselle Sanchez: Hi @Jenny Junkeer Kindly see the forwarded email from Naz requiring your response. Thank you
+Raffy Ipac
+Jan 15
+Raffy Ipac: { "success": false, "message": "All database sync methods failed", "error": "Command failed: npx prisma db push --force-reset\nLoaded Prisma config from prisma.config.ts.\n\nError: P1000: Authentication failed against database server, the provided database credentials for raffyipac are not valid.\n\nPlease make sure to provide valid database credentials for the database server at the configured address.\n", "methods": [ "db-push", "migrate-deploy", "force-reset" ] }
+Nith Nenuka
+You
+Dec 19, 2025
+You: Sent an image
+Donna McGoldrick
+Nov 28, 2025
+You: Gotcha
+Roselle Sanchez
+Nov 23, 2025
+Roselle Sanchez: No worries!
+Nidhi Tamakuwala
+Nov 17, 2025
+You: hey?
+User
+Start chatting!
+User
+Start chatting!
+Welcome
+Start chatting!
+General
+ - Intent Workspace
+Nov 19, 2024
+Jenny Junkeer: Hi Team, this is the equivalent of the Intent Squad chat group, we can discuss all things Intent here
+Client Projects
+/
+
+Add description
+Change priority
+Change start and due dates
+
+
+
+
+Ask AI
+
+Share
+Channel
+Overview
+Microhire Project Admin
+Board
+Team
+Calendar
+Gantt
+Doc
+List
+
+Subtasks: Collapsed
+
+Adjust your status filter to show closed tasks
+
+
+
+
+
+Task
+
+Offline
+
+
+
+
+View Update
+
+Activity
+
+Tasks
+(6)
+
+Comments
+(10)
+
+Calendar
+jenny@intent.do
+7:24 am | 5.5h ahead
+
+Consulting Team
+, 
+Intent Team
+Priorities
+Trending Tasks
+In the last 24 hours
+
+Create the feature for a member to transfer their membership to new members
+
+94%
+Update the Edit Profile page
+
+2%
+Create a notification to the new member that has received a transferred membership
+
+1%
+Redesign the purpose view page
+
+1%
+Fix why the purposes in the Member portal do not match the admin portal
+
+Other
+
+2%
+Activity
+
+Today
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: not started
+Update the word Archive to Archived
+Jenny Junkeer assigned to: Mary Franklin
+27 mins
+Jenny Junkeer added follower: Mary Franklin
+27 mins
+Jenny Junkeer uploaded a file
+28 mins
+
+image.png
+Jenny Junkeer edited the task description
+28 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: in review
+UI/UX
+Jenny Junkeer created subtask: Update the word Archive to Archived
+28 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: not started
+Update the word Archive to Archived
+Jenny Junkeer created this task
+28 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: done
+HOME / OVERVIEW
+Jenny Junkeer changed status from  in review to  done
+29 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: complete
+Fix why when I add an Update I receive this message
+Jenny Junkeer changed status from  in review to  Complete
+29 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: in progress
+Display all of the people that have registered with FBT through the Tell a Friend feature
+Jenny Junkeer commented:
+30 mins
+Jenny Junkeer
+30 mins
+@Mary Franklin please read the description area of this task for the update required to this ticket
+
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: in progress
+Create the feature for a member to transfer their membership to new members
+Jenny Junkeer commented:
+31 mins
+Jenny Junkeer
+31 mins
+@Mary Franklin I can see this task is complete, so I am happy to tick it off. BUT the one thing I can't test is IF the new member is going to be prompted to pay for a subscription when the original membership gifted expires. How can we test that now, to know that it is working?
+
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: not started
+Update the memberships to show an expiry date
+Jenny Junkeer assigned to: Mary Franklin
+33 mins
+Jenny Junkeer added follower: Mary Franklin
+33 mins
+Jenny Junkeer edited the task description
+34 mins
+Jenny Junkeer uploaded a file
+34 mins
+
+image.png
+Jenny Junkeer created this task
+34 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: not started
+UI/UX
+Jenny Junkeer created subtask: Update the memberships to show an expiry date
+34 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: not started
+Fix why the Tell a friend list of someone else is appearing on my memberships page
+Jenny Junkeer assigned to: Mary Franklin
+35 mins
+Jenny Junkeer added follower: Mary Franklin
+35 mins
+Jenny Junkeer uploaded 2 files
+36 mins
+
+image.png
+
+image.png
+Jenny Junkeer edited the task description
+37 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: in progress
+TELL A FRIEND
+Jenny Junkeer created subtask: Fix why the Tell a friend list of someone else is appearing on my memberships page
+37 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: not started
+Fix why the Tell a friend list of someone else is appearing on my memberships page
+Jenny Junkeer created this task
+37 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: in progress
+Display all of the people that have registered with FBT through the Tell a Friend feature
+Jenny Junkeer changed status from  not started to  In progress
+39 mins
+Jenny Junkeer removed assignee: Raffy Ipac
+39 mins
+Jenny Junkeer added follower: Mary Franklin
+39 mins
+Jenny Junkeer assigned to: Mary Franklin
+39 mins
+Jenny Junkeer edited the task description
+40 mins
+Jenny Junkeer uploaded a file
+41 mins
+
+image.png
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: complete
+Display all of the people I have invited through the Tell a Friend feature
+Jenny Junkeer changed status from  In progress to  Complete
+41 mins
+Client Projects
+/ForByTo Projects
+/FBT DL
+Current status: not started
+Update it so that it doesn't take me away from the screen I was in
+Jenny Junkeer assigned to: Mary Franklin
+42 mins
+
+
+Client Projects
+Microhire Group
+Microhire DL
+Created Mar 12
+
+
+Ask AI
+
+Share
+
+
+
+4
+
+Add Cover
+Subtask of
+Current status: waiting on other task
+Go to parent task:
+Make sure the AI pick the right equipment for the selected room based on the questions asked and answered
+Fix the equipment selection when video conferencing is mentioned
+Fix the equipment selection when video conferencing is mentioned
+
+Ask Brain tocreate a summary
+generate subtasks
+or
+find similar tasks
+
+Status
+Assignees
+Nith Nenuka
+Dhan Manalo
+Dates
+Change start and due dates
+Priority
+Time estimate
+Sprint points
+Track time
+
+Start
+Tags
+
+Collapse empty fields
+
+The AI assumed that the User will want Camera, Microphones, Speakers and a Display (in the Thrive room) when Zoom meeting requirement was mentioned by the User. Even though the AI is saying that it will add these 4 items to the quote, it only added 2 of these items in the Summary.
+
+
+If this summary is incorrect, like in this case, high probability the AI will get the equipment selection wrong.
+So focus on accuracy in the Requirement Summary first.
+
+Equipment Selectio
+The AI should have selected the Thrive AV Package instead of just the ceiling speaker system since the quote requires a display. This package is the only one for Thrive that INCLUDES a display and a speaker. I think the AI didn't think to select this package, because the Requirement Summary didn't have "display/projector" in there, so the AI might have just chosen speaker ONLY
+
+﻿@Dhan Manalo﻿ Camera - the Requirement Summary states that a camera is required, but we noticed a camera was not on the quote. We think this is because there is no camera equipment line item in RP, so the AI just skipped putting it on the quote. Dhan please fix the RP Tree structure to have a folder for AI only
+
+
+
+
+
+
+Collapse
+
+
+
+
+
+
+Full screen
+
+Add
+Priority Number
+
+–
+Governance - Risk Framework
+
+–
+Information Management Lens Framework
+
+–
+Strategy Lens
+
+–
+Strategy Lens Framework
+
+–
+
+Hide 4 empty fields
+Add subtask
+Create checklist
+
+
+4
+
+Download All
+
+Tiles
+
+List
+
+Full screen
+
+Add attachment
+
+image
+.png
+Mar 12 at 8:31 am
+
+image
+.png
+Mar 12 at 8:27 am
+
+image
+.png
+Mar 12 at 8:27 am
+
+image
+.png
+Mar 12 at 8:26 am
+
+
+Collapse
+
+Activity
+
+Related items
+
+Add links
+Activity
+
+Jenny Junkeer added follower: Dhan Manalo
+
+Mar 12 at 8:46 am
+
+Show more
+Dhan Manalo
+Mar 12 at 8:27 am
+@Nith Nenuka It should select the Thrive AV Package instead of just the ceiling speaker system since the quote requires a display
+
+
+image.png
+
+
+image.png
+
+Reply
+Jenny Junkeer uploaded 2 files
+Mar 12 at 8:27 am
+
+image.png
+
+image.png
+Jenny Junkeer created this task
+
+Mar 12 at 8:26 am
+
+
+Comment
+
+
+
+
+2
+2 people will be notified about your comment
+
+
+Schedule for later
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+
+
+Intent Workspace
+
+Search
+⌘ K
+
+
+Home
+53
+Chat
+Planner
+19
+AI
+Teams
+
+Invite
+Chat
+53
+Number of unseen notifications
+
+
+
+Create
+Intent Squad
+Yesterday
+Dhan Manalo: Heading off as well
+Jenny Junkeer
+Yesterday
+Jenny Junkeer: Nith I am disappointed that you spent your entire day on cleanup, its not what you said earlier today. You said you would finish that in the first half of the day. Yes please commence Decise
+ForByTo Projects
+Yesterday
+Mary Franklin: Hi @Raffy Ipac, To ensure the RunSubscriptionMembershipAsync function on Stripe operates correctly, if a sponsor exists, it should use the sponsor's member ID instead of the member ID.
+Defit Group
+Yesterday
+Dhan Manalo: Perfect. I'm in. Thanks @Jenny Junkeer
+Microhire Group
+Yesterday
+Jenny Junkeer: Let’s look at it together
+Dhan Manalo
+Mar 17
+You: Sure
+Investor Partner Group (IPG)
+Mar 12
+Jenny Junkeer: Have the Revenue drill through be a pie chart not a table list please
+INTENT Internal
+Mar 11
+Jenny Junkeer: @Raffy Ipac @Dhan Manalo @Mary Franklin @Nith Nenuka lets review this company's services to add greater security and governance to our next projects PeakhourApplication Security Platform | CDN+ with Advanced Security | Peakhour
+Powerband Electrical
+Mar 4
+Jenny Junkeer: Great thanks @Nith Nenuka
+Decise
+Mar 2
+Jenny Junkeer: Lessons learnt is not saving either
+Mary Franklin
+Feb 25
+Mary Franklin: yes wait a min
+2
+Mary Franklin, Raffy Ipac
+Feb 22
+Mary Franklin: ok thank you Nith!
+Mona
+Jan 21
+Roselle Sanchez: Hi @Jenny Junkeer Kindly see the forwarded email from Naz requiring your response. Thank you
+Raffy Ipac
+Jan 15
+Raffy Ipac: { "success": false, "message": "All database sync methods failed", "error": "Command failed: npx prisma db push --force-reset\nLoaded Prisma config from prisma.config.ts.\n\nError: P1000: Authentication failed against database server, the provided database credentials for raffyipac are not valid.\n\nPlease make sure to provide valid database credentials for the database server at the configured address.\n", "methods": [ "db-push", "migrate-deploy", "force-reset" ] }
+Nith Nenuka
+You
+Dec 19, 2025
+You: Sent an image
+Donna McGoldrick
+Nov 28, 2025
+You: Gotcha
+Roselle Sanchez
+Nov 23, 2025
+Roselle Sanchez: No worries!
+Nidhi Tamakuwala
+Nov 17, 2025
+You: hey?
+User
+Start chatting!
+User
+Start chatting!
+Welcome
+Start chatting!
+General
+ - Intent Workspace
+Nov 19, 2024
+Jenny Junkeer: Hi Team, this is the equivalent of the Intent Squad chat group, we can discuss all things Intent here
+Client Projects
+/
+
+Add description
+Change priority
+Change start and due dates
+
+
+
+
+Ask AI
+
+Share
+Channel
+Overview
+Microhire Project Admin
+Board
+Team
+Calendar
+Gantt
+Doc
+List
+
+Subtasks: Collapsed
+
+Adjust your status filter to show closed tasks
+
+
+
+
+
+Task
+
+
+Client Projects
+Microhire Group
+Microhire DL
+Created Mar 16
+
+
+Ask AI
+
+Share
+
+
+
+1
+
+Add Cover
+Subtask of
+Current status: waiting on other task
+Go to parent task:
+Make sure the AI pick the right equipment for the selected room based on the questions asked and answered
+Add a 10% service charge on every booking
+Add a 10% service charge on every booking
+
+Ask Brain tocreate a summary
+generate subtasks
+or
+find similar tasks
+
+Status
+Assignees
+Nith Nenuka
+Dates
+Change start and due dates
+Priority
+Time estimate
+Sprint points
+Empty
+Track time
+
+Start
+Tags
+
+Collapse empty fields
+This is based on the Total Hire Amount.
+
+Example
+
+
+Collapse
+
+
+
+
+
+
+Full screen
+
+Add
+Priority Number
+
+–
+Governance - Risk Framework
+
+–
+Information Management Lens Framework
+
+–
+Strategy Lens
+
+–
+Strategy Lens Framework
+
+–
+
+Hide 4 empty fields
+Add subtask
+Create checklist
+
+
+1
+
+Download All
+
+Tiles
+
+List
+
+Full screen
+
+Add attachment
+
+image
+.png
+Mar 16 at 7:35 am
+
+
+Collapse
+
+Activity
+
+Related items
+
+Add links
+Activity
+
+Dhan Manalo uploaded a file
+Mar 16 at 7:35 am
+
+image.png
+
+Show more
+Dhan Manalo created this task
+
+Mar 16 at 7:31 am
+
+
+Comment
+
+
+
+
+1
+1 person will be notified about your comment
+
+
+Schedule for later
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+
+
+Intent Workspace
+
+Search
+⌘ K
+
+
+Home
+53
+Chat
+Planner
+19
+AI
+Teams
+
+Invite
+Chat
+53
+Number of unseen notifications
+
+
+
+Create
+Intent Squad
+Yesterday
+Dhan Manalo: Heading off as well
+Jenny Junkeer
+Yesterday
+Jenny Junkeer: Nith I am disappointed that you spent your entire day on cleanup, its not what you said earlier today. You said you would finish that in the first half of the day. Yes please commence Decise
+ForByTo Projects
+Yesterday
+Mary Franklin: Hi @Raffy Ipac, To ensure the RunSubscriptionMembershipAsync function on Stripe operates correctly, if a sponsor exists, it should use the sponsor's member ID instead of the member ID.
+Defit Group
+Yesterday
+Dhan Manalo: Perfect. I'm in. Thanks @Jenny Junkeer
+Microhire Group
+Yesterday
+Jenny Junkeer: Let’s look at it together
+Dhan Manalo
+Mar 17
+You: Sure
+Investor Partner Group (IPG)
+Mar 12
+Jenny Junkeer: Have the Revenue drill through be a pie chart not a table list please
+INTENT Internal
+Mar 11
+Jenny Junkeer: @Raffy Ipac @Dhan Manalo @Mary Franklin @Nith Nenuka lets review this company's services to add greater security and governance to our next projects PeakhourApplication Security Platform | CDN+ with Advanced Security | Peakhour
+Powerband Electrical
+Mar 4
+Jenny Junkeer: Great thanks @Nith Nenuka
+Decise
+Mar 2
+Jenny Junkeer: Lessons learnt is not saving either
+Mary Franklin
+Feb 25
+Mary Franklin: yes wait a min
+2
+Mary Franklin, Raffy Ipac
+Feb 22
+Mary Franklin: ok thank you Nith!
+Mona
+Jan 21
+Roselle Sanchez: Hi @Jenny Junkeer Kindly see the forwarded email from Naz requiring your response. Thank you
+Raffy Ipac
+Jan 15
+Raffy Ipac: { "success": false, "message": "All database sync methods failed", "error": "Command failed: npx prisma db push --force-reset\nLoaded Prisma config from prisma.config.ts.\n\nError: P1000: Authentication failed against database server, the provided database credentials for raffyipac are not valid.\n\nPlease make sure to provide valid database credentials for the database server at the configured address.\n", "methods": [ "db-push", "migrate-deploy", "force-reset" ] }
+Nith Nenuka
+You
+Dec 19, 2025
+You: Sent an image
+Donna McGoldrick
+Nov 28, 2025
+You: Gotcha
+Roselle Sanchez
+Nov 23, 2025
+Roselle Sanchez: No worries!
+Nidhi Tamakuwala
+Nov 17, 2025
+You: hey?
+User
+Start chatting!
+User
+Start chatting!
+Welcome
+Start chatting!
+General
+ - Intent Workspace
+Nov 19, 2024
+Jenny Junkeer: Hi Team, this is the equivalent of the Intent Squad chat group, we can discuss all things Intent here
+Client Projects
+/
+
+Add description
+Change priority
+Change start and due dates
+
+
+
+
+Ask AI
+
+Share
+Channel
+Overview
+Microhire Project Admin
+Board
+Team
+Calendar
+Gantt
+Doc
+List
+
+Subtasks: Collapsed
+
+Adjust your status filter to show closed tasks
+
+
+
+
+
+Task
+
+
+Client Projects
+Microhire Group
+Microhire DL
+Created Mar 16
+
+
+Ask AI
+
+Share
+
+
+
+8
+
+Add Cover
+Subtask of
+Current status: waiting on other task
+Go to parent task:
+Make sure the AI pick the right equipment for the selected room based on the questions asked and answered
+Fix the issue where the Clicker is not being included in the generated quote
+Fix the issue where the Clicker is not being included in the generated quote
+
+Ask Brain tocreate a summary
+generate subtasks
+or
+find similar tasks
+
+Status
+Assignees
+Nith Nenuka
+Dates
+Change start and due dates
+Priority
+Time estimate
+Sprint points
+Empty
+Track time
+
+Start
+Tags
+
+Collapse empty fields
+Based on my testing, 1 for Thrive and 1 for westin ballroom 1, the wireless clicker/presenter is not being added  
+
+Thrive Test
+
+Summary
+
+Thread id
+thread_n4sgSNtBcLv2KioPHX7yGJXN
+Created
+16 Mar 2026 8:47 AM
+
+Westin Ballroom 1 Test
+
+Thread id
+thread_thOJY4qx6XHZiGmIyfrSAj68
+Created
+16 Mar 2026 10:12 AM
+
+
+
+
+Westin Ballroom 2 Test
+
+Thread id
+thread_AAPZzvEKNCtLi8bDSmp3336r
+Created
+16 Mar 2026 11:25 AM
+
+Summary
+
+
+Collapse
+
+
+
+
+
+
+Full screen
+
+Add
+Priority Number
+
+–
+Governance - Risk Framework
+
+–
+Information Management Lens Framework
+
+–
+Strategy Lens
+
+–
+Strategy Lens Framework
+
+–
+
+Hide 4 empty fields
+Add subtask
+Create checklist
+
+
+8
+
+Download All
+
+Tiles
+
+List
+
+Full screen
+
+Add attachment
+
+image
+.png
+Mar 16 at 9:16 am
+
+image
+.png
+Mar 16 at 9:15 am
+
+image
+.png
+Mar 16 at 8:53 am
+
+image
+.png
+Mar 16 at 8:53 am
+
+image
+.png
+Mar 16 at 8:51 am
+
+image
+.png
+Mar 16 at 8:50 am
+
+image
+.png
+Mar 16 at 8:50 am
+
+image
+.png
+Mar 16 at 8:49 am
+
+
+Collapse
+
+Activity
+
+Related items
+
+Add links
+Activity
+
+Dhan Manalo uploaded 2 files
+Mar 16 at 9:16 am
+
+image.png
+
+image.png
+
+Show more
+Dhan Manalo created this task
+
+Mar 16 at 8:44 am
+
+
+Comment
+
+
+
+
+1
+1 person will be notified about your comment
+
+
+Schedule for later
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+This form is ugly. You see, the selector, when we select, has a red border around it, and it's not positioned aligned perfectly. The three venues have different alignments for the selector positions, and maybe we can make the frontend part of this better.
+
+Contact details provided: Name Nithila Neth; Organisation Niofetch Org; Location Brisbane; Email nith@niofetch.org; Phone .
+
+Isla
+Thank you for providing your contact details. I've noted your phone number and email address. I'll now save your contact details to proceed further. One moment, please!
+
+Isla
+Your contact details have been saved successfully! Could you please share details about your upcoming event? Specifically, the venue, room, date, attendees, and event type — or I can provide a quick form for you to fill out. Let me know your preference.
+
+Event details provided: venue Westin Ballroom Full; event type Hackathon; setup style Classroom; attendees 180; date 2026-03-19; schedule setup 07:00, rehearsal 09:30, start 10:00, end 16:00, pack up 18:00.
+
+Isla
+Thank you for providing the event details. I'll take a moment to record your schedule and confirm availability for 19 March 2026. Hang tight!
+
+Isla
+Your schedule for the full Westin Ballroom on 19 March 2026 has been recorded successfully.
+
+Let’s now discuss your AV requirements for the hackathon. For speakers and presentations:
+
+Will there be any presenters using slides or screens?
+Will there be any speeches or announcements without slides or screens?
+Could you share more details about any media playback, microphones, and other specific needs for your event?
+
+AV extras provided: presenters 1; speakers 3; wireless clicker yes; audio video recording yes; technician from 10:00 to 16:00; whole event coverage yes.
+
+Isla
+Thanks for providing the AV extras information for your hackathon. Here’s a summary of what you've mentioned so far:
+
+Presenters: 1
+Speakers: 3
+Wireless clicker: Yes
+Audio and video recording: Yes
+Technician coverage: Whole event (from 10:00 to 16:00).
+We’ll also include classroom-style setup for 180 attendees in the Full Westin Ballroom. Let me confirm your AV equipment needs to ensure everything is captured properly:
+
+Would you like to add a foldback monitor so the presenter doesn't have to turn around and look at the screen?
+Would you like a lectern for any speeches or announcements?
+Let me know if there’s anything else I should note for your event!
+
+
+
+
+also, it looks like it asks me for most of the items in pickers. One problem is that, as soon as we sometimes move on to the next question or refresh the page, the pickers go away and they just become plain text prompts sent from the user side. I think this would be better if we can keep them the way they were, as pickers and forms, with the data that was already pre-filled by the user, so it's easier to backtrack and where saving transcript, maybe we can have a very formatted file. For example, if it's multiple information in one message, line by line, each information properly formatted and nicely presented
+@isla-instructions.md (239-244) 
+
+and for each room and each receipt like I think these are not optional requirements; they are mandatory requirements for certain rooms. Just check the instructions properly, go through them. Room-specific questions are there, and there are mandatory questions for all venues to just understand properly
+
+
+also these points should be addressed
+
+
+Fix the issue where the AI is still asking about adapters for Microhire supplied laptops
+
+The AI shouldn't ask about the adapter if the laptop is coming from Microhire.
+
+
+
+Intent Workspace
+
+Search
+⌘ K
+
+
+Home
+53
+Chat
+Planner
+19
+AI
+Teams
+
+Invite
+Home
+53
+Number of unseen notifications
+
+
+
+Create
+Inbox
+53
+Replies
+Assigned Comments
+My Tasks
+
+More
+
+Favorites
+Microhire Group
+
+Spaces
+
+Spaces settings
+
+
+Microhire DL
+2
+
+Channels
+
+Intent Squad
+ForByTo Projects
+Defit Group
+Investor Partner Group (IPG)
+INTENT Internal
+Powerband Electrical
+Decise
+Mona
+Welcome
+General
+ - Intent Workspace
+Add Channel
+
+Direct Messages
+
+Jenny Junkeer
+Dhan Manalo
+Mary Franklin
+Mary Franklin, Raffy Ipac
+Raffy Ipac
+Nith Nenuka
+You
+Donna McGoldrick
+Roselle Sanchez
+Nidhi Tamakuwala
+User
+User
+New message
+Client Projects
+/
+Microhire Group
+/
+
+Add description
+Change priority
+Change start and due dates
+
+
+
+
+Ask AI
+
+Share
+Add Channel
+List
+Board
+Team
+Calendar
+Gantt
+
+Subtasks: Expanded
+Expanded
+
+
+Quickly show closed tasks
+
+
+
+
+
+Task
+
+In progress
+1
+
+
+New task
+Add Task
+
+not started
+1
+
+
+New task
+Add Task
+
+New status
+
+
+Client Projects
+Microhire Group
+Microhire DL
+Created Mar 10
+
+
+Ask AI
+
+Share
+
+
+
+4
+
+2 for me
+
+Add Cover
+Subtask of
+Current status: in progress
+Go to parent task:
+Make sure the AI ask the right questions for the selected room
+Fix why it is not asking the right questions for the Thrive boardroom
+Fix why it is not asking the right questions for the Thrive boardroom
+
+Ask Brain tocreate a summary
+generate an update
+or
+find similar tasks
+
+Status
+Assignees
+Nith Nenuka
+Dates
+Change start and due dates
+Priority
+Time estimate
+Sprint points
+Empty
+Track time
+
+Start
+Tags
+
+Collapse empty fields
+Thrive
+Package
+WSBTHAV
+Projector & Screen & ceiling speakers (PC Audio ONLY)
+ 
+Questions/Accessories
+Are you bringing your own laptop or do you need one?
+Own laptop
+We will provide a HDMI connection to the projector. Do you need any adaptors?
+Typically, we just need a USBC adaptor –USBCMX2
+Would you like a remote mouse/wireless presenter?
+LOGISPOT
+Are you holding a video conference? Using Teams/Zoom etc?
+LOG4kCAM
+Add to min labour AVTECH 15mins SU, 15mins T&C, 15 mins PD
+Video Conference Unit
+Would you like a flipchart?
+NATFLIPC
+Add to min labour AVTECH 15mins setup per FC
+Flipchart with paper and markers
+  
+
+Collapse
+
+
+
+
+
+
+Full screen
+
+Add
+Priority Number
+
+–
+Governance - Risk Framework
+
+–
+Information Management Lens Framework
+
+–
+Strategy Lens
+
+–
+Strategy Lens Framework
+
+–
+
+Hide 4 empty fields
+
+
+2 open
+2 for me
+
+Full screen
+
+Suggest
+
+
+Add Task
+Show 2 closed
+Create checklist
+Attach file
+
+
+Collapse
+
+Activity
+
+1
+Related items
+
+Add links
+Activity
+
+Dhan Manalo changed status from  in review to  in progress
+
+Mar 16 at 9:03 am
+Jenny Junkeer
+Mar 11 at 4:58 pm
+@Nith Nenuka do you understand everything in the details area here for each room very precisely?? I would like to go over these notes with you via zoom to ensure your comprehension of them is dead accurate.
+
+Reply
+
+Show more
+Jenny Junkeer created this task
+
+Mar 10 at 5:05 pm
+
+
+Comment
+
+
+
+
+2
+2 people will be notified about your comment
+
+
+Schedule for later
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+
+
+Intent Workspace
+
+Search
+⌘ K
+
+
+Home
+53
+Chat
+Planner
+19
+AI
+Teams
+
+Invite
+Home
+53
+Number of unseen notifications
+
+
+
+Create
+Inbox
+53
+Replies
+Assigned Comments
+My Tasks
+
+More
+
+Favorites
+Microhire Group
+
+Spaces
+
+Spaces settings
+
+
+Microhire DL
+2
+
+Channels
+
+Intent Squad
+ForByTo Projects
+Defit Group
+Investor Partner Group (IPG)
+INTENT Internal
+Powerband Electrical
+Decise
+Mona
+Welcome
+General
+ - Intent Workspace
+Add Channel
+
+Direct Messages
+
+Jenny Junkeer
+Dhan Manalo
+Mary Franklin
+Mary Franklin, Raffy Ipac
+Raffy Ipac
+Nith Nenuka
+You
+Donna McGoldrick
+Roselle Sanchez
+Nidhi Tamakuwala
+User
+User
+New message
+Client Projects
+/
+Microhire Group
+/
+
+Add description
+Change priority
+Change start and due dates
+
+
+
+
+Ask AI
+
+Share
+Add Channel
+List
+Board
+Team
+Calendar
+Gantt
+
+Subtasks: Expanded
+Expanded
+
+
+Quickly show closed tasks
+
+
+
+
+
+Task
+
+In progress
+1
+
+
+New task
+Add Task
+
+not started
+1
+
+
+New task
+Add Task
+
+New status
+
+
+Client Projects
+Microhire Group
+Microhire DL
+Created Mar 16
+
+
+Ask AI
+
+Share
+
+
+
+1
+
+Add Cover
+Subtask of
+Current status: in progress
+Go to parent task:
+Fix why it is not asking the right questions for the Thrive boardroom
+Remove the questions related the speakers/microphone when Thrive room is selected
+Remove the questions related the speakers/microphone when Thrive room is selected
+
+Ask Brain tocreate a summary
+generate subtasks
+or
+find similar tasks
+
+Status
+Assignees
+Nith Nenuka
+Dates
+Change start and due dates
+Priority
+Time estimate
+Sprint points
+Empty
+Track time
+
+Start
+Tags
+
+Collapse empty fields
+Asking about speakers/microphone is not applicable in Thrive Boardroom so please remove the questions related to this.
+
+Ask if there are presenters instead and offer remote mouse/wireless presenter if there is.
+
+
+
+
+
+Collapse
+
+
+
+
+
+
+Full screen
+
+Add
+Priority Number
+
+–
+Governance - Risk Framework
+
+–
+Information Management Lens Framework
+
+–
+Strategy Lens
+
+–
+Strategy Lens Framework
+
+–
+
+Hide 4 empty fields
+Add subtask
+Create checklist
+
+
+1
+
+Download All
+
+Tiles
+
+List
+
+Full screen
+
+Add attachment
+
+image
+.png
+Mar 16 at 7:13 am
+
+
+Collapse
+
+Activity
+
+Related items
+
+Add links
+Activity
+
+Dhan Manalo changed name: Remove the question abouts related the speakers/microphone when Thrive room is selected
+
+Mar 16 at 7:14 am
+
+Show more
+Dhan Manalo created this task
+
+Mar 16 at 7:09 am
+
+
+Comment
+
+
+
+
+1
+1 person will be notified about your comment
+
+
+Schedule for later
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+Intent Workspace
+
+Search
+⌘ K
+
+
+Home
+53
+Chat
+Planner
+19
+AI
+Teams
+
+Invite
+Home
+53
+Number of unseen notifications
+
+
+
+Create
+Inbox
+53
+Replies
+Assigned Comments
+My Tasks
+
+More
+
+Favorites
+Microhire Group
+
+Spaces
+
+Spaces settings
+
+
+Microhire DL
+2
+
+Channels
+
+Intent Squad
+ForByTo Projects
+Defit Group
+Investor Partner Group (IPG)
+INTENT Internal
+Powerband Electrical
+Decise
+Mona
+Welcome
+General
+ - Intent Workspace
+Add Channel
+
+Direct Messages
+
+Jenny Junkeer
+Dhan Manalo
+Mary Franklin
+Mary Franklin, Raffy Ipac
+Raffy Ipac
+Nith Nenuka
+You
+Donna McGoldrick
+Roselle Sanchez
+Nidhi Tamakuwala
+User
+User
+New message
+Client Projects
+/
+Microhire Group
+/
+
+Add description
+Change priority
+Change start and due dates
+
+
+
+
+Ask AI
+
+Share
+Add Channel
+List
+Board
+Team
+Calendar
+Gantt
+
+Subtasks: Expanded
+Expanded
+
+
+Quickly show closed tasks
+
+
+
+
+
+Task
+
+In progress
+1
+
+
+New task
+Add Task
+
+not started
+1
+
+
+New task
+Add Task
+
+New status
+
+
+Client Projects
+Microhire Group
+Microhire DL
+Created Mar 16
+
+
+Ask AI
+
+Share
+
+
+
+1
+
+Add Cover
+Subtask of
+Current status: in progress
+Go to parent task:
+Fix why it is not asking the right questions for the Thrive boardroom
+Fix where the AI is not asking about video conference
+Fix where the AI is not asking about video conference
+
+Ask Brain tocreate a summary
+generate subtasks
+or
+find similar tasks
+
+Status
+Assignees
+Nith Nenuka
+Dates
+Change start and due dates
+Priority
+Time estimate
+Sprint points
+Empty
+Track time
+
+Start
+Tags
+
+Collapse empty fields
+The AI should ask the question about video conferencing.
+
+
+Collapse
+
+
+
+
+
+
+Full screen
+
+Add
+Priority Number
+
+–
+Governance - Risk Framework
+
+–
+Information Management Lens Framework
+
+–
+Strategy Lens
+
+–
+Strategy Lens Framework
+
+–
+
+Hide 4 empty fields
+Add subtask
+Create checklist
+
+
+1
+
+Download All
+
+Tiles
+
+List
+
+Full screen
+
+Add attachment
+
+image
+.png
+Mar 16 at 6:54 am
+
+
+Collapse
+
+Activity
+
+Related items
+
+Add links
+Activity
+
+Dhan Manalo added follower: You
+
+Mar 16 at 6:57 am
+Dhan Manalo assigned to: You
+
+Mar 16 at 6:57 am
+Dhan Manalo
+Mar 16 at 6:56 am
+@Nith Nenuka It didn't ask me anything on this conversation
+
+
+
+Thread id
+
+thread_n4sgSNtBcLv2KioPHX7yGJXN
+
+Created
+
+16 Mar 2026 8:47 AM
+
+Reply
+Dhan Manalo uploaded a file
+Mar 16 at 6:54 am
+
+image.png
+Dhan Manalo created this task
+
+Mar 16 at 6:54 am
+
+
+Comment
+
+
+
+
+1
+1 person will be notified about your comment
+
+
+Schedule for later
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+
+
+
+
+Intent Workspace
+
+Search
+⌘ K
+
+
+Home
+53
+Chat
+Planner
+19
+AI
+Teams
+
+Invite
+Home
+53
+Number of unseen notifications
+
+
+
+Create
+Inbox
+53
+Replies
+Assigned Comments
+My Tasks
+
+More
+
+Favorites
+Microhire Group
+
+Spaces
+
+Spaces settings
+
+
+Microhire DL
+2
+
+Channels
+
+Intent Squad
+ForByTo Projects
+Defit Group
+Investor Partner Group (IPG)
+INTENT Internal
+Powerband Electrical
+Decise
+Mona
+Welcome
+General
+ - Intent Workspace
+Add Channel
+
+Direct Messages
+
+Jenny Junkeer
+Dhan Manalo
+Mary Franklin
+Mary Franklin, Raffy Ipac
+Raffy Ipac
+Nith Nenuka
+You
+Donna McGoldrick
+Roselle Sanchez
+Nidhi Tamakuwala
+User
+User
+New message
+Client Projects
+/
+Microhire Group
+/
+
+Add description
+Change priority
+Change start and due dates
+
+
+
+
+Ask AI
+
+Share
+Add Channel
+List
+Board
+Team
+Calendar
+Gantt
+
+Subtasks: Expanded
+Expanded
+
+
+Quickly show closed tasks
+
+
+
+
+
+Task
+
+In progress
+1
+
+
+New task
+Add Task
+
+not started
+1
+
+
+New task
+Add Task
+
+New status
+
+
+Client Projects
+Microhire Group
+Microhire DL
+Created Mar 16
+
+
+Ask AI
+
+Share
+
+
+
+1
+
+Add Cover
+Subtask of
+Current status: in progress
+Go to parent task:
+Fix why it is not asking the right questions for the Thrive boardroom
+Remove the questions related the speakers/microphone when Thrive room is selected
+Remove the questions related the speakers/microphone when Thrive room is selected
+
+Ask Brain tocreate a summary
+generate subtasks
+or
+find similar tasks
+
+Status
+Assignees
+Nith Nenuka
+Dates
+Change start and due dates
+Priority
+Time estimate
+Sprint points
+Empty
+Track time
+
+Start
+Tags
+
+Collapse empty fields
+Asking about speakers/microphone is not applicable in Thrive Boardroom so please remove the questions related to this.
+
+Ask if there are presenters instead and offer remote mouse/wireless presenter if there is.
+
+
+
+
+
+Collapse
+
+
+
+
+
+
+Full screen
+
+Add
+Priority Number
+
+–
+Governance - Risk Framework
+
+–
+Information Management Lens Framework
+
+–
+Strategy Lens
+
+–
+Strategy Lens Framework
+
+–
+
+Hide 4 empty fields
+Add subtask
+Create checklist
+
+
+1
+
+Tiles
+
+List
+
+Full screen
+
+Add attachment
+
+
+Collapse
+
+Activity
+
+Related items
+
+Add links
+Activity
+
+Dhan Manalo changed name: Remove the question abouts related the speakers/microphone when Thrive room is selected
+
+Mar 16 at 7:14 am
+
+Show more
+Dhan Manalo created this task
+
+Mar 16 at 7:09 am
+
+
+Comment
+
+
+
+
+1
+1 person will be notified about your comment
+
+
+Schedule for later
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+
+
+
+Intent Workspace
+
+Search
+⌘ K
+
+
+Home
+Chat
+Planner
+19
+AI
+Teams
+
+Invite
+Home
+Number of unseen notifications
+
+
+
+Create
+Inbox
+Replies
+Assigned Comments
+My Tasks
+
+More
+
+Favorites
+Microhire Group
+
+Spaces
+
+Spaces settings
+
+
+Microhire DL
+2
+
+Channels
+
+Intent Squad
+ForByTo Projects
+Defit Group
+Investor Partner Group (IPG)
+INTENT Internal
+Powerband Electrical
+Decise
+Mona
+Welcome
+General
+ - Intent Workspace
+Add Channel
+
+Direct Messages
+
+Jenny Junkeer
+Dhan Manalo
+Mary Franklin
+Mary Franklin, Raffy Ipac
+Raffy Ipac
+Nith Nenuka
+You
+Donna McGoldrick
+Roselle Sanchez
+Nidhi Tamakuwala
+User
+User
+New message
+Client Projects
+/
+Microhire Group
+/
+
+Add description
+Change priority
+Change start and due dates
+
+
+
+
+Ask AI
+
+Share
+Add Channel
+List
+Board
+Team
+Calendar
+Gantt
+
+Subtasks: Expanded
+Expanded
+
+
+Quickly show closed tasks
+
+
+
+
+
+Task
+
+In progress
+1
+
+
+New task
+Add Task
+
+not started
+1
+
+
+New status
+
+
+Client Projects
+Microhire Group
+Microhire DL
+Created Mar 16
+
+
+Ask AI
+
+Share
+
+
+
+Add Cover
+Subtask of
+Current status: not started
+Go to parent task:
+Fix why it is not asking the right questions for the Westin Ballroom
+Fix the issue where the AI is no longer asking for the projector placement
+Fix the issue where the AI is no longer asking for the projector placement
+
+Ask Brain tocreate a summary
+generate subtasks
+or
+find similar tasks
+
+Status
+Assignees
+Nith Nenuka
+Dates
+Change start and due dates
+Priority
+Time estimate
+Sprint points
+Empty
+Track time
+
+Start
+Tags
+
+Collapse empty fields
+I've tested 3 scenarios each for the westin ballroom, 1 and 2 but the AI didn't ask me anything about the projector placement.
+
+Thread id
+thread_thOJY4qx6XHZiGmIyfrSAj68
+Created
+16 Mar 2026 10:12 AM
+
+
+Thread id
+thread_AAPZzvEKNCtLi8bDSmp3336r
+Created
+16 Mar 2026 11:25 AM
+
+
+Thread id
+thread_LcZUOeQM57JaJCW5Hw69STl9
+Created
+16 Mar 2026 11:49 AM
+
+Collapse
+
+
+
+
+
+
+Full screen
+
+Add
+Priority Number
+
+–
+Governance - Risk Framework
+
+–
+Information Management Lens Framework
+
+–
+Strategy Lens
+
+–
+Strategy Lens Framework
+
+–
+
+Hide 4 empty fields
+Add subtask
+Create checklist
+Attach file
+
+
+Collapse
+
+Activity
+
+Related items
+
+Add links
+Activity
+
+Dhan Manalo added follower: You
+
+Mar 16 at 11:00 am
+Dhan Manalo assigned to: You
+
+Mar 16 at 11:00 am
+Dhan Manalo created this task
+
+Mar 16 at 11:00 am
+
+
+Comment
+
+
+
+
+1
+1 person will be notified about your comment
+
+
+Schedule for later
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+Messages
+Agent
+Hello, my name is Isla from Microhire. What is your full name?
+User
+Sanji Vinsmoke
+Agent
+Thank you, Sanji Vinsmoke. Are you a new or an existing customer with Microhire?
+User
+new
+Agent
+Welcome, Sanji! Could you please share your organisation's name?
+User
+Germa 66
+Agent
+Thank you! Could you now provide your organisation's location or address?
+User
+victoria
+Agent
+Got it, Victoria. Could you also share either your contact number or email address for follow-up communication?
+User
+sanjivinsmoke@test.com, 0418526973
+Agent
+Thank you for providing your contact details. I've noted your phone number and email address. I'll now save your contact details to proceed further. One moment, please!
+Agent
+Your contact details have been saved successfully. Could you please share a bit about your event? For instance, what type of event you're organising and the venue or room you're considering?
+User
+team meeting at the westin ballrom
+Agent
+Thank you for sharing your event details! Since you've mentioned the Westin Ballroom, could you clarify which section you'd like to base the AV quote on? Is it the full Westin Ballroom, Westin Ballroom 1, or Westin Ballroom 2?
+User
+westin ballroom 2
+Agent
+Understood, we'll base the AV quote on Westin Ballroom 2. Could you also let me know the date you'd like to schedule this team meeting?
+User
+april 1
+Agent
+Your event details for April 1, 2026, in Westin Ballroom 2 have been recorded. How many attendees are you expecting for your team meeting?
+User
+55
+Agent
+Thank you. The attendee count has been noted as 55. Could you let me know the time your team meeting will start and end? I've prepared a time picker for April 1, 2026.
+Agent
+Here's a time picker for you. Please confirm your schedule for 1 April 2026: {"ui":{"type":"multitime","title":"Confirm your schedule for 1 April 2026","date":"2026-04-01","pickers":[{"name":"setup","label":"Room setup by (optional)","default":"07:00"},{"name":"rehearsal","label":"Rehearsal time (optional)","default":"09:30"},{"name":"start","label":"Event start time","default":"10:00"},{"name":"end","label":"Event end time","default":"16:00"},{"name":"packup","label":"Pack up time from (optional)","default":"18:00"}],"stepMinutes":30,"submitLabel":"Submit"}}
+User
+I've selected this schedule: on Wednesday, April 1, 2026: Setup 7AM; Rehearsal 9AM; Event Start 10AM; Event End 4PM; Pack Up 6PM. Please confirm this schedule.
+Agent
+Your schedule for Wednesday, 1 April 2026, in Westin Ballroom 2 has been confirmed: setup at 7:00 AM, rehearsal at 9:00 AM, event start at 10:00 AM, event end at 4:00 PM, and pack up at 6:00 PM. Now, could you share your AV requirements for the team meeting? For example, will there be speakers or presentations?
+User
+yes there will be speakers and presenters
+Agent
+Understood. How many speakers will be giving speeches without using slides or a screen? Additionally, how many presenters will be presenting with slides or visuals?
+User
+2 speakers and 5 presenters
+Agent
+Thank you for specifying. I've noted 2 speakers and 5 presenters. Will the presentations include any audio playback, such as videos or sound effects?
+User
+yes it will
+Agent
+Got it, audio playback is included. Would you like to use the inbuilt ceiling speakers of Westin Ballroom 2, or would you prefer external/portable PA speakers?
+User
+built in speaker will do
+Agent
+Thank you for confirming. Are you bringing your own laptop for the presentations, or would you like to hire one from us?
+User
+i'm bringing my own
+Agent
+Great! Since you're bringing your own laptop, we'll provide an HDMI connection to the projector. Do you need any adaptors, such as a USB-C to HDMI adaptor? Typically, USB-C adaptors are the most common requirement.
+User
+yes please
+Agent
+I'll include a USB-C to HDMI adaptor for your laptop. With multiple presenters, would you like a video switcher to seamlessly switch between laptops during the presentations?
+User
+yes
+Agent
+Thanks for confirming! I'll add the video switcher to your setup. Would you also like a wireless clicker (presentation remote) for slide control?
+User
+yes
+Agent
+A wireless clicker will be included for slide control. For the speakers and presenters, would you like microphones? If yes, how many, and would you prefer handheld or lapel microphones?
+User
+3 handheld microphones will do
+Agent
+Thank you for specifying. I'll include 3 handheld microphones for your event. For added convenience, would you like a foldback monitor so presenters can view their slides without turning towards the screen?
+User
+yes please
+Agent
+A foldback monitor will be added for the presenters. Lastly, would you like a technician ONLY for setup, rehearsal/test & connect, and pack down stages, or would you also like them to stay on-site operating equipment for the WHOLE duration of the event?
+User
+setup, rehearsal/test & connect, and pack down stages and operator throughout the whole event
+Agent
+Understood, I'll include a technician for setup, rehearsal/test & connect, pack down stages, as well as operator support throughout the entire event. Based on our conversation, I've noted the following requirements: - 2 speakers and 5 presenters - Built-in ceiling speakers for audio playback - HDMI connection with USB-C adaptor - Video switcher for seamless laptop transitions - Wireless clicker for slide control - 3 handheld microphones - Foldback monitor - Technician for setup, rehearsal/test & connect, pack down stages, and operator throughout the whole event Have I captured everything you mentioned? Let me know if anything is missing.
+User
+looks good
+Agent
+It seems I missed fully recording the laptop ownership. Could you confirm again — are you bringing your own laptop, or would you need one provided by us?
+User
+we have our own laptop
+Agent
+Thank you for confirming the laptop ownership. Could you also specify the preferred room setup style for your team meeting in Westin Ballroom 2? For example: theatre, boardroom, classroom, banquet, or u-shape?
+User
+theatre
+Agent
+## 📋 Quote Summary ### Event Details **Venue:** The Westin Brisbane **Room:** Westin Ballroom 2 **Event Type:** Team meeting **Attendees:** 55 **Date:** Wednesday 1 April 2026 **Start Time:** 10:00 **End Time:** 16:00 **Room capacity (Theatre):** 135 — your event fits. ### Requirement Summary - 1 adaptor - 1 clicker - 1 foldback monitor - 3 microphones - 1 switcher ### Technician Support - **1x AV Technician (Setup | 1h)** - **1x AV Technician (Rehearsal | 30m)** - **1x AV Technician (Operate | 6h)** - **1x AV Technician (Pack down | 1h)** Would you like me to create the quote now?
+User
+yes create quote
+Agent
+Great news! I have successfully generated your quote for booking C1485000001. You can view it [here](https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/files/quotes/Quote-C1485000001-20260316034140.html) or [download it](https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/files/quotes/Quote-C1485000001-20260316034140.html?toPDF). Would you like to confirm this quote?
+
+Messages
+Agent
+Hello, my name is Isla from Microhire. What is your full name?
+User
+Ben Beckman
+Agent
+Thank you, Ben Beckman. Are y
+
+
+The AI assumed that the User will want Camera, Microphones, Speakers and a Display (in the Thrive room) when Zoom meeting requirement was mentioned by the User. Even though the AI is saying that it will add these 4 items to the quote, it only added 2 of these items in the Summary.
+
+
+If this summary is incorrect, like in this case, high probability the AI will get the equipment selection wrong.
+So focus on accuracy in the Requirement Summary first.
+
+Equipment Selectio
+The AI should have selected the Thrive AV Package instead of just the ceiling speaker system since the quote requires a display. This package is the only one for Thrive that INCLUDES a display and a speaker. I think the AI didn't think to select this package, because the Requirement Summary didn't have "display/projector" in there, so the AI might have just chosen speaker ONLY
+
+ Camera - the Requirement Summary states that a camera is required, but we noticed a camera was not on the quote. We think this is because there is no camera equipment line item in RP, so the AI just skipped putting it on the quote. Dhan please fix the RP Tree structure to have a folder for AI only
+
+
+
+
+
+
+
+
+Intent Workspace
+
+Search
+⌘ K
+
+
+Home
+53
+Chat
+Planner
+19
+AI
+Teams
+
+Invite
+Chat
+53
+Number of unseen notifications
+
+
+
+Create
+Intent Squad
+Yesterday
+Dhan Manalo: Heading off as well
+Jenny Junkeer
+Yesterday
+Jenny Junkeer: Nith I am disappointed that you spent your entire day on cleanup, its not what you said earlier today. You said you would finish that in the first half of the day. Yes please commence Decise
+ForByTo Projects
+Yesterday
+Mary Franklin: Hi @Raffy Ipac, To ensure the RunSubscriptionMembershipAsync function on Stripe operates correctly, if a sponsor exists, it should use the sponsor's member ID instead of the member ID.
+Defit Group
+Yesterday
+Dhan Manalo: Perfect. I'm in. Thanks @Jenny Junkeer
+Microhire Group
+Yesterday
+Jenny Junkeer: Let’s look at it together
+Dhan Manalo
+Mar 17
+You: Sure
+Investor Partner Group (IPG)
+Mar 12
+Jenny Junkeer: Have the Revenue drill through be a pie chart not a table list please
+INTENT Internal
+Mar 11
+Jenny Junkeer: @Raffy Ipac @Dhan Manalo @Mary Franklin @Nith Nenuka lets review this company's services to add greater security and governance to our next projects PeakhourApplication Security Platform | CDN+ with Advanced Security | Peakhour
+Powerband Electrical
+Mar 4
+Jenny Junkeer: Great thanks @Nith Nenuka
+Decise
+Mar 2
+Jenny Junkeer: Lessons learnt is not saving either
+Mary Franklin
+Feb 25
+Mary Franklin: yes wait a min
+2
+Mary Franklin, Raffy Ipac
+Feb 22
+Mary Franklin: ok thank you Nith!
+Mona
+Jan 21
+Roselle Sanchez: Hi @Jenny Junkeer Kindly see the forwarded email from Naz requiring your response. Thank you
+Raffy Ipac
+Jan 15
+Raffy Ipac: { "success": false, "message": "All database sync methods failed", "error": "Command failed: npx prisma db push --force-reset\nLoaded Prisma config from prisma.config.ts.\n\nError: P1000: Authentication failed against database server, the provided database credentials for raffyipac are not valid.\n\nPlease make sure to provide valid database credentials for the database server at the configured address.\n", "methods": [ "db-push", "migrate-deploy", "force-reset" ] }
+Nith Nenuka
+You
+Dec 19, 2025
+You: Sent an image
+Donna McGoldrick
+Nov 28, 2025
+You: Gotcha
+Roselle Sanchez
+Nov 23, 2025
+Roselle Sanchez: No worries!
+Nidhi Tamakuwala
+Nov 17, 2025
+You: hey?
+User
+Start chatting!
+User
+Start chatting!
+Welcome
+Start chatting!
+General
+ - Intent Workspace
+Nov 19, 2024
+Jenny Junkeer: Hi Team, this is the equivalent of the Intent Squad chat group, we can discuss all things Intent here
+Client Projects
+/
+
+Add description
+Change priority
+Change start and due dates
+
+
+
+
+Ask AI
+
+Share
+Channel
+Overview
+Microhire Project Admin
+Board
+Team
+Calendar
+Gantt
+Doc
+List
+
+Subtasks: Collapsed
+
+Adjust your status filter to show closed tasks
+
+
+
+
+
+Task
+
+
+Client Projects
+Microhire Group
+Microhire DL
+Created Mar 12
+
+
+Ask AI
+
+Share
+
+
+
+1
+
+Add Cover
+Subtask of
+Current status: waiting on other task
+Go to parent task:
+Make sure the AI pick the right equipment for the selected room based on the questions asked and answered
+Update Rental Point equipment folders to have a dedicated AI section only
+Update Rental Point equipment folders to have a dedicated AI section only
+
+Ask Brain towrite a description
+create a summary
+or
+find similar tasks
+
+Status
+Assignees
+Jenny Junkeer
+Dates
+Change start and due dates
+Priority
+Time estimate
+Sprint points
+Empty
+Track time
+
+Start
+Tags
+
+Collapse empty fields
+Add description, or write with
+
+AI
+
+
+
+
+Full screen
+
+Add
+Priority Number
+
+–
+Governance - Risk Framework
+
+–
+Information Management Lens Framework
+
+–
+Strategy Lens
+
+–
+Strategy Lens Framework
+
+–
+
+Hide 4 empty fields
+Add subtask
+Create checklist
+
+
+1
+
+Download All
+
+Tiles
+
+List
+
+Full screen
+
+Add attachment
+
+image
+.png
+Mar 16 at 11:28 am
+
+
+Collapse
+
+Activity
+
+Related items
+
+Add links
+Activity
+
+Dhan Manalo removed assignee: Dhan Manalo
+
+Mar 16 at 11:28 am
+Dhan Manalo added follower: Jenny Junkeer
+
+Mar 16 at 11:28 am
+Dhan Manalo assigned to: Jenny Junkeer
+
+Mar 16 at 11:28 am
+Dhan Manalo
+Mar 16 at 11:28 am
+This is done @Jenny Junkeer 
+
+
+image.png
+
+Reply
+
+Show more
+Jenny Junkeer created this task
+
+Mar 12 at 9:26 am
+
+
+Comment
+
+
+
+
+2
+2 people will be notified about your comment
+
+
+Schedule for later
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+
+useou a new or an existing customer with Microhire?
+User
+new
+Agent
+Thank you, Ben! Could you please provide the name of your organisation?
+User
+BT Corp
+Agent
+Thanks, Ben. What is the location or address of BT Corp?
+User
+Brisbane
+Agent
+Thank you! Could you also provide either your contact number or email address?
+User
+benbeckman@test.com, 0413265985
+Agent
+Thank you for providing your contact details. I've noted your phone number and email address. I'll now save your contact details to proceed further. One moment, please!
+Agent
+Your contact details have been saved successfully. Could you please share a bit about your event? For instance, what type of event you're organising and the venue or room you're considering?
+User
+dinner event at the westin brisbane westin ballroom
+Agent
+Thank you for sharing that, Ben. Is the dinner event taking place in the **full Westin Ballroom**, or is it in one of the split sections — **Westin Ballroom 1** or **Westin Ballroom 2**?
+User
+westin ballroom 1
+Agent
+Got it! Could you please let me know the date of the event?
+User
+May 1
+Agent
+Your event details for 1 May 2026 at Westin Ballroom 1 have been recorded. Could you let me know approximately how many attendees you're expecting?
+User
+50 attendees
+Agent
+Thank you for that information. Next, could you confirm the start and end times of your event? I'll provide a time picker for you to select. One moment!
+Agent
+Here's a time picker for you. Please confirm your schedule for 1 May 2026: {"ui":{"type":"multitime","title":"Confirm your schedule for 1 May 2026","date":"2026-05-01","pickers":[{"name":"setup","label":"Room setup by (optional)","default":"07:00"},{"name":"rehearsal","label":"Rehearsal time (optional)","default":"09:30"},{"name":"start","label":"Event start time","default":"10:00"},{"name":"end","label":"Event end time","default":"16:00"},{"name":"packup","label":"Pack up time from (optional)","default":"18:00"}],"stepMinutes":30,"submitLabel":"Submit"}}
+User
+I've selected this schedule: on Friday, May 1, 2026: Setup 7AM; Rehearsal 9:30AM; Event Start 10AM; Event End 4PM; Pack Up 6PM. Please confirm this schedule.
+Agent
+Your schedule for Friday, 1 May 2026 has been successfully recorded: - Setup: 7:00 AM - Rehearsal: 9:30 AM - Event Start: 10:00 AM - Event End: 4:00 PM - Pack Up: 6:00 PM Let's proceed with your AV requirements for the dinner event. Could you let me know if there will be any speeches or presentations during this event?
+User
+There will be 3 speakers and they will be presenting a video and ppt presentations as well
+Agent
+Thank you for letting me know, Ben. Based on your event, here’s what I’m noting: 1. Three speakers will be giving presentations using videos and PowerPoint slides. To ensure everything runs smoothly, I’ll need some more details: - **Microphones:** How many microphones will you need, and do you prefer handheld or lapel microphones? - **Speakers:** Would you like the built-in speaker system or external portable PA speakers for audio playback during the videos? Let me know so I can refine the recommendations accordingly.
+User
+3 handheld microphones, built in speaker will do
+Agent
+Thanks, Ben! Here's what I've noted: - **Microphones:** You’ll need 3 handheld microphones. - **Audio:** The inbuilt speaker system will be used for the audio playback from the videos. Next: - **Laptop:** Are you bringing your own laptop for the presentations, or would you like to hire one? - **HDMI adaptor (if bringing your own):** Do you need a USB-C HDMI adaptor provided for your laptop?
+User
+please provide 2 windows laptop
+Agent
+Thank you, Ben! I'll include 2 Windows laptops for the presentations in your AV requirements. Next, I'll need to ask: - **Clicker:** Would you like a wireless clicker (presentation remote) for slide control? - **Presenter desk:** Would you like the laptops stationed at a presenter desk on the stage, or should they stay at the operator’s desk?
+User
+yes please. the laptop can stay at the operator's desk
+Agent
+Great! I'll include a wireless clicker for smooth slide control, and the laptops will remain at the operator's desk. To complete the AV setup: - **Video Switcher:** Would you like a video switcher so you can seamlessly switch between the laptops? - **Foldback Monitor:** Would you like a foldback monitor so the presenters don’t have to turn around to look at the screen? Let me know if you'd like to include these!
+User
+yes for both
+Agent
+Thank you, Ben! I’ll include both a **video switcher** for seamless laptop transitions and a **foldback monitor** for the presenters. To ensure smooth operation during your event: Would you like a technician ONLY for setup, rehearsal/test & connect, and pack down, or would you also like a technical operator present for the WHOLE duration of the event?
+User
+a technical operator throughout the event
+Agent
+Got it! I'll include a technical operator to be present throughout your event to ensure seamless operations. Here’s a quick summary of what we’re including for your dinner event: - **Microphones:** 3 handheld microphones. - **Audio:** Built-in speaker system. - **Visual setup:** Projector and screen for the presentations and videos. - **Laptops:** 2 Windows laptops (stationed at the operator’s desk). - **Extras:** Wireless clicker, foldback monitor, video switcher. - **Operator:** A technical operator on-site for the whole duration of the event. Before I finalise this, can you confirm that everything here matches your expectations? Let me know if I’ve missed anything!
+User
+looks good
+Agent
+## 📋 Quote Summary ### Event Details **Venue:** Westin Brisbane **Room:** Westin Ballroom 1 **Event Type:** Dinner **Attendees:** 50 **Date:** Friday 1 May 2026 **Start Time:** 10:00 AM **End Time:** 4:00 PM ### Requirement Summary - 1 clicker - 1 foldback monitor - 2 laptops - 3 microphones - 1 speaker - 1 switcher ### Technician Support - **1x AV Technician (Operate | 6 hours)** Would you like me to create the quote now?
+User
+yes create quote
+Agent
+Great news! I have successfully generated your quote for booking C1484900001. You can view it [here](https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/files/quotes/Quote-C1484900001-20260316024855.html) or [download it](https://microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net/files/quotes/Quote-C1484900001-20260316024855.html). Would you like to confirm this quote?
+
+
+
+
+USE THE NEW AI FOLDERS TO GET EQUOPMENT
+
+
+
+
+
+Intent Workspace
+
+Search
+⌘ K
+
+
+Home
+53
+Chat
+Planner
+19
+AI
+Teams
+
+Invite
+Chat
+53
+Number of unseen notifications
+
+
+
+Create
+Intent Squad
+Yesterday
+Dhan Manalo: Heading off as well
+Jenny Junkeer
+Yesterday
+Jenny Junkeer: Nith I am disappointed that you spent your entire day on cleanup, its not what you said earlier today. You said you would finish that in the first half of the day. Yes please commence Decise
+ForByTo Projects
+Yesterday
+Mary Franklin: Hi @Raffy Ipac, To ensure the RunSubscriptionMembershipAsync function on Stripe operates correctly, if a sponsor exists, it should use the sponsor's member ID instead of the member ID.
+Defit Group
+Yesterday
+Dhan Manalo: Perfect. I'm in. Thanks @Jenny Junkeer
+Microhire Group
+Yesterday
+Jenny Junkeer: Let’s look at it together
+Dhan Manalo
+Mar 17
+You: Sure
+Investor Partner Group (IPG)
+Mar 12
+Jenny Junkeer: Have the Revenue drill through be a pie chart not a table list please
+INTENT Internal
+Mar 11
+Jenny Junkeer: @Raffy Ipac @Dhan Manalo @Mary Franklin @Nith Nenuka lets review this company's services to add greater security and governance to our next projects PeakhourApplication Security Platform | CDN+ with Advanced Security | Peakhour
+Powerband Electrical
+Mar 4
+Jenny Junkeer: Great thanks @Nith Nenuka
+Decise
+Mar 2
+Jenny Junkeer: Lessons learnt is not saving either
+Mary Franklin
+Feb 25
+Mary Franklin: yes wait a min
+2
+Mary Franklin, Raffy Ipac
+Feb 22
+Mary Franklin: ok thank you Nith!
+Mona
+Jan 21
+Roselle Sanchez: Hi @Jenny Junkeer Kindly see the forwarded email from Naz requiring your response. Thank you
+Raffy Ipac
+Jan 15
+Raffy Ipac: { "success": false, "message": "All database sync methods failed", "error": "Command failed: npx prisma db push --force-reset\nLoaded Prisma config from prisma.config.ts.\n\nError: P1000: Authentication failed against database server, the provided database credentials for raffyipac are not valid.\n\nPlease make sure to provide valid database credentials for the database server at the configured address.\n", "methods": [ "db-push", "migrate-deploy", "force-reset" ] }
+Nith Nenuka
+You
+Dec 19, 2025
+You: Sent an image
+Donna McGoldrick
+Nov 28, 2025
+You: Gotcha
+Roselle Sanchez
+Nov 23, 2025
+Roselle Sanchez: No worries!
+Nidhi Tamakuwala
+Nov 17, 2025
+You: hey?
+User
+Start chatting!
+User
+Start chatting!
+Welcome
+Start chatting!
+General
+ - Intent Workspace
+Nov 19, 2024
+Jenny Junkeer: Hi Team, this is the equivalent of the Intent Squad chat group, we can discuss all things Intent here
+Client Projects
+/
+
+Add description
+Change priority
+Change start and due dates
+
+
+
+
+Ask AI
+
+Share
+Channel
+Overview
+Microhire Project Admin
+Board
+Team
+Calendar
+Gantt
+Doc
+List
+
+Subtasks: Collapsed
+
+Adjust your status filter to show closed tasks
+
+
+
+
+
+Task
+
+
+Client Projects
+Microhire Group
+Microhire DL
+Created Mar 16
+
+
+Ask AI
+
+Share
+
+
+
+2
+
+Add Cover
+Subtask of
+Current status: waiting on other task
+Go to parent task:
+Make sure the AI pick the right equipment for the selected room based on the questions asked and answered
+Fix the issue where "ELEVIND" is being included in the generated quote
+Fix the issue where "ELEVIND" is being included in the generated quote
+
+Ask Brain tocreate a summary
+generate subtasks
+or
+find similar tasks
+
+Status
+Assignees
+Nith Nenuka
+Dates
+Change start and due dates
+Priority
+Time estimate
+Sprint points
+Empty
+Track time
+
+Start
+Tags
+
+Collapse empty fields
+This has been consistent on all my testing, the item ELEVIND Independent Items is always added to the quote for some reason
+
+Here is one example:
+Thread id
+thread_LcZUOeQM57JaJCW5Hw69STl9
+Created
+16 Mar 2026 11:49 AM
+
+
+Collapse
+
+
+
+
+
+
+Full screen
+
+Add
+Priority Number
+
+–
+Governance - Risk Framework
+
+–
+Information Management Lens Framework
+
+–
+Strategy Lens
+
+–
+Strategy Lens Framework
+
+–
+
+Hide 4 empty fields
+Add subtask
+Create checklist
+
+
+2
+
+Download All
+
+Tiles
+
+List
+
+Full screen
+
+Add attachment
+
+image
+.png
+Mar 16 at 10:44 am
+
+image
+.png
+Mar 16 at 10:44 am
+
+
+Collapse
+
+Activity
+
+Related items
+
+Add links
+Activity
+
+Dhan Manalo added follower: You
+
+Mar 16 at 10:46 am
+
+Show more
+Dhan Manalo created this task
+
+Mar 16 at 10:43 am
+
+
+Comment
+
+
+
+
+1
+1 person will be notified about your comment
+
+
+Schedule for later
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+
+
+
+Intent Workspace
+
+Search
+⌘ K
+
+
+Home
+53
+Chat
+Planner
+19
+AI
+Teams
+
+Invite
+Chat
+53
+Number of unseen notifications
+
+
+
+Create
+Intent Squad
+Yesterday
+Dhan Manalo: Heading off as well
+Jenny Junkeer
+Yesterday
+Jenny Junkeer: Nith I am disappointed that you spent your entire day on cleanup, its not what you said earlier today. You said you would finish that in the first half of the day. Yes please commence Decise
+ForByTo Projects
+Yesterday
+Mary Franklin: Hi @Raffy Ipac, To ensure the RunSubscriptionMembershipAsync function on Stripe operates correctly, if a sponsor exists, it should use the sponsor's member ID instead of the member ID.
+Defit Group
+Yesterday
+Dhan Manalo: Perfect. I'm in. Thanks @Jenny Junkeer
+Microhire Group
+Yesterday
+Jenny Junkeer: Let’s look at it together
+Dhan Manalo
+Mar 17
+You: Sure
+Investor Partner Group (IPG)
+Mar 12
+Jenny Junkeer: Have the Revenue drill through be a pie chart not a table list please
+INTENT Internal
+Mar 11
+Jenny Junkeer: @Raffy Ipac @Dhan Manalo @Mary Franklin @Nith Nenuka lets review this company's services to add greater security and governance to our next projects PeakhourApplication Security Platform | CDN+ with Advanced Security | Peakhour
+Powerband Electrical
+Mar 4
+Jenny Junkeer: Great thanks @Nith Nenuka
+Decise
+Mar 2
+Jenny Junkeer: Lessons learnt is not saving either
+Mary Franklin
+Feb 25
+Mary Franklin: yes wait a min
+2
+Mary Franklin, Raffy Ipac
+Feb 22
+Mary Franklin: ok thank you Nith!
+Mona
+Jan 21
+Roselle Sanchez: Hi @Jenny Junkeer Kindly see the forwarded email from Naz requiring your response. Thank you
+Raffy Ipac
+Jan 15
+Raffy Ipac: { "success": false, "message": "All database sync methods failed", "error": "Command failed: npx prisma db push --force-reset\nLoaded Prisma config from prisma.config.ts.\n\nError: P1000: Authentication failed against database server, the provided database credentials for raffyipac are not valid.\n\nPlease make sure to provide valid database credentials for the database server at the configured address.\n", "methods": [ "db-push", "migrate-deploy", "force-reset" ] }
+Nith Nenuka
+You
+Dec 19, 2025
+You: Sent an image
+Donna McGoldrick
+Nov 28, 2025
+You: Gotcha
+Roselle Sanchez
+Nov 23, 2025
+Roselle Sanchez: No worries!
+Nidhi Tamakuwala
+Nov 17, 2025
+You: hey?
+User
+Start chatting!
+User
+Start chatting!
+Welcome
+Start chatting!
+General
+ - Intent Workspace
+Nov 19, 2024
+Jenny Junkeer: Hi Team, this is the equivalent of the Intent Squad chat group, we can discuss all things Intent here
+Client Projects
+/
+
+Add description
+Change priority
+Change start and due dates
+
+
+
+
+Ask AI
+
+Share
+Channel
+Overview
+Microhire Project Admin
+Board
+Team
+Calendar
+Gantt
+Doc
+List
+
+Subtasks: Collapsed
+
+Adjust your status filter to show closed tasks
+
+
+
+
+
+Task
+
+
+Client Projects
+Microhire Group
+Microhire DL
+Created Mar 16
+
+
+Ask AI
+
+Share
+
+
+
+3
+
+Add Cover
+Subtask of
+Current status: waiting on other task
+Go to parent task:
+Make sure the AI pick the right equipment for the selected room based on the questions asked and answered
+Fix the issue where the Projector Package is not listed in the generated quote for all Westin Ballroom
+Fix the issue where the Projector Package is not listed in the generated quote for all Westin Ballroom
+
+Ask Brain tocreate a summary
+generate subtasks
+or
+find similar tasks
+
+Status
+Assignees
+Nith Nenuka
+Dates
+Change start and due dates
+Priority
+Time estimate
+Sprint points
+Empty
+Track time
+
+Start
+Tags
+
+Collapse empty fields
+I've tested all Westin Ballroom (Westin Ballroom, Westin Ballroom 1, Westin Ballroom 2) but all of them didn't include the projector package.
+
+FULL WESTIN BALLROOM
+Thread id
+thread_LcZUOeQM57JaJCW5Hw69STl9
+Created
+16 Mar 2026 11:49 AM
+This one also put in the wrong Audio Package
+
+
+
+WESTIN BALLROOM 2
+Thread id
+thread_AAPZzvEKNCtLi8bDSmp3336r
+Created
+16 Mar 2026 11:25 AM
+
+
+
+WESTIN BALLROOM 1
+Thread id
+thread_thOJY4qx6XHZiGmIyfrSAj68
+Created
+16 Mar 2026 10:12 AM
+
+
+Collapse
+
+
+
+
+
+
+Full screen
+
+Add
+Priority Number
+
+–
+Governance - Risk Framework
+
+–
+Information Management Lens Framework
+
+–
+Strategy Lens
+
+–
+Strategy Lens Framework
+
+–
+
+Hide 4 empty fields
+Add subtask
+Create checklist
+
+
+3
+
+Download All
+
+Tiles
+
+List
+
+Full screen
+
+Add attachment
+
+image
+.png
+Mar 16 at 10:55 am
+
+image
+.png
+Mar 16 at 10:54 am
+
+image
+.png
+Mar 16 at 10:48 am
+
+
+Collapse
+
+Activity
+
+Related items
+
+Add links
+Activity
+
+Dhan Manalo added follower: You
+
+Mar 16 at 10:56 am
+
+Show more
+Dhan Manalo created this task
+
+Mar 16 at 10:47 am
+
+
+Comment
+
+
+
+
+1
+1 person will be notified about your comment
+
+
+Schedule for later
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+Improve
+Bulleted list
+All lists
+
+Text
+Turn Into
+
+A
+Text color
+
+
+
+
+
+Alignment
+
+
+Task
+Create task options
+More settings
+
+The other components of the foldback monitor requirements are coming in fine but the LCD40 is not getting included.
+
+
+@/Users/nitwit-watson/Downloads/Fix the issue where the Clicker is not being included in the generated quote _ #86d2ad0kd.pdf 
+
+
+
+@notes.txt 
+
+TAKE EACH AND EVERY POINT INTO CONFOISDEARION
