@@ -11,9 +11,19 @@
 # Output:
 #   Artifact name: site-win64-playwright  (contains site.zip)
 #
-# Deploy:
+# Deploy (manual from laptop):
 #   Unzip or use site.zip directly, e.g. from repo root:
 #     az webapp deploy --resource-group <rg> --name <app> --src-path site.zip --type zip --async true
+#
+# Deploy (optional from this workflow):
+#   1) One-time Azure CLI (run as a user who can create app registrations / assign roles):
+#        SUB=$(az account show --query id -o tsv)
+#        az ad sp create-for-rbac --name "github-MicrohireAgentChat-deploy" --role contributor \
+#          --scopes /subscriptions/$SUB/resourceGroups/rg-JennyJunkeer-9509 --json-auth
+#      Copy the JSON output into GitHub: Settings → Secrets and variables → Actions → New repository secret
+#      Name: AZURE_CREDENTIALS   Value: <paste entire JSON>
+#   2) Run workflow with "Deploy to Azure after build" checked.
+#   Edit AZURE_RG / AZURE_WEBAPP_NAME below if your App Service names differ.
 #
 # Trigger: manual only (workflow_dispatch). Add push: branches: [main] under on: if you want every merge to build.
 # -----------------------------------------------------------------------------
@@ -22,6 +32,12 @@ name: Publish Windows (Playwright Chromium)
 
 on:
   workflow_dispatch:
+    inputs:
+      deploy_to_azure:
+        description: "After build, deploy site.zip to Azure App Service (requires AZURE_CREDENTIALS secret)"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -30,6 +46,9 @@ permissions:
 jobs:
   publish:
     runs-on: windows-latest
+    env:
+      AZURE_RG: rg-JennyJunkeer-9509
+      AZURE_WEBAPP_NAME: microhire
     steps:
       - uses: actions/checkout@v5
 
@@ -69,3 +88,15 @@ jobs:
         with:
           name: site-win64-playwright
           path: site.zip
+
+      - name: Azure login
+        if: ${{ inputs.deploy_to_azure }}
+        uses: azure/login@v3
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to App Service (OneDeploy zip)
+        if: ${{ inputs.deploy_to_azure }}
+        shell: pwsh
+        run: |
+          az webapp deploy --resource-group $env:AZURE_RG --name $env:AZURE_WEBAPP_NAME --src-path site.zip --type zip --async true
