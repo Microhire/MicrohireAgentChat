@@ -173,7 +173,7 @@ else {
 
 Write-Host ""
 Write-Host "Runtime (Azure App Service): PlaywrightBootstrap sets PLAYWRIGHT_BROWSERS_PATH to pw-browsers next to MicrohireAgentChat.dll when present."
-Write-Host "Do not set PLAYWRIGHT_BROWSERS_PATH in Portal unless you know the path — empty is correct so the app uses the bundled folder."
+Write-Host "Do not set PLAYWRIGHT_BROWSERS_PATH in Portal unless you know the path - empty is correct so the app uses the bundled folder."
 Write-Host ""
 
 if (Test-Path -LiteralPath $OutputZip) {
@@ -182,7 +182,8 @@ if (Test-Path -LiteralPath $OutputZip) {
 Write-Host "Compress-Archive -> $OutputZip"
 Compress-Archive -Path (Join-Path $publishOut "*") -DestinationPath $OutputZip -Force
 
-Write-Host "OK: $OutputZip ($((Get-Item $OutputZip).Length) bytes)"
+$zipBytes = (Get-Item -LiteralPath $OutputZip).Length
+Write-Host ('OK: {0} ({1} bytes)' -f $OutputZip, $zipBytes)
 
 if ($SkipDeploy) {
     Write-Host "SkipDeploy: not running az webapp deploy"
@@ -194,4 +195,4 @@ Ensure-AzOnPath
 Write-Host "az webapp deploy -> $WebAppName (RG $ResourceGroup)"
 az webapp deploy --resource-group $ResourceGroup --name $WebAppName --src-path $OutputZip --type zip --async true
 if ($LASTEXITCODE -ne 0) { throw "az webapp deploy failed with exit code $LASTEXITCODE" }
-Write-Host "Deploy initiated (async). Check App Service deployment logs in Azure Portal."
+Write-Host 'Deploy initiated (async). Check App Service deployment logs in Azure Portal.'
