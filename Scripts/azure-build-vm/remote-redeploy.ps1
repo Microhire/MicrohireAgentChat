@@ -1,5 +1,5 @@
 # Run ON the Windows VM in PowerShell (RDP or Run Command). Pulls latest `master` and runs Build-AndDeploy.ps1.
-# Azure Run Command runs as NT AUTHORITY\SYSTEM, so $env:USERPROFILE is NOT your interactive user —
+# Azure Run Command runs as NT AUTHORITY\SYSTEM, so $env:USERPROFILE is NOT your interactive user -
 # it points at C:\Windows\system32\config\systemprofile. This script resolves the repo without relying on that.
 #
 # Resolution order:

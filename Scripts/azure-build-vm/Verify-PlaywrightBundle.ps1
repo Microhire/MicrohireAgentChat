@@ -32,7 +32,7 @@ if (-not (Test-Path -LiteralPath $ps1)) {
 
 $node = Join-Path $PublishRoot ".playwright\node"
 if (-not (Test-Path -LiteralPath $node)) {
-    $fail += "Missing .playwright\node — driver bundle incomplete."
+    $fail += "Missing .playwright\node - driver bundle incomplete."
 }
 
 $browserRoot = Join-Path $PublishRoot "pw-browsers"
@@ -43,7 +43,7 @@ else {
     $chrome = Get-ChildItem -Path $browserRoot -Recurse -Filter "chrome.exe" -File -ErrorAction SilentlyContinue |
         Select-Object -First 1
     if (-not $chrome) {
-        $fail += "pw-browsers exists but chrome.exe was not found — run: `$env:PLAYWRIGHT_BROWSERS_PATH='$browserRoot'; .\playwright.ps1 install chromium"
+        $fail += "pw-browsers exists but chrome.exe was not found - run: `$env:PLAYWRIGHT_BROWSERS_PATH='$browserRoot'; .\playwright.ps1 install chromium"
     }
     else {
         Write-Host "OK: Chromium executable: $($chrome.FullName)"
