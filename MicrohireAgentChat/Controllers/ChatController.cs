@@ -46,6 +46,7 @@ public sealed class ChatController : Controller
     private readonly IRazorViewEngine _razorViewEngine;
     private readonly ILogger<ChatController> _logger;
     private readonly AgentToolHandlerService _toolHandler;
+    private readonly IHostApplicationLifetime _hostLifetime;
 
     // Detect: "Choose time: 09:00–10:30" (supports hyphen or en dash)
     private static readonly Regex ChooseTimeRe =
@@ -116,7 +117,8 @@ public sealed class ChatController : Controller
         IWebHostEnvironment env,
         IRazorViewEngine razorViewEngine,
         ILogger<ChatController> logger,
-        AgentToolHandlerService toolHandler)
+        AgentToolHandlerService toolHandler,
+        IHostApplicationLifetime hostLifetime)
     {
         _chat = chat;
         _appDb = appDb;
@@ -135,6 +137,7 @@ public sealed class ChatController : Controller
         _razorViewEngine = razorViewEngine;
         _logger = logger;
         _toolHandler = toolHandler;
+        _hostLifetime = hostLifetime;
     }
 
     // Small helper to pick a stable user key for persistence.
@@ -3078,7 +3081,11 @@ public sealed class ChatController : Controller
                     _logger.LogInformation("[SIGNING] Quote HTML updated with signature data: {Path}", quoteFilePath);
 
                     var pdfPath = Path.ChangeExtension(quoteFilePath, ".pdf");
-                    var pdfOk = await HtmlQuoteGenerationService.GeneratePdfFromHtmlAsync(html, pdfPath, _logger, ct);
+                    using var pdfTimeout = new CancellationTokenSource(HtmlQuoteGenerationService.PdfGenerationAbsoluteTimeout);
+                    using var pdfWork = CancellationTokenSource.CreateLinkedTokenSource(
+                        _hostLifetime.ApplicationStopping,
+                        pdfTimeout.Token);
+                    var pdfOk = await _htmlQuoteGen.GeneratePdfFromHtmlAsync(html, pdfPath, _logger, pdfWork.Token);
                     signedPdfReady = pdfOk && System.IO.File.Exists(pdfPath) && new FileInfo(pdfPath).Length > 0;
                     if (!signedPdfReady)
                     {

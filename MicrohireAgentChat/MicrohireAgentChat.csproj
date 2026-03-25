@@ -41,7 +41,7 @@
 		<PackageReference Include="Azure.AI.Projects" Version="1.0.0-beta.*" />
 		<PackageReference Include="Azure.AI.Agents.Persistent" Version="1.*" />
 		<PackageReference Include="Azure.Identity" Version="1.*" />
-		<PackageReference Include="Dapper" Version="2.1.38" />
+		<PackageReference Include="Dapper" Version="2.1.42" />
 		<PackageReference Include="MailKit" Version="4.15.1" />
 		<PackageReference Include="Markdig" Version="0.42.0" />
 		<PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />

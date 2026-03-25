@@ -50,11 +50,52 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# Azure Run Command and scheduled tasks often run as SYSTEM, which may not inherit the interactive user's PATH.
+function Add-DirToPathFront {
+    param([string]$Directory)
+    if ([string]::IsNullOrWhiteSpace($Directory)) { return }
+    if (-not (Test-Path -LiteralPath $Directory)) { return }
+    $env:Path = $Directory + ";" + $env:Path
+}
+
+function Ensure-DotNetOnPath {
+    if (Get-Command dotnet -ErrorAction SilentlyContinue) { return }
+    $dotnetRoot = [Environment]::GetEnvironmentVariable("DOTNET_ROOT", "Machine")
+    if ($dotnetRoot) { Add-DirToPathFront $dotnetRoot }
+    if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+        Add-DirToPathFront (Join-Path $env:ProgramFiles "dotnet")
+    }
+    if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+        foreach ($userDir in Get-ChildItem -Path "C:\Users" -Directory -ErrorAction SilentlyContinue) {
+            $local = Join-Path $userDir.FullName "AppData\Local\Microsoft\dotnet"
+            if (Test-Path -LiteralPath (Join-Path $local "dotnet.exe")) {
+                Add-DirToPathFront $local
+                break
+            }
+        }
+    }
+    if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
+        throw "dotnet.exe not found. Install .NET SDK (https://dotnet.microsoft.com/download) or set Machine DOTNET_ROOT to the folder containing dotnet.exe."
+    }
+}
+
+function Ensure-AzOnPath {
+    if (Get-Command az -ErrorAction SilentlyContinue) { return }
+    Add-DirToPathFront (Join-Path $env:ProgramFiles "Microsoft SDKs\Azure\CLI2\wbin")
+    $pf86 = [Environment]::GetEnvironmentVariable("ProgramFiles(x86)", "Machine")
+    if ($pf86) { Add-DirToPathFront (Join-Path $pf86 "Microsoft SDKs\Azure\CLI2\wbin") }
+    if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
+        throw "Azure CLI (az) not found. Install Azure CLI (https://aka.ms/installazurecliwindows) or use -SkipDeploy."
+    }
+}
+
 $isWindows = ($PSVersionTable.PSVersion.Major -ge 6 -and $IsWindows) -or
     ($PSVersionTable.PSVersion.Major -lt 6 -and $env:OS -like "*Windows*")
 if (-not $isWindows) {
     throw "This script must run on Windows (Playwright Chromium for win-x64)."
 }
+
+Ensure-DotNetOnPath
 
 $RepoRoot = (Resolve-Path -LiteralPath $RepoRoot).Path
 $ProjectFile = Join-Path $RepoRoot "MicrohireAgentChat\MicrohireAgentChat.csproj"
@@ -135,9 +176,7 @@ if ($SkipDeploy) {
     exit 0
 }
 
-if (-not (Get-Command az -ErrorAction SilentlyContinue)) {
-    throw "Azure CLI (az) not found. Install Azure CLI or use -SkipDeploy and deploy from another machine."
-}
+Ensure-AzOnPath
 
 Write-Host "az webapp deploy -> $WebAppName (RG $ResourceGroup)"
 az webapp deploy --resource-group $ResourceGroup --name $WebAppName --src-path $OutputZip --type zip --async true

@@ -3,7 +3,7 @@ using MicrohireAgentChat.Helpers;
 using MicrohireAgentChat.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Playwright;
+using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
 using System.Text;
 using System.Web;
@@ -16,20 +16,26 @@ namespace MicrohireAgentChat.Services;
 /// </summary>
 public partial class HtmlQuoteGenerationService
 {
-    /// <summary>Max wait (ms) for Chromium to start — avoids indefinite hangs on constrained hosts.</summary>
-    private const float ChromiumLaunchTimeoutMs = 120_000f;
-
     private readonly BookingDbContext _db;
     private readonly IWebHostEnvironment _env;
+    private readonly IHostApplicationLifetime _hostLifetime;
+    private readonly IPlaywrightQuotePdfRenderer _pdfRenderer;
     private readonly ILogger<HtmlQuoteGenerationService> _logger;
+
+    /// <summary>Hard cap for Playwright/Chromium (install + launch + PDF) so work cannot hang forever.</summary>
+    public static readonly TimeSpan PdfGenerationAbsoluteTimeout = TimeSpan.FromMinutes(12);
 
     public HtmlQuoteGenerationService(
         BookingDbContext db,
         IWebHostEnvironment env,
+        IHostApplicationLifetime hostLifetime,
+        IPlaywrightQuotePdfRenderer pdfRenderer,
         ILogger<HtmlQuoteGenerationService> logger)
     {
         _db = db;
         _env = env;
+        _hostLifetime = hostLifetime;
+        _pdfRenderer = pdfRenderer;
         _logger = logger;
     }
 
@@ -166,9 +172,18 @@ public partial class HtmlQuoteGenerationService
             _logger.LogInformation("[QUOTE GEN] Wrote HTML file in {Ms}ms for booking {BookingNo}", writeSw.ElapsedMilliseconds, bookingNo);
 
             // 10. Pre-generate PDF from the HTML so downloads are instant and styled (required — no silent HTML-only quotes)
+            // Do NOT pass the HTTP request token: Azure/proxy timeouts and client disconnects cancel ct while Playwright
+            // (especially first-run chromium install) can exceed that. Stop only on host shutdown or absolute cap.
             var pdfName = Path.ChangeExtension(outName, ".pdf");
             var pdfDest = Path.Combine(outDir, pdfName);
-            var pdfOk = await GeneratePdfFromHtmlAsync(html, pdfDest, _logger, ct);
+            using var pdfTimeout = new CancellationTokenSource(PdfGenerationAbsoluteTimeout);
+            using var pdfWork = CancellationTokenSource.CreateLinkedTokenSource(
+                _hostLifetime.ApplicationStopping,
+                pdfTimeout.Token);
+            _logger.LogInformation(
+                "[QUOTE GEN] Starting PDF generation for booking {BookingNo} (token: host shutdown or {TimeoutMin} min cap, not HTTP request)",
+                bookingNo, PdfGenerationAbsoluteTimeout.TotalMinutes);
+            var pdfOk = await GeneratePdfFromHtmlAsync(html, pdfDest, _logger, pdfWork.Token);
             if (!pdfOk || !File.Exists(pdfDest) || new FileInfo(pdfDest).Length == 0)
             {
                 try
@@ -559,71 +574,13 @@ public partial class HtmlQuoteGenerationService
     }
 
     /// <summary>
-    /// Converts an HTML string to a styled PDF using Playwright/Chromium.
-    /// Uses SetContentAsync (no file:// URI) with <see cref="WaitUntilState.Load"/> — not NetworkIdle —
-    /// so third-party font/CDN calls cannot stall PDF generation on restricted hosts.
-    /// This is intentionally static so it can be called from other services
-    /// (e.g. after signing overlays the signature onto the HTML).
+    /// Converts an HTML string to a styled PDF using the shared Playwright Chromium instance
+    /// (<see cref="IPlaywrightQuotePdfRenderer"/>). Uses SetContent with Load (not NetworkIdle).
     /// </summary>
-    public static async Task<bool> GeneratePdfFromHtmlAsync(string html, string pdfOutputPath, ILogger? logger = null, CancellationToken cancellationToken = default)
-    {
-        try
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            await PlaywrightBootstrap.EnsureChromiumReadyAsync(logger, cancellationToken).ConfigureAwait(false);
-
-            logger?.LogInformation("[QUOTE GEN] Playwright CreateAsync starting…");
-            using var pw = await Playwright.CreateAsync();
-            logger?.LogInformation("[QUOTE GEN] Chromium LaunchAsync starting (timeout {TimeoutMs}ms)…", ChromiumLaunchTimeoutMs);
-            await using var browser = await pw.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
-            {
-                Headless = true,
-                Args = new[] { "--no-sandbox", "--disable-dev-shm-usage" },
-                Timeout = ChromiumLaunchTimeoutMs
-            });
-            var page = await browser.NewPageAsync();
-
-            cancellationToken.ThrowIfCancellationRequested();
-            var contentSw = Stopwatch.StartNew();
-            await page.SetContentAsync(html, new PageSetContentOptions
-            {
-                WaitUntil = WaitUntilState.Load,
-                Timeout = 90_000
-            });
-            contentSw.Stop();
-            logger?.LogInformation("[QUOTE GEN] Playwright SetContent (Load) finished in {Ms}ms", contentSw.ElapsedMilliseconds);
-
-            cancellationToken.ThrowIfCancellationRequested();
-            var pdfSw = Stopwatch.StartNew();
-            await page.PdfAsync(new PagePdfOptions
-            {
-                Path = pdfOutputPath,
-                Format = "A4",
-                PrintBackground = true,
-                Margin = new() { Top = "10mm", Bottom = "12mm", Left = "10mm", Right = "10mm" }
-            });
-            pdfSw.Stop();
-            logger?.LogInformation("[QUOTE GEN] Playwright PdfAsync finished in {Ms}ms", pdfSw.ElapsedMilliseconds);
-
-            if (!File.Exists(pdfOutputPath) || new FileInfo(pdfOutputPath).Length == 0)
-            {
-                logger?.LogWarning("[QUOTE GEN] PDF output missing or empty at {Path}", pdfOutputPath);
-                return false;
-            }
-
-            logger?.LogInformation("[QUOTE GEN] PDF pre-generated: {Path} ({Size} bytes)",
-                pdfOutputPath, new FileInfo(pdfOutputPath).Length);
-            return true;
-        }
-        catch (OperationCanceledException ex)
-        {
-            logger?.LogWarning(ex, "[QUOTE GEN] PDF generation cancelled for {Path}", pdfOutputPath);
-            return false;
-        }
-        catch (Exception ex)
-        {
-            logger?.LogError(ex, "[QUOTE GEN] PDF generation failed for {Path}", pdfOutputPath);
-            return false;
-        }
-    }
+    public Task<bool> GeneratePdfFromHtmlAsync(
+        string html,
+        string pdfOutputPath,
+        ILogger? logger = null,
+        CancellationToken cancellationToken = default) =>
+        _pdfRenderer.GeneratePdfFromHtmlAsync(html, pdfOutputPath, logger, cancellationToken);
 }

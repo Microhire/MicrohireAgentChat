@@ -2,6 +2,7 @@ using MicrohireAgentChat.Helpers;
 using MicrohireAgentChat.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Hosting;
 
 namespace MicrohireAgentChat.Controllers
 {
@@ -9,13 +10,19 @@ namespace MicrohireAgentChat.Controllers
     {
         private readonly IWebHostEnvironment _env;
         private readonly ILogger<QuotesController> _logger;
+        private readonly IHostApplicationLifetime _hostLifetime;
+        private readonly IPlaywrightQuotePdfRenderer _quotePdf;
 
         public QuotesController(
             IWebHostEnvironment env,
-            ILogger<QuotesController> logger)
+            ILogger<QuotesController> logger,
+            IHostApplicationLifetime hostLifetime,
+            IPlaywrightQuotePdfRenderer quotePdf)
         {
             _env = env;
             _logger = logger;
+            _hostLifetime = hostLifetime;
+            _quotePdf = quotePdf;
         }
 
         [HttpGet("/quotes/render")]
@@ -44,7 +51,11 @@ namespace MicrohireAgentChat.Controllers
             var outPath = Path.Combine(outDir, outFile);
 
             var html = await System.IO.File.ReadAllTextAsync(srcPath);
-            var generated = await HtmlQuoteGenerationService.GeneratePdfFromHtmlAsync(html, outPath, _logger, HttpContext.RequestAborted);
+            using var pdfTimeout = new CancellationTokenSource(HtmlQuoteGenerationService.PdfGenerationAbsoluteTimeout);
+            using var pdfWork = CancellationTokenSource.CreateLinkedTokenSource(
+                _hostLifetime.ApplicationStopping,
+                pdfTimeout.Token);
+            var generated = await _quotePdf.GeneratePdfFromHtmlAsync(html, outPath, _logger, pdfWork.Token);
 
             if (!generated || !System.IO.File.Exists(outPath))
                 return StatusCode(500, "PDF generation failed");
@@ -52,7 +63,8 @@ namespace MicrohireAgentChat.Controllers
             _logger.LogInformation("Serving on-the-fly Playwright PDF for src {Source}", src);
             var stream = System.IO.File.OpenRead(outPath);
             return File(stream, "application/pdf", fileDownloadName: outFile);
-        }// Controllers/QuotesController.cs
+        }
+
         [HttpGet("/quotes/render-static")]
         public async Task<IActionResult> RenderStatic([FromQuery] string? outFile)
         {
@@ -62,7 +74,11 @@ namespace MicrohireAgentChat.Controllers
             var outDir = QuoteFilesPaths.GetPhysicalQuotesDirectory(_env);
             var outPath = Path.Combine(outDir, outFile);
 
-            var generated = await HtmlQuoteGenerationService.GeneratePdfFromHtmlAsync(html, outPath, _logger, HttpContext.RequestAborted);
+            using var pdfTimeout2 = new CancellationTokenSource(HtmlQuoteGenerationService.PdfGenerationAbsoluteTimeout);
+            using var pdfWork2 = CancellationTokenSource.CreateLinkedTokenSource(
+                _hostLifetime.ApplicationStopping,
+                pdfTimeout2.Token);
+            var generated = await _quotePdf.GeneratePdfFromHtmlAsync(html, outPath, _logger, pdfWork2.Token);
             if (!generated || !System.IO.File.Exists(outPath))
                 return StatusCode(500, "PDF generation failed");
 
