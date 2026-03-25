@@ -154,6 +154,17 @@ finally {
     Pop-Location
 }
 
+# `playwright.ps1 install chromium` may still download Firefox/WebKit/FFmpeg; quote PDF only needs Chromium.
+if (Test-Path -LiteralPath $browserDir) {
+    Write-Host "Trimming pw-browsers: removing firefox, webkit, ffmpeg folders (not used for PDF) to shrink site.zip"
+    foreach ($d in Get-ChildItem -Directory -Path $browserDir -ErrorAction SilentlyContinue) {
+        if ($d.Name -match '^(firefox|webkit|ffmpeg)-') {
+            Remove-Item -LiteralPath $d.FullName -Recurse -Force
+            Write-Host "  removed $($d.Name)"
+        }
+    }
+}
+
 $playwrightNode = Join-Path $publishOut ".playwright\node"
 if (-not (Test-Path -LiteralPath $playwrightNode)) {
     throw ".playwright/node missing under publish_out"
@@ -176,8 +187,7 @@ Write-Host "Runtime (Azure App Service): PlaywrightBootstrap sets PLAYWRIGHT_BRO
 Write-Host "Do not set PLAYWRIGHT_BROWSERS_PATH in Portal unless you know the path - empty is correct so the app uses the bundled folder."
 Write-Host ""
 
-# PowerShell 5.1 Compress-Archive -Path "folder\*" does NOT include dot-prefixed names (e.g. .playwright),
-# so the Playwright Node driver would be missing on Azure. ZipFile.CreateFromDirectory includes the full tree.
+# PowerShell 5.1 Compress-Archive -Path "folder\*" does NOT include dot-prefixed names (e.g. .playwright).
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 if (Test-Path -LiteralPath $OutputZip) {
     Remove-Item -LiteralPath $OutputZip -Force

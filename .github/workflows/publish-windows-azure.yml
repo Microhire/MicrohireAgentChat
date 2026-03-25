@@ -70,13 +70,18 @@ jobs:
           Set-Location $publish
           if (-not (Test-Path ".\playwright.ps1")) { throw "playwright.ps1 missing from publish output" }
           ./playwright.ps1 install chromium
+          foreach ($d in Get-ChildItem -Directory -Path $browserDir -ErrorAction SilentlyContinue) {
+            if ($d.Name -match '^(firefox|webkit|ffmpeg)-') {
+              Remove-Item -LiteralPath $d.FullName -Recurse -Force
+              Write-Host "removed $($d.Name)"
+            }
+          }
 
       - name: Verify bundle
         shell: pwsh
         run: |
           ./Scripts/azure-build-vm/Verify-PlaywrightBundle.ps1 -PublishRoot publish_out
 
-      # Compress-Archive with publish_out\* omits dot-prefixed folders (.playwright); ZipFile includes the full tree.
       - name: Zip site package
         shell: pwsh
         run: |
