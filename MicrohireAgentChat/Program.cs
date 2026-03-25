@@ -174,6 +174,8 @@ var app = builder.Build();
         asm.FullName,
         loc,
         mtimeUtc);
+
+    log.LogWarning("[Playwright] PDF runtime: {BrowserPaths}", PlaywrightBootstrap.GetStartupBrowserPathSummary());
 }
 
 if (!app.Environment.IsDevelopment())

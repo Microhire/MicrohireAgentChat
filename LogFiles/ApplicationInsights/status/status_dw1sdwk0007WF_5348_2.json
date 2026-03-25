@@ -1,0 +1,16 @@
+{
+"AppType":"aspnet",
+"MachineName":"dw1sdwk0007WF",
+"PID":"5348",
+"AppDomainId":"2",
+"AppDomainName":"/LM/W3SVC/2004211936/ROOT-1-134167437711152849",
+"InstrumentationEngineLoaded":false,
+"InstrumentationEngineExtensionLoaded":false,
+"SiteName":"microhire",
+"RedfieldIISModuleLoaded":true,
+"IKeyExists":true,
+"IKey":"7e674e8b-317e-43be-9613-f825c00b0b80",
+"ConnectionString":"InstrumentationKey=7e674e8b-317e-43be-9613-f825c00b0b80;IngestionEndpoint=https://australiasoutheast-0.in.applicationinsights.azure.com/;LiveEndpoint=https://australiasoutheast.livediagnostics.monitor.azure.com/;ApplicationId=f0e4a23b-bdcd-41cb-ba91-ef9aae55e673",
+"RedfieldLightupLoaded":true,
+"AutoInstrumentationStatus":true
+}

@@ -1,7 +1,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> 
 <html xmlns="http://www.w3.org/1999/xhtml"> 
 <head> 
-<title>IIS Detailed Error - 400.0 - Bad Request</title> 
+<title>IIS Detailed Error - 405.0 - Method Not Allowed</title> 
 <style type="text/css"> 
 <!-- 
 body{margin:0;font-size:.7em;font-family:Verdana,Arial,Helvetica,sans-serif;} 
@@ -48,17 +48,17 @@ table tr.alt td,table tr.alt th{}
 <body> 
 <div id="content"> 
 <div class="content-container"> 
-<h3>HTTP Error 400.0 - Bad Request</h3> 
-<h4>Bad Request</h4> 
+<h3>HTTP Error 405.0 - Method Not Allowed</h3> 
+<h4>The page you are looking for cannot be displayed because an invalid method (HTTP verb) is being used.</h4> 
 </div> 
 <div class="content-container"> 
 <fieldset><h4>Most likely causes:</h4> 
-<ul> 	<li></li> </ul> 
+<ul> 	<li>The request sent to the Web server used an HTTP verb that is not allowed by the module configured to handle the request.</li> 	<li>A request was sent to the server that contained an invalid HTTP verb.</li> 	<li>The request is for static content and contains an HTTP verb other than GET or HEAD.</li> 	<li>A request was sent to a virtual directory using the HTTP verb POST and the default document is a static file that does not support HTTP verbs other than GET or HEAD.</li> </ul> 
 </fieldset> 
 </div> 
 <div class="content-container"> 
 <fieldset><h4>Things you can try:</h4> 
-<ul> 	<li>Create a tracing rule to track failed requests for this HTTP status code. For more information about creating a tracing rule for failed requests, click <a href="http://go.microsoft.com/fwlink/?LinkID=66439">here</a>. </li> </ul> 
+<ul> 	<li>Verify the list of verbs enabled for the module handler this request was sent to, and ensure that this verb should be allowed for the Web site.</li> 	<li>Check the IIS log file to see which verb is not allowed for the request.</li> 	<li>Create a tracing rule to track failed requests for this HTTP status code. For more information about creating a tracing rule for failed requests, click <a href="http://go.microsoft.com/fwlink/?LinkID=66439">here</a>. </li> </ul> 
 </fieldset> 
 </div> 
  
@@ -75,8 +75,8 @@ table tr.alt td,table tr.alt th{}
 </div> 
 <div id="details-right"> 
 <table border="0" cellpadding="0" cellspacing="0"> 
-<tr class="alt"><th>Requested URL</th><td>&nbsp;&nbsp;&nbsp;https://microhire:80/Chat/StartConversationReplay</td></tr> 
-<tr><th>Physical Path</th><td>&nbsp;&nbsp;&nbsp;C:\home\site\wwwroot\Chat\StartConversationReplay</td></tr> 
+<tr class="alt"><th>Requested URL</th><td>&nbsp;&nbsp;&nbsp;https://microhire:80/Chat?leadId=edbd9388-4ca7-4e04-acf2-e3ab63b9d3d2</td></tr> 
+<tr><th>Physical Path</th><td>&nbsp;&nbsp;&nbsp;C:\home\site\wwwroot\Chat</td></tr> 
 <tr class="alt"><th>Logon Method</th><td>&nbsp;&nbsp;&nbsp;Anonymous</td></tr> 
 <tr><th>Logon User</th><td>&nbsp;&nbsp;&nbsp;Anonymous</td></tr> 
  
@@ -88,8 +88,8 @@ table tr.alt td,table tr.alt th{}
  
 <div class="content-container"> 
 <fieldset><h4>More Information:</h4> 
-The request could not be understood by the server due to malformed syntax. 
-<p><a href="http://go.microsoft.com/fwlink/?LinkID=62293&amp;IIS70Error=400,0,0x00000000,20348">View more information &raquo;</a></p> 
+This error means that the request sent to the Web server contained an HTTP verb that is not allowed by the configured module handler for the request. 
+<p><a href="http://go.microsoft.com/fwlink/?LinkID=62293&amp;IIS70Error=405,0,0x00000000,20348">View more information &raquo;</a></p> 
 <p>Microsoft Knowledge Base Articles:</p> 
   
  

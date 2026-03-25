@@ -74,9 +74,7 @@ jobs:
       - name: Verify bundle
         shell: pwsh
         run: |
-          if (-not (Test-Path "publish_out\.playwright\node")) { throw ".playwright/node missing" }
-          $b = Get-ChildItem -Path "publish_out\pw-browsers" -Recurse -ErrorAction SilentlyContinue
-          if (-not $b) { throw "pw-browsers is empty after playwright install" }
+          ./Scripts/azure-build-vm/Verify-PlaywrightBundle.ps1 -PublishRoot publish_out
 
       - name: Zip site package
         shell: pwsh

@@ -235,6 +235,31 @@ public static class PlaywrightBootstrap
         return (code, string.IsNullOrEmpty(text) ? null : text);
     }
 
+    /// <summary>
+    /// One-line summary for startup logs: effective paths and whether <c>chrome.exe</c> exists under the browser directory.
+    /// </summary>
+    public static string GetStartupBrowserPathSummary()
+    {
+        var driverSearch = Environment.GetEnvironmentVariable("PLAYWRIGHT_DRIVER_SEARCH_PATH") ?? "(null)";
+        var browsers = Environment.GetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH") ?? "(null)";
+        string chromium = "(unknown)";
+        try
+        {
+            if (!string.IsNullOrEmpty(browsers) && Directory.Exists(browsers))
+            {
+                var chrome = Directory.GetFiles(browsers, "chrome.exe", SearchOption.AllDirectories).FirstOrDefault();
+                chromium = string.IsNullOrEmpty(chrome) ? "(no chrome.exe under PLAYWRIGHT_BROWSERS_PATH)" : chrome;
+            }
+        }
+        catch
+        {
+            chromium = "(error enumerating browsers path)";
+        }
+
+        return
+            $"PLAYWRIGHT_DRIVER_SEARCH_PATH={driverSearch}; PLAYWRIGHT_BROWSERS_PATH={browsers}; Chromium={chromium}";
+    }
+
     private static string BuildPlaywrightDiagSnapshot()
     {
         var driverSearch = Environment.GetEnvironmentVariable("PLAYWRIGHT_DRIVER_SEARCH_PATH") ?? "(null)";
@@ -245,7 +270,7 @@ public static class PlaywrightBootstrap
         var hasNode = Directory.Exists(Path.Combine(bundled, "node"));
         var hasNestedNode = Directory.Exists(Path.Combine(nestedBundled, "node"));
         return
-            $"PLAYWRIGHT_DRIVER_SEARCH_PATH={driverSearch}; PLAYWRIGHT_BROWSERS_PATH={browsers}; " +
+            $"{GetStartupBrowserPathSummary()}; " +
             $"PlaywrightAssemblyDir={asmDir}; .playwright/node at root={hasNode}; .playwright/node under wwwroot={hasNestedNode}";
     }
 

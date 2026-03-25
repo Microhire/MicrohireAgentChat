@@ -55,7 +55,7 @@ namespace MicrohireAgentChat.Controllers
             using var pdfWork = CancellationTokenSource.CreateLinkedTokenSource(
                 _hostLifetime.ApplicationStopping,
                 pdfTimeout.Token);
-            var generated = await _quotePdf.GeneratePdfFromHtmlAsync(html, outPath, _logger, pdfWork.Token);
+            var generated = await _quotePdf.GeneratePdfFromHtmlAsync(html, outPath, _logger, pdfWork.Token, HttpContext.TraceIdentifier);
 
             if (!generated || !System.IO.File.Exists(outPath))
                 return StatusCode(500, "PDF generation failed");
@@ -78,7 +78,7 @@ namespace MicrohireAgentChat.Controllers
             using var pdfWork2 = CancellationTokenSource.CreateLinkedTokenSource(
                 _hostLifetime.ApplicationStopping,
                 pdfTimeout2.Token);
-            var generated = await _quotePdf.GeneratePdfFromHtmlAsync(html, outPath, _logger, pdfWork2.Token);
+            var generated = await _quotePdf.GeneratePdfFromHtmlAsync(html, outPath, _logger, pdfWork2.Token, HttpContext.TraceIdentifier);
             if (!generated || !System.IO.File.Exists(outPath))
                 return StatusCode(500, "PDF generation failed");
 

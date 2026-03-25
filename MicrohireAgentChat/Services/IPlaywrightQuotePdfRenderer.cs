@@ -9,5 +9,6 @@ public interface IPlaywrightQuotePdfRenderer
         string html,
         string pdfOutputPath,
         ILogger? logger = null,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        string? quoteTraceId = null);
 }

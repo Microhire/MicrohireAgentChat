@@ -1,7 +1,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> 
 <html xmlns="http://www.w3.org/1999/xhtml"> 
 <head> 
-<title>IIS Detailed Error - 500.0 - Internal Server Error</title> 
+<title>IIS Detailed Error - 409.0 - Conflict</title> 
 <style type="text/css"> 
 <!-- 
 body{margin:0;font-size:.7em;font-family:Verdana,Arial,Helvetica,sans-serif;} 
@@ -48,17 +48,17 @@ table tr.alt td,table tr.alt th{}
 <body> 
 <div id="content"> 
 <div class="content-container"> 
-<h3>HTTP Error 500.0 - Internal Server Error</h3> 
-<h4>The page cannot be displayed because an internal server error has occurred.</h4> 
+<h3>HTTP Error 409.0 - Conflict</h3> 
+<h4>The page was not displayed because there was a conflict.</h4> 
 </div> 
 <div class="content-container"> 
 <fieldset><h4>Most likely causes:</h4> 
-<ul> 	<li>IIS received the request; however, an internal error occurred during the processing of the request. The root cause of this error depends on which module handles the request and what was happening in the worker process when this error occurred.</li> 	<li>IIS was not able to access the web.config file for the Web site or application. This can occur if the NTFS permissions are set incorrectly.</li> 	<li>IIS was not able to process configuration for the Web site or application.</li> 	<li>The authenticated user does not have permission to use this DLL.</li> 	<li>The request is mapped to a managed handler but the .NET Extensibility Feature is not installed.</li> </ul> 
+<ul> 	<li>The request could not be completed due to a conflict with the current state of the resource.</li> </ul> 
 </fieldset> 
 </div> 
 <div class="content-container"> 
 <fieldset><h4>Things you can try:</h4> 
-<ul> 	<li>Ensure that the NTFS permissions for the web.config file are correct and allow access to the Web server's machine account.</li> 	<li>Check the event logs to see if any additional information was logged.</li> 	<li>Verify the permissions for the DLL.</li> 	<li>Install the .NET Extensibility feature if the request is mapped to a managed handler.</li> 	<li>Create a tracing rule to track failed requests for this HTTP status code. For more information about creating a tracing rule for failed requests, click <a href="http://go.microsoft.com/fwlink/?LinkID=66439">here</a>. </li> </ul> 
+<ul> 	<li>To troubleshoot this error depends upon the client.</li> </ul> 
 </fieldset> 
 </div> 
  
@@ -75,7 +75,7 @@ table tr.alt td,table tr.alt th{}
 </div> 
 <div id="details-right"> 
 <table border="0" cellpadding="0" cellspacing="0"> 
-<tr class="alt"><th>Requested URL</th><td>&nbsp;&nbsp;&nbsp;https://_1microhire:80/api/publish?type=zip</td></tr> 
+<tr class="alt"><th>Requested URL</th><td>&nbsp;&nbsp;&nbsp;https://_1microhire:80/api/publish?type=zip&amp;async=True</td></tr> 
 <tr><th>Physical Path</th><td>&nbsp;&nbsp;&nbsp;C:\Program Files (x86)\SiteExtensions\Kudu\2025.11.1.1\api\publish</td></tr> 
 <tr class="alt"><th>Logon Method</th><td>&nbsp;&nbsp;&nbsp;Anonymous</td></tr> 
 <tr><th>Logon User</th><td>&nbsp;&nbsp;&nbsp;Anonymous</td></tr> 
@@ -88,8 +88,8 @@ table tr.alt td,table tr.alt th{}
  
 <div class="content-container"> 
 <fieldset><h4>More Information:</h4> 
-This error means that there was a problem while processing the request. The request was received by the Web server, but during processing a fatal error occurred, causing the 500 error. 
-<p><a href="http://go.microsoft.com/fwlink/?LinkID=62293&amp;IIS70Error=500,0,0x00000000,20348">View more information &raquo;</a></p> 
+This error occurs when there is a conflict with the current state of the resource. 
+<p><a href="http://go.microsoft.com/fwlink/?LinkID=62293&amp;IIS70Error=409,0,0x00000000,20348">View more information &raquo;</a></p> 
 <p>Microsoft Knowledge Base Articles:</p> 
   
  

@@ -1,0 +1,118 @@
+<step title="BackgroundTrace" date="2026-03-25T15:19:31.135" instance="6d7641" url="/api/publish" method="POST" >
+  <step title="Cleanup Xml Logs" date="2026-03-25T15:19:31.167" /><!-- duration: 31ms -->
+  <step title="Updating shutdown sentinel last write time" date="2026-03-25T15:19:31.291" SemaphoreCount="7" /><!-- duration: 0ms -->
+  <step title="LockFile &apos;C:\home\site\locks\deployments.lock&apos; acquired" date="2026-03-25T15:19:31.291" /><!-- duration: 0ms -->
+  <step title="Creating temporary deployment" date="2026-03-25T15:19:31.338" /><!-- duration: 281ms -->
+  <step title="Performing fetch based deployment" date="2026-03-25T15:19:31.669" >
+    <step title="Fetching changes." date="2026-03-25T15:19:31.900" /><!-- duration: 18ms -->
+    <step title="Starting LocalZipHandler" date="2026-03-25T15:19:31.948" /><!-- duration: 0ms -->
+    <step title="Cleaning up temp folders from previous zip deployments and extracting pushed zip file C:\local\Temp\zipdeploy\r50afkdq.zip (311.28 MB) to C:\local\Temp\zipdeploy\extracted" date="2026-03-25T15:19:31.978" /><!-- duration: 16ms -->
+    <step title="Cleaning up temp folders from previous zip deployments and extracting pushed zip file C:\local\Temp\zipdeploy\r50afkdq.zip (311.28 MB) to C:\local\Temp\zipdeploy\extracted" date="2026-03-25T15:19:31.994" >
+      <step title="Extracting 933 entries to C:\local\Temp\zipdeploy\extracted directory" date="2026-03-25T15:19:33.001" >
+        <step title="Extracting to C:\local\Temp\zipdeploy\extracted\.playwright\node\LICENSE ..." date="2026-03-25T15:19:33.013" /><!-- duration: 78ms -->
+        <step title="Extracting to C:\local\Temp\zipdeploy\extracted\.playwright\node\win32_x64\node.exe ..." date="2026-03-25T15:19:33.091" /><!-- duration: 3751ms -->
+        <step title="Extracting to C:\local\Temp\zipdeploy\extracted\.playwright\package\api.json ..." date="2026-03-25T15:19:36.953" /><!-- duration: 201ms -->
+        <step title="Extracting to C:\local\Temp\zipdeploy\extracted\.playwright\package\browsers.json ..." date="2026-03-25T15:19:37.154" /><!-- duration: 20ms -->
+        <step title="Extracting to C:\local\Temp\zipdeploy\extracted\.playwright\package\cli.js ..." date="2026-03-25T15:19:37.204" /><!-- duration: 13ms -->
+        <step title="Omitting extracting file traces ..." date="2026-03-25T15:19:37.234" /><!-- duration: 30ms -->
+      </step><!-- duration: 49625ms -->
+    </step><!-- duration: 50645ms -->
+    <step title="Before sending BuildRequestReceived status to /api/updatedeploystatus" date="2026-03-25T15:20:22.676" /><!-- duration: 10ms -->
+    <step title="DeploymentManager.Deploy(id:e4d3e466b07b488089adf80d305116c1)" date="2026-03-25T15:20:22.736" >
+      <step title="Collecting changeset information" date="2026-03-25T15:20:22.748" /><!-- duration: 48ms -->
+      <step title="Updating submodules" date="2026-03-25T15:20:22.816" >
+        <step title="Updating submodules." date="2026-03-25T15:20:22.936" /><!-- duration: 20ms -->
+      </step><!-- duration: 151ms -->
+      <step title="Preparing deployment for commit id &apos;e4d3e466b0&apos;." date="2026-03-25T15:20:23.217" /><!-- duration: 31ms -->
+      <step title="Determining deployment builder" date="2026-03-25T15:20:23.405" >
+        <step title="Builder is OneDeployBuilder" date="2026-03-25T15:20:23.423" /><!-- duration: 13ms -->
+      </step><!-- duration: 31ms -->
+      <step title="Copying SSH keys" date="2026-03-25T15:20:23.452" /><!-- duration: 31ms -->
+      <step title="Building" date="2026-03-25T15:20:23.483" >
+        <step title="Running build. Project type: OneDeploy" date="2026-03-25T15:20:23.533" /><!-- duration: 12ms -->
+        <step title="Copying the manifest" date="2026-03-25T15:20:23.577" /><!-- duration: 16ms -->
+        <step title="Clean deploying to C:\home\site\wwwroot" date="2026-03-25T15:20:23.717" /><!-- duration: 0ms -->
+        <step title="Generating deployment script." date="2026-03-25T15:20:23.784" /><!-- duration: 11ms -->
+        <step title="Generating deployment script" date="2026-03-25T15:20:23.795" >
+          <step title="Using cached version of the deployment script for command: -y --no-dot-deployment -r &quot;C:\local\Temp\zipdeploy\extracted&quot; -o &quot;C:\home\site\deployments\tools&quot; --basic --sitePath &quot;C:\local\Temp\zipdeploy\extracted&quot;" date="2026-03-25T15:20:23.873" /><!-- duration: 0ms -->
+          <step title="Using cached version of deployment script (command: &apos;azure -y --no-dot-deployment -r &quot;C:\local\Temp\zipdeploy\extracted&quot; -o &quot;C:\home\site\deployments\tools&quot; --basic --sitePath &quot;C:\local\Temp\zipdeploy\extracted&quot;&apos;)." date="2026-03-25T15:20:23.905" /><!-- duration: 0ms -->
+        </step><!-- duration: 125ms -->
+        <step title="Running deployment command..." date="2026-03-25T15:20:23.952" /><!-- duration: 16ms -->
+        <step title="Command: &quot;C:\home\site\deployments\tools\deploy.cmd&quot;" date="2026-03-25T15:20:23.989" /><!-- duration: 10ms -->
+        <step title="Executing external process" date="2026-03-25T15:20:24.019" type="process" path="starter.cmd" arguments="&quot;C:\home\site\deployments\tools\deploy.cmd&quot;" >
+          <step title="Handling Basic Web Site deployment." date="2026-03-25T15:20:24.764" /><!-- duration: 17ms -->
+          <step title="Creating app_offline.htm" date="2026-03-25T15:20:27.111" /><!-- duration: 12ms -->
+          <step title="KuduSync.NET from: &apos;C:\local\Temp\zipdeploy\extracted&apos; to: &apos;C:\home\site\wwwroot&apos;" date="2026-03-25T15:20:27.161" /><!-- duration: 10ms -->
+          <step title="Deleting file: &apos;publish\appsettings.Development.json&apos;" date="2026-03-25T15:20:27.191" /><!-- duration: 10ms -->
+          <step title="Deleting file: &apos;publish\appsettings.Development.Local.json&apos;" date="2026-03-25T15:20:27.220" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;publish\appsettings.json&apos;" date="2026-03-25T15:20:27.250" /><!-- duration: 30ms -->
+          <step title="Deleting file: &apos;publish\appsettings.Production.json&apos;" date="2026-03-25T15:20:27.300" /><!-- duration: 11ms -->
+          <step title="Deleting file: &apos;publish\MicrohireAgentChat.deps.json&apos;" date="2026-03-25T15:20:27.330" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;publish\MicrohireAgentChat.runtimeconfig.json&apos;" date="2026-03-25T15:20:27.359" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;publish\web.config&apos;" date="2026-03-25T15:20:27.389" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;publish\deploy-out\appsettings.Development.json&apos;" date="2026-03-25T15:20:27.409" /><!-- duration: 11ms -->
+          <step title="Deleting file: &apos;publish\deploy-out\appsettings.json&apos;" date="2026-03-25T15:20:27.438" /><!-- duration: 13ms -->
+          <step title="Deleting file: &apos;publish\deploy-out\MicrohireAgentChat.deps.json&apos;" date="2026-03-25T15:20:27.468" /><!-- duration: 20ms -->
+          <step title="Deleting file: &apos;publish\deploy-out\MicrohireAgentChat.runtimeconfig.json&apos;" date="2026-03-25T15:20:27.499" /><!-- duration: 20ms -->
+          <step title="Deleting file: &apos;publish\deploy-out\web.config&apos;" date="2026-03-25T15:20:27.530" /><!-- duration: 19ms -->
+          <step title="Deleting file: &apos;publish\deploy-out\wwwroot\data\item-rules.json&apos;" date="2026-03-25T15:20:27.609" /><!-- duration: 20ms -->
+          <step title="Deleting file: &apos;publish\deploy-out\wwwroot\data\product-knowledge-master.json&apos;" date="2026-03-25T15:20:27.659" /><!-- duration: 11ms -->
+          <step title="Deleting file: &apos;publish\deploy-out\wwwroot\data\product-knowledge-westin.json&apos;" date="2026-03-25T15:20:27.702" /><!-- duration: 18ms -->
+          <step title="Deleting file: &apos;publish\deploy-out\wwwroot\data\the_westin_brisbane_rooms.json&apos;" date="2026-03-25T15:20:28.000" /><!-- duration: 329ms -->
+          <step title="Deleting file: &apos;publish\deploy-out\wwwroot\data\venue-room-packages.json&apos;" date="2026-03-25T15:20:28.469" /><!-- duration: 201ms -->
+          <step title="Deleting file: &apos;publish\deploy-out\wwwroot\data\westin-venue-guide.json&apos;" date="2026-03-25T15:20:28.750" /><!-- duration: 50ms -->
+          <step title="Deleting directory: &apos;publish\deploy-out\wwwroot\data&apos;" date="2026-03-25T15:20:28.873" /><!-- duration: 17ms -->
+          <step title="Deleting directory: &apos;publish\deploy-out\wwwroot&apos;" date="2026-03-25T15:20:28.911" /><!-- duration: 10ms -->
+          <step title="Deleting directory: &apos;publish\deploy-out&apos;" date="2026-03-25T15:20:28.941" /><!-- duration: 11ms -->
+          <step title="Deleting file: &apos;publish\publish\appsettings.Development.json&apos;" date="2026-03-25T15:20:28.971" /><!-- duration: 12ms -->
+          <step title="Deleting file: &apos;publish\publish\appsettings.Development.Local.json&apos;" date="2026-03-25T15:20:29.001" /><!-- duration: 30ms -->
+          <step title="Deleting file: &apos;publish\publish\appsettings.json&apos;" date="2026-03-25T15:20:29.051" /><!-- duration: 10ms -->
+          <step title="Deleting file: &apos;publish\publish\appsettings.Production.json&apos;" date="2026-03-25T15:20:29.092" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;publish\publish\MicrohireAgentChat.deps.json&apos;" date="2026-03-25T15:20:29.112" /><!-- duration: 110ms -->
+          <step title="Deleting file: &apos;publish\publish\MicrohireAgentChat.runtimeconfig.json&apos;" date="2026-03-25T15:20:29.373" /><!-- duration: 62ms -->
+          <step title="Deleting file: &apos;publish\publish\web.config&apos;" date="2026-03-25T15:20:29.453" /><!-- duration: 20ms -->
+          <step title="Deleting file: &apos;publish\publish\deploy-out\appsettings.Development.json&apos;" date="2026-03-25T15:20:29.483" /><!-- duration: 20ms -->
+          <step title="Deleting file: &apos;publish\publish\deploy-out\appsettings.json&apos;" date="2026-03-25T15:20:29.514" /><!-- duration: 19ms -->
+          <step title="Deleting file: &apos;publish\publish\deploy-out\MicrohireAgentChat.deps.json&apos;" date="2026-03-25T15:20:29.563" /><!-- duration: 30ms -->
+          <step title="Deleting file: &apos;publish\publish\deploy-out\MicrohireAgentChat.runtimeconfig.json&apos;" date="2026-03-25T15:20:29.686" /><!-- duration: 17ms -->
+          <step title="Deleting file: &apos;publish\publish\deploy-out\web.config&apos;" date="2026-03-25T15:20:29.733" /><!-- duration: 20ms -->
+          <step title="Deleting file: &apos;publish\publish\deploy-out\wwwroot\data\item-rules.json&apos;" date="2026-03-25T15:20:29.764" /><!-- duration: 19ms -->
+          <step title="Deleting file: &apos;publish\publish\deploy-out\wwwroot\data\product-knowledge-master.json&apos;" date="2026-03-25T15:20:29.827" /><!-- duration: 17ms -->
+          <step title="Deleting file: &apos;publish\publish\deploy-out\wwwroot\data\product-knowledge-westin.json&apos;" date="2026-03-25T15:20:29.874" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;publish\publish\deploy-out\wwwroot\data\the_westin_brisbane_rooms.json&apos;" date="2026-03-25T15:20:29.905" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;publish\publish\deploy-out\wwwroot\data\venue-room-packages.json&apos;" date="2026-03-25T15:20:29.936" /><!-- duration: 18ms -->
+          <step title="Deleting file: &apos;publish\publish\deploy-out\wwwroot\data\westin-venue-guide.json&apos;" date="2026-03-25T15:20:29.974" /><!-- duration: 10ms -->
+          <step title="Deleting directory: &apos;publish\publish\deploy-out\wwwroot\data&apos;" date="2026-03-25T15:20:30.014" /><!-- duration: 0ms -->
+          <step title="Deleting directory: &apos;publish\publish\deploy-out\wwwroot&apos;" date="2026-03-25T15:20:30.045" /><!-- duration: 19ms -->
+          <step title="Deleting directory: &apos;publish\publish\deploy-out&apos;" date="2026-03-25T15:20:30.094" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;publish\publish\wwwroot\data\item-rules.json&apos;" date="2026-03-25T15:20:30.124" /><!-- duration: 20ms -->
+          <step title="Deleting file: &apos;publish\publish\wwwroot\data\product-knowledge-master.json&apos;" date="2026-03-25T15:20:30.174" /><!-- duration: 12ms -->
+          <step title="Deleting file: &apos;publish\publish\wwwroot\data\product-knowledge-westin.json&apos;" date="2026-03-25T15:20:30.234" /><!-- duration: 20ms -->
+          <step title="Deleting file: &apos;publish\publish\wwwroot\data\the_westin_brisbane_rooms.json&apos;" date="2026-03-25T15:20:30.264" /><!-- duration: 20ms -->
+          <step title="Deleting file: &apos;publish\publish\wwwroot\data\venue-room-packages.json&apos;" date="2026-03-25T15:20:30.314" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;publish\publish\wwwroot\data\westin-labor-rules.json&apos;" date="2026-03-25T15:20:30.344" /><!-- duration: 0ms -->
+          <step title="Omitting next output lines..." date="2026-03-25T15:20:30.374" /><!-- duration: 0ms -->
+          <step title="Processed 569 files..." date="2026-03-25T15:20:50.369" /><!-- duration: 12ms -->
+          <step title="Processed 919 files..." date="2026-03-25T15:21:10.410" /><!-- duration: 0ms -->
+          <step title="Finished successfully." date="2026-03-25T15:21:16.654" /><!-- duration: 17ms -->
+        </step><!-- duration: 52682ms -->
+        <step title="Build completed succesfully." date="2026-03-25T15:21:16.779" /><!-- duration: 0ms -->
+        <step title="Running post deployment command(s)..." date="2026-03-25T15:21:16.872" /><!-- duration: 0ms -->
+        <step title="Requesting site restart" date="2026-03-25T15:21:16.982" /><!-- duration: 16ms -->
+        <step title="Requesting site restart" date="2026-03-25T15:21:17.013" /><!-- duration: 0ms -->
+        <step title="Requesting site restart. Attempt #1" date="2026-03-25T15:21:17.075" /><!-- duration: 16ms -->
+        <step title="Requesting site restart. Attempt #1" date="2026-03-25T15:21:17.091" /><!-- duration: 31ms -->
+        <step title="Successfully requested a restart. Attempt #1" date="2026-03-25T15:21:19.497" /><!-- duration: 20ms -->
+        <step title="Successfully requested a restart. Attempt #1" date="2026-03-25T15:21:19.517" /><!-- duration: 11ms -->
+        <step title="Deployment successful. DEPLOYMENTINFO: deploymentPath = OneDeploy, deployer = OneDeploy, os = windows, sku = Basic, siteName = microhire, siteHostName = microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net, deploymentStatus = Success" date="2026-03-25T15:21:19.622" /><!-- duration: 0ms -->
+        <step title="Purge deployment items" date="2026-03-25T15:21:19.828" >
+          <step title="Remove de6d05944, Success, received at 3/25/2026 2:28:02 AM" date="2026-03-25T15:21:20.138" /><!-- duration: 0ms -->
+        </step><!-- duration: 310ms -->
+      </step><!-- duration: 56686ms -->
+    </step><!-- duration: 57450ms -->
+    <step title="Cleaning up temp files" date="2026-03-25T15:21:20.186" /><!-- duration: 14ms -->
+    <step title="Skip function trigger and logicapp sync because function is not enabled." date="2026-03-25T15:21:20.216" /><!-- duration: 15ms -->
+  </step><!-- duration: 108579ms -->
+  <step title="LockFile &apos;C:\home\site\locks\deployments.lock&apos; released" date="2026-03-25T15:21:20.263" /><!-- duration: 0ms -->
+  <step title="Deleting shutdown sentinel file" date="2026-03-25T15:21:20.263" SemaphoreCount="8" /><!-- duration: 16ms -->
+</step><!-- duration: 109144ms -->

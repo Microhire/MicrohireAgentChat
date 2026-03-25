@@ -1,7 +1,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"> 
 <html xmlns="http://www.w3.org/1999/xhtml"> 
 <head> 
-<title>IIS Detailed Error - 403.14 - Forbidden</title> 
+<title>IIS Detailed Error - 404.0 - Not Found</title> 
 <style type="text/css"> 
 <!-- 
 body{margin:0;font-size:.7em;font-family:Verdana,Arial,Helvetica,sans-serif;} 
@@ -48,17 +48,17 @@ table tr.alt td,table tr.alt th{}
 <body> 
 <div id="content"> 
 <div class="content-container"> 
-<h3>HTTP Error 403.14 - Forbidden</h3> 
-<h4>The Web server is configured to not list the contents of this directory.</h4> 
+<h3>HTTP Error 404.0 - Not Found</h3> 
+<h4>The resource you are looking for has been removed, had its name changed, or is temporarily unavailable.</h4> 
 </div> 
 <div class="content-container"> 
 <fieldset><h4>Most likely causes:</h4> 
-<ul> 	<li>A default document is not configured for the requested URL, and directory browsing is not enabled on the server.</li> </ul> 
+<ul> 	<li>The directory or file specified does not exist on the Web server.</li> 	<li>The URL contains a typographical error.</li> 	<li>A custom filter or module, such as URLScan, restricts access to the file.</li> </ul> 
 </fieldset> 
 </div> 
 <div class="content-container"> 
 <fieldset><h4>Things you can try:</h4> 
-<ul> 	<li>If you do not want to enable directory browsing, ensure that a default document is configured and that the file exists.</li> 	<li>           Enable directory browsing using IIS Manager.           <ol> 			<li>Open IIS Manager.</li> 			<li>In the Features view, double-click Directory Browsing.</li> 			<li>On the Directory Browsing page, in the Actions pane, click Enable.</li> 		</ol> 	</li> 	<li>Verify that the configuration/system.webServer/directoryBrowse@enabled attribute is set to true in the site or application configuration file.</li> </ul> 
+<ul> 	<li>Create the content on the Web server.</li> 	<li>Review the browser URL.</li> 	<li>Create a tracing rule to track failed requests for this HTTP status code and see which module is calling SetStatus. For more information about creating a tracing rule for failed requests, click <a href="http://go.microsoft.com/fwlink/?LinkID=66439">here</a>. </li> </ul> 
 </fieldset> 
 </div> 
  
@@ -66,17 +66,17 @@ table tr.alt td,table tr.alt th{}
 <fieldset><h4>Detailed Error Information:</h4> 
 <div id="details-left"> 
 <table border="0" cellpadding="0" cellspacing="0"> 
-<tr class="alt"><th>Module</th><td>&nbsp;&nbsp;&nbsp;DirectoryListingModule</td></tr> 
+<tr class="alt"><th>Module</th><td>&nbsp;&nbsp;&nbsp;AspNetCoreModuleV2</td></tr> 
 <tr><th>Notification</th><td>&nbsp;&nbsp;&nbsp;ExecuteRequestHandler</td></tr> 
-<tr class="alt"><th>Handler</th><td>&nbsp;&nbsp;&nbsp;StaticFile</td></tr> 
+<tr class="alt"><th>Handler</th><td>&nbsp;&nbsp;&nbsp;aspNetCore</td></tr> 
 <tr><th>Error Code</th><td>&nbsp;&nbsp;&nbsp;0x00000000</td></tr> 
  
 </table> 
 </div> 
 <div id="details-right"> 
 <table border="0" cellpadding="0" cellspacing="0"> 
-<tr class="alt"><th>Requested URL</th><td>&nbsp;&nbsp;&nbsp;https://microhire:80/</td></tr> 
-<tr><th>Physical Path</th><td>&nbsp;&nbsp;&nbsp;C:\home\site\wwwroot</td></tr> 
+<tr class="alt"><th>Requested URL</th><td>&nbsp;&nbsp;&nbsp;https://microhire:80/api/leads</td></tr> 
+<tr><th>Physical Path</th><td>&nbsp;&nbsp;&nbsp;C:\home\site\wwwroot\api\leads</td></tr> 
 <tr class="alt"><th>Logon Method</th><td>&nbsp;&nbsp;&nbsp;Anonymous</td></tr> 
 <tr><th>Logon User</th><td>&nbsp;&nbsp;&nbsp;Anonymous</td></tr> 
  
@@ -88,8 +88,8 @@ table tr.alt td,table tr.alt th{}
  
 <div class="content-container"> 
 <fieldset><h4>More Information:</h4> 
-This error occurs when a document is not specified in the URL, no default document is specified for the Web site or application, and directory listing is not enabled for the Web site or application. This setting may be disabled on purpose to secure the contents of the server. 
-<p><a href="http://go.microsoft.com/fwlink/?LinkID=62293&amp;IIS70Error=403,14,0x00000000,20348">View more information &raquo;</a></p> 
+This error means that the file or directory does not exist on the server. Create the file or directory and try the request again. 
+<p><a href="http://go.microsoft.com/fwlink/?LinkID=62293&amp;IIS70Error=404,0,0x00000000,20348">View more information &raquo;</a></p> 
 <p>Microsoft Knowledge Base Articles:</p> 
   
  

@@ -512,7 +512,8 @@ namespace MicrohireAgentChat.Services
                                                 }
 
                                                 // Use HtmlQuoteGenerationService to generate HTML from booking data
-                                                var (success, htmlUrl, error) = await _htmlQuoteGen.GenerateHtmlQuoteForBookingAsync(bookingNo, ct, session);
+                                                var toolTrace = _http.HttpContext?.TraceIdentifier;
+                                                var (success, htmlUrl, error) = await _htmlQuoteGen.GenerateHtmlQuoteForBookingAsync(bookingNo, ct, session, toolTrace);
                                                 
                                                 if (!success || string.IsNullOrEmpty(htmlUrl))
                                                 {
@@ -627,7 +628,8 @@ namespace MicrohireAgentChat.Services
                                                 try
                                                 {
                                                     await _itemPersistence.UpsertSelectedEquipmentAsync(regenBookingNo, regenEquipmentJson, ct);
-                                                    var (regenSuccess, regenUrl, regenError) = await _htmlQuoteGen.GenerateHtmlQuoteForBookingAsync(regenBookingNo, ct, regenSession);
+                                                    var regenTrace = _http.HttpContext?.TraceIdentifier;
+                                                    var (regenSuccess, regenUrl, regenError) = await _htmlQuoteGen.GenerateHtmlQuoteForBookingAsync(regenBookingNo, ct, regenSession, regenTrace);
                                                     if (!regenSuccess || string.IsNullOrEmpty(regenUrl))
                                                     {
                                                         outputs.Add((toolCallId, JsonSerializer.Serialize(new

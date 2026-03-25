@@ -1,0 +1,73 @@
+<step title="BackgroundTrace" date="2026-03-25T05:23:42.224" instance="6d7641" url="/api/publish" method="POST" >
+  <step title="Updating shutdown sentinel last write time" date="2026-03-25T05:23:42.239" SemaphoreCount="7" /><!-- duration: 19ms -->
+  <step title="LockFile &apos;C:\home\site\locks\deployments.lock&apos; acquired" date="2026-03-25T05:23:42.258" /><!-- duration: 12ms -->
+  <step title="Creating temporary deployment" date="2026-03-25T05:23:42.271" /><!-- duration: 31ms -->
+  <step title="Performing fetch based deployment" date="2026-03-25T05:23:42.349" >
+    <step title="Fetching changes." date="2026-03-25T05:23:42.490" /><!-- duration: 31ms -->
+    <step title="Starting LocalZipHandler" date="2026-03-25T05:23:42.536" /><!-- duration: 0ms -->
+    <step title="Cleaning up temp folders from previous zip deployments and extracting pushed zip file C:\local\Temp\zipdeploy\iwln4o4i.zip (78.88 MB) to C:\local\Temp\zipdeploy\extracted" date="2026-03-25T05:23:42.552" /><!-- duration: 0ms -->
+    <step title="Cleaning up temp folders from previous zip deployments and extracting pushed zip file C:\local\Temp\zipdeploy\iwln4o4i.zip (78.88 MB) to C:\local\Temp\zipdeploy\extracted" date="2026-03-25T05:23:42.568" >
+      <step title="Renaming extractTargetDirectory(C:\local\Temp\zipdeploy\extracted) to tempDirectory(C:\local\Temp\zipdeploy\vhacuwc1.yas)" date="2026-03-25T05:23:42.568" /><!-- duration: 0ms -->
+      <step title="Extracting 949 entries to C:\local\Temp\zipdeploy\extracted directory" date="2026-03-25T05:23:43.853" >
+        <step title="Extracting to C:\local\Temp\zipdeploy\extracted\Microsoft.Data.SqlClient.SNI.dll ..." date="2026-03-25T05:23:43.865" /><!-- duration: 31ms -->
+        <step title="Extracting to C:\local\Temp\zipdeploy\extracted\Azure.Storage.Common.dll ..." date="2026-03-25T05:23:43.913" /><!-- duration: 30ms -->
+        <step title="Extracting to C:\local\Temp\zipdeploy\extracted\MicrohireAgentChat.deps.json ..." date="2026-03-25T05:23:43.943" /><!-- duration: 20ms -->
+        <step title="Extracting to C:\local\Temp\zipdeploy\extracted\Microsoft.Win32.SystemEvents.dll ..." date="2026-03-25T05:23:43.974" /><!-- duration: 20ms -->
+        <step title="Extracting to C:\local\Temp\zipdeploy\extracted\Microsoft.DotNet.PlatformAbstractions.dll ..." date="2026-03-25T05:23:43.994" /><!-- duration: 12ms -->
+        <step title="Omitting extracting file traces ..." date="2026-03-25T05:23:44.005" /><!-- duration: 0ms -->
+      </step><!-- duration: 10699ms -->
+    </step><!-- duration: 12032ms -->
+    <step title="Before sending BuildRequestReceived status to /api/updatedeploystatus" date="2026-03-25T05:23:54.600" /><!-- duration: 31ms -->
+    <step title="DeploymentManager.Deploy(id:d3d332ab0a884999adfc7ef92a584403)" date="2026-03-25T05:23:54.630" >
+      <step title="Collecting changeset information" date="2026-03-25T05:23:54.662" /><!-- duration: 125ms -->
+      <step title="Updating submodules" date="2026-03-25T05:23:54.787" >
+        <step title="Updating submodules." date="2026-03-25T05:23:54.833" /><!-- duration: 16ms -->
+      </step><!-- duration: 80ms -->
+      <step title="Preparing deployment for commit id &apos;d3d332ab0a&apos;." date="2026-03-25T05:23:54.927" /><!-- duration: 20ms -->
+      <step title="Determining deployment builder" date="2026-03-25T05:23:55.038" >
+        <step title="Builder is OneDeployBuilder" date="2026-03-25T05:23:55.038" /><!-- duration: 30ms -->
+      </step><!-- duration: 61ms -->
+      <step title="Copying SSH keys" date="2026-03-25T05:23:55.130" /><!-- duration: 0ms -->
+      <step title="Building" date="2026-03-25T05:23:55.130" >
+        <step title="Running build. Project type: OneDeploy" date="2026-03-25T05:23:55.199" /><!-- duration: 10ms -->
+        <step title="Copying the manifest" date="2026-03-25T05:23:55.271" /><!-- duration: 18ms -->
+        <step title="Clean deploying to C:\home\site\wwwroot" date="2026-03-25T05:23:55.365" /><!-- duration: 0ms -->
+        <step title="Generating deployment script." date="2026-03-25T05:23:55.443" /><!-- duration: 0ms -->
+        <step title="Generating deployment script" date="2026-03-25T05:23:55.458" >
+          <step title="Using cached version of the deployment script for command: -y --no-dot-deployment -r &quot;C:\local\Temp\zipdeploy\extracted&quot; -o &quot;C:\home\site\deployments\tools&quot; --basic --sitePath &quot;C:\local\Temp\zipdeploy\extracted&quot;" date="2026-03-25T05:23:55.505" /><!-- duration: 16ms -->
+          <step title="Using cached version of deployment script (command: &apos;azure -y --no-dot-deployment -r &quot;C:\local\Temp\zipdeploy\extracted&quot; -o &quot;C:\home\site\deployments\tools&quot; --basic --sitePath &quot;C:\local\Temp\zipdeploy\extracted&quot;&apos;)." date="2026-03-25T05:23:55.537" /><!-- duration: 0ms -->
+        </step><!-- duration: 78ms -->
+        <step title="Running deployment command..." date="2026-03-25T05:23:55.599" /><!-- duration: 16ms -->
+        <step title="Command: &quot;C:\home\site\deployments\tools\deploy.cmd&quot;" date="2026-03-25T05:23:55.615" /><!-- duration: 16ms -->
+        <step title="Executing external process" date="2026-03-25T05:23:55.647" type="process" path="starter.cmd" arguments="&quot;C:\home\site\deployments\tools\deploy.cmd&quot;" >
+          <step title="Handling Basic Web Site deployment." date="2026-03-25T05:23:57.130" /><!-- duration: 0ms -->
+          <step title="Creating app_offline.htm" date="2026-03-25T05:24:01.515" /><!-- duration: 16ms -->
+          <step title="KuduSync.NET from: &apos;C:\local\Temp\zipdeploy\extracted&apos; to: &apos;C:\home\site\wwwroot&apos;" date="2026-03-25T05:24:01.546" /><!-- duration: 19ms -->
+          <step title="Copying file: &apos;MicrohireAgentChat.deps.json&apos;" date="2026-03-25T05:24:01.645" /><!-- duration: 10ms -->
+          <step title="Copying file: &apos;MicrohireAgentChat.dll&apos;" date="2026-03-25T05:24:01.655" /><!-- duration: 0ms -->
+          <step title="Copying file: &apos;MicrohireAgentChat.exe&apos;" date="2026-03-25T05:24:01.671" /><!-- duration: 0ms -->
+          <step title="Copying file: &apos;MicrohireAgentChat.runtimeconfig.json&apos;" date="2026-03-25T05:24:01.686" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;wwwroot\files\quotes\Quote-250195-20260325051043.html&apos;" date="2026-03-25T05:24:01.702" /><!-- duration: 0ms -->
+          <step title="Deleting app_offline.htm" date="2026-03-25T05:24:01.702" /><!-- duration: 16ms -->
+          <step title="Finished successfully." date="2026-03-25T05:24:01.718" /><!-- duration: 0ms -->
+        </step><!-- duration: 6086ms -->
+        <step title="Build completed succesfully." date="2026-03-25T05:24:01.827" /><!-- duration: 16ms -->
+        <step title="Running post deployment command(s)..." date="2026-03-25T05:24:01.921" /><!-- duration: 0ms -->
+        <step title="Requesting site restart" date="2026-03-25T05:24:01.999" /><!-- duration: 50ms -->
+        <step title="Requesting site restart" date="2026-03-25T05:24:02.048" /><!-- duration: 13ms -->
+        <step title="Requesting site restart. Attempt #1" date="2026-03-25T05:24:02.140" /><!-- duration: 16ms -->
+        <step title="Requesting site restart. Attempt #1" date="2026-03-25T05:24:02.155" /><!-- duration: 16ms -->
+        <step title="Successfully requested a restart. Attempt #1" date="2026-03-25T05:24:02.390" /><!-- duration: 0ms -->
+        <step title="Successfully requested a restart. Attempt #1" date="2026-03-25T05:24:02.405" /><!-- duration: 0ms -->
+        <step title="Deployment successful. DEPLOYMENTINFO: deploymentPath = OneDeploy, deployer = OneDeploy, os = windows, sku = Basic, siteName = microhire, siteHostName = microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net, deploymentStatus = Success" date="2026-03-25T05:24:02.483" /><!-- duration: 0ms -->
+        <step title="Purge deployment items" date="2026-03-25T05:24:02.655" >
+          <step title="Remove 135eac0f0, Success, received at 3/24/2026 8:36:11 AM" date="2026-03-25T05:24:02.704" /><!-- duration: 20ms -->
+        </step><!-- duration: 79ms -->
+      </step><!-- duration: 7604ms -->
+    </step><!-- duration: 8119ms -->
+    <step title="Cleaning up temp files" date="2026-03-25T05:24:02.749" /><!-- duration: 16ms -->
+    <step title="Skip function trigger and logicapp sync because function is not enabled." date="2026-03-25T05:24:02.784" /><!-- duration: 0ms -->
+  </step><!-- duration: 20463ms -->
+  <step title="LockFile &apos;C:\home\site\locks\deployments.lock&apos; released" date="2026-03-25T05:24:02.811" /><!-- duration: 0ms -->
+  <step title="Deleting shutdown sentinel file" date="2026-03-25T05:24:02.827" SemaphoreCount="8" /><!-- duration: 0ms -->
+</step><!-- duration: 20621ms -->

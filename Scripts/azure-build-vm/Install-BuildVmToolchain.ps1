@@ -26,4 +26,8 @@ winget install --id Git.Git --accept-package-agreements --accept-source-agreemen
 Write-Host "Installing Microsoft.AzureCLI ..."
 winget install --id Microsoft.AzureCLI --accept-package-agreements --accept-source-agreements
 
+# Chromium (Playwright) on Windows Server / minimal images often needs the VC++ 2015-2022 x64 runtime.
+Write-Host "Installing Microsoft.VCRedist.2015+.x64 (required for headless Chromium) ..."
+winget install --id Microsoft.VCRedist.2015+.x64 --accept-package-agreements --accept-source-agreements
+
 Write-Host "Done. Open a new terminal and verify: dotnet --version, git --version, az version"

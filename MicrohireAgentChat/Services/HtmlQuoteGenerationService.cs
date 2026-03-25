@@ -45,10 +45,17 @@ public partial class HtmlQuoteGenerationService
     public async Task<(bool success, string? htmlUrl, string? error)> GenerateHtmlQuoteForBookingAsync(
         string bookingNo,
         CancellationToken ct = default,
-        ISession? session = null)
+        ISession? session = null,
+        string? quoteTraceId = null)
     {
+        var trace = string.IsNullOrWhiteSpace(quoteTraceId) ? Guid.NewGuid().ToString("N")[..12] : quoteTraceId.Trim();
         var startTime = DateTime.UtcNow;
-        _logger.LogInformation("[QUOTE GEN] Starting HTML quote generation for booking {BookingNo} at {StartTime}", bookingNo, startTime);
+        _logger.LogInformation(
+            "[QUOTE GEN] trace={Trace} phase=start booking={BookingNo} utc={Start:o} contentRoot={ContentRoot}",
+            trace,
+            bookingNo,
+            startTime,
+            _env.ContentRootPath);
 
         try
         {
@@ -59,12 +66,18 @@ public partial class HtmlQuoteGenerationService
 
             if (booking == null)
             {
-                _logger.LogWarning("[QUOTE GEN] Booking {BookingNo} not found in database", bookingNo);
+                _logger.LogWarning("[QUOTE GEN] trace={Trace} phase=booking_missing booking={BookingNo}", trace, bookingNo);
                 return (false, null, $"Booking {bookingNo} not found");
             }
-            
-            _logger.LogInformation("[QUOTE GEN] Loaded booking {BookingNo}: ContactID={ContactId}, CustID={CustId}, VenueID={VenueId}, Date={EventDate}",
-                bookingNo, booking.ContactID, booking.CustID, booking.VenueID, booking.dDate);
+
+            _logger.LogInformation(
+                "[QUOTE GEN] trace={Trace} phase=booking_loaded booking={BookingNo} contactId={ContactId} custId={CustId} venueId={VenueId} eventDate={EventDate}",
+                trace,
+                bookingNo,
+                booking.ContactID,
+                booking.CustID,
+                booking.VenueID,
+                booking.dDate);
 
             // 2. Load venue information
             TblVenue? venue = null;
@@ -121,10 +134,15 @@ public partial class HtmlQuoteGenerationService
                 .AsNoTracking()
                 .Where(i => i.BookingNoV32 == bookingNo || (bookingIdAsInt.HasValue && i.BookingId == bookingIdAsInt.Value))
                 .ToListAsync(ct);
-            _logger.LogInformation("Loaded {ItemCount} equipment items", items.Count);
 
             // 6. Load inventory master data for descriptions and prices
             var productCodes = items.Select(i => i.ProductCodeV42).Where(p => !string.IsNullOrEmpty(p)).Distinct().ToList();
+            _logger.LogInformation(
+                "[QUOTE GEN] trace={Trace} phase=itemtrans_loaded booking={BookingNo} itemCount={ItemCount} distinctProductCodes={CodeCount}",
+                trace,
+                bookingNo,
+                items.Count,
+                productCodes.Count);
             var inventoryItemsList = await _db.TblInvmas
                 .AsNoTracking()
                 .Where(inv => productCodes.Contains(inv.product_code))
@@ -148,12 +166,24 @@ public partial class HtmlQuoteGenerationService
                 .Where(c => c.BookingNoV32 == bookingNo)
                 .OrderBy(c => c.Task).ThenBy(c => c.SeqNo)
                 .ToListAsync(ct);
-            _logger.LogInformation("Loaded {CrewCount} crew/labor rows for booking {BookingNo}", crewRows.Count, bookingNo);
+            _logger.LogInformation(
+                "[QUOTE GEN] trace={Trace} phase=crew_loaded booking={BookingNo} crewRows={CrewCount}",
+                trace,
+                bookingNo,
+                crewRows.Count);
 
             // 7. Build quote data (pass session overrides for venue/contact when available)
             string? sessionVenueName = session?.GetString("Draft:VenueName");
             string? sessionContactName = session?.GetString("Draft:ContactName");
             string? sessionOrganisation = session?.GetString("Draft:Organisation");
+            _logger.LogInformation(
+                "[QUOTE GEN] trace={Trace} phase=build_quote_data booking={BookingNo} sessionVenueOverride={HasVenue} sessionContactOverride={HasContact} sessionOrgOverride={HasOrg}",
+                trace,
+                bookingNo,
+                !string.IsNullOrWhiteSpace(sessionVenueName),
+                !string.IsNullOrWhiteSpace(sessionContactName),
+                !string.IsNullOrWhiteSpace(sessionOrganisation));
+
             var quoteData = BuildQuoteData(booking, venue, contact, organization, items, inventoryItems, rateItems,
                 crewRows, sessionVenueName, sessionContactName, sessionOrganisation);
 
@@ -161,7 +191,12 @@ public partial class HtmlQuoteGenerationService
             var htmlSw = Stopwatch.StartNew();
             var html = GenerateHtml(quoteData);
             htmlSw.Stop();
-            _logger.LogInformation("[QUOTE GEN] GenerateHtml completed in {Ms}ms for booking {BookingNo}", htmlSw.ElapsedMilliseconds, bookingNo);
+            _logger.LogInformation(
+                "[QUOTE GEN] trace={Trace} phase=html_string_done booking={BookingNo} ms={Ms} htmlChars={HtmlChars}",
+                trace,
+                bookingNo,
+                htmlSw.ElapsedMilliseconds,
+                html.Length);
 
             // 9. Save to file (Azure: %HOME%/data/quotes; local: wwwroot/files/quotes)
             var outDir = QuoteFilesPaths.GetPhysicalQuotesDirectory(_env);
@@ -169,13 +204,38 @@ public partial class HtmlQuoteGenerationService
             var outName = $"Quote-{bookingNo}-{DateTime.UtcNow:yyyyMMddHHmmss}.html";
             var dest = Path.Combine(outDir, outName);
 
+            _logger.LogInformation(
+                "[QUOTE GEN] trace={Trace} phase=write_html_prepare booking={BookingNo} outDir={OutDir} fileName={FileName}",
+                trace,
+                bookingNo,
+                outDir,
+                outName);
+
             var writeSw = Stopwatch.StartNew();
             await File.WriteAllTextAsync(dest, html, ct);
             writeSw.Stop();
-            _logger.LogInformation("[QUOTE GEN] Wrote HTML file in {Ms}ms for booking {BookingNo}", writeSw.ElapsedMilliseconds, bookingNo);
+            long htmlFileLen = 0;
+            try
+            {
+                if (File.Exists(dest))
+                    htmlFileLen = new FileInfo(dest).Length;
+            }
+            catch
+            {
+                /* ignore */
+            }
+
+            _logger.LogInformation(
+                "[QUOTE GEN] trace={Trace} phase=html_written booking={BookingNo} ms={Ms} bytes={Bytes} path={Path}",
+                trace,
+                bookingNo,
+                writeSw.ElapsedMilliseconds,
+                htmlFileLen,
+                dest);
 
             _logger.LogWarning(
-                "[QUOTE GEN] {Marker} post-HTML checkpoint booking={BookingNo} (if PDF logs never follow, this DLL may be stale or wrong instance)",
+                "[QUOTE GEN] trace={Trace} {Marker} post-HTML checkpoint booking={BookingNo}",
+                trace,
                 PdfQuotePipelineMarker,
                 bookingNo);
 
@@ -213,11 +273,38 @@ public partial class HtmlQuoteGenerationService
                 _hostLifetime.ApplicationStopping,
                 pdfTimeout.Token);
             _logger.LogInformation(
-                "[QUOTE GEN] Starting PDF generation for booking {BookingNo} (token: host shutdown or {TimeoutMin} min cap, not HTTP request)",
-                bookingNo, PdfGenerationAbsoluteTimeout.TotalMinutes);
-            var pdfOk = await GeneratePdfFromHtmlAsync(html, pdfDest, _logger, pdfWork.Token);
+                "[QUOTE GEN] trace={Trace} phase=pdf_start booking={BookingNo} pdfPath={PdfPath} pdfTimeoutMin={TimeoutMin} playwrightBootstrap={Diag}",
+                trace,
+                bookingNo,
+                pdfDest,
+                PdfGenerationAbsoluteTimeout.TotalMinutes,
+                PlaywrightBootstrap.GetStartupBrowserPathSummary());
+
+            var pdfWall = Stopwatch.StartNew();
+            var pdfOk = await GeneratePdfFromHtmlAsync(html, pdfDest, _logger, pdfWork.Token, trace);
+            pdfWall.Stop();
+
+            var pdfLen = File.Exists(pdfDest) ? new FileInfo(pdfDest).Length : 0;
+            _logger.LogInformation(
+                "[QUOTE GEN] trace={Trace} phase=pdf_renderer_returned booking={BookingNo} pdfOk={PdfOk} wallMs={WallMs} pdfExists={Exists} pdfBytes={PdfBytes}",
+                trace,
+                bookingNo,
+                pdfOk,
+                pdfWall.ElapsedMilliseconds,
+                File.Exists(pdfDest),
+                pdfLen);
+
             if (!pdfOk || !File.Exists(pdfDest) || new FileInfo(pdfDest).Length == 0)
             {
+                _logger.LogWarning(
+                    "[QUOTE GEN] trace={Trace} phase=pdf_failed booking={BookingNo} pdfOk={PdfOk} pdfPath={PdfPath} pdfBytes={PdfBytes} removingHtml={WillDelete}",
+                    trace,
+                    bookingNo,
+                    pdfOk,
+                    pdfDest,
+                    pdfLen,
+                    File.Exists(dest));
+
                 try
                 {
                     if (File.Exists(dest))
@@ -225,16 +312,22 @@ public partial class HtmlQuoteGenerationService
                 }
                 catch (Exception delEx)
                 {
-                    _logger.LogWarning(delEx, "[QUOTE GEN] Failed to remove HTML after PDF failure for booking {BookingNo}", bookingNo);
+                    _logger.LogWarning(delEx, "[QUOTE GEN] trace={Trace} Failed to remove HTML after PDF failure booking={BookingNo}", trace, bookingNo);
                 }
 
                 return (false, null, "Failed to generate quote PDF. Ensure Playwright Chromium is installed on the server.");
             }
 
             var elapsedMs = (DateTime.UtcNow - startTime).TotalMilliseconds;
-            _logger.LogInformation("[QUOTE GEN] Quote generated successfully for booking {BookingNo}: " +
-                "File={FileName}, HtmlLength={HtmlLength} chars, ElapsedMs={ElapsedMs}",
-                bookingNo, outName, html.Length, elapsedMs);
+            _logger.LogInformation(
+                "[QUOTE GEN] trace={Trace} phase=success booking={BookingNo} htmlFile={HtmlFile} htmlChars={HtmlChars} pdfBytes={PdfBytes} totalMs={TotalMs} publicUrlPath=/files/quotes/{FileName}",
+                trace,
+                bookingNo,
+                outName,
+                html.Length,
+                pdfLen,
+                elapsedMs,
+                outName);
 
             var url = QuoteFilesPaths.PublicUrlForFileName(outName);
             return (true, url, null);
@@ -243,8 +336,12 @@ public partial class HtmlQuoteGenerationService
         {
             var elapsedMs = (DateTime.UtcNow - startTime).TotalMilliseconds;
             var errorDetail = $"{ex.Message} {(ex.InnerException != null ? "-> " + ex.InnerException.Message : "")}";
-            _logger.LogError(ex, "[QUOTE GEN] Failed to generate HTML quote for booking {BookingNo} after {ElapsedMs}ms: {ErrorMessage}", 
-                bookingNo, elapsedMs, errorDetail);
+            _logger.LogError(ex,
+                "[QUOTE GEN] trace={Trace} phase=exception booking={BookingNo} afterMs={ElapsedMs} error={ErrorMessage}",
+                trace,
+                bookingNo,
+                elapsedMs,
+                errorDetail);
             return (false, null, errorDetail);
         }
     }
@@ -613,6 +710,7 @@ public partial class HtmlQuoteGenerationService
         string html,
         string pdfOutputPath,
         ILogger? logger = null,
-        CancellationToken cancellationToken = default) =>
-        _pdfRenderer.GeneratePdfFromHtmlAsync(html, pdfOutputPath, logger, cancellationToken);
+        CancellationToken cancellationToken = default,
+        string? quoteTraceId = null) =>
+        _pdfRenderer.GeneratePdfFromHtmlAsync(html, pdfOutputPath, logger, cancellationToken, quoteTraceId);
 }

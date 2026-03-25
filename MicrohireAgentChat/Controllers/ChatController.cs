@@ -2553,6 +2553,15 @@ public sealed class ChatController : Controller
 
     private async Task GenerateQuoteForBookingAsync(string bookingNo, List<DisplayMessage> msgList, CancellationToken ct)
     {
+        var flowTrace = HttpContext.TraceIdentifier;
+        _logger.LogInformation(
+            "[QUOTE FLOW] trace={Trace} phase=enter GenerateQuoteForBookingAsync booking={BookingNo} msgCount={MsgCount} quoteCompleteSession={QuoteComplete} quoteUrlSet={HasUrl}",
+            flowTrace,
+            bookingNo,
+            msgList.Count,
+            HttpContext.Session.GetString("Draft:QuoteComplete") == "1",
+            !string.IsNullOrEmpty(HttpContext.Session.GetString("Draft:QuoteUrl")));
+
         try
         {
             var venueOrRoomChanged = await _bookingPersistence.SyncVenueAndRoomForBookingAsync(bookingNo, HttpContext.Session, ct);
@@ -2677,14 +2686,27 @@ public sealed class ChatController : Controller
         // ========== GENERATE QUOTE HTML ==========
         try
         {
-            _logger.LogInformation("Starting HTML quote generation for booking {BookingNo}", bookingNo);
+            _logger.LogInformation(
+                "[QUOTE FLOW] trace={Trace} phase=invoke_html_pdf booking={BookingNo} timeoutMin=5 linkedToRequestCt=true",
+                flowTrace,
+                bookingNo);
             // HTML + Playwright PDF can exceed 30s on cold start / remote DB; align with chat client timeout.
             using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
             try
             {
-                var (quoteSuccess, quoteUrl, quoteError) = await _htmlQuoteGen.GenerateHtmlQuoteForBookingAsync(bookingNo, linkedCts.Token, HttpContext.Session);
-                _logger.LogInformation("HTML quote generation completed for booking {BookingNo}, success: {Success}", bookingNo, quoteSuccess);
+                var (quoteSuccess, quoteUrl, quoteError) = await _htmlQuoteGen.GenerateHtmlQuoteForBookingAsync(
+                    bookingNo,
+                    linkedCts.Token,
+                    HttpContext.Session,
+                    flowTrace);
+                _logger.LogInformation(
+                    "[QUOTE FLOW] trace={Trace} phase=html_pdf_returned booking={BookingNo} success={Success} hasUrl={HasUrl} errorLen={ErrLen}",
+                    flowTrace,
+                    bookingNo,
+                    quoteSuccess,
+                    !string.IsNullOrWhiteSpace(quoteUrl),
+                    quoteError?.Length ?? 0);
 
                 if (quoteSuccess && !string.IsNullOrWhiteSpace(quoteUrl))
                 {
@@ -2771,19 +2793,22 @@ public sealed class ChatController : Controller
             }
             catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
             {
-                _logger.LogWarning("HTML quote generation timed out for booking {BookingNo}", bookingNo);
+                _logger.LogWarning(
+                    "[QUOTE FLOW] trace={Trace} phase=timeout inner_5min booking={BookingNo}",
+                    flowTrace,
+                    bookingNo);
                 await RecoverQuoteFromDiskOrAnnounceWaitAsync(msgList, bookingNo, quotesDir, ct, "QuoteGenTimeout");
             }
             catch (OperationCanceledException oce)
             {
                 // Client/gateway disconnected or request aborted while HTML/PDF still running — not the in-app 5-minute timeout.
-                _logger.LogWarning(oce, "HTML quote generation cancelled (external) for booking {BookingNo}", bookingNo);
+                _logger.LogWarning(oce, "[QUOTE FLOW] trace={Trace} phase=cancelled_external booking={BookingNo}", flowTrace, bookingNo);
                 await RecoverQuoteFromDiskOrAnnounceWaitAsync(msgList, bookingNo, quotesDir, ct, "QuoteGenCancelled");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Exception during quote generation for booking {BookingNo}", bookingNo);
+            _logger.LogError(ex, "[QUOTE FLOW] trace={Trace} phase=outer_exception booking={BookingNo}", flowTrace, bookingNo);
             try
             {
                 await RecoverQuoteFromDiskOrAnnounceWaitAsync(msgList, bookingNo, quotesDir, ct, "QuoteGenException");
@@ -3085,7 +3110,7 @@ public sealed class ChatController : Controller
                     using var pdfWork = CancellationTokenSource.CreateLinkedTokenSource(
                         _hostLifetime.ApplicationStopping,
                         pdfTimeout.Token);
-                    var pdfOk = await _htmlQuoteGen.GeneratePdfFromHtmlAsync(html, pdfPath, _logger, pdfWork.Token);
+                    var pdfOk = await _htmlQuoteGen.GeneratePdfFromHtmlAsync(html, pdfPath, _logger, pdfWork.Token, HttpContext.TraceIdentifier);
                     signedPdfReady = pdfOk && System.IO.File.Exists(pdfPath) && new FileInfo(pdfPath).Length > 0;
                     if (!signedPdfReady)
                     {

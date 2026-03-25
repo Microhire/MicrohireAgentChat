@@ -1,0 +1,3 @@
+<step title="Begin HttpPost https://microhire-geg6hggrhdcqbme9.scm.australiasoutheast-01.azurewebsites.net/api/app/restart, x-ms-request-id: 6b45bbfe-2720-11f1-bdc8-464431335779" date="2026-03-24T01:26:59.749" instance="75fc64" >
+  <step title="Cleanup Xml Logs" date="2026-03-24T01:26:59.763" /><!-- duration: 31ms -->
+</step><!-- duration: 62ms -->

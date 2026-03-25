@@ -163,6 +163,19 @@ if (-not $browserFiles) {
     throw "pw-browsers is empty after playwright install"
 }
 
+$verifyScript = Join-Path $PSScriptRoot "Verify-PlaywrightBundle.ps1"
+if (Test-Path -LiteralPath $verifyScript) {
+    & $verifyScript -PublishRoot $publishOut -CheckVcRedist
+}
+else {
+    Write-Warning "Verify-PlaywrightBundle.ps1 not found next to Build-AndDeploy.ps1; skipping bundle verification."
+}
+
+Write-Host ""
+Write-Host "Runtime (Azure App Service): PlaywrightBootstrap sets PLAYWRIGHT_BROWSERS_PATH to pw-browsers next to MicrohireAgentChat.dll when present."
+Write-Host "Do not set PLAYWRIGHT_BROWSERS_PATH in Portal unless you know the path — empty is correct so the app uses the bundled folder."
+Write-Host ""
+
 if (Test-Path -LiteralPath $OutputZip) {
     Remove-Item -LiteralPath $OutputZip -Force
 }
