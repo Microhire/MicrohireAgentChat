@@ -377,7 +377,8 @@ Scripts/delete-email.env
 /deployments/
 /publish_out/
 /site.zip
-/microhire-logs.zip
+# Azure log bundle downloads (local; never commit — blocks teammates' git pull if tracked)
+/microhire*.zip
 # Prefer: mkdir _azure_logs && tar -xf microhire-logs.zip -C _azure_logs   (or unzip -d _azure_logs)
 /_azure_logs/
 # Local extracts of Kudu/App logs (long filenames break `git pull` on Windows if committed)

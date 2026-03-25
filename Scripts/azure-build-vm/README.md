@@ -63,6 +63,8 @@ That publishes **win-x64**, runs **Playwright Chromium** into **`pw-browsers`**,
 
 **Git `pull` on Windows (`filename too long`):** Azure log extracts under `_azure-logs/` or `_azure-log-extract/` must **not** be committed — some Kudu trace file names exceed Windows path limits and break checkout. The repo ignores those folders. If `git pull` still fails: delete any local `_azure-logs` / `_azure-log-extract` folders, run `git config --global core.longpaths true`, then `git pull` again (or `git fetch` + `git reset --hard origin/master` only if you have no local commits you need).
 
+**Git `pull` (`untracked … would be overwritten by merge`):** Log zips such as **`microhire-logs-download.zip`** at the repo root must not be committed. If you have one locally and pull fails, run **`Rename-Item microhire-logs-download.zip microhire-logs-download.zip.bak`** (or move it outside the repo), then **`git pull`** again.
+
 **Stuck build / kill and retry (RDP on the VM):** Open **Task Manager** (Ctrl+Shift+Esc) → **Details** → end stray **`dotnet.exe`** / **`pwsh.exe`** / **`powershell.exe`** rows tied to your build (or close the PowerShell window running the script). Then open a new PowerShell at the repo root and run **`Build-AndDeploy.ps1`** again. Alternatively, **`git pull`** then **`.\\Scripts\\azure-build-vm\\remote-redeploy.ps1`** (pull + full build/deploy).
 
 - Build only (no deploy): add **`-SkipDeploy`**, then deploy the zip yourself later.
