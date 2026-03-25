@@ -61,6 +61,8 @@ That publishes **win-x64**, runs **Playwright Chromium** into **`pw-browsers`**,
 
 **Packaging:** The script zips with **`ZipFile.CreateFromDirectory`** (not `Compress-Archive` with a `*` wildcard). On Windows PowerShell, wildcards **skip dot-prefixed folders**, so **`.playwright`** (the Playwright Node driver) would be **omitted** from `site.zip` and PDF generation would fail on Azure with “driver not found”. If you zip manually, use the same API or include `.playwright` explicitly.
 
+**Git `pull` on Windows (`filename too long`):** Azure log extracts under `_azure-logs/` or `_azure-log-extract/` must **not** be committed — some Kudu trace file names exceed Windows path limits and break checkout. The repo ignores those folders. If `git pull` still fails: delete any local `_azure-logs` / `_azure-log-extract` folders, run `git config --global core.longpaths true`, then `git pull` again (or `git fetch` + `git reset --hard origin/master` only if you have no local commits you need).
+
 **Stuck build / kill and retry (RDP on the VM):** Open **Task Manager** (Ctrl+Shift+Esc) → **Details** → end stray **`dotnet.exe`** / **`pwsh.exe`** / **`powershell.exe`** rows tied to your build (or close the PowerShell window running the script). Then open a new PowerShell at the repo root and run **`Build-AndDeploy.ps1`** again. Alternatively, **`git pull`** then **`.\\Scripts\\azure-build-vm\\remote-redeploy.ps1`** (pull + full build/deploy).
 
 - Build only (no deploy): add **`-SkipDeploy`**, then deploy the zip yourself later.
