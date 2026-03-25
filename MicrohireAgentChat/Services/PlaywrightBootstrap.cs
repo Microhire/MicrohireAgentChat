@@ -84,34 +84,63 @@ public static class PlaywrightBootstrap
     }
 
     /// <summary>
+    /// Returns true when <c>chrome.exe</c> (Windows) or a Playwright Chromium <c>chrome</c> binary exists under
+    /// <c>PLAYWRIGHT_BROWSERS_PATH</c>. In that case we skip <see cref="TryProbePlaywrightAsync"/> so the app pays
+    /// one Chromium launch in <see cref="PlaywrightQuotePdfRenderer"/> instead of probe + shared browser.
+    /// </summary>
+    public static bool IsBundledChromiumExecutablePresent()
+    {
+        var browsers = Environment.GetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH");
+        if (string.IsNullOrEmpty(browsers) || !Directory.Exists(browsers))
+            return false;
+
+        try
+        {
+            if (OperatingSystem.IsWindows())
+                return Directory.EnumerateFiles(browsers, "chrome.exe", SearchOption.AllDirectories).Any();
+
+            return Directory.EnumerateFiles(browsers, "chrome", SearchOption.AllDirectories)
+                .Any(p => string.Equals(Path.GetFileName(p), "chrome", StringComparison.OrdinalIgnoreCase));
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    /// <summary>
     /// Probes Playwright; on driver/browser errors runs <c>install chromium</c> once per process (serialized).
+    /// Skips the probe launch when a bundled Chromium executable is already on disk (see <see cref="IsBundledChromiumExecutablePresent"/>).
     /// </summary>
     public static async Task EnsureChromiumReadyAsync(ILogger? logger, CancellationToken cancellationToken = default)
     {
-        logger?.LogInformation(
-            "[Playwright] EnsureChromiumReadyAsync starting. First probe can take up to ~2 min; install chromium up to ~10 min. {Diag}",
-            BuildPlaywrightDiagSnapshot());
-
-        var probe1 = await TryProbePlaywrightAsync(cancellationToken).ConfigureAwait(false);
-        if (probe1.Ok)
+        var sw = Stopwatch.StartNew();
+        if (IsBundledChromiumExecutablePresent())
         {
-            logger?.LogInformation("[Playwright] Chromium probe OK on first try.");
+            sw.Stop();
+            logger?.LogInformation(
+                "[Playwright] Bundled Chromium on disk; skipping probe launch. bootstrapMs={Ms} {Summary}",
+                sw.ElapsedMilliseconds,
+                GetStartupBrowserPathSummary());
             return;
         }
 
-        logger?.LogWarning(
-            "[Playwright] First probe failed: {Reason}. Serializing install; another request may wait here.",
-            probe1.ErrorDetail ?? "(unknown)");
+        if ((await TryProbePlaywrightAsync(cancellationToken).ConfigureAwait(false)).Ok)
+        {
+            sw.Stop();
+            logger?.LogInformation("[Playwright] Probe launch succeeded. bootstrapMs={Ms}", sw.ElapsedMilliseconds);
+            return;
+        }
+
+        sw.Stop();
+        logger?.LogWarning("[Playwright] Probe failed after {Ms} ms; may run install.", sw.ElapsedMilliseconds);
 
         await InstallGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             var recheck = await TryProbePlaywrightAsync(cancellationToken).ConfigureAwait(false);
             if (recheck.Ok)
-            {
-                logger?.LogInformation("[Playwright] Chromium probe OK after waiting on install gate.");
                 return;
-            }
 
             if (_installAttempted)
             {

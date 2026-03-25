@@ -1,3 +1,4 @@
+using MicrohireAgentChat.Helpers;
 using MicrohireAgentChat.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -141,7 +142,4 @@ public class QuotesFromBlankController : Controller
         var url = $"{Request.Scheme}://{Request.Host}/files/quotes/{Uri.EscapeDataString(name)}";
         return Ok(new { url });
     }
-
-    // GET /quotes/preview and GET /quotes/download are implemented on QuotesPdfController only.
-    // Duplicating the same routes here caused AmbiguousMatchException on Azure for /quotes/download.
 }

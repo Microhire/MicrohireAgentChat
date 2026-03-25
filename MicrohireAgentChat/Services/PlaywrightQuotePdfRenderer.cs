@@ -14,14 +14,18 @@ public sealed class PlaywrightQuotePdfRenderer : IPlaywrightQuotePdfRenderer, IH
     private const float ChromiumLaunchTimeoutMs = 120_000f;
 
     private readonly ILogger<PlaywrightQuotePdfRenderer> _logger;
+    private readonly IHostApplicationLifetime _lifetime;
     private readonly SemaphoreSlim _pdfGate = new(1, 1);
+    /// <summary>Serializes shared browser creation/disposal vs. background pre-warm and invalidation.</summary>
+    private readonly SemaphoreSlim _browserInitLock = new(1, 1);
 
     private IPlaywright? _playwright;
     private IBrowser? _browser;
 
-    public PlaywrightQuotePdfRenderer(ILogger<PlaywrightQuotePdfRenderer> logger)
+    public PlaywrightQuotePdfRenderer(ILogger<PlaywrightQuotePdfRenderer> logger, IHostApplicationLifetime lifetime)
     {
         _logger = logger;
+        _lifetime = lifetime;
     }
 
     public async Task<bool> GeneratePdfFromHtmlAsync(
@@ -32,15 +36,18 @@ public sealed class PlaywrightQuotePdfRenderer : IPlaywrightQuotePdfRenderer, IH
         string? quoteTraceId = null)
     {
         var trace = quoteTraceId ?? "(no-trace)";
+        var gateWaitSw = Stopwatch.StartNew();
         await _pdfGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        gateWaitSw.Stop();
         var log = logger ?? _logger;
         var gateSw = Stopwatch.StartNew();
         try
         {
             cancellationToken.ThrowIfCancellationRequested();
             log.LogInformation(
-                "[QUOTE GEN] PDF trace={Trace} phase=playwright_enter htmlChars={HtmlChars} pdfPath={PdfPath}",
+                "[QUOTE GEN] PDF trace={Trace} phase=playwright_enter pdf_gate_waitMs={GateWaitMs} htmlChars={HtmlChars} pdfPath={PdfPath}",
                 trace,
+                gateWaitSw.ElapsedMilliseconds,
                 html?.Length ?? 0,
                 pdfOutputPath);
 
@@ -153,40 +160,70 @@ public sealed class PlaywrightQuotePdfRenderer : IPlaywrightQuotePdfRenderer, IH
             return;
         }
 
-        logger?.LogInformation("[QUOTE GEN] PDF trace={Trace} phase=ensure_chromium_playwright_bootstrap", trace);
-        await PlaywrightBootstrap.EnsureChromiumReadyAsync(logger, cancellationToken).ConfigureAwait(false);
-
-        if (_browser is { IsConnected: true })
-            return;
-
-        await DisposeBrowserOnlyAsync().ConfigureAwait(false);
-
-        logger?.LogInformation("[QUOTE GEN] PDF trace={Trace} phase=playwright_create_async", trace);
-        _playwright ??= await Playwright.CreateAsync().ConfigureAwait(false);
-
-        logger?.LogInformation(
-            "[QUOTE GEN] PDF trace={Trace} phase=chromium_launch timeoutMs={TimeoutMs}",
-            trace,
-            ChromiumLaunchTimeoutMs);
-        _browser = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        await _browserInitLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try
         {
-            Headless = true,
-            Args = new[] { "--no-sandbox", "--disable-dev-shm-usage" },
-            Timeout = ChromiumLaunchTimeoutMs
-        }).ConfigureAwait(false);
+            if (_browser is { IsConnected: true })
+            {
+                logger?.LogInformation("[QUOTE GEN] PDF trace={Trace} phase=ensure_browser reuse_existing_after_lock", trace);
+                return;
+            }
 
-        logger?.LogInformation("[QUOTE GEN] PDF trace={Trace} phase=chromium_launched", trace);
+            var bootstrapSw = Stopwatch.StartNew();
+            logger?.LogInformation("[QUOTE GEN] PDF trace={Trace} phase=ensure_chromium_playwright_bootstrap", trace);
+            await PlaywrightBootstrap.EnsureChromiumReadyAsync(logger, cancellationToken).ConfigureAwait(false);
+            bootstrapSw.Stop();
+            logger?.LogInformation(
+                "[QUOTE GEN] PDF trace={Trace} phase=ensure_chromium_playwright_bootstrap_done ms={Ms}",
+                trace,
+                bootstrapSw.ElapsedMilliseconds);
+
+            await DisposeBrowserOnlyAsync().ConfigureAwait(false);
+
+            logger?.LogInformation("[QUOTE GEN] PDF trace={Trace} phase=playwright_create_async", trace);
+            _playwright ??= await Playwright.CreateAsync().ConfigureAwait(false);
+
+            var launchSw = Stopwatch.StartNew();
+            logger?.LogInformation(
+                "[QUOTE GEN] PDF trace={Trace} phase=chromium_launch timeoutMs={TimeoutMs}",
+                trace,
+                ChromiumLaunchTimeoutMs);
+            _browser = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+            {
+                Headless = true,
+                Args = new[] { "--no-sandbox", "--disable-dev-shm-usage" },
+                Timeout = ChromiumLaunchTimeoutMs
+            }).ConfigureAwait(false);
+            launchSw.Stop();
+
+            logger?.LogInformation(
+                "[QUOTE GEN] PDF trace={Trace} phase=chromium_launched sharedLaunchMs={Ms}",
+                trace,
+                launchSw.ElapsedMilliseconds);
+        }
+        finally
+        {
+            _browserInitLock.Release();
+        }
     }
 
     private async Task InvalidateBrowserAsync(ILogger? logger)
     {
+        await _browserInitLock.WaitAsync().ConfigureAwait(false);
         try
         {
-            await DisposeBrowserOnlyAsync().ConfigureAwait(false);
+            try
+            {
+                await DisposeBrowserOnlyAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                logger?.LogWarning(ex, "[QUOTE GEN] Error while invalidating shared Chromium.");
+            }
         }
-        catch (Exception ex)
+        finally
         {
-            logger?.LogWarning(ex, "[QUOTE GEN] Error while invalidating shared Chromium.");
+            _browserInitLock.Release();
         }
     }
 
@@ -207,18 +244,47 @@ public sealed class PlaywrightQuotePdfRenderer : IPlaywrightQuotePdfRenderer, IH
         }
     }
 
-    public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    public Task StartAsync(CancellationToken cancellationToken)
+    {
+        _ = Task.Run(
+            async () =>
+            {
+                try
+                {
+                    await EnsureBrowserReadyAsync(_logger, _lifetime.ApplicationStopping, "(prewarm)").ConfigureAwait(false);
+                    _logger.LogInformation("[QUOTE GEN] PDF trace=(prewarm) phase=prewarm_complete");
+                }
+                catch (OperationCanceledException)
+                {
+                    // App stopped before pre-warm finished.
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[QUOTE GEN] Pre-warm Chromium failed (non-fatal).");
+                }
+            },
+            CancellationToken.None);
+        return Task.CompletedTask;
+    }
 
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         await _pdfGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            await DisposeBrowserOnlyAsync().ConfigureAwait(false);
-            if (_playwright != null)
+            await _browserInitLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
             {
-                _playwright.Dispose();
-                _playwright = null;
+                await DisposeBrowserOnlyAsync().ConfigureAwait(false);
+                if (_playwright != null)
+                {
+                    _playwright.Dispose();
+                    _playwright = null;
+                }
+            }
+            finally
+            {
+                _browserInitLock.Release();
             }
         }
         finally
