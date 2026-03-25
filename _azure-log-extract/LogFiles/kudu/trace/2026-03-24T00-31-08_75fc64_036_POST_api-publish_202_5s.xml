@@ -1,0 +1,17 @@
+<step title="Incoming Request" date="2026-03-24T00:31:08.468" instance="75fc64" url="/api/publish?type=zip&amp;async=True" method="POST" type="request" pid="7676,2,52" Cache-Control="no-cache" Content-Length="48798831" Content-Type="application/octet-stream" Accept="*/*" Accept-Encoding="gzip, deflate" Authorization="Bea..." Host="microhire-geg6hggrhdcqbme9.scm.australiasoutheast-01.azurewebsites.net" User-Agent="AZURECLI/2.81.0 (HOMEBREW)" x-ms-client-request-id="bde3b206-2718-11f1-9036-464431335779" X-ARR-LOG-ID="bde3b206-2718-11f1-9036-464431335779" CLIENT-IP="112.134.163.44:45248" X-SITE-DEPLOYMENT-ID="microhire" WAS-DEFAULT-HOSTNAME="microhire-geg6hggrhdcqbme9.scm.australiasoutheast-01.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/publish?type=zip&amp;async=True" >
+  <step title="Cleanup Xml Logs" date="2026-03-24T00:31:08.468" /><!-- duration: 16ms -->
+  <step title="OneDeploy" date="2026-03-24T00:31:08.517" >
+    <step title="Starting PushDeployAsync" date="2026-03-24T00:31:08.517" /><!-- duration: 13ms -->
+    <step title="Updating shutdown sentinel last write time" date="2026-03-24T00:31:08.547" SemaphoreCount="7" /><!-- duration: 0ms -->
+    <step title="LockFile &apos;C:\home\site\locks\deployments.lock&apos; acquired" date="2026-03-24T00:31:08.562" /><!-- duration: 0ms -->
+    <step title="Saving request content to C:\local\Temp\zipdeploy\31igkftx.zip" date="2026-03-24T00:31:08.596" >
+      <step title="Total 48,798,831 bytes written to C:\local\Temp\zipdeploy\31igkftx.zip" date="2026-03-24T00:31:13.230" /><!-- duration: 13ms -->
+    </step><!-- duration: 4647ms -->
+    <step title="LockFile &apos;C:\home\site\locks\deployments.lock&apos; released" date="2026-03-24T00:31:13.259" /><!-- duration: 0ms -->
+    <step title="Deleting shutdown sentinel file" date="2026-03-24T00:31:13.273" SemaphoreCount="8" /><!-- duration: 0ms -->
+    <step title="Starting FetchDeploy" date="2026-03-24T00:31:13.289" /><!-- duration: 0ms -->
+    <step title="Start deployment in the background" date="2026-03-24T00:31:13.306" /><!-- duration: 139ms -->
+  </step><!-- duration: 4928ms -->
+  <step title="Outgoing response" date="2026-03-24T00:31:13.478" type="response" statusCode="202" statusText="Accepted" Server="Microsoft-IIS/10.0" x-ms-request-id="bde3b206-2718-11f1-9036-464431335779" Retry-After="30" Cache-Control="private" X-AspNet-Version="4.0.30319" Location="https://microhire-geg6hggrhdcqbme9.scm.australiasoutheast-01.azurewebsites.net/api/deployments/latest?deployer=OneDeploy&amp;time=2026-03-24_00-31-13Z" /><!-- duration: 14ms -->
+</step><!-- duration: 5059ms -->
+<step title="Starting LocalZipFetch" date="2026-03-24T00:31:13.605" instance="75fc64" /><!-- duration: 12ms -->

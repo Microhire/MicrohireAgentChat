@@ -17,14 +17,6 @@ DECLARE @ContactIds TABLE (id DECIMAL(10,0));
 INSERT INTO @ContactIds
 SELECT ID FROM dbo.tblContact WHERE LOWER(LTRIM(Email)) = LOWER(@TargetEmail);
 
-DECLARE @OrgIds TABLE (id DECIMAL(10,0));
-INSERT INTO @OrgIds SELECT DISTINCT b.CustID FROM dbo.tblbookings b
-  INNER JOIN @ContactIds c ON b.ContactID = c.id WHERE b.CustID IS NOT NULL;
-INSERT INTO @OrgIds SELECT DISTINCT ID FROM dbo.tblcust WHERE iLink_ContactID IN (SELECT id FROM @ContactIds);
-INSERT INTO @OrgIds SELECT DISTINCT c.ID FROM dbo.tblLinkCustContact l
-  INNER JOIN dbo.tblcust c ON c.Customer_code IS NOT NULL AND l.Customer_Code IS NOT NULL AND l.Customer_Code = c.Customer_code
-  WHERE l.ContactID IN (SELECT id FROM @ContactIds);
-
 /* Booking line items */
 DELETE it
 FROM dbo.tblitemtran it
@@ -54,25 +46,13 @@ DELETE FROM dbo.tblbookings WHERE ContactID IN (SELECT id FROM @ContactIds);
 
 DELETE FROM dbo.tblLinkCustContact WHERE ContactID IN (SELECT id FROM @ContactIds);
 
-/* Organisations tied to this user: no remaining bookings, no contact links, safe primary */
+/* Customers linked only to this contact and with no remaining bookings */
 DELETE c
 FROM dbo.tblcust c
-WHERE c.ID IN (SELECT id FROM @OrgIds)
-  AND NOT EXISTS (SELECT 1 FROM dbo.tblbookings b WHERE b.CustID = c.ID)
-  AND NOT EXISTS (
-    SELECT 1 FROM dbo.tblLinkCustContact l
-    WHERE c.Customer_code IS NOT NULL AND l.Customer_Code IS NOT NULL AND l.Customer_Code = c.Customer_code
-  )
-  AND (
-    c.iLink_ContactID IN (SELECT id FROM @ContactIds)
-    OR c.iLink_ContactID IS NULL
-    OR c.iLink_ContactID = 0
-  );
+WHERE c.iLink_ContactID IN (SELECT id FROM @ContactIds)
+  AND NOT EXISTS (SELECT 1 FROM dbo.tblbookings b WHERE b.CustID = c.ID);
 
 DELETE FROM dbo.tblContact WHERE ID IN (SELECT id FROM @ContactIds);
-
-IF OBJECT_ID('dbo.AgentThreads','U') IS NOT NULL
-  DELETE FROM dbo.AgentThreads WHERE LOWER(LTRIM(UserKey)) = LOWER(@TargetEmail);
 
 COMMIT TRANSACTION;
 

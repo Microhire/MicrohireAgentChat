@@ -1,0 +1,33 @@
+2026-03-25T08:08:19  PID[7720] Information Unpacking resources...
+2026-03-25T08:08:20  PID[7720] Information 03-25 08:08:20 Information: Executing Application Insights Profiler agent version 2.6.2506.502 with arguments: 
+2026-03-25T08:08:20  PID[7720] Information 03-25 08:08:20 Information: Minimum version enabled on machine: 1.0.0
+2026-03-25T08:08:20  PID[7720] Information 03-25 08:08:20 Information: Applying logging level: Information
+2026-03-25T08:08:20  PID[7720] Information 03-25 08:08:20 Information: Effective connection string: InstrumentationKey=7e674e8b-317e-43be-9613-f825c00b0b80;IngestionEndpoint=https://australiasoutheast-0.in.applicationinsights.azure.com/;LiveEndpoint=https://australiasoutheast.livediagnostics.monitor.azure.com/;ApplicationId=f0e4a23b-bdcd-41cb-ba91-ef9aae55e673
+2026-03-25T08:08:20  PID[7720] Information 03-25 08:08:20 Information: Instrumentation key: 7e674e8b-317e-43be-9613-f825c00b0b80
+2026-03-25T08:08:20  PID[7720] Information 03-25 08:08:20 Information: Application Insights Profiler endpoint: https://profiler.monitor.azure.com/
+2026-03-25T08:08:20  PID[7720] Information 03-25 08:08:20 Information: Application Insights endpoint: https://australiasoutheast-0.in.applicationinsights.azure.com/v2/track/
+2026-03-25T08:08:20  PID[7720] Information 03-25 08:08:20 Information: Runtime Environment: Antares
+2026-03-25T08:08:20  PID[7720] Information 03-25 08:08:20 Information: Support files: C:\local\Temp\jobs\continuous\ApplicationInsightsProfiler3\xxf0sgei.xyx\spsupport
+2026-03-25T08:08:21  PID[7720] Information 03-25 08:08:20 Information: Providing usage data (to opt out set the AppSettings ApplicationInsightsProvideUsageTelemetryData with the value "false"): True
+2026-03-25T08:08:21  PID[7720] Information 03-25 08:08:20 Information: Engine mode: Sampling
+2026-03-25T08:08:22  PID[7720] Information 03-25 08:08:20 Information: Circular Monitor Agent version: 5
+2026-03-25T08:08:22  PID[7720] Information 03-25 08:08:20 Information: Circular Monitor Agent config: 
+2026-03-25T08:08:22  PID[7720] Information 03-25 08:08:20 Information: Shutdown handler set to watch C:\local\Temp\JobsShutdown\continuous\ApplicationInsightsProfiler3\0kjahyce.50h.
+2026-03-25T08:08:23  PID[7720] Information 03-25 08:08:23 Information: Application Insights AppId: f0e4a23b-bdcd-41cb-ba91-ef9aae55e673
+2026-03-25T08:08:24  PID[7720] Information 03-25 08:08:24 Critical: Settings have been set from Engine
+2026-03-25T08:08:24  PID[7720] Information 03-25 08:08:24 Information: Local PDB scan complete. Found 0 PDB(s).
+2026-03-25T08:08:25  PID[7720] Information 03-25 08:08:25 Critical: Settings contract has been updated
+2026-03-25T08:08:25  PID[7720] Information 03-25 08:08:25 Critical: Enabled has been set to True
+2026-03-25T08:22:28  PID[7720] Information 03-25 08:22:28 Information: Triggering Based on Memory
+2026-03-25T08:22:28  PID[7720] Information 03-25 08:22:28 Critical: StartProfiler triggered.
+2026-03-25T08:22:28  PID[7720] Information 03-25 08:22:28 Information: Starting circular monitor
+2026-03-25T08:22:32  PID[7720] Information 03-25 08:22:32 Information: Monitoring process 7160
+2026-03-25T08:22:36  PID[7720] Information 03-25 08:22:36 Information: Monitoring process 7864
+2026-03-25T08:22:36  PID[7720] Information 03-25 08:22:36 Information: AddTargetProcess by id 7864, with rundown
+2026-03-25T08:22:36  PID[7720] Information 03-25 08:22:36 Information: Session ID set.
+2026-03-25T08:22:36  PID[7720] Information 03-25 08:22:36 Critical: StartProfiler succeeded.
+2026-03-25T08:23:06  PID[7720] Information 03-25 08:23:06 Critical: StopProfiler triggered.
+2026-03-25T08:23:07  PID[7720] Information 03-25 08:23:06 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T08:23:15  PID[7720] Information 03-25 08:23:15 Critical: Upload trace was canceled as no activity detected from target iKey.
+2026-03-25T08:23:15  PID[7720] Information 03-25 08:23:15 Information: Target iKey: 7e674e8b-317e-43be-9613-f825c00b0b80. Detected iKeys: .
+2026-03-25T08:23:15  PID[7720] Information 03-25 08:23:15 Critical: StopProfiler succeeded.

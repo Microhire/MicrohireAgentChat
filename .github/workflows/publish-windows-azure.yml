@@ -76,10 +76,19 @@ jobs:
         run: |
           ./Scripts/azure-build-vm/Verify-PlaywrightBundle.ps1 -PublishRoot publish_out
 
+      # Compress-Archive with publish_out\* omits dot-prefixed folders (.playwright); ZipFile includes the full tree.
       - name: Zip site package
         shell: pwsh
         run: |
-          Compress-Archive -Path "publish_out\*" -DestinationPath "site.zip" -Force
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          if (Test-Path "site.zip") { Remove-Item "site.zip" -Force }
+          [System.IO.Compression.ZipFile]::CreateFromDirectory("publish_out", "site.zip")
+          $z = [System.IO.Compression.ZipFile]::OpenRead("site.zip")
+          try {
+            $ok = $false
+            foreach ($e in $z.Entries) { if ($e.FullName -match '(?i)^\.playwright[/\\]') { $ok = $true; Write-Host "zip: $($e.FullName)"; break } }
+            if (-not $ok) { throw "site.zip missing .playwright/ — packaging broken" }
+          } finally { $z.Dispose() }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6

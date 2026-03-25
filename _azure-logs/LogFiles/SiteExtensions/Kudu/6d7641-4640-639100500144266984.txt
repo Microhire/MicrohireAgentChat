@@ -1,0 +1,75 @@
+2026-03-25T15:40:09  PID[4640] Information Unpacking resources...
+2026-03-25T15:40:09  PID[4640] Information 03-25 15:40:09 Information: Executing Application Insights Profiler agent version 2.6.2506.502 with arguments: 
+2026-03-25T15:40:10  PID[4640] Information 03-25 15:40:10 Information: Minimum version enabled on machine: 1.0.0
+2026-03-25T15:40:10  PID[4640] Information 03-25 15:40:10 Information: Applying logging level: Information
+2026-03-25T15:40:10  PID[4640] Information 03-25 15:40:10 Information: Effective connection string: InstrumentationKey=7e674e8b-317e-43be-9613-f825c00b0b80;IngestionEndpoint=https://australiasoutheast-0.in.applicationinsights.azure.com/;LiveEndpoint=https://australiasoutheast.livediagnostics.monitor.azure.com/;ApplicationId=f0e4a23b-bdcd-41cb-ba91-ef9aae55e673
+2026-03-25T15:40:10  PID[4640] Information 03-25 15:40:10 Information: Instrumentation key: 7e674e8b-317e-43be-9613-f825c00b0b80
+2026-03-25T15:40:10  PID[4640] Information 03-25 15:40:10 Information: Application Insights Profiler endpoint: https://profiler.monitor.azure.com/
+2026-03-25T15:40:10  PID[4640] Information 03-25 15:40:10 Information: Application Insights endpoint: https://australiasoutheast-0.in.applicationinsights.azure.com/v2/track/
+2026-03-25T15:40:10  PID[4640] Information 03-25 15:40:10 Information: Runtime Environment: Antares
+2026-03-25T15:40:10  PID[4640] Information 03-25 15:40:10 Information: Support files: C:\local\Temp\jobs\continuous\ApplicationInsightsProfiler3\44fc5ri3.xsq\spsupport
+2026-03-25T15:40:10  PID[4640] Information 03-25 15:40:10 Information: Providing usage data (to opt out set the AppSettings ApplicationInsightsProvideUsageTelemetryData with the value "false"): True
+2026-03-25T15:40:10  PID[4640] Information 03-25 15:40:10 Information: Engine mode: Sampling
+2026-03-25T15:40:10  PID[4640] Information 03-25 15:40:10 Information: Circular Monitor Agent version: 5
+2026-03-25T15:40:10  PID[4640] Information 03-25 15:40:10 Information: Circular Monitor Agent config: 
+2026-03-25T15:40:10  PID[4640] Information 03-25 15:40:10 Information: Shutdown handler set to watch C:\local\Temp\JobsShutdown\continuous\ApplicationInsightsProfiler3\ylebaqm4.ooi.
+2026-03-25T15:40:12  PID[4640] Information 03-25 15:40:12 Information: Application Insights AppId: f0e4a23b-bdcd-41cb-ba91-ef9aae55e673
+2026-03-25T15:40:12  PID[4640] Information 03-25 15:40:12 Critical: Settings have been set from Engine
+2026-03-25T15:40:13  PID[4640] Information 03-25 15:40:13 Information: Local PDB scan complete. Found 1 PDB(s).
+2026-03-25T15:40:13  PID[4640] Information 03-25 15:40:13 Critical: Settings contract has been updated
+2026-03-25T15:40:13  PID[4640] Information 03-25 15:40:13 Critical: Enabled has been set to True
+2026-03-25T15:42:14  PID[4640] Information 03-25 15:42:14 Information: Triggering Based on Memory
+2026-03-25T15:42:14  PID[4640] Information 03-25 15:42:14 Critical: StartProfiler triggered.
+2026-03-25T15:42:14  PID[4640] Information 03-25 15:42:14 Information: Starting circular monitor
+2026-03-25T15:42:17  PID[4640] Information 03-25 15:42:17 Information: Monitoring process 4172
+2026-03-25T15:42:22  PID[4640] Information 03-25 15:42:22 Information: Monitoring process 3916
+2026-03-25T15:42:22  PID[4640] Information 03-25 15:42:22 Information: AddTargetProcess by id 3916, with rundown
+2026-03-25T15:42:22  PID[4640] Information 03-25 15:42:22 Information: Session ID set.
+2026-03-25T15:42:22  PID[4640] Information 03-25 15:42:22 Critical: StartProfiler succeeded.
+2026-03-25T15:42:35  PID[4640] Information 03-25 15:42:35 Information: Activity detected from iKey: 7e674e8b-317e-43be-9613-f825c00b0b80.
+2026-03-25T15:42:35  PID[4640] Information 03-25 15:42:35 Information: RoleName discovered: microhire-geg6hggrhdcqbme9.australiasoutheast-01.
+2026-03-25T15:42:52  PID[4640] Information 03-25 15:42:52 Critical: StopProfiler triggered.
+2026-03-25T15:42:52  PID[4640] Information 03-25 15:42:52 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T15:43:02  PID[4640] Information 03-25 15:43:02 Information: No matched PDBs.
+2026-03-25T15:43:02  PID[4640] Information 03-25 15:43:02 Information: Start to upload trace D:\DWASFiles\Sites\#1microhire\Temp\Report.C199343B-98CE-4611-88F4-FFDD148B98A3.diagsession
+2026-03-25T15:43:05  PID[4640] Information 03-25 15:43:05 Information: Trace uploaded to v2|australiaeast-3supbwij3jr5c|f0e4a23b-bdcd-41cb-ba91-ef9aae55e673|Profile|c199343b98ce461188f4ffdd148b98a3|
+2026-03-25T15:43:05  PID[4640] Information 03-25 15:43:05 Critical: StopProfiler succeeded.
+2026-03-25T15:59:18  PID[4640] Information 03-25 15:59:18 Critical: StartProfiler triggered.
+2026-03-25T15:59:18  PID[4640] Information 03-25 15:59:18 Information: Starting circular monitor
+2026-03-25T15:59:18  PID[4640] Information 03-25 15:59:18 Information: Monitoring process 4172
+2026-03-25T15:59:18  PID[4640] Information 03-25 15:59:18 Information: Monitoring process 5884
+2026-03-25T15:59:20  PID[4640] Information 03-25 15:59:20 Information: Monitoring process 3916
+2026-03-25T15:59:20  PID[4640] Information 03-25 15:59:20 Information: AddTargetProcess by id 3916, with rundown
+2026-03-25T15:59:20  PID[4640] Information 03-25 15:59:20 Information: Session ID set.
+2026-03-25T15:59:20  PID[4640] Information 03-25 15:59:20 Critical: StartProfiler succeeded.
+2026-03-25T15:59:50  PID[4640] Information 03-25 15:59:50 Critical: StopProfiler triggered.
+2026-03-25T15:59:50  PID[4640] Information 03-25 15:59:50 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T15:59:56  PID[4640] Information 03-25 15:59:56 Critical: Upload trace was canceled as no activity detected from target iKey.
+2026-03-25T15:59:56  PID[4640] Information 03-25 15:59:56 Information: Target iKey: 7e674e8b-317e-43be-9613-f825c00b0b80. Detected iKeys: .
+2026-03-25T15:59:56  PID[4640] Information 03-25 15:59:56 Critical: StopProfiler succeeded.
+2026-03-25T16:10:08  PID[4640] Information 03-25 16:10:08 Critical: StartProfiler triggered.
+2026-03-25T16:10:08  PID[4640] Information 03-25 16:10:08 Information: Starting circular monitor
+2026-03-25T16:10:09  PID[4640] Information 03-25 16:10:09 Information: Monitoring process 4172
+2026-03-25T16:10:09  PID[4640] Information 03-25 16:10:09 Information: Monitoring process 5884
+2026-03-25T16:10:10  PID[4640] Information 03-25 16:10:10 Information: Monitoring process 3916
+2026-03-25T16:10:10  PID[4640] Information 03-25 16:10:10 Information: AddTargetProcess by id 3916, with rundown
+2026-03-25T16:10:11  PID[4640] Information 03-25 16:10:11 Information: Session ID set.
+2026-03-25T16:10:11  PID[4640] Information 03-25 16:10:11 Critical: StartProfiler succeeded.
+2026-03-25T16:10:41  PID[4640] Information 03-25 16:10:41 Critical: StopProfiler triggered.
+2026-03-25T16:10:41  PID[4640] Information 03-25 16:10:41 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T16:10:48  PID[4640] Information 03-25 16:10:48 Critical: Upload trace was canceled as no activity detected from target iKey.
+2026-03-25T16:10:48  PID[4640] Information 03-25 16:10:48 Information: Target iKey: 7e674e8b-317e-43be-9613-f825c00b0b80. Detected iKeys: .
+2026-03-25T16:10:48  PID[4640] Information 03-25 16:10:48 Critical: StopProfiler succeeded.
+2026-03-25T16:25:00  PID[4640] Information 03-25 16:25:00 Critical: StartProfiler triggered.
+2026-03-25T16:25:00  PID[4640] Information 03-25 16:25:00 Information: Starting circular monitor
+2026-03-25T16:25:00  PID[4640] Information 03-25 16:25:00 Information: Monitoring process 4172
+2026-03-25T16:25:00  PID[4640] Information 03-25 16:25:00 Information: Monitoring process 5884
+2026-03-25T16:25:02  PID[4640] Information 03-25 16:25:02 Information: Monitoring process 3916
+2026-03-25T16:25:02  PID[4640] Information 03-25 16:25:02 Information: AddTargetProcess by id 3916, with rundown
+2026-03-25T16:25:02  PID[4640] Information 03-25 16:25:02 Information: Session ID set.
+2026-03-25T16:25:02  PID[4640] Information 03-25 16:25:02 Critical: StartProfiler succeeded.
+2026-03-25T16:25:32  PID[4640] Information 03-25 16:25:32 Critical: StopProfiler triggered.
+2026-03-25T16:25:32  PID[4640] Information 03-25 16:25:32 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T16:25:38  PID[4640] Information 03-25 16:25:38 Critical: Upload trace was canceled as no activity detected from target iKey.
+2026-03-25T16:25:39  PID[4640] Information 03-25 16:25:38 Information: Target iKey: 7e674e8b-317e-43be-9613-f825c00b0b80. Detected iKeys: .
+2026-03-25T16:25:39  PID[4640] Information 03-25 16:25:38 Critical: StopProfiler succeeded.

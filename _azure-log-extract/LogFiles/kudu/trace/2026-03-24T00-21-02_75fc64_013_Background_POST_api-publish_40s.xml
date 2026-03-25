@@ -1,0 +1,116 @@
+<step title="BackgroundTrace" date="2026-03-24T00:21:02.102" instance="75fc64" url="/api/publish" method="POST" >
+  <step title="Updating shutdown sentinel last write time" date="2026-03-24T00:21:02.161" SemaphoreCount="7" /><!-- duration: 18ms -->
+  <step title="LockFile &apos;C:\home\site\locks\deployments.lock&apos; acquired" date="2026-03-24T00:21:02.192" /><!-- duration: 0ms -->
+  <step title="Creating temporary deployment" date="2026-03-24T00:21:02.209" /><!-- duration: 97ms -->
+  <step title="Performing fetch based deployment" date="2026-03-24T00:21:02.317" >
+    <step title="Fetching changes." date="2026-03-24T00:21:02.443" /><!-- duration: 31ms -->
+    <step title="Starting LocalZipHandler" date="2026-03-24T00:21:02.492" /><!-- duration: 92ms -->
+    <step title="Cleaning up temp folders from previous zip deployments and extracting pushed zip file C:\local\Temp\zipdeploy\ainwg2q5.zip (46.54 MB) to C:\local\Temp\zipdeploy\extracted" date="2026-03-24T00:21:02.614" /><!-- duration: 16ms -->
+    <step title="Cleaning up temp folders from previous zip deployments and extracting pushed zip file C:\local\Temp\zipdeploy\ainwg2q5.zip (46.54 MB) to C:\local\Temp\zipdeploy\extracted" date="2026-03-24T00:21:02.630" >
+      <step title="Renaming extractTargetDirectory(C:\local\Temp\zipdeploy\extracted) to tempDirectory(C:\local\Temp\zipdeploy\quu3ktpi.phn)" date="2026-03-24T00:21:02.646" /><!-- duration: 0ms -->
+      <step title="Extracting 452 entries to C:\local\Temp\zipdeploy\extracted directory" date="2026-03-24T00:21:03.177" >
+        <step title="Extracting to C:\local\Temp\zipdeploy\extracted\Microsoft.Data.SqlClient.SNI.dll ..." date="2026-03-24T00:21:03.177" /><!-- duration: 49ms -->
+        <step title="Extracting to C:\local\Temp\zipdeploy\extracted\Azure.Storage.Common.dll ..." date="2026-03-24T00:21:03.239" /><!-- duration: 16ms -->
+        <step title="Extracting to C:\local\Temp\zipdeploy\extracted\MicrohireAgentChat.deps.json ..." date="2026-03-24T00:21:03.275" /><!-- duration: 11ms -->
+        <step title="Extracting to C:\local\Temp\zipdeploy\extracted\Microsoft.Win32.SystemEvents.dll ..." date="2026-03-24T00:21:03.305" /><!-- duration: 12ms -->
+        <step title="Extracting to C:\local\Temp\zipdeploy\extracted\Microsoft.DotNet.PlatformAbstractions.dll ..." date="2026-03-24T00:21:03.317" /><!-- duration: 17ms -->
+        <step title="Omitting extracting file traces ..." date="2026-03-24T00:21:03.354" /><!-- duration: 10ms -->
+      </step><!-- duration: 8003ms -->
+    </step><!-- duration: 8594ms -->
+    <step title="Before sending BuildRequestReceived status to /api/updatedeploystatus" date="2026-03-24T00:21:11.255" /><!-- duration: 78ms -->
+    <step title="DeploymentManager.Deploy(id:817a753439294966990a10a8f0cc22ec)" date="2026-03-24T00:21:11.351" >
+      <step title="Collecting changeset information" date="2026-03-24T00:21:11.429" /><!-- duration: 92ms -->
+      <step title="Updating submodules" date="2026-03-24T00:21:11.537" >
+        <step title="Updating submodules." date="2026-03-24T00:21:11.646" /><!-- duration: 19ms -->
+      </step><!-- duration: 127ms -->
+      <step title="Preparing deployment for commit id &apos;817a753439&apos;." date="2026-03-24T00:21:11.900" /><!-- duration: 11ms -->
+      <step title="Determining deployment builder" date="2026-03-24T00:21:11.974" >
+        <step title="Builder is OneDeployBuilder" date="2026-03-24T00:21:11.989" /><!-- duration: 0ms -->
+      </step><!-- duration: 35ms -->
+      <step title="Copying SSH keys" date="2026-03-24T00:21:12.068" /><!-- duration: 19ms -->
+      <step title="Building" date="2026-03-24T00:21:12.087" >
+        <step title="Running build. Project type: OneDeploy" date="2026-03-24T00:21:12.177" /><!-- duration: 0ms -->
+        <step title="Copying the manifest" date="2026-03-24T00:21:12.288" /><!-- duration: 14ms -->
+        <step title="Clean deploying to C:\home\site\wwwroot" date="2026-03-24T00:21:12.429" /><!-- duration: 0ms -->
+        <step title="Generating deployment script." date="2026-03-24T00:21:12.536" /><!-- duration: 0ms -->
+        <step title="Generating deployment script" date="2026-03-24T00:21:12.555" >
+          <step title="Using cached version of the deployment script for command: -y --no-dot-deployment -r &quot;C:\local\Temp\zipdeploy\extracted&quot; -o &quot;C:\home\site\deployments\tools&quot; --basic --sitePath &quot;C:\local\Temp\zipdeploy\extracted&quot;" date="2026-03-24T00:21:12.631" /><!-- duration: 0ms -->
+          <step title="Using cached version of deployment script (command: &apos;azure -y --no-dot-deployment -r &quot;C:\local\Temp\zipdeploy\extracted&quot; -o &quot;C:\home\site\deployments\tools&quot; --basic --sitePath &quot;C:\local\Temp\zipdeploy\extracted&quot;&apos;)." date="2026-03-24T00:21:12.680" /><!-- duration: 0ms -->
+        </step><!-- duration: 138ms -->
+        <step title="Running deployment command..." date="2026-03-24T00:21:12.771" /><!-- duration: 0ms -->
+        <step title="Command: &quot;C:\home\site\deployments\tools\deploy.cmd&quot;" date="2026-03-24T00:21:12.786" /><!-- duration: 0ms -->
+        <step title="Executing external process" date="2026-03-24T00:21:12.818" type="process" path="starter.cmd" arguments="&quot;C:\home\site\deployments\tools\deploy.cmd&quot;" >
+          <step title="Handling Basic Web Site deployment." date="2026-03-24T00:21:13.802" /><!-- duration: 19ms -->
+          <step title="Creating app_offline.htm" date="2026-03-24T00:21:18.302" /><!-- duration: 18ms -->
+          <step title="KuduSync.NET from: &apos;C:\local\Temp\zipdeploy\extracted&apos; to: &apos;C:\home\site\wwwroot&apos;" date="2026-03-24T00:21:18.333" /><!-- duration: 16ms -->
+          <step title="Deleting file: &apos;.playwright\node\LICENSE&apos;" date="2026-03-24T00:21:18.368" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;.playwright\node\darwin-arm64\node&apos;" date="2026-03-24T00:21:18.398" /><!-- duration: 0ms -->
+          <step title="Deleting directory: &apos;.playwright\node\darwin-arm64&apos;" date="2026-03-24T00:21:18.428" /><!-- duration: 0ms -->
+          <step title="Deleting directory: &apos;.playwright\node&apos;" date="2026-03-24T00:21:18.458" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;.playwright\package\api.json&apos;" date="2026-03-24T00:21:18.477" /><!-- duration: 12ms -->
+          <step title="Deleting file: &apos;.playwright\package\browsers.json&apos;" date="2026-03-24T00:21:18.506" /><!-- duration: 19ms -->
+          <step title="Deleting file: &apos;.playwright\package\cli.js&apos;" date="2026-03-24T00:21:18.536" /><!-- duration: 18ms -->
+          <step title="Deleting file: &apos;.playwright\package\index.d.ts&apos;" date="2026-03-24T00:21:18.573" /><!-- duration: 10ms -->
+          <step title="Deleting file: &apos;.playwright\package\index.js&apos;" date="2026-03-24T00:21:18.601" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;.playwright\package\index.mjs&apos;" date="2026-03-24T00:21:18.631" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;.playwright\package\package.json&apos;" date="2026-03-24T00:21:18.661" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;.playwright\package\protocol.yml&apos;" date="2026-03-24T00:21:18.679" /><!-- duration: 13ms -->
+          <step title="Deleting file: &apos;.playwright\package\README.md&apos;" date="2026-03-24T00:21:18.727" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;.playwright\package\ThirdPartyNotices.txt&apos;" date="2026-03-24T00:21:18.756" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;.playwright\package\bin\install_media_pack.ps1&apos;" date="2026-03-24T00:21:18.776" /><!-- duration: 10ms -->
+          <step title="Deleting file: &apos;.playwright\package\bin\PrintDeps.exe&apos;" date="2026-03-24T00:21:18.805" /><!-- duration: 12ms -->
+          <step title="Deleting file: &apos;.playwright\package\bin\README.md&apos;" date="2026-03-24T00:21:18.852" /><!-- duration: 12ms -->
+          <step title="Deleting file: &apos;.playwright\package\bin\reinstall_chrome_beta_linux.sh&apos;" date="2026-03-24T00:21:18.915" /><!-- duration: 29ms -->
+          <step title="Deleting file: &apos;.playwright\package\bin\reinstall_chrome_beta_mac.sh&apos;" date="2026-03-24T00:21:18.974" /><!-- duration: 17ms -->
+          <step title="Deleting file: &apos;.playwright\package\bin\reinstall_chrome_beta_win.ps1&apos;" date="2026-03-24T00:21:19.021" /><!-- duration: 19ms -->
+          <step title="Deleting file: &apos;.playwright\package\bin\reinstall_chrome_stable_linux.sh&apos;" date="2026-03-24T00:21:19.068" /><!-- duration: 19ms -->
+          <step title="Deleting file: &apos;.playwright\package\bin\reinstall_chrome_stable_mac.sh&apos;" date="2026-03-24T00:21:19.322" /><!-- duration: 11ms -->
+          <step title="Deleting file: &apos;.playwright\package\bin\reinstall_chrome_stable_win.ps1&apos;" date="2026-03-24T00:21:19.351" /><!-- duration: 13ms -->
+          <step title="Deleting file: &apos;.playwright\package\bin\reinstall_msedge_beta_linux.sh&apos;" date="2026-03-24T00:21:19.381" /><!-- duration: 20ms -->
+          <step title="Deleting file: &apos;.playwright\package\bin\reinstall_msedge_beta_mac.sh&apos;" date="2026-03-24T00:21:19.411" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;.playwright\package\bin\reinstall_msedge_beta_win.ps1&apos;" date="2026-03-24T00:21:19.443" /><!-- duration: 17ms -->
+          <step title="Deleting file: &apos;.playwright\package\bin\reinstall_msedge_dev_linux.sh&apos;" date="2026-03-24T00:21:19.490" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;.playwright\package\bin\reinstall_msedge_dev_mac.sh&apos;" date="2026-03-24T00:21:19.509" /><!-- duration: 12ms -->
+          <step title="Deleting file: &apos;.playwright\package\bin\reinstall_msedge_dev_win.ps1&apos;" date="2026-03-24T00:21:19.539" /><!-- duration: 13ms -->
+          <step title="Deleting file: &apos;.playwright\package\bin\reinstall_msedge_stable_linux.sh&apos;" date="2026-03-24T00:21:19.667" /><!-- duration: 10ms -->
+          <step title="Deleting file: &apos;.playwright\package\bin\reinstall_msedge_stable_mac.sh&apos;" date="2026-03-24T00:21:19.697" /><!-- duration: 11ms -->
+          <step title="Deleting file: &apos;.playwright\package\bin\reinstall_msedge_stable_win.ps1&apos;" date="2026-03-24T00:21:20.209" /><!-- duration: 0ms -->
+          <step title="Deleting directory: &apos;.playwright\package\bin&apos;" date="2026-03-24T00:21:20.303" /><!-- duration: 15ms -->
+          <step title="Deleting file: &apos;.playwright\package\lib\androidServerImpl.js&apos;" date="2026-03-24T00:21:20.349" /><!-- duration: 35ms -->
+          <step title="Deleting file: &apos;.playwright\package\lib\browserServerImpl.js&apos;" date="2026-03-24T00:21:20.396" /><!-- duration: 17ms -->
+          <step title="Deleting file: &apos;.playwright\package\lib\inprocess.js&apos;" date="2026-03-24T00:21:20.433" /><!-- duration: 10ms -->
+          <step title="Deleting file: &apos;.playwright\package\lib\inProcessFactory.js&apos;" date="2026-03-24T00:21:20.462" /><!-- duration: 29ms -->
+          <step title="Deleting file: &apos;.playwright\package\lib\outofprocess.js&apos;" date="2026-03-24T00:21:20.521" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;.playwright\package\lib\utilsBundle.js&apos;" date="2026-03-24T00:21:20.552" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;.playwright\package\lib\zipBundle.js&apos;" date="2026-03-24T00:21:20.570" /><!-- duration: 13ms -->
+          <step title="Deleting file: &apos;.playwright\package\lib\zipBundleImpl.js&apos;" date="2026-03-24T00:21:20.649" /><!-- duration: 13ms -->
+          <step title="Deleting file: &apos;.playwright\package\lib\cli\driver.js&apos;" date="2026-03-24T00:21:20.696" /><!-- duration: 13ms -->
+          <step title="Deleting file: &apos;.playwright\package\lib\cli\program.js&apos;" date="2026-03-24T00:21:20.724" /><!-- duration: 17ms -->
+          <step title="Deleting file: &apos;.playwright\package\lib\cli\programWithTestStub.js&apos;" date="2026-03-24T00:21:20.759" /><!-- duration: 11ms -->
+          <step title="Deleting directory: &apos;.playwright\package\lib\cli&apos;" date="2026-03-24T00:21:20.789" /><!-- duration: 0ms -->
+          <step title="Deleting file: &apos;.playwright\package\lib\client\accessibility.js&apos;" date="2026-03-24T00:21:20.819" /><!-- duration: 19ms -->
+          <step title="Deleting file: &apos;.playwright\package\lib\client\android.js&apos;" date="2026-03-24T00:21:21.196" /><!-- duration: 390ms -->
+          <step title="Deleting file: &apos;.playwright\package\lib\client\api.js&apos;" date="2026-03-24T00:21:22.208" /><!-- duration: 0ms -->
+          <step title="Omitting next output lines..." date="2026-03-24T00:21:22.240" /><!-- duration: 17ms -->
+          <step title="Finished successfully." date="2026-03-24T00:21:40.153" /><!-- duration: 20ms -->
+        </step><!-- duration: 27384ms -->
+        <step title="Build completed succesfully." date="2026-03-24T00:21:40.340" /><!-- duration: 15ms -->
+        <step title="Running post deployment command(s)..." date="2026-03-24T00:21:40.438" /><!-- duration: 11ms -->
+        <step title="Requesting site restart" date="2026-03-24T00:21:40.559" /><!-- duration: 0ms -->
+        <step title="Requesting site restart" date="2026-03-24T00:21:40.559" /><!-- duration: 15ms -->
+        <step title="Requesting site restart. Attempt #1" date="2026-03-24T00:21:40.714" /><!-- duration: 0ms -->
+        <step title="Requesting site restart. Attempt #1" date="2026-03-24T00:21:40.714" /><!-- duration: 31ms -->
+        <step title="Successfully requested a restart. Attempt #1" date="2026-03-24T00:21:41.058" /><!-- duration: 0ms -->
+        <step title="Successfully requested a restart. Attempt #1" date="2026-03-24T00:21:41.073" /><!-- duration: 16ms -->
+        <step title="Deployment successful. DEPLOYMENTINFO: deploymentPath = OneDeploy, deployer = OneDeploy, os = windows, sku = Basic, siteName = microhire, siteHostName = microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net, deploymentStatus = Success" date="2026-03-24T00:21:41.230" /><!-- duration: 0ms -->
+        <step title="Purge deployment items" date="2026-03-24T00:21:41.452" >
+          <step title="Remove 314aea5d9, Success, received at 3/12/2026 12:12:30 AM" date="2026-03-24T00:21:41.573" /><!-- duration: 0ms -->
+        </step><!-- duration: 139ms -->
+      </step><!-- duration: 29534ms -->
+    </step><!-- duration: 30285ms -->
+    <step title="Cleaning up temp files" date="2026-03-24T00:21:41.652" /><!-- duration: 17ms -->
+    <step title="Skip function trigger and logicapp sync because function is not enabled." date="2026-03-24T00:21:41.683" /><!-- duration: 16ms -->
+  </step><!-- duration: 39430ms -->
+  <step title="LockFile &apos;C:\home\site\locks\deployments.lock&apos; released" date="2026-03-24T00:21:41.777" /><!-- duration: 0ms -->
+  <step title="Deleting shutdown sentinel file" date="2026-03-24T00:21:41.797" SemaphoreCount="8" /><!-- duration: 11ms -->
+</step><!-- duration: 39724ms -->

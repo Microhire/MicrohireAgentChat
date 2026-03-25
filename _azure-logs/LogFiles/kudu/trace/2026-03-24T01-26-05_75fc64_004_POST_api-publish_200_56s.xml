@@ -1,0 +1,134 @@
+<step title="Incoming Request" date="2026-03-24T01:26:05.693" instance="75fc64" url="/api/publish?type=zip" method="POST" type="request" pid="6436,2,28" Cache-Control="no-cache" Content-Length="89250174" Content-Type="application/octet-stream" Accept="*/*" Accept-Encoding="gzip, deflate" Authorization="Bea..." Host="microhire-geg6hggrhdcqbme9.scm.australiasoutheast-01.azurewebsites.net" User-Agent="AZURECLI/2.81.0 (HOMEBREW)" x-ms-client-request-id="6b45bbfe-2720-11f1-bdc8-464431335779" X-ARR-LOG-ID="6b45bbfe-2720-11f1-bdc8-464431335779" CLIENT-IP="112.134.163.44:45326" X-SITE-DEPLOYMENT-ID="microhire" WAS-DEFAULT-HOSTNAME="microhire-geg6hggrhdcqbme9.scm.australiasoutheast-01.azurewebsites.net" X-Forwarded-Proto="https" X-AppService-Proto="https" X-Forwarded-TlsVersion="1.3" X-WAWS-Unencoded-URL="/api/publish?type=zip" >
+  <step title="Cleanup Xml Logs" date="2026-03-24T01:26:05.693" /><!-- duration: 16ms -->
+  <step title="OneDeploy" date="2026-03-24T01:26:05.758" >
+    <step title="Starting PushDeployAsync" date="2026-03-24T01:26:05.771" /><!-- duration: 0ms -->
+    <step title="Updating shutdown sentinel last write time" date="2026-03-24T01:26:05.802" SemaphoreCount="7" /><!-- duration: 0ms -->
+    <step title="LockFile &apos;C:\home\site\locks\deployments.lock&apos; acquired" date="2026-03-24T01:26:05.849" /><!-- duration: 16ms -->
+    <step title="Saving request content to C:\local\Temp\zipdeploy\vqe3majm.zip" date="2026-03-24T01:26:05.896" >
+      <step title="Total 89,250,174 bytes written to C:\local\Temp\zipdeploy\vqe3majm.zip" date="2026-03-24T01:26:21.287" /><!-- duration: 18ms -->
+    </step><!-- duration: 15422ms -->
+    <step title="LockFile &apos;C:\home\site\locks\deployments.lock&apos; released" date="2026-03-24T01:26:21.334" /><!-- duration: 0ms -->
+    <step title="Deleting shutdown sentinel file" date="2026-03-24T01:26:21.380" SemaphoreCount="8" /><!-- duration: 0ms -->
+    <step title="Starting FetchDeploy" date="2026-03-24T01:26:21.396" /><!-- duration: 0ms -->
+    <step title="Attempting to fetch target branch HEAD" date="2026-03-24T01:26:21.412" /><!-- duration: 16ms -->
+    <step title="Updating shutdown sentinel last write time" date="2026-03-24T01:26:21.427" SemaphoreCount="7" /><!-- duration: 67ms -->
+    <step title="LockFile &apos;C:\home\site\locks\deployments.lock&apos; acquired" date="2026-03-24T01:26:21.506" /><!-- duration: 15ms -->
+    <step title="Performing fetch based deployment" date="2026-03-24T01:26:21.521" >
+      <step title="Creating temporary deployment" date="2026-03-24T01:26:21.537" /><!-- duration: 79ms -->
+      <step title="Fetching changes." date="2026-03-24T01:26:21.740" /><!-- duration: 16ms -->
+      <step title="Starting LocalZipHandler" date="2026-03-24T01:26:21.788" /><!-- duration: 15ms -->
+      <step title="Starting LocalZipFetch" date="2026-03-24T01:26:21.822" /><!-- duration: 0ms -->
+      <step title="Cleaning up temp folders from previous zip deployments and extracting pushed zip file C:\local\Temp\zipdeploy\vqe3majm.zip (85.12 MB) to C:\local\Temp\zipdeploy\extracted" date="2026-03-24T01:26:21.850" /><!-- duration: 0ms -->
+      <step title="Cleaning up temp folders from previous zip deployments and extracting pushed zip file C:\local\Temp\zipdeploy\vqe3majm.zip (85.12 MB) to C:\local\Temp\zipdeploy\extracted" date="2026-03-24T01:26:21.880" >
+        <step title="Renaming extractTargetDirectory(C:\local\Temp\zipdeploy\extracted) to tempDirectory(C:\local\Temp\zipdeploy\gf2x1szj.0qf)" date="2026-03-24T01:26:21.880" /><!-- duration: 0ms -->
+        <step title="Extracting 924 entries to C:\local\Temp\zipdeploy\extracted directory" date="2026-03-24T01:26:22.178" >
+          <step title="Extracting to C:\local\Temp\zipdeploy\extracted\Azure.Storage.Common.dll ..." date="2026-03-24T01:26:22.976" /><!-- duration: 686ms -->
+          <step title="Extracting to C:\local\Temp\zipdeploy\extracted\MicrohireAgentChat.deps.json ..." date="2026-03-24T01:26:23.933" /><!-- duration: 375ms -->
+          <step title="Extracting to C:\local\Temp\zipdeploy\extracted\Microsoft.Win32.SystemEvents.dll ..." date="2026-03-24T01:26:24.318" /><!-- duration: 18ms -->
+          <step title="Extracting to C:\local\Temp\zipdeploy\extracted\Microsoft.DotNet.PlatformAbstractions.dll ..." date="2026-03-24T01:26:24.336" /><!-- duration: 13ms -->
+          <step title="Extracting to C:\local\Temp\zipdeploy\extracted\Microsoft.IdentityModel.Logging.dll ..." date="2026-03-24T01:26:24.365" /><!-- duration: 0ms -->
+          <step title="Omitting extracting file traces ..." date="2026-03-24T01:26:24.381" /><!-- duration: 65ms -->
+        </step><!-- duration: 18172ms -->
+      </step><!-- duration: 18500ms -->
+      <step title="None repository commit" date="2026-03-24T01:26:40.428" >
+        <step title="Commit id: e7f32df8b9884aa2b844ab15a07cc533" date="2026-03-24T01:26:40.477" Message="OneDeploy" AuthorName="N/A" AuthorEmail="N/A" /><!-- duration: 13ms -->
+      </step><!-- duration: 79ms -->
+      <step title="Before sending BuildRequestReceived status to /api/updatedeploystatus" date="2026-03-24T01:26:40.526" /><!-- duration: 11ms -->
+      <step title="DeploymentManager.Deploy(id:e7f32df8b9884aa2b844ab15a07cc533)" date="2026-03-24T01:26:40.537" >
+        <step title="Collecting changeset information" date="2026-03-24T01:26:40.568" /><!-- duration: 114ms -->
+        <step title="Updating submodules" date="2026-03-24T01:26:40.693" >
+          <step title="Updating submodules." date="2026-03-24T01:26:40.850" /><!-- duration: 18ms -->
+        </step><!-- duration: 203ms -->
+        <step title="Preparing deployment for commit id &apos;e7f32df8b9&apos;." date="2026-03-24T01:26:40.975" /><!-- duration: 19ms -->
+        <step title="Determining deployment builder" date="2026-03-24T01:26:41.117" >
+          <step title="Builder is OneDeployBuilder" date="2026-03-24T01:26:41.146" /><!-- duration: 0ms -->
+        </step><!-- duration: 60ms -->
+        <step title="Copying SSH keys" date="2026-03-24T01:26:41.241" /><!-- duration: 31ms -->
+        <step title="Building" date="2026-03-24T01:26:41.271" >
+          <step title="Running build. Project type: OneDeploy" date="2026-03-24T01:26:41.368" /><!-- duration: 0ms -->
+          <step title="Copying the manifest" date="2026-03-24T01:26:41.490" /><!-- duration: 16ms -->
+          <step title="Clean deploying to C:\home\site\wwwroot" date="2026-03-24T01:26:41.647" /><!-- duration: 0ms -->
+          <step title="Generating deployment script." date="2026-03-24T01:26:41.775" /><!-- duration: 13ms -->
+          <step title="Generating deployment script" date="2026-03-24T01:26:41.818" >
+            <step title="Using cached version of the deployment script for command: -y --no-dot-deployment -r &quot;C:\local\Temp\zipdeploy\extracted&quot; -o &quot;C:\home\site\deployments\tools&quot; --basic --sitePath &quot;C:\local\Temp\zipdeploy\extracted&quot;" date="2026-03-24T01:26:41.883" /><!-- duration: 13ms -->
+            <step title="Using cached version of deployment script (command: &apos;azure -y --no-dot-deployment -r &quot;C:\local\Temp\zipdeploy\extracted&quot; -o &quot;C:\home\site\deployments\tools&quot; --basic --sitePath &quot;C:\local\Temp\zipdeploy\extracted&quot;&apos;)." date="2026-03-24T01:26:41.933" /><!-- duration: 11ms -->
+          </step><!-- duration: 141ms -->
+          <step title="Running deployment command..." date="2026-03-24T01:26:42.037" /><!-- duration: 0ms -->
+          <step title="Command: &quot;C:\home\site\deployments\tools\deploy.cmd&quot;" date="2026-03-24T01:26:42.084" /><!-- duration: 17ms -->
+          <step title="Executing external process" date="2026-03-24T01:26:42.150" type="process" path="starter.cmd" arguments="&quot;C:\home\site\deployments\tools\deploy.cmd&quot;" >
+            <step title="Handling Basic Web Site deployment." date="2026-03-24T01:26:43.498" /><!-- duration: 13ms -->
+            <step title="Creating app_offline.htm" date="2026-03-24T01:26:49.560" /><!-- duration: 20ms -->
+            <step title="KuduSync.NET from: &apos;C:\local\Temp\zipdeploy\extracted&apos; to: &apos;C:\home\site\wwwroot&apos;" date="2026-03-24T01:26:49.609" /><!-- duration: 0ms -->
+            <step title="Copying file: &apos;MicrohireAgentChat&apos;" date="2026-03-24T01:26:49.639" /><!-- duration: 20ms -->
+            <step title="Copying file: &apos;MicrohireAgentChat.dll&apos;" date="2026-03-24T01:26:49.689" /><!-- duration: 12ms -->
+            <step title="Copying file: &apos;MicrohireAgentChat.pdb&apos;" date="2026-03-24T01:26:49.718" /><!-- duration: 13ms -->
+            <step title="Copying file: &apos;publish\appsettings.Development.json&apos;" date="2026-03-24T01:26:49.767" /><!-- duration: 0ms -->
+            <step title="Copying file: &apos;publish\appsettings.Development.Local.json&apos;" date="2026-03-24T01:26:49.796" /><!-- duration: 13ms -->
+            <step title="Copying file: &apos;publish\appsettings.json&apos;" date="2026-03-24T01:26:49.845" /><!-- duration: 0ms -->
+            <step title="Copying file: &apos;publish\appsettings.Production.json&apos;" date="2026-03-24T01:26:49.875" /><!-- duration: 13ms -->
+            <step title="Copying file: &apos;publish\MicrohireAgentChat.deps.json&apos;" date="2026-03-24T01:26:49.919" /><!-- duration: 0ms -->
+            <step title="Copying file: &apos;publish\MicrohireAgentChat.runtimeconfig.json&apos;" date="2026-03-24T01:26:49.954" /><!-- duration: 12ms -->
+            <step title="Copying file: &apos;publish\deploy-out\appsettings.Development.json&apos;" date="2026-03-24T01:26:49.997" /><!-- duration: 16ms -->
+            <step title="Copying file: &apos;publish\deploy-out\appsettings.json&apos;" date="2026-03-24T01:26:50.033" /><!-- duration: 11ms -->
+            <step title="Copying file: &apos;publish\deploy-out\MicrohireAgentChat.deps.json&apos;" date="2026-03-24T01:26:50.075" /><!-- duration: 17ms -->
+            <step title="Copying file: &apos;publish\deploy-out\MicrohireAgentChat.runtimeconfig.json&apos;" date="2026-03-24T01:26:50.122" /><!-- duration: 16ms -->
+            <step title="Copying file: &apos;publish\deploy-out\wwwroot\data\item-rules.json&apos;" date="2026-03-24T01:26:50.157" /><!-- duration: 12ms -->
+            <step title="Copying file: &apos;publish\deploy-out\wwwroot\data\product-knowledge-master.json&apos;" date="2026-03-24T01:26:50.205" /><!-- duration: 28ms -->
+            <step title="Copying file: &apos;publish\deploy-out\wwwroot\data\product-knowledge-westin.json&apos;" date="2026-03-24T01:26:50.592" /><!-- duration: 0ms -->
+            <step title="Copying file: &apos;publish\deploy-out\wwwroot\data\the_westin_brisbane_rooms.json&apos;" date="2026-03-24T01:26:50.622" /><!-- duration: 19ms -->
+            <step title="Copying file: &apos;publish\deploy-out\wwwroot\data\venue-room-packages.json&apos;" date="2026-03-24T01:26:50.670" /><!-- duration: 49ms -->
+            <step title="Copying file: &apos;publish\deploy-out\wwwroot\data\westin-venue-guide.json&apos;" date="2026-03-24T01:26:50.825" /><!-- duration: 31ms -->
+            <step title="Copying file: &apos;publish\wwwroot\data\item-rules.json&apos;" date="2026-03-24T01:26:50.966" /><!-- duration: 113ms -->
+            <step title="Copying file: &apos;publish\wwwroot\data\product-knowledge-master.json&apos;" date="2026-03-24T01:26:51.841" /><!-- duration: 145ms -->
+            <step title="Copying file: &apos;publish\wwwroot\data\product-knowledge-westin.json&apos;" date="2026-03-24T01:26:53.139" /><!-- duration: 109ms -->
+            <step title="Copying file: &apos;publish\wwwroot\data\the_westin_brisbane_rooms.json&apos;" date="2026-03-24T01:26:53.436" /><!-- duration: 49ms -->
+            <step title="Copying file: &apos;publish\wwwroot\data\venue-room-packages.json&apos;" date="2026-03-24T01:26:53.592" /><!-- duration: 14ms -->
+            <step title="Copying file: &apos;publish\wwwroot\data\westin-labor-rules.json&apos;" date="2026-03-24T01:26:53.873" /><!-- duration: 61ms -->
+            <step title="Copying file: &apos;publish\wwwroot\data\westin-venue-guide.json&apos;" date="2026-03-24T01:26:53.982" /><!-- duration: 0ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1374900152-signature.json&apos;" date="2026-03-24T01:26:54.013" /><!-- duration: 0ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1374900153-signature.json&apos;" date="2026-03-24T01:26:54.066" /><!-- duration: 12ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1374900154-signature.json&apos;" date="2026-03-24T01:26:54.153" /><!-- duration: 0ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1374900159-signature.json&apos;" date="2026-03-24T01:26:54.247" /><!-- duration: 17ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1374900160-signature.json&apos;" date="2026-03-24T01:26:54.325" /><!-- duration: 0ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1374900161-signature.json&apos;" date="2026-03-24T01:26:54.470" /><!-- duration: 60ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1374900162-signature.json&apos;" date="2026-03-24T01:26:54.966" /><!-- duration: 363ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1374900163-signature.json&apos;" date="2026-03-24T01:26:56.031" /><!-- duration: 64ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1374900165-signature.json&apos;" date="2026-03-24T01:26:56.123" /><!-- duration: 14ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1374900166-signature.json&apos;" date="2026-03-24T01:26:56.138" /><!-- duration: 16ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1374900167-signature.json&apos;" date="2026-03-24T01:26:56.345" /><!-- duration: 12ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1374900169-signature.json&apos;" date="2026-03-24T01:26:56.516" /><!-- duration: 0ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1374900180-signature.json&apos;" date="2026-03-24T01:26:56.545" /><!-- duration: 0ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1374900192-signature.json&apos;" date="2026-03-24T01:26:56.560" /><!-- duration: 16ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1374900193-signature.json&apos;" date="2026-03-24T01:26:56.595" /><!-- duration: 12ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1374900196-signature.json&apos;" date="2026-03-24T01:26:56.622" /><!-- duration: 16ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1374900197-signature.json&apos;" date="2026-03-24T01:26:56.673" /><!-- duration: 0ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1374900204-signature.json&apos;" date="2026-03-24T01:26:56.703" /><!-- duration: 13ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1374900205-signature.json&apos;" date="2026-03-24T01:26:56.753" /><!-- duration: 10ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1374900210-signature.json&apos;" date="2026-03-24T01:26:56.782" /><!-- duration: 12ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1481200001-signature.json&apos;" date="2026-03-24T01:26:56.825" /><!-- duration: 17ms -->
+            <step title="Copying file: &apos;publish\wwwroot\files\quotes\Quote-C1481900004-signature.json&apos;" date="2026-03-24T01:26:56.862" /><!-- duration: 10ms -->
+            <step title="Omitting next output lines..." date="2026-03-24T01:26:56.903" /><!-- duration: 17ms -->
+            <step title="Finished successfully." date="2026-03-24T01:26:58.109" /><!-- duration: 0ms -->
+          </step><!-- duration: 16319ms -->
+          <step title="Build completed succesfully." date="2026-03-24T01:26:58.627" /><!-- duration: 29ms -->
+          <step title="Running post deployment command(s)..." date="2026-03-24T01:26:58.794" /><!-- duration: 19ms -->
+          <step title="Requesting site restart" date="2026-03-24T01:26:59.204" /><!-- duration: 12ms -->
+          <step title="Requesting site restart" date="2026-03-24T01:26:59.247" /><!-- duration: 78ms -->
+          <step title="Requesting site restart. Attempt #1" date="2026-03-24T01:26:59.471" /><!-- duration: 30ms -->
+          <step title="Requesting site restart. Attempt #1" date="2026-03-24T01:26:59.548" /><!-- duration: 11ms -->
+          <step title="Successfully requested a restart. Attempt #1" date="2026-03-24T01:27:00.186" /><!-- duration: 0ms -->
+          <step title="Successfully requested a restart. Attempt #1" date="2026-03-24T01:27:00.200" /><!-- duration: 0ms -->
+          <step title="Deployment successful. DEPLOYMENTINFO: deploymentPath = OneDeploy, deployer = OneDeploy, os = windows, sku = Basic, siteName = microhire, siteHostName = microhire-geg6hggrhdcqbme9.australiasoutheast-01.azurewebsites.net, deploymentStatus = Success" date="2026-03-24T01:27:00.409" /><!-- duration: 0ms -->
+          <step title="Purge deployment items" date="2026-03-24T01:27:00.794" >
+            <step title="Remove 5617ac51d, Success, received at 3/23/2026 11:54:04 PM" date="2026-03-24T01:27:00.954" /><!-- duration: 0ms -->
+          </step><!-- duration: 172ms -->
+        </step><!-- duration: 19820ms -->
+      </step><!-- duration: 20554ms -->
+      <step title="Cleaning up temp files" date="2026-03-24T01:27:01.110" /><!-- duration: 201ms -->
+      <step title="Skip function trigger and logicapp sync because function is not enabled." date="2026-03-24T01:27:01.388" /><!-- duration: 0ms -->
+    </step><!-- duration: 39929ms -->
+    <step title="LockFile &apos;C:\home\site\locks\deployments.lock&apos; released" date="2026-03-24T01:27:01.514" /><!-- duration: 19ms -->
+    <step title="Deleting shutdown sentinel file" date="2026-03-24T01:27:01.575" SemaphoreCount="8" /><!-- duration: 0ms -->
+  </step><!-- duration: 55833ms -->
+  <step title="Outgoing response" date="2026-03-24T01:27:01.591" type="response" statusCode="200" statusText="OK" Server="Microsoft-IIS/10.0" x-ms-request-id="6b45bbfe-2720-11f1-bdc8-464431335779" Cache-Control="private" X-AspNet-Version="4.0.30319" /><!-- duration: 16ms -->
+</step><!-- duration: 55933ms -->

@@ -1,0 +1,36 @@
+2026-03-25T18:28:10  PID[4584] Information Unpacking resources...
+2026-03-25T18:28:10  PID[4584] Information 03-25 18:28:09 Information: Executing Application Insights Profiler agent version 2.6.2506.502 with arguments: 
+2026-03-25T18:28:10  PID[4584] Information 03-25 18:28:09 Information: Minimum version enabled on machine: 1.0.0
+2026-03-25T18:28:10  PID[4584] Information 03-25 18:28:09 Information: Applying logging level: Information
+2026-03-25T18:28:10  PID[4584] Information 03-25 18:28:09 Information: Effective connection string: InstrumentationKey=7e674e8b-317e-43be-9613-f825c00b0b80;IngestionEndpoint=https://australiasoutheast-0.in.applicationinsights.azure.com/;LiveEndpoint=https://australiasoutheast.livediagnostics.monitor.azure.com/;ApplicationId=f0e4a23b-bdcd-41cb-ba91-ef9aae55e673
+2026-03-25T18:28:10  PID[4584] Information 03-25 18:28:09 Information: Instrumentation key: 7e674e8b-317e-43be-9613-f825c00b0b80
+2026-03-25T18:28:10  PID[4584] Information 03-25 18:28:09 Information: Application Insights Profiler endpoint: https://profiler.monitor.azure.com/
+2026-03-25T18:28:10  PID[4584] Information 03-25 18:28:09 Information: Application Insights endpoint: https://australiasoutheast-0.in.applicationinsights.azure.com/v2/track/
+2026-03-25T18:28:10  PID[4584] Information 03-25 18:28:09 Information: Runtime Environment: Antares
+2026-03-25T18:28:10  PID[4584] Information 03-25 18:28:09 Information: Support files: C:\local\Temp\jobs\continuous\ApplicationInsightsProfiler3\4lqgfrsb.mva\spsupport
+2026-03-25T18:28:10  PID[4584] Information 03-25 18:28:09 Information: Providing usage data (to opt out set the AppSettings ApplicationInsightsProvideUsageTelemetryData with the value "false"): True
+2026-03-25T18:28:10  PID[4584] Information 03-25 18:28:09 Information: Engine mode: Sampling
+2026-03-25T18:28:10  PID[4584] Information 03-25 18:28:09 Information: Circular Monitor Agent version: 5
+2026-03-25T18:28:10  PID[4584] Information 03-25 18:28:09 Information: Circular Monitor Agent config: 
+2026-03-25T18:28:10  PID[4584] Information 03-25 18:28:09 Information: Shutdown handler set to watch C:\local\Temp\JobsShutdown\continuous\ApplicationInsightsProfiler3\b3ddg4eh.usj.
+2026-03-25T18:28:12  PID[4584] Information 03-25 18:28:12 Information: Application Insights AppId: f0e4a23b-bdcd-41cb-ba91-ef9aae55e673
+2026-03-25T18:28:13  PID[4584] Information 03-25 18:28:13 Critical: Settings have been set from Engine
+2026-03-25T18:28:13  PID[4584] Information 03-25 18:28:13 Information: Local PDB scan complete. Found 1 PDB(s).
+2026-03-25T18:28:13  PID[4584] Information 03-25 18:28:13 Critical: Settings contract has been updated
+2026-03-25T18:28:13  PID[4584] Information 03-25 18:28:13 Critical: Enabled has been set to True
+2026-03-25T18:30:14  PID[4584] Information 03-25 18:30:14 Information: Triggering Based on Memory
+2026-03-25T18:30:14  PID[4584] Information 03-25 18:30:14 Critical: StartProfiler triggered.
+2026-03-25T18:30:14  PID[4584] Information 03-25 18:30:14 Information: Starting circular monitor
+2026-03-25T18:30:22  PID[4584] Information 03-25 18:30:22 Information: Monitoring process 7544
+2026-03-25T18:30:24  PID[4584] Information 03-25 18:30:22 Information: Monitoring process 7348
+2026-03-25T18:30:25  PID[4584] Information 03-25 18:30:22 Information: Monitoring process 5832
+2026-03-25T18:30:25  PID[4584] Information 03-25 18:30:22 Information: Monitoring process 7608
+2026-03-25T18:30:25  PID[4584] Information 03-25 18:30:25 Information: Monitoring process 5264
+2026-03-25T18:30:26  PID[4584] Information 03-25 18:30:25 Information: AddTargetProcess by id 5264, with rundown
+2026-03-25T18:30:26  PID[4584] Information 03-25 18:30:25 Information: Session ID set.
+2026-03-25T18:30:26  PID[4584] Information 03-25 18:30:25 Critical: StartProfiler succeeded.
+2026-03-25T18:30:55  PID[4584] Information 03-25 18:30:55 Critical: StopProfiler triggered.
+2026-03-25T18:30:55  PID[4584] Information 03-25 18:30:55 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T18:31:13  PID[4584] Information 03-25 18:31:13 Critical: Upload trace was canceled as no activity detected from target iKey.
+2026-03-25T18:31:13  PID[4584] Information 03-25 18:31:13 Information: Target iKey: 7e674e8b-317e-43be-9613-f825c00b0b80. Detected iKeys: .
+2026-03-25T18:31:13  PID[4584] Information 03-25 18:31:13 Critical: StopProfiler succeeded.

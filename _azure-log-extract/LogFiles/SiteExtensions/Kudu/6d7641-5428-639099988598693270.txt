@@ -1,0 +1,211 @@
+2026-03-25T01:27:38  PID[5428] Information Unpacking resources...
+2026-03-25T01:27:39  PID[5428] Information 03-25 01:27:39 Information: Executing Application Insights Profiler agent version 2.6.2506.502 with arguments: 
+2026-03-25T01:27:39  PID[5428] Information 03-25 01:27:39 Information: Minimum version enabled on machine: 1.0.0
+2026-03-25T01:27:39  PID[5428] Information 03-25 01:27:39 Information: Applying logging level: Information
+2026-03-25T01:27:39  PID[5428] Information 03-25 01:27:39 Information: Effective connection string: InstrumentationKey=7e674e8b-317e-43be-9613-f825c00b0b80;IngestionEndpoint=https://australiasoutheast-0.in.applicationinsights.azure.com/;LiveEndpoint=https://australiasoutheast.livediagnostics.monitor.azure.com/;ApplicationId=f0e4a23b-bdcd-41cb-ba91-ef9aae55e673
+2026-03-25T01:27:39  PID[5428] Information 03-25 01:27:39 Information: Instrumentation key: 7e674e8b-317e-43be-9613-f825c00b0b80
+2026-03-25T01:27:39  PID[5428] Information 03-25 01:27:39 Information: Application Insights Profiler endpoint: https://profiler.monitor.azure.com/
+2026-03-25T01:27:39  PID[5428] Information 03-25 01:27:39 Information: Application Insights endpoint: https://australiasoutheast-0.in.applicationinsights.azure.com/v2/track/
+2026-03-25T01:27:39  PID[5428] Information 03-25 01:27:39 Information: Runtime Environment: Antares
+2026-03-25T01:27:39  PID[5428] Information 03-25 01:27:39 Information: Support files: C:\local\Temp\jobs\continuous\ApplicationInsightsProfiler3\trfhb5rw.snf\spsupport
+2026-03-25T01:27:39  PID[5428] Information 03-25 01:27:39 Information: Providing usage data (to opt out set the AppSettings ApplicationInsightsProvideUsageTelemetryData with the value "false"): True
+2026-03-25T01:27:39  PID[5428] Information 03-25 01:27:39 Information: Engine mode: Sampling
+2026-03-25T01:27:39  PID[5428] Information 03-25 01:27:39 Information: Circular Monitor Agent version: 5
+2026-03-25T01:27:39  PID[5428] Information 03-25 01:27:39 Information: Circular Monitor Agent config: 
+2026-03-25T01:27:39  PID[5428] Information 03-25 01:27:39 Information: Shutdown handler set to watch C:\local\Temp\JobsShutdown\continuous\ApplicationInsightsProfiler3\bua31h2v.oys.
+2026-03-25T01:27:43  PID[5428] Information 03-25 01:27:43 Information: Application Insights AppId: f0e4a23b-bdcd-41cb-ba91-ef9aae55e673
+2026-03-25T01:27:44  PID[5428] Information 03-25 01:27:44 Critical: Settings have been set from Engine
+2026-03-25T01:27:44  PID[5428] Information 03-25 01:27:44 Information: Local PDB scan complete. Found 0 PDB(s).
+2026-03-25T01:27:44  PID[5428] Information 03-25 01:27:44 Critical: Settings contract has been updated
+2026-03-25T01:27:44  PID[5428] Information 03-25 01:27:44 Critical: Enabled has been set to True
+2026-03-25T01:27:45  PID[5428] Information 03-25 01:27:45 Information: Triggering Based on Memory
+2026-03-25T01:27:45  PID[5428] Information 03-25 01:27:45 Critical: StartProfiler triggered.
+2026-03-25T01:27:45  PID[5428] Information 03-25 01:27:45 Information: Starting circular monitor
+2026-03-25T01:27:54  PID[5428] Information 03-25 01:27:54 Information: Monitoring process 4832
+2026-03-25T01:27:54  PID[5428] Information 03-25 01:27:54 Information: AddTargetProcess by id 4832, with rundown
+2026-03-25T01:27:54  PID[5428] Information 03-25 01:27:54 Information: Session ID set.
+2026-03-25T01:27:54  PID[5428] Information 03-25 01:27:54 Critical: StartProfiler succeeded.
+2026-03-25T01:28:24  PID[5428] Information 03-25 01:28:24 Critical: StopProfiler triggered.
+2026-03-25T01:28:24  PID[5428] Information 03-25 01:28:24 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T01:28:39  PID[5428] Information 03-25 01:28:39 Critical: Upload trace was canceled as no activity detected from target iKey.
+2026-03-25T01:28:39  PID[5428] Information 03-25 01:28:39 Information: Target iKey: 7e674e8b-317e-43be-9613-f825c00b0b80. Detected iKeys: .
+2026-03-25T01:28:39  PID[5428] Information 03-25 01:28:39 Critical: StopProfiler succeeded.
+2026-03-25T02:27:44  PID[5428] Information 03-25 02:27:44 Information: Local PDB scan complete. Found 0 PDB(s).
+2026-03-25T02:30:55  PID[5428] Information 03-25 02:30:55 Critical: StartProfiler triggered.
+2026-03-25T02:30:55  PID[5428] Information 03-25 02:30:55 Information: Starting circular monitor
+2026-03-25T02:31:06  PID[5428] Information 03-25 02:31:06 Information: Monitoring process 7044
+2026-03-25T02:31:06  PID[5428] Information 03-25 02:31:06 Information: AddTargetProcess by id 7044, with rundown
+2026-03-25T02:31:06  PID[5428] Information 03-25 02:31:06 Information: Session ID set.
+2026-03-25T02:31:06  PID[5428] Information 03-25 02:31:06 Critical: StartProfiler succeeded.
+2026-03-25T02:31:10  PID[5428] Information 03-25 02:31:10 Information: Activity detected from iKey: 7e674e8b-317e-43be-9613-f825c00b0b80.
+2026-03-25T02:31:10  PID[5428] Information 03-25 02:31:10 Information: RoleName discovered: microhire-geg6hggrhdcqbme9.australiasoutheast-01.
+2026-03-25T02:31:36  PID[5428] Information 03-25 02:31:36 Critical: StopProfiler triggered.
+2026-03-25T02:31:36  PID[5428] Information 03-25 02:31:36 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T02:31:50  PID[5428] Information 03-25 02:31:50 Information: No local PDBs were found. Skipping match.
+2026-03-25T02:31:50  PID[5428] Information 03-25 02:31:50 Information: No matched PDBs.
+2026-03-25T02:31:50  PID[5428] Information 03-25 02:31:50 Information: Start to upload trace D:\DWASFiles\Sites\#1microhire\Temp\Report.5F81D3C4-AC3D-4DBE-8624-7E9AB92AF8AD.diagsession
+2026-03-25T02:31:52  PID[5428] Information 03-25 02:31:52 Information: Trace uploaded to v2|australiaeast-3supbwij3jr5c|f0e4a23b-bdcd-41cb-ba91-ef9aae55e673|Profile|5f81d3c4ac3d4dbe86247e9ab92af8ad|
+2026-03-25T02:31:52  PID[5428] Information 03-25 02:31:52 Critical: StopProfiler succeeded.
+2026-03-25T02:56:04  PID[5428] Information 03-25 02:56:04 Critical: StartProfiler triggered.
+2026-03-25T02:56:04  PID[5428] Information 03-25 02:56:04 Information: Starting circular monitor
+2026-03-25T02:56:06  PID[5428] Information 03-25 02:56:06 Information: Monitoring process 3372
+2026-03-25T02:56:36  PID[5428] Information 03-25 02:56:36 Information: Monitoring process 2552
+2026-03-25T02:56:36  PID[5428] Information 03-25 02:56:36 Information: AddTargetProcess by id 2552, with rundown
+2026-03-25T02:56:36  PID[5428] Information 03-25 02:56:36 Information: Session ID set.
+2026-03-25T02:56:36  PID[5428] Information 03-25 02:56:36 Critical: StartProfiler succeeded.
+2026-03-25T02:57:06  PID[5428] Information 03-25 02:57:06 Critical: StopProfiler triggered.
+2026-03-25T02:57:06  PID[5428] Information 03-25 02:57:06 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T02:57:14  PID[5428] Information 03-25 02:57:14 Critical: Upload trace was canceled as no activity detected from target iKey.
+2026-03-25T02:57:14  PID[5428] Information 03-25 02:57:14 Information: Target iKey: 7e674e8b-317e-43be-9613-f825c00b0b80. Detected iKeys: .
+2026-03-25T02:57:14  PID[5428] Information 03-25 02:57:14 Critical: StopProfiler succeeded.
+2026-03-25T03:27:44  PID[5428] Information 03-25 03:27:44 Information: Local PDB scan complete. Found 0 PDB(s).
+2026-03-25T04:11:31  PID[5428] Information 03-25 04:11:31 Critical: StartProfiler triggered.
+2026-03-25T04:11:31  PID[5428] Information 03-25 04:11:31 Information: Starting circular monitor
+2026-03-25T04:11:37  PID[5428] Information 03-25 04:11:37 Information: Monitoring process 6220
+2026-03-25T04:11:37  PID[5428] Information 03-25 04:11:37 Information: AddTargetProcess by id 6220, with rundown
+2026-03-25T04:11:37  PID[5428] Information 03-25 04:11:37 Information: Session ID set.
+2026-03-25T04:11:37  PID[5428] Information 03-25 04:11:37 Critical: StartProfiler succeeded.
+2026-03-25T04:12:07  PID[5428] Information 03-25 04:12:07 Critical: StopProfiler triggered.
+2026-03-25T04:12:07  PID[5428] Information 03-25 04:12:07 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T04:12:18  PID[5428] Information 03-25 04:12:18 Critical: Upload trace was canceled as no activity detected from target iKey.
+2026-03-25T04:12:18  PID[5428] Information 03-25 04:12:18 Information: Target iKey: 7e674e8b-317e-43be-9613-f825c00b0b80. Detected iKeys: .
+2026-03-25T04:12:18  PID[5428] Information 03-25 04:12:18 Critical: StopProfiler succeeded.
+2026-03-25T04:20:28  PID[5428] Information 03-25 04:20:28 Critical: StartProfiler triggered.
+2026-03-25T04:20:28  PID[5428] Information 03-25 04:20:28 Information: Starting circular monitor
+2026-03-25T04:20:34  PID[5428] Information 03-25 04:20:34 Information: Monitoring process 6220
+2026-03-25T04:20:34  PID[5428] Information 03-25 04:20:34 Information: AddTargetProcess by id 6220, with rundown
+2026-03-25T04:20:34  PID[5428] Information 03-25 04:20:34 Information: Session ID set.
+2026-03-25T04:20:34  PID[5428] Information 03-25 04:20:34 Critical: StartProfiler succeeded.
+2026-03-25T04:21:04  PID[5428] Information 03-25 04:21:04 Critical: StopProfiler triggered.
+2026-03-25T04:21:04  PID[5428] Information 03-25 04:21:04 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T04:21:16  PID[5428] Information 03-25 04:21:16 Critical: Upload trace was canceled as no activity detected from target iKey.
+2026-03-25T04:21:16  PID[5428] Information 03-25 04:21:16 Information: Target iKey: 7e674e8b-317e-43be-9613-f825c00b0b80. Detected iKeys: .
+2026-03-25T04:21:16  PID[5428] Information 03-25 04:21:16 Critical: StopProfiler succeeded.
+2026-03-25T04:27:44  PID[5428] Information 03-25 04:27:44 Information: Local PDB scan complete. Found 0 PDB(s).
+2026-03-25T04:55:32  PID[5428] Information 03-25 04:55:32 Critical: StartProfiler triggered.
+2026-03-25T04:55:32  PID[5428] Information 03-25 04:55:32 Information: Starting circular monitor
+2026-03-25T04:55:36  PID[5428] Information 03-25 04:55:36 Information: Monitoring process 6976
+2026-03-25T04:55:36  PID[5428] Information 03-25 04:55:36 Information: AddTargetProcess by id 6976, with rundown
+2026-03-25T04:55:36  PID[5428] Information 03-25 04:55:36 Information: Session ID set.
+2026-03-25T04:55:36  PID[5428] Information 03-25 04:55:36 Critical: StartProfiler succeeded.
+2026-03-25T04:56:06  PID[5428] Information 03-25 04:56:06 Critical: StopProfiler triggered.
+2026-03-25T04:56:06  PID[5428] Information 03-25 04:56:06 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T04:56:13  PID[5428] Information 03-25 04:56:13 Critical: Upload trace was canceled as no activity detected from target iKey.
+2026-03-25T04:56:13  PID[5428] Information 03-25 04:56:13 Information: Target iKey: 7e674e8b-317e-43be-9613-f825c00b0b80. Detected iKeys: .
+2026-03-25T04:56:13  PID[5428] Information 03-25 04:56:13 Critical: StopProfiler succeeded.
+2026-03-25T05:00:23  PID[5428] Information 03-25 05:00:23 Critical: StartProfiler triggered.
+2026-03-25T05:00:23  PID[5428] Information 03-25 05:00:23 Information: Starting circular monitor
+2026-03-25T05:00:25  PID[5428] Information 03-25 05:00:25 Information: Monitoring process 6976
+2026-03-25T05:00:25  PID[5428] Information 03-25 05:00:25 Information: AddTargetProcess by id 6976, with rundown
+2026-03-25T05:00:25  PID[5428] Information 03-25 05:00:25 Information: Session ID set.
+2026-03-25T05:00:25  PID[5428] Information 03-25 05:00:25 Critical: StartProfiler succeeded.
+2026-03-25T05:00:55  PID[5428] Information 03-25 05:00:55 Critical: StopProfiler triggered.
+2026-03-25T05:00:55  PID[5428] Information 03-25 05:00:55 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T05:01:01  PID[5428] Information 03-25 05:01:01 Critical: Upload trace was canceled as no activity detected from target iKey.
+2026-03-25T05:01:01  PID[5428] Information 03-25 05:01:01 Information: Target iKey: 7e674e8b-317e-43be-9613-f825c00b0b80. Detected iKeys: .
+2026-03-25T05:01:01  PID[5428] Information 03-25 05:01:01 Critical: StopProfiler succeeded.
+2026-03-25T05:27:45  PID[5428] Information 03-25 05:27:45 Information: Local PDB scan complete. Found 0 PDB(s).
+2026-03-25T05:31:15  PID[5428] Information 03-25 05:31:15 Critical: StartProfiler triggered.
+2026-03-25T05:31:15  PID[5428] Information 03-25 05:31:15 Information: Starting circular monitor
+2026-03-25T05:31:22  PID[5428] Information 03-25 05:31:22 Information: Monitoring process 7456
+2026-03-25T05:31:26  PID[5428] Information 03-25 05:31:26 Information: Monitoring process 916
+2026-03-25T05:31:26  PID[5428] Information 03-25 05:31:26 Information: AddTargetProcess by id 916, with rundown
+2026-03-25T05:31:26  PID[5428] Information 03-25 05:31:26 Information: Session ID set.
+2026-03-25T05:31:26  PID[5428] Information 03-25 05:31:26 Critical: StartProfiler succeeded.
+2026-03-25T05:31:56  PID[5428] Information 03-25 05:31:56 Critical: StopProfiler triggered.
+2026-03-25T05:31:56  PID[5428] Information 03-25 05:31:56 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T05:32:39  PID[5428] Information 03-25 05:32:39 Critical: Upload trace was canceled as no activity detected from target iKey.
+2026-03-25T05:32:39  PID[5428] Information 03-25 05:32:39 Information: Target iKey: 7e674e8b-317e-43be-9613-f825c00b0b80. Detected iKeys: .
+2026-03-25T05:32:39  PID[5428] Information 03-25 05:32:39 Critical: StopProfiler succeeded.
+2026-03-25T05:32:49  PID[5428] Information 03-25 05:32:49 Information: Triggering Based on Memory
+2026-03-25T05:32:49  PID[5428] Information 03-25 05:32:49 Critical: StartProfiler triggered.
+2026-03-25T05:32:49  PID[5428] Information 03-25 05:32:49 Information: Starting circular monitor
+2026-03-25T05:32:50  PID[5428] Information 03-25 05:32:50 Information: Monitoring process 7456
+2026-03-25T05:32:50  PID[5428] Information 03-25 05:32:50 Information: Monitoring process 916
+2026-03-25T05:32:50  PID[5428] Information 03-25 05:32:50 Information: Monitoring process 5180
+2026-03-25T05:32:50  PID[5428] Information 03-25 05:32:50 Information: AddTargetProcess by id 5180, with rundown
+2026-03-25T05:32:50  PID[5428] Information 03-25 05:32:50 Information: Session ID set.
+2026-03-25T05:32:51  PID[5428] Information 03-25 05:32:50 Critical: StartProfiler succeeded.
+2026-03-25T05:33:20  PID[5428] Information 03-25 05:33:20 Critical: StopProfiler triggered.
+2026-03-25T05:33:21  PID[5428] Information 03-25 05:33:20 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T05:33:27  PID[5428] Information 03-25 05:33:27 Critical: Upload trace was canceled as no activity detected from target iKey.
+2026-03-25T05:33:27  PID[5428] Information 03-25 05:33:27 Information: Target iKey: 7e674e8b-317e-43be-9613-f825c00b0b80. Detected iKeys: .
+2026-03-25T05:33:27  PID[5428] Information 03-25 05:33:27 Critical: StopProfiler succeeded.
+2026-03-25T05:43:39  PID[5428] Information 03-25 05:43:39 Critical: StartProfiler triggered.
+2026-03-25T05:43:39  PID[5428] Information 03-25 05:43:39 Information: Starting circular monitor
+2026-03-25T05:43:40  PID[5428] Information 03-25 05:43:40 Information: Monitoring process 7456
+2026-03-25T05:43:40  PID[5428] Information 03-25 05:43:40 Information: Monitoring process 916
+2026-03-25T05:43:42  PID[5428] Information 03-25 05:43:42 Information: Monitoring process 5180
+2026-03-25T05:43:42  PID[5428] Information 03-25 05:43:42 Information: AddTargetProcess by id 5180, with rundown
+2026-03-25T05:43:42  PID[5428] Information 03-25 05:43:42 Information: Session ID set.
+2026-03-25T05:43:42  PID[5428] Information 03-25 05:43:42 Critical: StartProfiler succeeded.
+2026-03-25T05:44:12  PID[5428] Information 03-25 05:44:12 Critical: StopProfiler triggered.
+2026-03-25T05:44:12  PID[5428] Information 03-25 05:44:12 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T05:44:18  PID[5428] Information 03-25 05:44:18 Critical: Upload trace was canceled as no activity detected from target iKey.
+2026-03-25T05:44:18  PID[5428] Information 03-25 05:44:18 Information: Target iKey: 7e674e8b-317e-43be-9613-f825c00b0b80. Detected iKeys: .
+2026-03-25T05:44:18  PID[5428] Information 03-25 05:44:18 Critical: StopProfiler succeeded.
+2026-03-25T06:06:30  PID[5428] Information 03-25 06:06:30 Critical: StartProfiler triggered.
+2026-03-25T06:06:31  PID[5428] Information 03-25 06:06:30 Information: Starting circular monitor
+2026-03-25T06:06:34  PID[5428] Information 03-25 06:06:34 Information: Monitoring process 4524
+2026-03-25T06:06:34  PID[5428] Information 03-25 06:06:34 Information: Monitoring process 7512
+2026-03-25T06:06:39  PID[5428] Information 03-25 06:06:39 Information: Monitoring process 3860
+2026-03-25T06:06:39  PID[5428] Information 03-25 06:06:39 Information: AddTargetProcess by id 3860, with rundown
+2026-03-25T06:06:39  PID[5428] Information 03-25 06:06:39 Information: Session ID set.
+2026-03-25T06:06:40  PID[5428] Information 03-25 06:06:40 Critical: StartProfiler succeeded.
+2026-03-25T06:07:10  PID[5428] Information 03-25 06:07:10 Critical: StopProfiler triggered.
+2026-03-25T06:07:10  PID[5428] Information 03-25 06:07:10 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T06:07:23  PID[5428] Information 03-25 06:07:23 Critical: Upload trace was canceled as no activity detected from target iKey.
+2026-03-25T06:07:23  PID[5428] Information 03-25 06:07:23 Information: Target iKey: 7e674e8b-317e-43be-9613-f825c00b0b80. Detected iKeys: .
+2026-03-25T06:07:23  PID[5428] Information 03-25 06:07:23 Critical: StopProfiler succeeded.
+2026-03-25T06:17:35  PID[5428] Information 03-25 06:17:35 Critical: StartProfiler triggered.
+2026-03-25T06:17:35  PID[5428] Information 03-25 06:17:35 Information: Starting circular monitor
+2026-03-25T06:17:37  PID[5428] Information 03-25 06:17:37 Information: Monitoring process 4524
+2026-03-25T06:17:37  PID[5428] Information 03-25 06:17:37 Information: Monitoring process 7512
+2026-03-25T06:17:43  PID[5428] Information 03-25 06:17:43 Information: Monitoring process 3860
+2026-03-25T06:17:43  PID[5428] Information 03-25 06:17:43 Information: AddTargetProcess by id 3860, with rundown
+2026-03-25T06:17:43  PID[5428] Information 03-25 06:17:43 Information: Session ID set.
+2026-03-25T06:17:43  PID[5428] Information 03-25 06:17:43 Critical: StartProfiler succeeded.
+2026-03-25T06:18:13  PID[5428] Information 03-25 06:18:13 Critical: StopProfiler triggered.
+2026-03-25T06:18:13  PID[5428] Information 03-25 06:18:13 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T06:18:25  PID[5428] Information 03-25 06:18:25 Critical: Upload trace was canceled as no activity detected from target iKey.
+2026-03-25T06:18:25  PID[5428] Information 03-25 06:18:25 Information: Target iKey: 7e674e8b-317e-43be-9613-f825c00b0b80. Detected iKeys: .
+2026-03-25T06:18:25  PID[5428] Information 03-25 06:18:25 Critical: StopProfiler succeeded.
+2026-03-25T06:18:35  PID[5428] Information 03-25 06:18:35 Critical: StartProfiler triggered.
+2026-03-25T06:18:35  PID[5428] Information 03-25 06:18:35 Information: Starting circular monitor
+2026-03-25T06:18:36  PID[5428] Information 03-25 06:18:36 Information: Monitoring process 4524
+2026-03-25T06:18:36  PID[5428] Information 03-25 06:18:36 Information: Monitoring process 7512
+2026-03-25T06:18:39  PID[5428] Information 03-25 06:18:39 Information: Monitoring process 3860
+2026-03-25T06:18:39  PID[5428] Information 03-25 06:18:39 Information: AddTargetProcess by id 3860, with rundown
+2026-03-25T06:18:39  PID[5428] Information 03-25 06:18:39 Information: Session ID set.
+2026-03-25T06:18:39  PID[5428] Information 03-25 06:18:39 Critical: StartProfiler succeeded.
+2026-03-25T06:19:09  PID[5428] Information 03-25 06:19:09 Critical: StopProfiler triggered.
+2026-03-25T06:19:09  PID[5428] Information 03-25 06:19:09 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T06:19:21  PID[5428] Information 03-25 06:19:21 Critical: Upload trace was canceled as no activity detected from target iKey.
+2026-03-25T06:19:21  PID[5428] Information 03-25 06:19:21 Information: Target iKey: 7e674e8b-317e-43be-9613-f825c00b0b80. Detected iKeys: .
+2026-03-25T06:19:21  PID[5428] Information 03-25 06:19:21 Critical: StopProfiler succeeded.
+2026-03-25T06:27:45  PID[5428] Information 03-25 06:27:45 Information: Local PDB scan complete. Found 0 PDB(s).
+2026-03-25T06:55:37  PID[5428] Information 03-25 06:55:37 Critical: StartProfiler triggered.
+2026-03-25T06:55:37  PID[5428] Information 03-25 06:55:37 Information: Starting circular monitor
+2026-03-25T06:55:39  PID[5428] Information 03-25 06:55:39 Information: Monitoring process 4524
+2026-03-25T06:55:39  PID[5428] Information 03-25 06:55:39 Information: Monitoring process 7512
+2026-03-25T06:55:51  PID[5428] Information 03-25 06:55:51 Information: Monitoring process 3860
+2026-03-25T06:55:51  PID[5428] Information 03-25 06:55:51 Information: AddTargetProcess by id 3860, with rundown
+2026-03-25T06:55:51  PID[5428] Information 03-25 06:55:51 Information: Session ID set.
+2026-03-25T06:55:51  PID[5428] Information 03-25 06:55:51 Critical: StartProfiler succeeded.
+2026-03-25T06:56:21  PID[5428] Information 03-25 06:56:21 Critical: StopProfiler triggered.
+2026-03-25T06:56:21  PID[5428] Information 03-25 06:56:21 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T06:56:33  PID[5428] Information 03-25 06:56:33 Critical: Upload trace was canceled as no activity detected from target iKey.
+2026-03-25T06:56:34  PID[5428] Information 03-25 06:56:33 Information: Target iKey: 7e674e8b-317e-43be-9613-f825c00b0b80. Detected iKeys: .
+2026-03-25T06:56:34  PID[5428] Information 03-25 06:56:33 Critical: StopProfiler succeeded.
+2026-03-25T07:27:45  PID[5428] Information 03-25 07:27:45 Information: Local PDB scan complete. Found 0 PDB(s).
+2026-03-25T07:56:50  PID[5428] Information 03-25 07:56:50 Critical: StartProfiler triggered.
+2026-03-25T07:56:51  PID[5428] Information 03-25 07:56:50 Information: Starting circular monitor
+2026-03-25T07:56:53  PID[5428] Information 03-25 07:56:53 Information: Monitoring process 2680
+2026-03-25T07:56:53  PID[5428] Information 03-25 07:56:53 Information: AddTargetProcess by id 2680, with rundown
+2026-03-25T07:56:53  PID[5428] Information 03-25 07:56:53 Information: Session ID set.
+2026-03-25T07:56:53  PID[5428] Information 03-25 07:56:53 Critical: StartProfiler succeeded.
+2026-03-25T07:57:23  PID[5428] Information 03-25 07:57:23 Critical: StopProfiler triggered.
+2026-03-25T07:57:23  PID[5428] Information 03-25 07:57:23 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T07:57:30  PID[5428] Information 03-25 07:57:30 Critical: Upload trace was canceled as no activity detected from target iKey.
+2026-03-25T07:57:30  PID[5428] Information 03-25 07:57:30 Information: Target iKey: 7e674e8b-317e-43be-9613-f825c00b0b80. Detected iKeys: .
+2026-03-25T07:57:30  PID[5428] Information 03-25 07:57:30 Critical: StopProfiler succeeded.

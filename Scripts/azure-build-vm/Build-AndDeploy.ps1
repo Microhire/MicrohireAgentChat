@@ -176,14 +176,35 @@ Write-Host "Runtime (Azure App Service): PlaywrightBootstrap sets PLAYWRIGHT_BRO
 Write-Host "Do not set PLAYWRIGHT_BROWSERS_PATH in Portal unless you know the path - empty is correct so the app uses the bundled folder."
 Write-Host ""
 
+# PowerShell 5.1 Compress-Archive -Path "folder\*" does NOT include dot-prefixed names (e.g. .playwright),
+# so the Playwright Node driver would be missing on Azure. ZipFile.CreateFromDirectory includes the full tree.
+Add-Type -AssemblyName System.IO.Compression.FileSystem
 if (Test-Path -LiteralPath $OutputZip) {
     Remove-Item -LiteralPath $OutputZip -Force
 }
-Write-Host "Compress-Archive -> $OutputZip"
-Compress-Archive -Path (Join-Path $publishOut "*") -DestinationPath $OutputZip -Force
+Write-Host "ZipFile.CreateFromDirectory -> $OutputZip (preserves .playwright and other hidden folders)"
+[System.IO.Compression.ZipFile]::CreateFromDirectory($publishOut, $OutputZip)
 
 $zipBytes = (Get-Item -LiteralPath $OutputZip).Length
 Write-Host ('OK: {0} ({1} bytes)' -f $OutputZip, $zipBytes)
+
+$zipRead = [System.IO.Compression.ZipFile]::OpenRead($OutputZip)
+try {
+    $hasDriver = $false
+    foreach ($e in $zipRead.Entries) {
+        if ($e.FullName -match '(?i)^\.playwright[/\\]') {
+            $hasDriver = $true
+            Write-Host ('Verified zip entry: {0}' -f $e.FullName)
+            break
+        }
+    }
+    if (-not $hasDriver) {
+        throw "site.zip has no .playwright/ entries — Playwright driver would be missing on Azure. Check publish_out before zipping."
+    }
+}
+finally {
+    $zipRead.Dispose()
+}
 
 if ($SkipDeploy) {
     Write-Host "SkipDeploy: not running az webapp deploy"

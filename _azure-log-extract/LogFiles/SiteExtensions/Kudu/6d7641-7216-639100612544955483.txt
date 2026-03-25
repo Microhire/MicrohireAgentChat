@@ -1,0 +1,52 @@
+2026-03-25T18:47:22  PID[7216] Information Unpacking resources...
+2026-03-25T18:47:22  PID[7216] Information 03-25 18:47:20 Information: Executing Application Insights Profiler agent version 2.6.2506.502 with arguments: 
+2026-03-25T18:47:22  PID[7216] Information 03-25 18:47:21 Information: Minimum version enabled on machine: 1.0.0
+2026-03-25T18:47:22  PID[7216] Information 03-25 18:47:21 Information: Applying logging level: Information
+2026-03-25T18:47:22  PID[7216] Information 03-25 18:47:21 Information: Effective connection string: InstrumentationKey=7e674e8b-317e-43be-9613-f825c00b0b80;IngestionEndpoint=https://australiasoutheast-0.in.applicationinsights.azure.com/;LiveEndpoint=https://australiasoutheast.livediagnostics.monitor.azure.com/;ApplicationId=f0e4a23b-bdcd-41cb-ba91-ef9aae55e673
+2026-03-25T18:47:22  PID[7216] Information 03-25 18:47:21 Information: Instrumentation key: 7e674e8b-317e-43be-9613-f825c00b0b80
+2026-03-25T18:47:22  PID[7216] Information 03-25 18:47:21 Information: Application Insights Profiler endpoint: https://profiler.monitor.azure.com/
+2026-03-25T18:47:22  PID[7216] Information 03-25 18:47:21 Information: Application Insights endpoint: https://australiasoutheast-0.in.applicationinsights.azure.com/v2/track/
+2026-03-25T18:47:22  PID[7216] Information 03-25 18:47:21 Information: Runtime Environment: Antares
+2026-03-25T18:47:22  PID[7216] Information 03-25 18:47:21 Information: Support files: C:\local\Temp\jobs\continuous\ApplicationInsightsProfiler3\rhcnze2x.cy1\spsupport
+2026-03-25T18:47:22  PID[7216] Information 03-25 18:47:21 Information: Providing usage data (to opt out set the AppSettings ApplicationInsightsProvideUsageTelemetryData with the value "false"): True
+2026-03-25T18:47:22  PID[7216] Information 03-25 18:47:21 Information: Engine mode: Sampling
+2026-03-25T18:47:22  PID[7216] Information 03-25 18:47:21 Information: Circular Monitor Agent version: 5
+2026-03-25T18:47:22  PID[7216] Information 03-25 18:47:21 Information: Circular Monitor Agent config: 
+2026-03-25T18:47:22  PID[7216] Information 03-25 18:47:21 Information: Shutdown handler set to watch C:\local\Temp\JobsShutdown\continuous\ApplicationInsightsProfiler3\rskpabst.pdq.
+2026-03-25T18:47:24  PID[7216] Information 03-25 18:47:24 Information: Application Insights AppId: f0e4a23b-bdcd-41cb-ba91-ef9aae55e673
+2026-03-25T18:47:25  PID[7216] Information 03-25 18:47:25 Critical: Settings have been set from Engine
+2026-03-25T18:47:25  PID[7216] Information 03-25 18:47:25 Information: Local PDB scan complete. Found 1 PDB(s).
+2026-03-25T18:47:26  PID[7216] Information 03-25 18:47:26 Critical: Settings contract has been updated
+2026-03-25T18:47:26  PID[7216] Information 03-25 18:47:26 Critical: Enabled has been set to True
+2026-03-25T18:47:26  PID[7216] Information 03-25 18:47:26 Information: Triggering Based on Memory
+2026-03-25T18:47:26  PID[7216] Information 03-25 18:47:26 Critical: StartProfiler triggered.
+2026-03-25T18:47:26  PID[7216] Information 03-25 18:47:26 Information: Starting circular monitor
+2026-03-25T18:47:31  PID[7216] Information 03-25 18:47:31 Information: Monitoring process 6756
+2026-03-25T18:47:31  PID[7216] Information 03-25 18:47:31 Information: Monitoring process 5864
+2026-03-25T18:47:31  PID[7216] Information 03-25 18:47:31 Information: Monitoring process 5136
+2026-03-25T18:47:38  PID[7216] Information 03-25 18:47:38 Information: Monitoring process 3924
+2026-03-25T18:47:38  PID[7216] Information 03-25 18:47:38 Information: AddTargetProcess by id 3924, with rundown
+2026-03-25T18:47:38  PID[7216] Information 03-25 18:47:38 Information: Session ID set.
+2026-03-25T18:47:38  PID[7216] Information 03-25 18:47:38 Critical: StartProfiler succeeded.
+2026-03-25T18:48:06  PID[7216] Information 03-25 18:48:06 Information: Activity detected from iKey: 7e674e8b-317e-43be-9613-f825c00b0b80.
+2026-03-25T18:48:06  PID[7216] Information 03-25 18:48:06 Information: RoleName discovered: microhire-geg6hggrhdcqbme9.australiasoutheast-01.
+2026-03-25T18:48:08  PID[7216] Information 03-25 18:48:08 Critical: StopProfiler triggered.
+2026-03-25T18:48:08  PID[7216] Information 03-25 18:48:08 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T18:48:16  PID[7216] Information 03-25 18:48:16 Information: No matched PDBs.
+2026-03-25T18:48:16  PID[7216] Information 03-25 18:48:16 Information: Start to upload trace D:\DWASFiles\Sites\#1microhire\Temp\Report.F1D762C4-29A0-42F8-9DB6-6A3D6DEDE000.diagsession
+2026-03-25T18:48:17  PID[7216] Information 03-25 18:48:17 Information: Trace uploaded to v2|australiaeast-3supbwij3jr5c|f0e4a23b-bdcd-41cb-ba91-ef9aae55e673|Profile|f1d762c429a042f89db66a3d6dede000|
+2026-03-25T18:48:17  PID[7216] Information 03-25 18:48:17 Critical: StopProfiler succeeded.
+2026-03-25T19:00:29  PID[7216] Information 03-25 19:00:29 Critical: StartProfiler triggered.
+2026-03-25T19:00:29  PID[7216] Information 03-25 19:00:29 Information: Starting circular monitor
+2026-03-25T19:00:30  PID[7216] Information 03-25 19:00:30 Information: Monitoring process 6756
+2026-03-25T19:00:30  PID[7216] Information 03-25 19:00:30 Information: Monitoring process 5864
+2026-03-25T19:00:30  PID[7216] Information 03-25 19:00:30 Information: Monitoring process 5136
+2026-03-25T19:00:31  PID[7216] Information 03-25 19:00:31 Information: Monitoring process 3924
+2026-03-25T19:00:31  PID[7216] Information 03-25 19:00:31 Information: AddTargetProcess by id 3924, with rundown
+2026-03-25T19:00:31  PID[7216] Information 03-25 19:00:31 Information: Session ID set.
+2026-03-25T19:00:31  PID[7216] Information 03-25 19:00:31 Critical: StartProfiler succeeded.
+2026-03-25T19:01:01  PID[7216] Information 03-25 19:01:01 Critical: StopProfiler triggered.
+2026-03-25T19:01:01  PID[7216] Information 03-25 19:01:01 Information: Stopping circular monitor and collecting etl snapshot.
+2026-03-25T19:01:08  PID[7216] Information 03-25 19:01:08 Critical: Upload trace was canceled as no activity detected from target iKey.
+2026-03-25T19:01:08  PID[7216] Information 03-25 19:01:08 Information: Target iKey: 7e674e8b-317e-43be-9613-f825c00b0b80. Detected iKeys: .
+2026-03-25T19:01:08  PID[7216] Information 03-25 19:01:08 Critical: StopProfiler succeeded.
