@@ -1258,6 +1258,37 @@ public sealed class AgentToolHandlerServiceTests
     }
 
     [Fact]
+    public void TryInferTechnicianCoverageFromDraftSession_TechWholeEventYes_IsFullCoverage()
+    {
+        var session = new InMemorySession();
+        session.SetString("Draft:TechWholeEvent", "yes");
+
+        var result = AgentToolHandlerService.TryInferTechnicianCoverageFromDraftSession(session);
+
+        Assert.NotNull(result);
+        Assert.True(result!.HasPreference);
+        Assert.False(result.NoTechnicianSupport);
+        Assert.True(result.Setup);
+        Assert.True(result.Rehearsal);
+        Assert.True(result.Operate);
+        Assert.True(result.Packdown);
+    }
+
+    [Fact]
+    public void TryInferTechnicianCoverageFromDraftSession_TechWindowIsSet_IsFullCoverage()
+    {
+        var session = new InMemorySession();
+        session.SetString("Draft:TechStartTime", "10:00");
+        session.SetString("Draft:TechEndTime", "16:00");
+
+        var result = AgentToolHandlerService.TryInferTechnicianCoverageFromDraftSession(session);
+
+        Assert.NotNull(result);
+        Assert.True(result!.HasPreference);
+        Assert.False(result.NoTechnicianSupport);
+    }
+
+    [Fact]
     public void ExtractTechnicianCoveragePreference_WillNeedForWholeDuration_TreatedAsFullCoverage()
     {
         // Regression: user says "will need for whole duration" to canonical operator question;

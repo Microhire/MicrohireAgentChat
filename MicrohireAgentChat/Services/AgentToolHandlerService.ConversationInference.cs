@@ -321,6 +321,31 @@ public sealed partial class AgentToolHandlerService
         }
     }
 
+    /// <summary>
+    /// When the wizard has already captured technician intent in session (Av extras / base AV)
+    /// but the current user line is not in the transcript yet (e.g. FollowUpAv path runs recommend
+    /// before AppendUserMessageAsync), infer coverage so <see cref="ExtractTechnicianCoveragePreference"/>
+    /// is not blocked on empty history.
+    /// </summary>
+    internal static TechnicianCoveragePreference? TryInferTechnicianCoverageFromDraftSession(ISession session)
+    {
+        if (session == null) return null;
+
+        var whole = session.GetString("Draft:TechWholeEvent") ?? "";
+        if (string.Equals(whole, "yes", StringComparison.OrdinalIgnoreCase))
+            return new TechnicianCoveragePreference(true, false, true, true, true, true);
+
+        var ts = session.GetString("Draft:TechStartTime") ?? "";
+        var te = session.GetString("Draft:TechEndTime") ?? "";
+        if (!string.IsNullOrWhiteSpace(ts) && !string.IsNullOrWhiteSpace(te))
+            return new TechnicianCoveragePreference(true, false, true, true, true, true);
+
+        if (string.Equals(whole, "no", StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        return null;
+    }
+
     internal static TechnicianCoveragePreference ExtractTechnicianCoveragePreference(IEnumerable<DisplayMessage> messages)
     {
         var ordered = (messages ?? Enumerable.Empty<DisplayMessage>()).ToList();

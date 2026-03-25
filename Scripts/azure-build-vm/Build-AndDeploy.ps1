@@ -192,6 +192,7 @@ Add-Type -AssemblyName System.IO.Compression.FileSystem
 if (Test-Path -LiteralPath $OutputZip) {
     Remove-Item -LiteralPath $OutputZip -Force
 }
+
 Write-Host "ZipFile.CreateFromDirectory -> $OutputZip (preserves .playwright and other hidden folders)"
 [System.IO.Compression.ZipFile]::CreateFromDirectory($publishOut, $OutputZip)
 

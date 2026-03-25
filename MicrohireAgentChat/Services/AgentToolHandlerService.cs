@@ -1796,6 +1796,15 @@ public sealed partial class AgentToolHandlerService
         if (!technicianCoverage.HasPreference && session != null)
             technicianCoverage = TryLoadTechnicianCoverageFromSession(session) ?? technicianCoverage;
 
+        // Wizard session (TechWholeEvent / tech window) may hold technician intent before the synthetic
+        // FollowUpAv line is appended to the Azure thread; transcript extraction would miss it.
+        if (!technicianCoverage.HasPreference && session != null)
+        {
+            var inferred = TryInferTechnicianCoverageFromDraftSession(session);
+            if (inferred != null)
+                technicianCoverage = inferred;
+        }
+
         if (recommendations.LaborItems.Count > 0 && !technicianCoverage.HasPreference)
         {
             return JsonSerializer.Serialize(new
