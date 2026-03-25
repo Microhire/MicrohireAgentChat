@@ -152,6 +152,30 @@ builder.Services.AddAntiforgery(o => o.HeaderName = "RequestVerificationToken");
 
 var app = builder.Build();
 
+{
+    var lf = app.Services.GetRequiredService<Microsoft.Extensions.Logging.ILoggerFactory>();
+    var log = lf.CreateLogger("Startup");
+    var asm = typeof(HtmlQuoteGenerationService).Assembly;
+    var loc = asm.Location ?? "";
+    DateTime? mtimeUtc = null;
+    try
+    {
+        if (!string.IsNullOrEmpty(loc) && File.Exists(loc))
+            mtimeUtc = File.GetLastWriteTimeUtc(loc);
+    }
+    catch
+    {
+        /* ignore */
+    }
+
+    log.LogWarning(
+        "[QUOTE GEN] {Marker} host startup: assembly={Assembly} dllPath={DllPath} dllMtimeUtc={MtimeUtc}",
+        HtmlQuoteGenerationService.PdfQuotePipelineMarker,
+        asm.FullName,
+        loc,
+        mtimeUtc);
+}
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");

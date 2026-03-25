@@ -16,6 +16,9 @@ namespace MicrohireAgentChat.Services;
 /// </summary>
 public partial class HtmlQuoteGenerationService
 {
+    /// <summary>Grep App Service diagnostics for this string to confirm the PDF pipeline build is deployed.</summary>
+    public const string PdfQuotePipelineMarker = "QUOTE_PIPELINE_PDF_V2";
+
     private readonly BookingDbContext _db;
     private readonly IWebHostEnvironment _env;
     private readonly IHostApplicationLifetime _hostLifetime;
@@ -170,6 +173,35 @@ public partial class HtmlQuoteGenerationService
             await File.WriteAllTextAsync(dest, html, ct);
             writeSw.Stop();
             _logger.LogInformation("[QUOTE GEN] Wrote HTML file in {Ms}ms for booking {BookingNo}", writeSw.ElapsedMilliseconds, bookingNo);
+
+            _logger.LogWarning(
+                "[QUOTE GEN] {Marker} post-HTML checkpoint booking={BookingNo} (if PDF logs never follow, this DLL may be stale or wrong instance)",
+                PdfQuotePipelineMarker,
+                bookingNo);
+
+            // #region agent log
+            try
+            {
+                const string dbgDir = "/Users/nitwit-watson/INTENT/repos/MicrohireAgentChat/.cursor";
+                if (Directory.Exists(dbgDir))
+                {
+                    var line = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object?>
+                    {
+                        ["sessionId"] = "8147b1",
+                        ["hypothesisId"] = "H1-stale-dll",
+                        ["location"] = "HtmlQuoteGenerationService.cs:post-html",
+                        ["message"] = "post-html checkpoint",
+                        ["data"] = new Dictionary<string, object?> { ["bookingNo"] = bookingNo, ["marker"] = PdfQuotePipelineMarker },
+                        ["timestamp"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                    });
+                    File.AppendAllText(Path.Combine(dbgDir, "debug-8147b1.log"), line + "\n");
+                }
+            }
+            catch
+            {
+                /* local debug log only */
+            }
+            // #endregion
 
             // 10. Pre-generate PDF from the HTML so downloads are instant and styled (required — no silent HTML-only quotes)
             // Do NOT pass the HTTP request token: Azure/proxy timeouts and client disconnects cancel ct while Playwright
