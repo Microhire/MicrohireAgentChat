@@ -1691,7 +1691,7 @@ public sealed class ChatController : Controller
                     var fallbackSignedActionsHtml = "";
                     if (!string.IsNullOrWhiteSpace(fallbackQuoteUrl))
                     {
-                        confirmText += "\n\nYou can view or download your signed quote using the buttons below.";
+                        confirmText += "\n\nYou can view your signed quote below. Use View to open the full document.";
                         fallbackSignedActionsHtml = BuildSignedQuoteActionsHtml(fallbackQuoteUrl, bookingNo);
                     }
 
@@ -3174,15 +3174,10 @@ public sealed class ChatController : Controller
             if (!string.IsNullOrWhiteSpace(quoteUrl))
             {
                 var htmlStillPresent = quoteFilePath != null && System.IO.File.Exists(quoteFilePath);
-                if (signedPdfReady)
+                if (htmlStillPresent)
                 {
-                    confirmText += "\n\nYou can view or download your signed quote using the buttons below.";
-                    signedActionsHtml = BuildSignedQuoteActionsHtml(quoteUrl, bookingNo, includeDownload: true);
-                }
-                else if (htmlStillPresent)
-                {
-                    confirmText += "\n\nYou can view your signed quote below. We could not refresh the PDF download — use View, or contact Microhire if you need a file copy.";
-                    signedActionsHtml = BuildSignedQuoteActionsHtml(quoteUrl, bookingNo, includeDownload: false);
+                    confirmText += "\n\nYou can view your signed quote below. Use View to open the full document.";
+                    signedActionsHtml = BuildSignedQuoteActionsHtml(quoteUrl, bookingNo);
                 }
             }
 
@@ -3770,9 +3765,8 @@ public sealed class ChatController : Controller
     private static DisplayMessage BuildQuoteReadyMessage(string bookingNo, string quoteUrl)
     {
         const string confirmationPrompt = "\n\nWould you like to confirm this quote?";
-        var downloadHref = QuoteDownloadHref.Build(quoteUrl, bookingNo);
-        var downloadName = System.Net.WebUtility.HtmlEncode(QuoteDownloadHref.GetPdfFileName(quoteUrl, bookingNo));
-        var successPart = $"Great news! I have successfully generated your quote for booking {bookingNo}. You can view it <a href=\"{quoteUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">here</a> or <a href=\"{downloadHref}\" rel=\"noopener noreferrer\" class=\"isla-quote-download\" data-quote-download=\"1\" data-download-name=\"{downloadName}\"><i class=\"ph ph-download\"></i> download it</a>.";
+        var pendingDownload = QuoteDownloadHref.BuildPendingDownloadAnchor(quoteUrl, bookingNo);
+        var successPart = $"Great news! I have successfully generated your quote for booking {bookingNo}. You can view it <a href=\"{quoteUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">here</a> or {pendingDownload}.";
         return new DisplayMessage
         {
             Role = "assistant",
@@ -3783,24 +3777,15 @@ public sealed class ChatController : Controller
         };
     }
 
-    private static string BuildSignedQuoteActionsHtml(string quoteUrl, string bookingNo, bool includeDownload = true)
+    private static string BuildSignedQuoteActionsHtml(string quoteUrl, string bookingNo)
     {
-        var downloadName = System.Net.WebUtility.HtmlEncode(QuoteDownloadHref.GetPdfFileName(quoteUrl, bookingNo));
         var viewBtn =
             $"<a href=\"{quoteUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-download-btn isla-quote-open\" data-quote-open=\"1\">View Signed Quote</a>";
-        if (!includeDownload)
-        {
-            return
-                "<div style=\"margin-top:1rem;display:flex;gap:.75rem;flex-wrap:wrap;justify-content:center\">" +
-                viewBtn +
-                "</div>";
-        }
-
-        var downloadHref = QuoteDownloadHref.Build(quoteUrl, bookingNo);
+        var downloadBtn = QuoteDownloadHref.BuildPendingSignedDownloadButton(quoteUrl, bookingNo);
         return
             "<div style=\"margin-top:1rem;display:flex;gap:.75rem;flex-wrap:wrap;justify-content:center\">" +
             viewBtn +
-            $"<a href=\"{downloadHref}\" rel=\"noopener noreferrer\" class=\"isla-quote-download-btn isla-quote-download\" data-quote-download=\"1\" data-download-name=\"{downloadName}\">Download Signed Quote</a>" +
+            downloadBtn +
             "</div>";
     }
 

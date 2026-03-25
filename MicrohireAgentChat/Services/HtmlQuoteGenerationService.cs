@@ -257,7 +257,7 @@ public partial class HtmlQuoteGenerationService
                 /* optional Development-only file log */
             }
 
-            // 10. Pre-generate PDF from the HTML so downloads are instant and styled (required — no silent HTML-only quotes)
+            // 10. Optional PDF from HTML (Playwright). Quote success is HTML-first: PDF failure does not remove HTML or block the user.
             // Do NOT pass the HTTP request token: Azure/proxy timeouts and client disconnects cancel ct while Playwright
             // (especially first-run chromium install) can exceed that. Stop only on host shutdown or absolute cap.
             var pdfName = Path.ChangeExtension(outName, ".pdf");
@@ -291,25 +291,12 @@ public partial class HtmlQuoteGenerationService
             if (!pdfOk || !File.Exists(pdfDest) || new FileInfo(pdfDest).Length == 0)
             {
                 _logger.LogWarning(
-                    "[QUOTE GEN] trace={Trace} phase=pdf_failed booking={BookingNo} pdfOk={PdfOk} pdfPath={PdfPath} pdfBytes={PdfBytes} removingHtml={WillDelete}",
+                    "[QUOTE GEN] trace={Trace} phase=pdf_optional_failed booking={BookingNo} pdfOk={PdfOk} pdfPath={PdfPath} pdfBytes={PdfBytes} — continuing with HTML-only quote",
                     trace,
                     bookingNo,
                     pdfOk,
                     pdfDest,
-                    pdfLen,
-                    File.Exists(dest));
-
-                try
-                {
-                    if (File.Exists(dest))
-                        File.Delete(dest);
-                }
-                catch (Exception delEx)
-                {
-                    _logger.LogWarning(delEx, "[QUOTE GEN] trace={Trace} Failed to remove HTML after PDF failure booking={BookingNo}", trace, bookingNo);
-                }
-
-                return (false, null, "Failed to generate quote PDF. Ensure Playwright Chromium is installed on the server.");
+                    pdfLen);
             }
 
             var elapsedMs = (DateTime.UtcNow - startTime).TotalMilliseconds;

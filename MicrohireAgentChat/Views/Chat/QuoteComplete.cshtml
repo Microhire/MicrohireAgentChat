@@ -129,14 +129,14 @@
         <h1 class="quote-title">Quote Generated Successfully!</h1>
 
         <p class="quote-message">
-            Great news! Your professional quote has been prepared and is ready for download.
-            You can now access your detailed quote PDF with all the pricing and equipment details.
+            Great news! Your professional quote has been prepared. Open it in a new tab to review pricing and equipment details.
+            PDF download from the browser is coming soon; use View quote for the full document.
         </p>
 
         <div class="quote-actions">
-            <a href="@ViewData["QuoteUrl"]" target="_blank" class="btn-primary">
-                <i class="ph ph-download"></i>
-                Download Quote PDF
+            <a href="@ViewData["QuoteUrl"]" target="_blank" rel="noopener noreferrer" class="btn-primary">
+                <i class="ph ph-arrow-square-out"></i>
+                View quote
             </a>
 
             <a href="@Url.Action("Reset", "Chat")" class="btn-secondary">

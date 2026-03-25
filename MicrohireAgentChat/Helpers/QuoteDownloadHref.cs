@@ -1,7 +1,10 @@
+using System.Net;
+
 namespace MicrohireAgentChat.Helpers;
 
 /// <summary>
 /// Builds stable PDF download URLs for quote HTML paths (sibling .pdf next to .html; files live under wwwroot locally or %HOME%/data/quotes on Azure).
+/// Chat UI may use <see cref="BuildPendingDownloadAnchor"/> so users get View (HTML) while PDF is optional or in progress.
 /// </summary>
 public static class QuoteDownloadHref
 {
@@ -60,5 +63,21 @@ public static class QuoteDownloadHref
             ? "quote"
             : bookingNo.Trim();
         return $"Quote-{safeBooking}.pdf";
+    }
+
+    /// <summary>
+    /// Chat "download" control: does not navigate to PDF; client shows an in-progress message (<c>data-isla-quote-pdf-pending</c>).
+    /// </summary>
+    public static string BuildPendingDownloadAnchor(string quoteUrl, string? bookingNo)
+    {
+        var downloadName = WebUtility.HtmlEncode(GetPdfFileName(quoteUrl, bookingNo));
+        return $"<a href=\"#\" role=\"button\" rel=\"noopener noreferrer\" class=\"isla-quote-download\" data-quote-download=\"1\" data-download-name=\"{downloadName}\" data-isla-quote-pdf-pending=\"1\"><i class=\"ph ph-download\"></i> download it</a>";
+    }
+
+    /// <summary>Same as <see cref="BuildPendingDownloadAnchor"/> for signed-quote confirmation buttons.</summary>
+    public static string BuildPendingSignedDownloadButton(string quoteUrl, string? bookingNo)
+    {
+        var downloadName = WebUtility.HtmlEncode(GetPdfFileName(quoteUrl, bookingNo));
+        return $"<a href=\"#\" role=\"button\" rel=\"noopener noreferrer\" class=\"isla-quote-download-btn isla-quote-download\" data-quote-download=\"1\" data-download-name=\"{downloadName}\" data-isla-quote-pdf-pending=\"1\">Download Signed Quote</a>";
     }
 }

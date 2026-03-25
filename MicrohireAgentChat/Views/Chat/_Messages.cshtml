@@ -2806,6 +2806,12 @@ else
       || ev.target.closest('.chat-text a[href*="/quotes/render"]')
       || ev.target.closest('.chat-text a[href*="/quotes/download"]');
     if(!quoteDownloadLink) return;
+    if(quoteDownloadLink.hasAttribute('data-isla-quote-pdf-pending')){
+      ev.preventDefault();
+      ev.stopPropagation();
+      alert('PDF download is temporarily unavailable while we finish this feature. You can still open the full quote using View.');
+      return;
+    }
     ev.preventDefault();
     ev.stopPropagation();
     try{
