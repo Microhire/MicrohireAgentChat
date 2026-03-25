@@ -24,6 +24,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MicrohireAgentChat.Controllers;
 
@@ -47,6 +48,7 @@ public sealed class ChatController : Controller
     private readonly ILogger<ChatController> _logger;
     private readonly AgentToolHandlerService _toolHandler;
     private readonly IHostApplicationLifetime _hostLifetime;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     // Detect: "Choose time: 09:00–10:30" (supports hyphen or en dash)
     private static readonly Regex ChooseTimeRe =
@@ -118,7 +120,8 @@ public sealed class ChatController : Controller
         IRazorViewEngine razorViewEngine,
         ILogger<ChatController> logger,
         AgentToolHandlerService toolHandler,
-        IHostApplicationLifetime hostLifetime)
+        IHostApplicationLifetime hostLifetime,
+        IServiceScopeFactory scopeFactory)
     {
         _chat = chat;
         _appDb = appDb;
@@ -138,6 +141,7 @@ public sealed class ChatController : Controller
         _logger = logger;
         _toolHandler = toolHandler;
         _hostLifetime = hostLifetime;
+        _scopeFactory = scopeFactory;
     }
 
     // Small helper to pick a stable user key for persistence.
@@ -3051,7 +3055,6 @@ public sealed class ChatController : Controller
 
             // ---- Overlay signature onto quote HTML ----
             string? amountFromHtml = null;
-            var signedPdfReady = false;
             if (quoteFilePath != null && System.IO.File.Exists(quoteFilePath))
             {
                 try
@@ -3094,26 +3097,48 @@ public sealed class ChatController : Controller
                     await System.IO.File.WriteAllTextAsync(quoteFilePath, html, ct);
                     _logger.LogInformation("[SIGNING] Quote HTML updated with signature data: {Path}", quoteFilePath);
 
+                    // PDF must not block acceptance: Playwright can take minutes on cold start and exceeds client/proxy timeouts.
                     var pdfPath = Path.ChangeExtension(quoteFilePath, ".pdf");
-                    using var pdfTimeout = new CancellationTokenSource(HtmlQuoteGenerationService.PdfGenerationAbsoluteTimeout);
-                    using var pdfWork = CancellationTokenSource.CreateLinkedTokenSource(
-                        _hostLifetime.ApplicationStopping,
-                        pdfTimeout.Token);
-                    var pdfOk = await _htmlQuoteGen.GeneratePdfFromHtmlAsync(html, pdfPath, _logger, pdfWork.Token, HttpContext.TraceIdentifier);
-                    signedPdfReady = pdfOk && System.IO.File.Exists(pdfPath) && new FileInfo(pdfPath).Length > 0;
-                    if (!signedPdfReady)
-                    {
-                        _logger.LogWarning("[SIGNING] Signed PDF not available for booking {BookingNo}; removing stale PDF if present so HTML and file do not disagree", bookingNo);
-                        try
+                    var htmlForPdf = html;
+                    var traceId = HttpContext.TraceIdentifier;
+                    var bookingNoForBg = bookingNo;
+                    _ = Task.Run(
+                        async () =>
                         {
-                            if (System.IO.File.Exists(pdfPath))
-                                System.IO.File.Delete(pdfPath);
-                        }
-                        catch (Exception delEx)
-                        {
-                            _logger.LogWarning(delEx, "[SIGNING] Failed to remove stale PDF after regeneration failure for booking {BookingNo}", bookingNo);
-                        }
-                    }
+                            await using var scope = _scopeFactory.CreateAsyncScope();
+                            var htmlGen = scope.ServiceProvider.GetRequiredService<HtmlQuoteGenerationService>();
+                            var bgLogger = scope.ServiceProvider.GetRequiredService<ILogger<ChatController>>();
+                            try
+                            {
+                                using var pdfTimeout = new CancellationTokenSource(HtmlQuoteGenerationService.PdfGenerationAbsoluteTimeout);
+                                using var pdfWork = CancellationTokenSource.CreateLinkedTokenSource(
+                                    _hostLifetime.ApplicationStopping,
+                                    pdfTimeout.Token);
+                                var pdfOk = await htmlGen.GeneratePdfFromHtmlAsync(htmlForPdf, pdfPath, bgLogger, pdfWork.Token, traceId);
+                                if (!pdfOk || !System.IO.File.Exists(pdfPath) || new FileInfo(pdfPath).Length == 0)
+                                {
+                                    bgLogger.LogWarning("[SIGNING] Background signed PDF failed for booking {BookingNo}", bookingNoForBg);
+                                    try
+                                    {
+                                        if (System.IO.File.Exists(pdfPath))
+                                            System.IO.File.Delete(pdfPath);
+                                    }
+                                    catch (Exception delEx)
+                                    {
+                                        bgLogger.LogWarning(delEx, "[SIGNING] Failed to remove stale PDF after background failure for booking {BookingNo}", bookingNoForBg);
+                                    }
+                                }
+                                else
+                                {
+                                    bgLogger.LogInformation("[SIGNING] Background signed PDF ready for booking {BookingNo}", bookingNoForBg);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                bgLogger.LogWarning(ex, "[SIGNING] Background signed PDF exception for booking {BookingNo}", bookingNoForBg);
+                            }
+                        },
+                        CancellationToken.None);
                 }
                 catch (Exception ex)
                 {
