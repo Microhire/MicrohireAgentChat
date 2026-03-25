@@ -87,7 +87,7 @@ jobs:
           try {
             $ok = $false
             foreach ($e in $z.Entries) { if ($e.FullName -match '(?i)^\.playwright[/\\]') { $ok = $true; Write-Host "zip: $($e.FullName)"; break } }
-            if (-not $ok) { throw "site.zip missing .playwright/ — packaging broken" }
+            if (-not $ok) { throw "site.zip missing .playwright/; packaging broken" }
           } finally { $z.Dispose() }
 
       - name: Upload artifact

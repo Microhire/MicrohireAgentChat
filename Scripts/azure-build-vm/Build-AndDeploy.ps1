@@ -199,7 +199,7 @@ try {
         }
     }
     if (-not $hasDriver) {
-        throw "site.zip has no .playwright/ entries — Playwright driver would be missing on Azure. Check publish_out before zipping."
+        throw "site.zip has no .playwright/ entries; Playwright driver would be missing on Azure. Check publish_out before zipping."
     }
 }
 finally {
