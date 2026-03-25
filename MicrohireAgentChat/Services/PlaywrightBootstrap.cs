@@ -88,15 +88,30 @@ public static class PlaywrightBootstrap
     /// </summary>
     public static async Task EnsureChromiumReadyAsync(ILogger? logger, CancellationToken cancellationToken = default)
     {
-        if ((await TryProbePlaywrightAsync(cancellationToken).ConfigureAwait(false)).Ok)
+        logger?.LogInformation(
+            "[Playwright] EnsureChromiumReadyAsync starting. First probe can take up to ~2 min; install chromium up to ~10 min. {Diag}",
+            BuildPlaywrightDiagSnapshot());
+
+        var probe1 = await TryProbePlaywrightAsync(cancellationToken).ConfigureAwait(false);
+        if (probe1.Ok)
+        {
+            logger?.LogInformation("[Playwright] Chromium probe OK on first try.");
             return;
+        }
+
+        logger?.LogWarning(
+            "[Playwright] First probe failed: {Reason}. Serializing install; another request may wait here.",
+            probe1.ErrorDetail ?? "(unknown)");
 
         await InstallGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
             var recheck = await TryProbePlaywrightAsync(cancellationToken).ConfigureAwait(false);
             if (recheck.Ok)
+            {
+                logger?.LogInformation("[Playwright] Chromium probe OK after waiting on install gate.");
                 return;
+            }
 
             if (_installAttempted)
             {
