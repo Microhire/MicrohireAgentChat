@@ -239,29 +239,23 @@ public partial class HtmlQuoteGenerationService
                 PdfQuotePipelineMarker,
                 bookingNo);
 
-            // #region agent log
             try
             {
-                const string dbgDir = "/Users/nitwit-watson/INTENT/repos/MicrohireAgentChat/.cursor";
-                if (Directory.Exists(dbgDir))
+                var line = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object?>
                 {
-                    var line = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object?>
-                    {
-                        ["sessionId"] = "8147b1",
-                        ["hypothesisId"] = "H1-stale-dll",
-                        ["location"] = "HtmlQuoteGenerationService.cs:post-html",
-                        ["message"] = "post-html checkpoint",
-                        ["data"] = new Dictionary<string, object?> { ["bookingNo"] = bookingNo, ["marker"] = PdfQuotePipelineMarker },
-                        ["timestamp"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-                    });
-                    File.AppendAllText(Path.Combine(dbgDir, "debug-8147b1.log"), line + "\n");
-                }
+                    ["sessionId"] = "8147b1",
+                    ["hypothesisId"] = "H1-stale-dll",
+                    ["location"] = "HtmlQuoteGenerationService.cs:post-html",
+                    ["message"] = "post-html checkpoint",
+                    ["data"] = new Dictionary<string, object?> { ["bookingNo"] = bookingNo, ["marker"] = PdfQuotePipelineMarker },
+                    ["timestamp"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+                });
+                DevelopmentDebugLog.TryAppendLine("debug-8147b1.log", line);
             }
             catch
             {
-                /* local debug log only */
+                /* optional Development-only file log */
             }
-            // #endregion
 
             // 10. Pre-generate PDF from the HTML so downloads are instant and styled (required — no silent HTML-only quotes)
             // Do NOT pass the HTTP request token: Azure/proxy timeouts and client disconnects cancel ct while Playwright

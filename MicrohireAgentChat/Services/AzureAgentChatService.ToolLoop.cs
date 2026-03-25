@@ -956,13 +956,6 @@ namespace MicrohireAgentChat.Services
         {
             try
             {
-                const string debugPath = "/Users/nitwit-watson/INTENT/repos/MicrohireAgentChat/.cursor/debug-7953da.log";
-                var debugDir = System.IO.Path.GetDirectoryName(debugPath);
-                if (!string.IsNullOrWhiteSpace(debugDir))
-                {
-                    System.IO.Directory.CreateDirectory(debugDir);
-                }
-
                 var payload = new
                 {
                     sessionId = "7953da",
@@ -974,12 +967,11 @@ namespace MicrohireAgentChat.Services
                     timestamp = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
                 };
                 var line = JsonSerializer.Serialize(payload);
-                System.IO.File.AppendAllText(debugPath, line + Environment.NewLine);
+                DevelopmentDebugLog.TryAppendLine("debug-7953da.log", line);
             }
-            catch (Exception ex)
+            catch
             {
-                // Debug instrumentation must never break runtime flow.
-                Console.Error.WriteLine($"[DEBUG7953] EmitToolLoopDebugLog write failed: {ex.Message}");
+                /* never throw from debug instrumentation */
             }
         }
 

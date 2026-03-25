@@ -155,9 +155,6 @@ public sealed class ChatController : Controller
         return sid!;
     }
 
-    #region agent log
-    private const string Debug105ef6LogPath = "/Users/nitwit-watson/INTENT/repos/Microhire-sales-portal/.cursor/debug-105ef6.log";
-
     private void Debug105ef6(string hypothesisId, string location, string message, Dictionary<string, object?> data)
     {
         try
@@ -171,14 +168,7 @@ public sealed class ChatController : Controller
                 ["data"] = data,
                 ["timestamp"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             });
-            try
-            {
-                System.IO.File.AppendAllText(Debug105ef6LogPath, line + "\n");
-            }
-            catch
-            {
-                /* Azure App Service: path not on server */
-            }
+            DevelopmentDebugLog.TryAppendLine("debug-105ef6.log", line);
 
             _logger.LogWarning("AGENT_DEBUG_105ef6 {Payload}", line);
         }
@@ -187,7 +177,6 @@ public sealed class ChatController : Controller
             /* never throw from debug log */
         }
     }
-    #endregion
 
     // Check if user has completed quote
     private bool IsQuoteComplete()

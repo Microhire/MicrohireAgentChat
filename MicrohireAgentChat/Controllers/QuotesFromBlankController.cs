@@ -1,4 +1,3 @@
-using MicrohireAgentChat.Helpers;
 using MicrohireAgentChat.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -6,11 +5,10 @@ using Microsoft.AspNetCore.Mvc;
 public class QuotesFromBlankController : Controller
 {
     private readonly PdfFromBlankService _svc;
-    private readonly IWebHostEnvironment _env;
 
-    public QuotesFromBlankController(PdfFromBlankService svc, IWebHostEnvironment env)
+    public QuotesFromBlankController(PdfFromBlankService svc)
     {
-        _svc = svc; _env = env;
+        _svc = svc;
     }
 
     // POST /quotes/fill-from-blank => { url: "..." }
@@ -144,28 +142,6 @@ public class QuotesFromBlankController : Controller
         return Ok(new { url });
     }
 
-
-
-    // Optional helpers (preview/download)
-    [HttpGet("/quotes/preview")]
-    public IActionResult Preview([FromQuery] string file)
-    {
-        var safe = Path.GetFileName(file);
-        if (!QuoteFilesPaths.IsSafeQuoteFileName(safe))
-            return NotFound();
-        var path = Path.Combine(QuoteFilesPaths.GetPhysicalQuotesDirectory(_env), safe);
-        if (!System.IO.File.Exists(path)) return NotFound();
-        return File(System.IO.File.OpenRead(path), "application/pdf");
-    }
-
-    [HttpGet("/quotes/download")]
-    public IActionResult Download([FromQuery] string file)
-    {
-        var safe = Path.GetFileName(file);
-        if (!QuoteFilesPaths.IsSafeQuoteFileName(safe))
-            return NotFound();
-        var path = Path.Combine(QuoteFilesPaths.GetPhysicalQuotesDirectory(_env), safe);
-        if (!System.IO.File.Exists(path)) return NotFound();
-        return File(System.IO.File.OpenRead(path), "application/pdf", fileDownloadName: safe);
-    }
+    // GET /quotes/preview and GET /quotes/download are implemented on QuotesPdfController only.
+    // Duplicating the same routes here caused AmbiguousMatchException on Azure for /quotes/download.
 }
