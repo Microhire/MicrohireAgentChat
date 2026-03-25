@@ -92,6 +92,14 @@
             </div>
         </div>
 
+        <div id="islaFloorplanOverlay" class="isla-floorplan-overlay" style="display: none;" aria-modal="true" role="dialog" aria-label="Floor plan">
+            <div class="isla-floorplan-backdrop" data-isla-floorplan-close></div>
+            <div class="isla-floorplan-modal">
+                <button type="button" class="isla-floorplan-close" data-isla-floorplan-close aria-label="Close floor plan">&times;</button>
+                <img id="islaFloorplanImage" src="" alt="Venue floor plan" />
+            </div>
+        </div>
+
         <div id="messagesWrap" class="chat-box-wrap">
             @await Html.PartialAsync("_Messages", Model)
         </div>
@@ -597,7 +605,8 @@
               scrollToBottom();
             }
           }
-          const REQUEST_TIMEOUT_MS = 90000;
+          // Agent + quote (DB + Playwright PDF) can exceed 3m; stay above server WithChatOperationTimeoutAsync (180s) and quote sub-timeout (5m).
+          const REQUEST_TIMEOUT_MS = 360000;
 
           function createRequestTimeout(timeoutMs = REQUEST_TIMEOUT_MS) {
             const controller = new AbortController();

@@ -32,8 +32,8 @@ This document outlines comprehensive test scenarios to verify that all quote gen
 4. Provide AV requirements:
    - "We need 2 microphones for presenters"
    - "We'll be showing slides"
-5. Wait for equipment recommendation summary
-6. Click "Yes, create quote" button
+5. Complete AV / wizard steps until equipment is saved (no long "Quote Summary" card expected)
+6. Send explicit consent to generate the quote, e.g. type **"yes create quote"** (pre-quote Yes/No buttons are removed)
 
 **Expected Results:**
 - ✅ Quote generates successfully on first attempt
@@ -46,7 +46,7 @@ This document outlines comprehensive test scenarios to verify that all quote gen
 
 **Logs to verify:**
 ```
-[QUOTE FLOW] Decision point: ... LooksLikeConsent=True, WasSummaryAsk=True, IsConsentToSummary=True
+[QUOTE FLOW] Decision point: ... LooksLikeConsent=True, WasQuoteGenerationPrompt=True/False, IsConsentToSummary=True
 [QUOTE GEN] Starting HTML quote generation for booking [BOOKING_NO]
 [QUOTE GEN] Quote generated successfully for booking [BOOKING_NO]: File=Quote-[BOOKING_NO]-*.html
 ```
@@ -232,7 +232,7 @@ Found existing quote file for booking [BOOKING_NO] (age: [X] seconds): /files/qu
 4. When the time picker appears, submit schedule: e.g. Setup 7:00 AM, Rehearsal 9:30 AM, Event 10:00 AM–4:00 PM, Pack up 6:00 PM
 5. Confirm AV requirements: boardroom style, 2 presenters with slides, Mac laptop, need audio
 6. When the agent summarises equipment and asks "Have I captured everything?", reply: "yep all good"
-7. When the agent shows "Would you like me to create the quote now?" with Yes/No, click **Yes, create quote**
+7. When requirements are complete, send **"yes create quote"** (or wait for structured wizard to finish and quote success if the server generates without that turn)
 
 **Expected Results:**
 - ✅ After step 4 the agent confirms the schedule and continues to AV requirements (no repeat "please confirm your schedule")
@@ -245,7 +245,7 @@ Found existing quote file for booking [BOOKING_NO] (age: [X] seconds): /files/qu
 - ❌ "I need your event schedule before I can create the quote" (when schedule was already submitted via time picker)
 - ❌ Time picker shown again after step 4
 
-**Replay scenario:** Use the "Schedule Recognition Fix" bug reproduction scenario in the UI to replay the same flow (contact → event → time picker submit → AV → "yep all good" → "Yes, create quote") and confirm the same expected results.
+**Replay scenario:** Use the "Schedule Recognition Fix" bug reproduction scenario in the UI to replay the same flow (contact → event → time picker submit → AV → "yep all good" → "yes create quote") and confirm the same expected results.
 
 ---
 

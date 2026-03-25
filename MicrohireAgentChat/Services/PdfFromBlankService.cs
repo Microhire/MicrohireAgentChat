@@ -8,6 +8,7 @@ using iText.Kernel.Pdf.Canvas;
 using iText.Layout;
 using iText.Layout.Element;
 using iText.Layout.Properties;
+using MicrohireAgentChat.Helpers;
 using MicrohireAgentChat.Models;
 using Microsoft.AspNetCore.Hosting;
 
@@ -46,8 +47,7 @@ public class PdfFromBlankService
     public (string fileName, string fullPath) Generate(QuoteAllFields q, string? bookingNo = null)
     {
         var webRoot = _env.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot");
-        var outDir = Path.Combine(webRoot, "files", "quotes");
-        Directory.CreateDirectory(outDir);
+        var outDir = QuoteFilesPaths.GetPhysicalQuotesDirectory(_env);
 
         var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
         var identifier = !string.IsNullOrEmpty(bookingNo)

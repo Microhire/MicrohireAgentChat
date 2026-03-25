@@ -1,8 +1,10 @@
 using MicrohireAgentChat.Data;
+using MicrohireAgentChat.Helpers;
 using MicrohireAgentChat.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Playwright;
+using System.Diagnostics;
 using System.Text;
 using System.Web;
 
@@ -14,6 +16,9 @@ namespace MicrohireAgentChat.Services;
 /// </summary>
 public partial class HtmlQuoteGenerationService
 {
+    /// <summary>Max wait (ms) for Chromium to start — avoids indefinite hangs on constrained hosts.</summary>
+    private const float ChromiumLaunchTimeoutMs = 120_000f;
+
     private readonly BookingDbContext _db;
     private readonly IWebHostEnvironment _env;
     private readonly ILogger<HtmlQuoteGenerationService> _logger;
@@ -40,6 +45,7 @@ public partial class HtmlQuoteGenerationService
         {
             // 1. Load booking with related data
             var booking = await _db.TblBookings
+                .AsNoTracking()
                 .FirstOrDefaultAsync(b => b.booking_no == bookingNo, ct);
 
             if (booking == null)
@@ -56,6 +62,7 @@ public partial class HtmlQuoteGenerationService
             if (booking.VenueID > 0)
             {
                 venue = await _db.TblVenues
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(v => v.ID == booking.VenueID, ct);
             }
             
@@ -65,6 +72,7 @@ public partial class HtmlQuoteGenerationService
                 VenueNamesMismatch(sessionVenueNameForLookup, venue.VenueName))
             {
                 var correctVenue = await _db.TblVenues
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(v => v.VenueName != null && 
                         v.VenueName.ToLower().Contains(sessionVenueNameForLookup.ToLower()), ct);
                 if (correctVenue != null)
@@ -80,6 +88,7 @@ public partial class HtmlQuoteGenerationService
             if (booking.ContactID.HasValue)
             {
                 contact = await _db.Contacts
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(c => c.Id == booking.ContactID.Value, ct);
             }
 
@@ -88,6 +97,7 @@ public partial class HtmlQuoteGenerationService
             if (booking.CustID.HasValue)
             {
                 organization = await _db.TblCusts
+                    .AsNoTracking()
                     .FirstOrDefaultAsync(c => c.ID == booking.CustID.Value, ct);
             }
 
@@ -99,6 +109,7 @@ public partial class HtmlQuoteGenerationService
             }
 
             var items = await _db.TblItemtrans
+                .AsNoTracking()
                 .Where(i => i.BookingNoV32 == bookingNo || (bookingIdAsInt.HasValue && i.BookingId == bookingIdAsInt.Value))
                 .ToListAsync(ct);
             _logger.LogInformation("Loaded {ItemCount} equipment items", items.Count);
@@ -106,6 +117,7 @@ public partial class HtmlQuoteGenerationService
             // 6. Load inventory master data for descriptions and prices
             var productCodes = items.Select(i => i.ProductCodeV42).Where(p => !string.IsNullOrEmpty(p)).Distinct().ToList();
             var inventoryItemsList = await _db.TblInvmas
+                .AsNoTracking()
                 .Where(inv => productCodes.Contains(inv.product_code))
                 .ToListAsync(ct);
             var inventoryItems = inventoryItemsList
@@ -114,6 +126,7 @@ public partial class HtmlQuoteGenerationService
 
             // 6b. Load rate table data for proper pricing
             var rateItemsList = await _db.TblRatetbls
+                .AsNoTracking()
                 .Where(r => productCodes.Contains(r.product_code) && r.TableNo == 0)
                 .ToListAsync(ct);
             var rateItems = rateItemsList
@@ -122,6 +135,7 @@ public partial class HtmlQuoteGenerationService
 
             // 6c. Load crew/labor data
             var crewRows = await _db.TblCrews
+                .AsNoTracking()
                 .Where(c => c.BookingNoV32 == bookingNo)
                 .OrderBy(c => c.Task).ThenBy(c => c.SeqNo)
                 .ToListAsync(ct);
@@ -135,29 +149,47 @@ public partial class HtmlQuoteGenerationService
                 crewRows, sessionVenueName, sessionContactName, sessionOrganisation);
 
             // 8. Generate HTML
+            var htmlSw = Stopwatch.StartNew();
             var html = GenerateHtml(quoteData);
+            htmlSw.Stop();
+            _logger.LogInformation("[QUOTE GEN] GenerateHtml completed in {Ms}ms for booking {BookingNo}", htmlSw.ElapsedMilliseconds, bookingNo);
 
-            // 9. Save to file
-            var webRoot = _env.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot");
-            var outDir = Path.Combine(webRoot, "files", "quotes");
-            Directory.CreateDirectory(outDir);
+            // 9. Save to file (Azure: %HOME%/data/quotes; local: wwwroot/files/quotes)
+            var outDir = QuoteFilesPaths.GetPhysicalQuotesDirectory(_env);
 
             var outName = $"Quote-{bookingNo}-{DateTime.UtcNow:yyyyMMddHHmmss}.html";
             var dest = Path.Combine(outDir, outName);
 
+            var writeSw = Stopwatch.StartNew();
             await File.WriteAllTextAsync(dest, html, ct);
+            writeSw.Stop();
+            _logger.LogInformation("[QUOTE GEN] Wrote HTML file in {Ms}ms for booking {BookingNo}", writeSw.ElapsedMilliseconds, bookingNo);
 
-            // 10. Pre-generate PDF from the HTML so downloads are instant and styled
+            // 10. Pre-generate PDF from the HTML so downloads are instant and styled (required — no silent HTML-only quotes)
             var pdfName = Path.ChangeExtension(outName, ".pdf");
             var pdfDest = Path.Combine(outDir, pdfName);
-            await GeneratePdfFromHtmlAsync(html, pdfDest, _logger);
+            var pdfOk = await GeneratePdfFromHtmlAsync(html, pdfDest, _logger, ct);
+            if (!pdfOk || !File.Exists(pdfDest) || new FileInfo(pdfDest).Length == 0)
+            {
+                try
+                {
+                    if (File.Exists(dest))
+                        File.Delete(dest);
+                }
+                catch (Exception delEx)
+                {
+                    _logger.LogWarning(delEx, "[QUOTE GEN] Failed to remove HTML after PDF failure for booking {BookingNo}", bookingNo);
+                }
+
+                return (false, null, "Failed to generate quote PDF. Ensure Playwright Chromium is installed on the server.");
+            }
 
             var elapsedMs = (DateTime.UtcNow - startTime).TotalMilliseconds;
             _logger.LogInformation("[QUOTE GEN] Quote generated successfully for booking {BookingNo}: " +
                 "File={FileName}, HtmlLength={HtmlLength} chars, ElapsedMs={ElapsedMs}",
                 bookingNo, outName, html.Length, elapsedMs);
 
-            var url = $"/files/quotes/{Uri.EscapeDataString(outName)}";
+            var url = QuoteFilesPaths.PublicUrlForFileName(outName);
             return (true, url, null);
         }
         catch (Exception ex)
@@ -528,22 +560,41 @@ public partial class HtmlQuoteGenerationService
 
     /// <summary>
     /// Converts an HTML string to a styled PDF using Playwright/Chromium.
-    /// Uses SetContentAsync (no file:// URI) so Google Fonts and inline CSS
-    /// render identically to what the user sees in the browser.
+    /// Uses SetContentAsync (no file:// URI) with <see cref="WaitUntilState.Load"/> — not NetworkIdle —
+    /// so third-party font/CDN calls cannot stall PDF generation on restricted hosts.
     /// This is intentionally static so it can be called from other services
     /// (e.g. after signing overlays the signature onto the HTML).
     /// </summary>
-    public static async Task GeneratePdfFromHtmlAsync(string html, string pdfOutputPath, ILogger? logger = null)
+    public static async Task<bool> GeneratePdfFromHtmlAsync(string html, string pdfOutputPath, ILogger? logger = null, CancellationToken cancellationToken = default)
     {
         try
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            await PlaywrightBootstrap.EnsureChromiumReadyAsync(logger, cancellationToken).ConfigureAwait(false);
+
+            logger?.LogInformation("[QUOTE GEN] Playwright CreateAsync starting…");
             using var pw = await Playwright.CreateAsync();
-            await using var browser = await pw.Chromium.LaunchAsync(new BrowserTypeLaunchOptions { Headless = true });
+            logger?.LogInformation("[QUOTE GEN] Chromium LaunchAsync starting (timeout {TimeoutMs}ms)…", ChromiumLaunchTimeoutMs);
+            await using var browser = await pw.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+            {
+                Headless = true,
+                Args = new[] { "--no-sandbox", "--disable-dev-shm-usage" },
+                Timeout = ChromiumLaunchTimeoutMs
+            });
             var page = await browser.NewPageAsync();
 
-            await page.SetContentAsync(html);
-            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+            cancellationToken.ThrowIfCancellationRequested();
+            var contentSw = Stopwatch.StartNew();
+            await page.SetContentAsync(html, new PageSetContentOptions
+            {
+                WaitUntil = WaitUntilState.Load,
+                Timeout = 90_000
+            });
+            contentSw.Stop();
+            logger?.LogInformation("[QUOTE GEN] Playwright SetContent (Load) finished in {Ms}ms", contentSw.ElapsedMilliseconds);
 
+            cancellationToken.ThrowIfCancellationRequested();
+            var pdfSw = Stopwatch.StartNew();
             await page.PdfAsync(new PagePdfOptions
             {
                 Path = pdfOutputPath,
@@ -551,14 +602,28 @@ public partial class HtmlQuoteGenerationService
                 PrintBackground = true,
                 Margin = new() { Top = "10mm", Bottom = "12mm", Left = "10mm", Right = "10mm" }
             });
+            pdfSw.Stop();
+            logger?.LogInformation("[QUOTE GEN] Playwright PdfAsync finished in {Ms}ms", pdfSw.ElapsedMilliseconds);
+
+            if (!File.Exists(pdfOutputPath) || new FileInfo(pdfOutputPath).Length == 0)
+            {
+                logger?.LogWarning("[QUOTE GEN] PDF output missing or empty at {Path}", pdfOutputPath);
+                return false;
+            }
 
             logger?.LogInformation("[QUOTE GEN] PDF pre-generated: {Path} ({Size} bytes)",
                 pdfOutputPath, new FileInfo(pdfOutputPath).Length);
+            return true;
+        }
+        catch (OperationCanceledException ex)
+        {
+            logger?.LogWarning(ex, "[QUOTE GEN] PDF generation cancelled for {Path}", pdfOutputPath);
+            return false;
         }
         catch (Exception ex)
         {
-            logger?.LogWarning(ex, "[QUOTE GEN] PDF pre-generation failed for {Path}. " +
-                "PDF will be generated on-the-fly at download time.", pdfOutputPath);
+            logger?.LogError(ex, "[QUOTE GEN] PDF generation failed for {Path}", pdfOutputPath);
+            return false;
         }
     }
 }

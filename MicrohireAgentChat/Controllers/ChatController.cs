@@ -45,6 +45,7 @@ public sealed class ChatController : Controller
     private readonly IWebHostEnvironment _env;
     private readonly IRazorViewEngine _razorViewEngine;
     private readonly ILogger<ChatController> _logger;
+    private readonly AgentToolHandlerService _toolHandler;
 
     // Detect: "Choose time: 09:00–10:30" (supports hyphen or en dash)
     private static readonly Regex ChooseTimeRe =
@@ -114,7 +115,8 @@ public sealed class ChatController : Controller
         IOptions<AutoTestOptions> autoTestOptions,
         IWebHostEnvironment env,
         IRazorViewEngine razorViewEngine,
-        ILogger<ChatController> logger)
+        ILogger<ChatController> logger,
+        AgentToolHandlerService toolHandler)
     {
         _chat = chat;
         _appDb = appDb;
@@ -132,6 +134,7 @@ public sealed class ChatController : Controller
         _env = env;
         _razorViewEngine = razorViewEngine;
         _logger = logger;
+        _toolHandler = toolHandler;
     }
 
     // Small helper to pick a stable user key for persistence.
@@ -439,8 +442,7 @@ public sealed class ChatController : Controller
             if (!string.IsNullOrWhiteSpace(bookingNo))
             {
                 // Check for existing HTML quotes
-                var webRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
-                var quotesDir = Path.Combine(webRoot, "files", "quotes");
+                var quotesDir = QuoteFilesPaths.GetPhysicalQuotesDirectory(_env);
                 var existingQuoteFile = Directory.Exists(quotesDir) 
                     ? Directory.GetFiles(quotesDir, $"Quote-{bookingNo}-*.html")
                         .OrderByDescending(f => System.IO.File.GetCreationTimeUtc(f))
@@ -490,6 +492,15 @@ public sealed class ChatController : Controller
             SetScheduleTimesInViewData();
             ViewData["ProgressStep"] = DetermineProgressStep(msgList);
             return View(msgList);
+        }
+        catch (OperationCanceledException ex)
+        {
+            // Client disconnect, host shutdown/recycle (e.g. during deploy), or linked token timeout — not a product defect.
+            _logger.LogInformation(
+                ex,
+                "Chat Index canceled (requestAborted={RequestAborted}).",
+                HttpContext.RequestAborted.IsCancellationRequested);
+            throw;
         }
         catch (Exception ex)
         {
@@ -761,19 +772,31 @@ public sealed class ChatController : Controller
         return false;
     }
 
-    private static bool WasLastAssistantASummaryAsk(IReadOnlyList<DisplayMessage> messages)
+    /// <summary>Pre-quote equipment summary step was removed; chat no longer shows Yes/Create quote from this signal.</summary>
+    private static bool WasLastAssistantASummaryAsk(IReadOnlyList<DisplayMessage> messages) => false;
+
+    /// <summary>
+    /// Last assistant before the user reply is steering to quote generation (narrow phrases — see <see cref="QuoteSummaryAskHelpers.LooksLikeQuoteGenerationPromptNormalized"/>).
+    /// Used to unlock <c>generate_quote</c> for short conversational consent ("yes") and progress UI, without restoring the old summary card.
+    /// </summary>
+    private static bool WasLastAssistantQuoteGenerationConsentPrompt(IReadOnlyList<DisplayMessage> messages)
     {
-        if (messages == null || messages.Count < 2) return false;
+        if (messages == null || messages.Count < 1) return false;
 
-        // Only consider the last assistant message (immediately before the user's reply).
-        // This prevents "yes" to an unrelated question (e.g. laptops) from being treated as quote consent
-        // when an older message in the thread had asked to create the quote.
-        var lastAssistant = messages.LastOrDefault(m => string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase));
-        if (lastAssistant == null) return false;
+        for (var i = messages.Count - 1; i >= 0; i--)
+        {
+            var m = messages[i];
+            if (!string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (QuoteSummaryAskHelpers.IsAssistantSubmittedFormUiMessage(m))
+                continue;
 
-        var raw = string.Join("\n\n", lastAssistant.Parts ?? Enumerable.Empty<string>());
-        var t = QuoteSummaryAskHelpers.NormalizeForSummaryAsk(raw);
-        return QuoteSummaryAskHelpers.LooksLikeSummaryAskNormalized(t);
+            var raw = string.Join("\n\n", m.Parts ?? Enumerable.Empty<string>());
+            var t = QuoteSummaryAskHelpers.NormalizeForSummaryAsk(raw);
+            return QuoteSummaryAskHelpers.LooksLikeQuoteGenerationPromptNormalized(t);
+        }
+
+        return false;
     }
 
     [HttpPost]
@@ -1280,6 +1303,7 @@ public sealed class ChatController : Controller
             text = text.Trim();
             var rawUserTextForContact = text;   // keep original text for contact parsing
 
+            var emailFormThisRequest = false;
             if (TryCaptureEmailFormSubmission(text, out var emailNorm))
             {
                 var leadVerify = HttpContext.Session.GetString("Draft:LeadVerifyEmail");
@@ -1329,12 +1353,16 @@ public sealed class ChatController : Controller
                         text = BuildEmailIntakeSyntheticMessage(emailNorm, lookup);
                     }
                 }
+
+                emailFormThisRequest = true;
             }
 
+            var venueConfirmThisRequest = false;
             if (TryCaptureVenueConfirmFormSubmission(text, out var venueConfirm))
             {
                 SaveVenueConfirmToSession(venueConfirm);
                 text = BuildVenueConfirmSyntheticMessage(venueConfirm);
+                venueConfirmThisRequest = true;
             }
 
             if (TryCaptureEventDetailsFormSubmission(text, out var eventDetails))
@@ -1347,6 +1375,7 @@ public sealed class ChatController : Controller
             {
                 SaveBaseAvToSession(baseAv);
                 text = BuildBaseAvSyntheticMessage(baseAv);
+                TryPersistProjectorPlacementFromBaseAv(threadId, baseAv);
             }
 
             var followUpAvThisRequest = false;
@@ -1404,7 +1433,7 @@ public sealed class ChatController : Controller
             else if (conversationalConsent)
             {
                 var (_, preMessages) = _chat.GetTranscript(threadId);
-                if (WasLastAssistantASummaryAsk(preMessages.ToList()))
+                if (WasLastAssistantQuoteGenerationConsentPrompt(preMessages.ToList()))
                 {
                     HttpContext.Session.SetString(GenerateQuoteFlag, "1");
                 }
@@ -1483,14 +1512,64 @@ public sealed class ChatController : Controller
             var sendStart = DateTime.UtcNow;
             try
             {
-                _logger.LogInformation("[CHAT_FLOW] Starting SendAsync for text: {Text}", text.Length > 50 ? text.Substring(0, 50) + "..." : text);
-                sendResult = await WithChatOperationTimeoutAsync(
-                    "SendPartial.SendAsync",
-                    opCt => WithRateLimitRetry(
-                        () => _chat.SendAsync(HttpContext.Session, text, opCt),
-                        opCt),
-                    ct);
-                _logger.LogInformation("[CHAT_FLOW] SendAsync completed in {Duration}s", (DateTime.UtcNow - sendStart).TotalSeconds);
+                if (followUpAvThisRequest)
+                {
+                    // Recommend from session first; only append the user line to Azure after success so fallback
+                    // SendAsync does not duplicate the user message.
+                    var rec = await _toolHandler.RecommendEquipmentFromWizardSessionAsync(threadId, ct);
+                    if (rec.Success)
+                    {
+                        await _chat.AppendUserMessageAsync(HttpContext.Session, text, ct);
+                        // Server-driven quote: no agent run (avoids intermediate "consolidated AV requirements" turn).
+                        var (_, mlAfter) = _chat.GetTranscript(threadId);
+                        var msgListForQuote = mlAfter is List<DisplayMessage> lq ? lq : mlAfter.ToList();
+                        var followUpEarly = await TryFollowUpAvQuotePipelineAsync(msgListForQuote, threadId, ct);
+                        if (followUpEarly != null)
+                        {
+                            return followUpEarly;
+                        }
+
+                        (_, mlAfter) = _chat.GetTranscript(threadId);
+                        sendResult = new SendAsyncResult(mlAfter, false);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("[FollowUpAv] RecommendEquipmentFromWizardSessionAsync failed: {Err}; falling back to agent", rec.ErrorMessage);
+                        _logger.LogInformation("[CHAT_FLOW] Starting SendAsync for text: {Text}", text.Length > 50 ? text.Substring(0, 50) + "..." : text);
+                        sendResult = await WithChatOperationTimeoutAsync(
+                            "SendPartial.SendAsync",
+                            opCt => WithRateLimitRetry(
+                                () => _chat.SendAsync(HttpContext.Session, text, opCt),
+                                opCt),
+                            ct);
+                        _logger.LogInformation("[CHAT_FLOW] SendAsync completed in {Duration}s", (DateTime.UtcNow - sendStart).TotalSeconds);
+                    }
+                }
+                else if (emailFormThisRequest || venueConfirmThisRequest)
+                {
+                    // Structured wizard: persist user line to Azure for transcript continuity but skip the agent run.
+                    // SendAsync post-processing (contact/booking DB, time picker, etc.) routinely exceeds client fetch
+                    // timeouts for this step; EnsureStructuredFormsInChat supplies the next UI immediately.
+                    _logger.LogInformation(
+                        "[CHAT_FLOW] Skipping SendAsync for structured {Step}; AppendUserMessageAsync only ({Duration}s since send start)",
+                        emailFormThisRequest ? "email gate" : "venue confirm",
+                        (DateTime.UtcNow - sendStart).TotalSeconds);
+                    await _chat.AppendUserMessageAsync(HttpContext.Session, text, ct);
+                    var (_, mlSkip) = _chat.GetTranscript(threadId);
+                    var listSkip = mlSkip is List<DisplayMessage> ls ? ls : mlSkip.ToList();
+                    sendResult = new SendAsyncResult(listSkip, false);
+                }
+                else
+                {
+                    _logger.LogInformation("[CHAT_FLOW] Starting SendAsync for text: {Text}", text.Length > 50 ? text.Substring(0, 50) + "..." : text);
+                    sendResult = await WithChatOperationTimeoutAsync(
+                        "SendPartial.SendAsync",
+                        opCt => WithRateLimitRetry(
+                            () => _chat.SendAsync(HttpContext.Session, text, opCt),
+                            opCt),
+                        ct);
+                    _logger.LogInformation("[CHAT_FLOW] SendAsync completed in {Duration}s", (DateTime.UtcNow - sendStart).TotalSeconds);
+                }
             }
             catch (Exception ex)
             {
@@ -1520,7 +1599,10 @@ public sealed class ChatController : Controller
             var msgList = sendResult.Messages is List<DisplayMessage> ml ? ml : sendResult.Messages.ToList();
             SyncProjectorPromptMarkers(msgList, threadId);
             EnsureStructuredFormsInChat(msgList);
-            if (!HasAssistantDelta(assistantCountBeforeTurn, msgList))
+            // Email/venue structured steps skip SendAsync (user line only); no new assistant turn is expected.
+            if (!HasAssistantDelta(assistantCountBeforeTurn, msgList)
+                && !emailFormThisRequest
+                && !venueConfirmThisRequest)
             {
                 _logger.LogWarning("[CHAT_FLOW] SendPartial produced no assistant delta for thread {ThreadId} (sendFailed={SendFailed}). Appending fallback reply.", threadId, sendFailed);
                 await AddAssistantMessageAndPersistAsync(msgList, BuildTransientFailureFallbackMessage(), ct);
@@ -1533,12 +1615,12 @@ public sealed class ChatController : Controller
             // Check if user confirmed a booking summary
             // IMPORTANT: Trigger when EITHER:
             // 1. User's message looks like consent AND the assistant was asking for confirmation (summary ask), OR
-            // 2. User explicitly said "yes create quote" (or similar) - bypass wasSummaryAsk because after AI responds,
+            // 2. User explicitly said "yes create quote" (or similar) - bypass last-assistant prompt detection because after AI responds,
             //    the "last assistant" is the AI's error message, not the original summary. Explicit phrase is unambiguous.
             var looksLikeConsent = LooksLikeConsent(text);
-            var wasSummaryAsk = WasLastAssistantASummaryAsk(msgList);
+            var wasQuoteGenerationPrompt = WasLastAssistantQuoteGenerationConsentPrompt(msgList);
             var isExplicitCreateQuote = LooksLikeExplicitCreateQuoteConsent(text);
-            var isConsentToSummary = (looksLikeConsent && wasSummaryAsk) || isExplicitCreateQuote;
+            var isConsentToSummary = (looksLikeConsent && wasQuoteGenerationPrompt) || isExplicitCreateQuote;
 
             // Detect quote acceptance.
             // IMPORTANT: "yes create quote" should generate the quote, not auto-accept it to Heavy Pencil.
@@ -1556,7 +1638,7 @@ public sealed class ChatController : Controller
                 "[QUOTE FLOW] Decision point: " +
                 "UserText='{Text}', " +
                 "LooksLikeConsent={LooksLikeConsent}, " +
-                "WasSummaryAsk={WasSummaryAsk}, " +
+                "WasQuoteGenerationPrompt={WasQuoteGenerationPrompt}, " +
                 "IsExplicitCreateQuote={IsExplicitCreateQuote}, " +
                 "IsConsentToSummary={IsConsentToSummary}, " +
                 "IsQuoteAccepted={IsQuoteAccepted}, " +
@@ -1565,7 +1647,7 @@ public sealed class ChatController : Controller
                 "ExistingQuoteUrl={ExistingQuoteUrl}",
                 text?.Substring(0, Math.Min(50, text?.Length ?? 0)),
                 looksLikeConsent,
-                wasSummaryAsk,
+                wasQuoteGenerationPrompt,
                 isExplicitCreateQuote,
                 isConsentToSummary,
                 isQuoteAccepted,
@@ -1714,7 +1796,7 @@ public sealed class ChatController : Controller
                     missingContactFields.Add("customer name");
                 if (string.IsNullOrWhiteSpace(contactEmail) && string.IsNullOrWhiteSpace(contactPhone))
                     missingContactFields.Add("contact email or phone number");
-                if (string.IsNullOrWhiteSpace(organisation))
+                if (string.IsNullOrWhiteSpace(organisation) && !IsLeadEntry())
                     missingContactFields.Add("organisation name");
 
                 if (missingContactFields.Count > 0)
@@ -1779,18 +1861,7 @@ public sealed class ChatController : Controller
                 var summaryReqJson = HttpContext.Session.GetString("Draft:SummaryEquipmentRequests") ?? string.Empty;
                 var selectedEquipmentJsonForArea = HttpContext.Session.GetString("Draft:SelectedEquipment") ?? string.Empty;
 
-                var isWestinBallroomFamily =
-                    !string.IsNullOrWhiteSpace(draftVenueName) &&
-                    draftVenueName.Contains("westin", StringComparison.OrdinalIgnoreCase) &&
-                    draftVenueName.Contains("brisbane", StringComparison.OrdinalIgnoreCase) &&
-                    (
-                        string.Equals(draftRoomName, "Westin Ballroom", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(draftRoomName, "Westin Ballroom 1", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(draftRoomName, "Westin Ballroom 2", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(draftRoomName, "Ballroom", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(draftRoomName, "Ballroom 1", StringComparison.OrdinalIgnoreCase) ||
-                        string.Equals(draftRoomName, "Ballroom 2", StringComparison.OrdinalIgnoreCase)
-                    );
+                var isWestinBallroomFamily = IsDraftWestinBallroomFamily(draftVenueName, draftRoomName);
 
                 var projectionNeeded =
                     summaryReqJson.Contains("projector", StringComparison.OrdinalIgnoreCase) ||
@@ -1810,10 +1881,15 @@ public sealed class ChatController : Controller
                 var projectorCount = GetRequestedProjectorCount(summaryReqJson);
                 if (projectorCount <= 0 && selectedEquipmentJsonForArea.Contains("projector", StringComparison.OrdinalIgnoreCase))
                     projectorCount = 1;
-                // Westin Ballroom always requires 2 projector placement areas (any valid pair for the chosen room variant).
-                var requiredAreaCount = projectionNeeded
-                    ? (isWestinBallroomFamily ? 2 : (projectorCount > 1 ? Math.Min(projectorCount, 3) : 1))
-                    : 0;
+                var requiredAreaCount = 0;
+                if (projectionNeeded)
+                {
+                    if (isWestinBallroomFamily)
+                        requiredAreaCount = Math.Max(IsFullWestinBallroomRoomName(draftRoomName) ? 2 : 1,
+                            projectorCount > 1 ? Math.Min(projectorCount, 3) : 1);
+                    else
+                        requiredAreaCount = projectorCount > 1 ? Math.Min(projectorCount, 3) : 1;
+                }
                 var allowedAreas = GetAllowedProjectorAreasForRoom(draftRoomName);
                 var validSelectedAreas = draftProjectorAreas
                     .Where(a => allowedAreas.Contains(a, StringComparer.OrdinalIgnoreCase))
@@ -1841,7 +1917,14 @@ public sealed class ChatController : Controller
                 if (!promptAlreadyShown && !areaAlreadyCapturedInSession)
                     validSelectedAreas.Clear();
 
-                if (isWestinBallroomFamily && projectionNeeded && validSelectedAreas.Count < requiredAreaCount)
+                var allowSingleBaseAvFullBallroom = isWestinBallroomFamily
+                    && projectionNeeded
+                    && requiredAreaCount > 1
+                    && validSelectedAreas.Count == 1
+                    && IsFullWestinBallroomRoomName(draftRoomName)
+                    && string.Equals(HttpContext.Session.GetString("Draft:BaseAvSubmitted"), "1", StringComparison.Ordinal);
+
+                if (isWestinBallroomFamily && projectionNeeded && validSelectedAreas.Count < requiredAreaCount && !allowSingleBaseAvFullBallroom)
                 {
                     _logger.LogWarning("Quote generation via consent blocked - missing projector area (Westin Ballroom family with projection)");
                     var allowedText = string.Join(", ", allowedAreas);
@@ -2169,6 +2252,302 @@ public sealed class ChatController : Controller
 
     private const string GenerateQuoteFlag = "Draft:GenerateQuote";
 
+    /// <summary>
+    /// After server-side <c>recommend_equipment_for_event</c> for follow-up AV, run the same contact / schedule /
+    /// Westin projector guards and booking + <see cref="GenerateQuoteForBookingAsync"/> as the explicit consent path,
+    /// without requiring the user to type "yes create quote".
+    /// </summary>
+    /// <returns>Non-null to short-circuit SendPartial; null when processing completed (caller refreshes transcript).</returns>
+    private async Task<IActionResult?> TryFollowUpAvQuotePipelineAsync(List<DisplayMessage> msgList, string threadId, CancellationToken ct)
+    {
+        var summaryKey = ComputeSummaryKey(msgList);
+        var lastPersistedKey = HttpContext.Session.GetString("Draft:PersistedSummaryKey");
+        var quoteCompleteNow = HttpContext.Session.GetString("Draft:QuoteComplete") == "1";
+        var quoteUrlNow = HttpContext.Session.GetString("Draft:QuoteUrl");
+        var quoteSuccessRecently = msgList
+            .Where(m => string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase))
+            .TakeLast(3)
+            .Any(m =>
+            {
+                var raw = (m.FullText ?? string.Join("\n\n", m.Parts ?? Enumerable.Empty<string>())).ToLowerInvariant();
+                return raw.Contains("successfully generated your quote") && raw.Contains("booking");
+            });
+
+        if (quoteCompleteNow && !string.IsNullOrWhiteSpace(quoteUrlNow) && quoteSuccessRecently)
+        {
+            _logger.LogInformation("[FollowUpAv] Skipping quote generation — quote already generated in recent messages.");
+            if (!string.IsNullOrEmpty(summaryKey))
+                HttpContext.Session.SetString("Draft:PersistedSummaryKey", summaryKey);
+
+            RedactPricesForUiInPlace(msgList);
+            ViewData["ShowQuoteCta"] = WasLastAssistantASummaryAsk(msgList) ? "1" : "0";
+            ViewData["QuoteAccepted"] = HttpContext.Session.GetString("Draft:QuoteAccepted") ?? "0";
+            SetScheduleTimesInViewData();
+            ViewData["ProgressStep"] = DetermineProgressStep(msgList);
+            return PartialView("_Messages", msgList);
+        }
+
+        if (!string.IsNullOrEmpty(summaryKey) &&
+            string.Equals(summaryKey, lastPersistedKey, StringComparison.Ordinal))
+        {
+            RedactPricesForUiInPlace(msgList);
+            ViewData["ShowQuoteCta"] = WasLastAssistantASummaryAsk(msgList) ? "1" : "0";
+            ViewData["QuoteAccepted"] = HttpContext.Session.GetString("Draft:QuoteAccepted") ?? "0";
+            SetScheduleTimesInViewData();
+            ViewData["ProgressStep"] = DetermineProgressStep(msgList);
+            return PartialView("_Messages", msgList);
+        }
+
+        var contactName = HttpContext.Session.GetString("Draft:ContactName");
+        var contactEmail = HttpContext.Session.GetString("Draft:ContactEmail");
+        var contactPhone = HttpContext.Session.GetString("Draft:ContactPhone");
+        var organisation = HttpContext.Session.GetString("Draft:Organisation");
+
+        var missingContactFields = new List<string>();
+        if (string.IsNullOrWhiteSpace(contactName))
+            missingContactFields.Add("customer name");
+        if (string.IsNullOrWhiteSpace(contactEmail) && string.IsNullOrWhiteSpace(contactPhone))
+            missingContactFields.Add("contact email or phone number");
+        if (string.IsNullOrWhiteSpace(organisation) && !IsLeadEntry())
+            missingContactFields.Add("organisation name");
+
+        if (missingContactFields.Count > 0)
+        {
+            _logger.LogWarning("[FollowUpAv] Quote blocked - missing contact fields: {Fields}",
+                string.Join(", ", missingContactFields));
+
+            var requestInfoMessage = new DisplayMessage
+            {
+                Role = "assistant",
+                Timestamp = DateTimeOffset.UtcNow,
+                Parts = new List<string> { $"Before I can create your quote, I need a few quick details: {string.Join(", ", missingContactFields)}. Could you please provide this information?" },
+                FullText = $"Before I can create your quote, I need: {string.Join(", ", missingContactFields)}.",
+                Html = $"<p>Before I can create your quote, I need a few quick details: <strong>{string.Join(", ", missingContactFields)}</strong>. Could you please provide this information?</p>"
+            };
+            msgList.Add(requestInfoMessage);
+
+            RedactPricesForUiInPlace(msgList);
+            ViewData["ShowQuoteCta"] = "0";
+            SetScheduleTimesInViewData();
+            ViewData["ProgressStep"] = DetermineProgressStep(msgList);
+            return PartialView("_Messages", msgList);
+        }
+
+        bool hasSchedule = msgList.Any(m => (m.Parts ?? Enumerable.Empty<string>()).Any(p => p != null && (
+            p.TrimStart().StartsWith("Choose schedule:", StringComparison.OrdinalIgnoreCase) ||
+            p.TrimStart().StartsWith("I've selected this schedule:", StringComparison.OrdinalIgnoreCase))));
+        if (!hasSchedule)
+        {
+            var sessionStart = HttpContext.Session.GetString("Draft:StartTime");
+            var sessionDateConfirmed = HttpContext.Session.GetString("Draft:DateConfirmed");
+            if (!string.IsNullOrWhiteSpace(sessionStart) || sessionDateConfirmed == "1")
+                hasSchedule = true;
+        }
+        if (!hasSchedule)
+        {
+            _logger.LogWarning("[FollowUpAv] Quote blocked - schedule not yet submitted");
+            var scheduleRequestMessage = new DisplayMessage
+            {
+                Role = "assistant",
+                Timestamp = DateTimeOffset.UtcNow,
+                Parts = new List<string> { "I need your event schedule before I can create the quote. Please confirm your setup, start, and end times using the time picker." },
+                FullText = "I need your event schedule before I can create the quote. Please confirm your setup, start, and end times using the time picker.",
+                Html = "<p>I need your event schedule before I can create the quote. Please confirm your setup, start, and end times using the time picker.</p>"
+            };
+            msgList.Add(scheduleRequestMessage);
+            RedactPricesForUiInPlace(msgList);
+            ViewData["ShowQuoteCta"] = "0";
+            SetScheduleTimesInViewData();
+            ViewData["ProgressStep"] = DetermineProgressStep(msgList);
+            return PartialView("_Messages", msgList);
+        }
+
+        var draftVenueName = HttpContext.Session.GetString("Draft:VenueName");
+        var draftRoomName = HttpContext.Session.GetString("Draft:RoomName");
+        var draftProjectorAreas = ParseProjectorAreas(HttpContext.Session.GetString("Draft:ProjectorAreas"));
+        if (draftProjectorAreas.Count == 0)
+            draftProjectorAreas = ParseProjectorAreas(HttpContext.Session.GetString("Draft:ProjectorArea"));
+        var summaryReqJson = HttpContext.Session.GetString("Draft:SummaryEquipmentRequests") ?? string.Empty;
+        var selectedEquipmentJsonForArea = HttpContext.Session.GetString("Draft:SelectedEquipment") ?? string.Empty;
+
+        var isWestinBallroomFamily = IsDraftWestinBallroomFamily(draftVenueName, draftRoomName);
+
+        var projectionNeeded =
+            summaryReqJson.Contains("projector", StringComparison.OrdinalIgnoreCase) ||
+            summaryReqJson.Contains("screen", StringComparison.OrdinalIgnoreCase) ||
+            summaryReqJson.Contains("display", StringComparison.OrdinalIgnoreCase) ||
+            selectedEquipmentJsonForArea.Contains("projector", StringComparison.OrdinalIgnoreCase) ||
+            selectedEquipmentJsonForArea.Contains("screen", StringComparison.OrdinalIgnoreCase) ||
+            selectedEquipmentJsonForArea.Contains("display", StringComparison.OrdinalIgnoreCase);
+
+        if (!projectionNeeded)
+        {
+            HttpContext.Session.Remove("Draft:ProjectorArea");
+            HttpContext.Session.Remove("Draft:ProjectorAreas");
+        }
+
+        var projectorCount = GetRequestedProjectorCount(summaryReqJson);
+        if (projectorCount <= 0 && selectedEquipmentJsonForArea.Contains("projector", StringComparison.OrdinalIgnoreCase))
+            projectorCount = 1;
+        var requiredAreaCount = 0;
+        if (projectionNeeded)
+        {
+            if (isWestinBallroomFamily)
+                requiredAreaCount = Math.Max(IsFullWestinBallroomRoomName(draftRoomName) ? 2 : 1,
+                    projectorCount > 1 ? Math.Min(projectorCount, 3) : 1);
+            else
+                requiredAreaCount = projectorCount > 1 ? Math.Min(projectorCount, 3) : 1;
+        }
+        var allowedAreas = GetAllowedProjectorAreasForRoom(draftRoomName);
+        var validSelectedAreas = draftProjectorAreas
+            .Where(a => allowedAreas.Contains(a, StringComparer.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var promptAlreadyShown =
+            HttpContext.Session.GetString(ProjectorPromptShownKey) == "1" &&
+            HttpContext.Session.GetString(ProjectorPromptThreadIdKey) == threadId;
+        var areaAlreadyCapturedInSession =
+            HttpContext.Session.GetString(ProjectorAreaCapturedKey) == "1" &&
+            HttpContext.Session.GetString(ProjectorAreaThreadIdKey) == threadId;
+
+        if (!promptAlreadyShown && !areaAlreadyCapturedInSession)
+        {
+            SyncProjectorPromptMarkers(msgList, threadId);
+            promptAlreadyShown = HttpContext.Session.GetString(ProjectorPromptShownKey) == "1" &&
+                                HttpContext.Session.GetString(ProjectorPromptThreadIdKey) == threadId;
+        }
+
+        if (!promptAlreadyShown && !areaAlreadyCapturedInSession)
+            validSelectedAreas.Clear();
+
+        var allowSingleBaseAvFullBallroomFv = isWestinBallroomFamily
+            && projectionNeeded
+            && requiredAreaCount > 1
+            && validSelectedAreas.Count == 1
+            && IsFullWestinBallroomRoomName(draftRoomName)
+            && string.Equals(HttpContext.Session.GetString("Draft:BaseAvSubmitted"), "1", StringComparison.Ordinal);
+
+        if (isWestinBallroomFamily && projectionNeeded && validSelectedAreas.Count < requiredAreaCount && !allowSingleBaseAvFullBallroomFv)
+        {
+            _logger.LogWarning("[FollowUpAv] Quote blocked - missing projector area (Westin Ballroom with projection)");
+            var allowedText = string.Join(", ", allowedAreas);
+            var areaRequestMessage = new DisplayMessage
+            {
+                Role = "assistant",
+                Timestamp = DateTimeOffset.UtcNow,
+                Parts = new List<string>
+                {
+                    requiredAreaCount == 1
+                        ? $"Before I create the quote, please choose the **projector placement area** for Westin Ballroom.\n\nValid areas for this room: **{allowedText}**.\n\nReply with one area.\n\n![Westin Ballroom projector placement areas](/images/westin/westin-ballroom/floor-plan.png)"
+                        : $"Before I create the quote, please choose **{requiredAreaCount} projector placement areas** for Westin Ballroom.\n\nValid areas for this room: **{allowedText}**.\n\nReply with any two areas (e.g. `{allowedAreas[0]} & {allowedAreas[1]}`).\n\n![Westin Ballroom projector placement areas](/images/westin/westin-ballroom/floor-plan.png)"
+                },
+                FullText = "Before I create the quote, please choose projector placement area A-F for Westin Ballroom.",
+                Html = "<p>Before I create the quote, please choose the <strong>projector placement area</strong> for Westin Ballroom (<strong>A-F</strong>).</p>"
+            };
+            HttpContext.Session.SetString(ProjectorPromptShownKey, "1");
+            HttpContext.Session.SetString(ProjectorPromptThreadIdKey, threadId);
+            await AddAssistantMessageAndPersistAsync(msgList, areaRequestMessage, ct);
+            RedactPricesForUiInPlace(msgList);
+            ViewData["ShowQuoteCta"] = "0";
+            SetScheduleTimesInViewData();
+            ViewData["ProgressStep"] = DetermineProgressStep(msgList);
+            return PartialView("_Messages", msgList);
+        }
+
+        var existingBookingNo = HttpContext.Session.GetString("Draft:BookingNo");
+
+        if (!string.IsNullOrWhiteSpace(existingBookingNo))
+        {
+            _logger.LogInformation("[FollowUpAv] Quote generation for existing booking {BookingNo}", existingBookingNo);
+            await GenerateQuoteForBookingAsync(existingBookingNo, msgList, ct);
+            HttpContext.Session.SetString("Draft:PersistedSummaryKey", summaryKey ?? string.Empty);
+        }
+        else
+        {
+            _logger.LogInformation("[FollowUpAv] No existing booking — creating booking then quote");
+
+            var additionalFacts = new Dictionary<string, string>();
+            var selectedEquipment = HttpContext.Session.GetString("Draft:SelectedEquipment");
+            if (!string.IsNullOrWhiteSpace(selectedEquipment))
+            {
+                additionalFacts["selected_equipment"] = selectedEquipment;
+                _logger.LogInformation("[FollowUpAv] Adding stored equipment to booking: {Equipment}", selectedEquipment);
+            }
+            var selectedLabor = HttpContext.Session.GetString("Draft:SelectedLabor");
+            if (!string.IsNullOrWhiteSpace(selectedLabor))
+            {
+                additionalFacts["selected_labor"] = selectedLabor;
+                var laborSummary = TryBuildLaborSummaryFromSelectedLabor(selectedLabor);
+                if (!string.IsNullOrWhiteSpace(laborSummary))
+                    additionalFacts["labor_summary"] = laborSummary;
+            }
+            var totalDayRate = HttpContext.Session.GetString("Draft:TotalDayRate");
+            if (!string.IsNullOrWhiteSpace(totalDayRate))
+                additionalFacts["price_quoted"] = totalDayRate;
+            var eventType = HttpContext.Session.GetString("Draft:EventType");
+            if (!string.IsNullOrWhiteSpace(eventType))
+                additionalFacts["event_type"] = eventType;
+            if (projectionNeeded)
+            {
+                var projectorAreaValue = HttpContext.Session.GetString("Draft:ProjectorArea");
+                if (!string.IsNullOrWhiteSpace(projectorAreaValue))
+                    additionalFacts["projector_area"] = projectorAreaValue;
+                var projectorAreasValue = HttpContext.Session.GetString("Draft:ProjectorAreas");
+                if (!string.IsNullOrWhiteSpace(projectorAreasValue))
+                    additionalFacts["projector_areas"] = projectorAreasValue;
+            }
+            var venueName = HttpContext.Session.GetString("Draft:VenueName");
+            if (!string.IsNullOrWhiteSpace(venueName))
+                additionalFacts["venue_name"] = venueName;
+            var roomName = HttpContext.Session.GetString("Draft:RoomName");
+            if (!string.IsNullOrWhiteSpace(roomName))
+                additionalFacts["venue_room"] = roomName;
+
+            var result = await _orchestration.ProcessConversationAsync(msgList, existingBookingNo, ct, additionalFacts);
+
+            if (result.Success && !string.IsNullOrWhiteSpace(result.BookingNo))
+            {
+                HttpContext.Session.SetString("Draft:BookingNo", result.BookingNo!);
+                if (result.ContactId.HasValue)
+                    HttpContext.Session.SetString("Draft:ContactId", result.ContactId.Value.ToString());
+                if (!string.IsNullOrWhiteSpace(result.CustomerCode))
+                    HttpContext.Session.SetString("Draft:CustomerCode", result.CustomerCode!);
+
+                HttpContext.Session.SetString("Draft:PersistedSummaryKey", summaryKey ?? string.Empty);
+                SetConsent(HttpContext.Session, false);
+                HttpContext.Session.SetString("Draft:ShowedBookingNo", "1");
+
+                await GenerateQuoteForBookingAsync(result.BookingNo!, msgList, ct);
+            }
+            else if (result.Errors.Any())
+            {
+                _logger.LogError("[FollowUpAv] Booking creation failed: {Errors}", string.Join("; ", result.Errors));
+
+                if (!string.IsNullOrWhiteSpace(existingBookingNo))
+                {
+                    await GenerateQuoteForBookingAsync(existingBookingNo, msgList, ct);
+                }
+                else
+                {
+                    var errorMessage = new DisplayMessage
+                    {
+                        Role = "assistant",
+                        Timestamp = DateTimeOffset.UtcNow,
+                        Parts = new List<string> {
+                            "Our team will follow up with you to help complete your booking."
+                        },
+                        FullText = "Our team will follow up with you to help complete your booking.",
+                        Html = "<p>Our team will follow up with you to help complete your booking.</p>"
+                    };
+                    msgList = msgList.Concat(new[] { errorMessage }).ToList();
+                }
+            }
+        }
+
+        return null;
+    }
+
     private async Task GenerateQuoteForBookingAsync(string bookingNo, List<DisplayMessage> msgList, CancellationToken ct)
     {
         try
@@ -2234,8 +2613,7 @@ public sealed class ChatController : Controller
         }
         
         // Also check for existing quote files on disk (in case session was lost)
-        var webRoot = Path.Combine(AppContext.BaseDirectory, "wwwroot");
-        var quotesDir = Path.Combine(webRoot, "files", "quotes");
+        var quotesDir = QuoteFilesPaths.GetPhysicalQuotesDirectory(_env);
         if (Directory.Exists(quotesDir))
         {
             var existingQuoteFiles = Directory.GetFiles(quotesDir, $"Quote-{bookingNo}-*.html")
@@ -2297,7 +2675,8 @@ public sealed class ChatController : Controller
         try
         {
             _logger.LogInformation("Starting HTML quote generation for booking {BookingNo}", bookingNo);
-            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(30)); // 30 second timeout
+            // HTML + Playwright PDF can exceed 30s on cold start / remote DB; align with chat client timeout.
+            using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
             try
             {
@@ -2390,47 +2769,26 @@ public sealed class ChatController : Controller
             catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
             {
                 _logger.LogWarning("HTML quote generation timed out for booking {BookingNo}", bookingNo);
-
-                // Check if quote was actually generated despite the timeout by looking for existing HTML files
-                // Use different variable names to avoid scope conflicts
-                var timeoutQuoteFile = Directory.Exists(quotesDir) 
-                    ? Directory.GetFiles(quotesDir, $"Quote-{bookingNo}-*.html")
-                        .OrderByDescending(f => System.IO.File.GetCreationTimeUtc(f))
-                        .FirstOrDefault()
-                    : null;
-
-                if (!string.IsNullOrEmpty(timeoutQuoteFile))
-                {
-                    var timeoutQuoteUrl = $"/files/quotes/{Path.GetFileName(timeoutQuoteFile)}";
-                    // Quote was generated successfully despite timeout - sync state
-                    HttpContext.Session.SetString("Draft:QuoteUrl", timeoutQuoteUrl);
-                    HttpContext.Session.SetString("Draft:QuoteComplete", "1"); // Mark quote as complete
-                    HttpContext.Session.SetString("Draft:QuoteTimestamp", DateTime.UtcNow.ToString("O"));
-                    _logger.LogInformation("HTML quote was actually generated despite timeout for booking {BookingNo}: {QuoteUrl}. State synchronized.", bookingNo, timeoutQuoteUrl);
-
-                    await AddAssistantMessageAndPersistAsync(msgList, BuildQuoteReadyMessage(bookingNo, timeoutQuoteUrl), ct);
-                    AppendQuoteReviewPromptImmediately(msgList);
-                }
-                else
-                {
-                    // Add timeout message
-                    var timeoutMessage = new DisplayMessage
-                    {
-                        Role = "assistant",
-                        Timestamp = DateTimeOffset.UtcNow,
-                        Parts = new List<string> {
-                            $"Your quote for booking {bookingNo} is being generated. Please wait a moment and refresh the page, or contact our team if you need immediate assistance."
-                        },
-                        FullText = $"Your quote for booking {bookingNo} is being generated. Please wait a moment and refresh the page, or contact our team if you need immediate assistance.",
-                        Html = $"<p>Your quote for booking <strong>{bookingNo}</strong> is being generated. Please wait a moment and refresh the page, or contact our team if you need immediate assistance.</p>"
-                    };
-                    await AddAssistantMessageAndPersistAsync(msgList, timeoutMessage, ct);
-                }
+                await RecoverQuoteFromDiskOrAnnounceWaitAsync(msgList, bookingNo, quotesDir, ct, "QuoteGenTimeout");
+            }
+            catch (OperationCanceledException oce)
+            {
+                // Client/gateway disconnected or request aborted while HTML/PDF still running — not the in-app 5-minute timeout.
+                _logger.LogWarning(oce, "HTML quote generation cancelled (external) for booking {BookingNo}", bookingNo);
+                await RecoverQuoteFromDiskOrAnnounceWaitAsync(msgList, bookingNo, quotesDir, ct, "QuoteGenCancelled");
             }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Exception during quote generation for booking {BookingNo}", bookingNo);
+            try
+            {
+                await RecoverQuoteFromDiskOrAnnounceWaitAsync(msgList, bookingNo, quotesDir, ct, "QuoteGenException");
+            }
+            catch (Exception persistEx)
+            {
+                _logger.LogError(persistEx, "Failed to persist quote-interrupted assistant message for booking {BookingNo}", bookingNo);
+            }
         }
 
         // Final verification: if a quote exists, strip out any lingering error messages
@@ -2669,17 +3027,14 @@ public sealed class ChatController : Controller
             _logger.LogInformation("[SIGNING] Updated booking {BookingNo} status to Heavy Pencil via digital signature", bookingNo);
 
             // ---- Resolve quote HTML file path ----
-            var webRoot = _env.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot");
             var quoteUrl = HttpContext.Session.GetString("Draft:QuoteUrl");
             string? quoteFilePath = null;
-            if (!string.IsNullOrWhiteSpace(quoteUrl))
-            {
-                var relativePath = quoteUrl.TrimStart('/');
-                quoteFilePath = Path.Combine(webRoot, relativePath.Replace('/', Path.DirectorySeparatorChar));
-            }
+            if (!string.IsNullOrWhiteSpace(quoteUrl) && QuoteFilesPaths.TryResolveExistingQuoteFile(_env, quoteUrl, out var resolvedQuotePath))
+                quoteFilePath = resolvedQuotePath;
 
             // ---- Overlay signature onto quote HTML ----
             string? amountFromHtml = null;
+            var signedPdfReady = false;
             if (quoteFilePath != null && System.IO.File.Exists(quoteFilePath))
             {
                 try
@@ -2723,7 +3078,21 @@ public sealed class ChatController : Controller
                     _logger.LogInformation("[SIGNING] Quote HTML updated with signature data: {Path}", quoteFilePath);
 
                     var pdfPath = Path.ChangeExtension(quoteFilePath, ".pdf");
-                    await HtmlQuoteGenerationService.GeneratePdfFromHtmlAsync(html, pdfPath, _logger);
+                    var pdfOk = await HtmlQuoteGenerationService.GeneratePdfFromHtmlAsync(html, pdfPath, _logger, ct);
+                    signedPdfReady = pdfOk && System.IO.File.Exists(pdfPath) && new FileInfo(pdfPath).Length > 0;
+                    if (!signedPdfReady)
+                    {
+                        _logger.LogWarning("[SIGNING] Signed PDF not available for booking {BookingNo}; removing stale PDF if present so HTML and file do not disagree", bookingNo);
+                        try
+                        {
+                            if (System.IO.File.Exists(pdfPath))
+                                System.IO.File.Delete(pdfPath);
+                        }
+                        catch (Exception delEx)
+                        {
+                            _logger.LogWarning(delEx, "[SIGNING] Failed to remove stale PDF after regeneration failure for booking {BookingNo}", bookingNo);
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -2734,8 +3103,7 @@ public sealed class ChatController : Controller
             // ---- Persist signature metadata as JSON ----
             try
             {
-                var sigDir = Path.Combine(webRoot, "files", "quotes");
-                Directory.CreateDirectory(sigDir);
+                var sigDir = QuoteFilesPaths.GetPhysicalQuotesDirectory(_env);
                 var sigPayload = new
                 {
                     BookingNo = bookingNo,
@@ -2784,8 +3152,17 @@ public sealed class ChatController : Controller
             var signedActionsHtml = "";
             if (!string.IsNullOrWhiteSpace(quoteUrl))
             {
-                confirmText += "\n\nYou can view or download your signed quote using the buttons below.";
-                signedActionsHtml = BuildSignedQuoteActionsHtml(quoteUrl, bookingNo);
+                var htmlStillPresent = quoteFilePath != null && System.IO.File.Exists(quoteFilePath);
+                if (signedPdfReady)
+                {
+                    confirmText += "\n\nYou can view or download your signed quote using the buttons below.";
+                    signedActionsHtml = BuildSignedQuoteActionsHtml(quoteUrl, bookingNo, includeDownload: true);
+                }
+                else if (htmlStillPresent)
+                {
+                    confirmText += "\n\nYou can view your signed quote below. We could not refresh the PDF download — use View, or contact Microhire if you need a file copy.";
+                    signedActionsHtml = BuildSignedQuoteActionsHtml(quoteUrl, bookingNo, includeDownload: false);
+                }
             }
 
             // Redact BEFORE adding the confirmation so the amount isn't stripped
@@ -3155,6 +3532,43 @@ public sealed class ChatController : Controller
         return new List<string> { "A", "B", "C", "D", "E", "F" };
     }
 
+    /// <summary>Matches <see cref="AgentToolHandlerService"/> Westin Ballroom family for quote/projector guards.</summary>
+    private static bool IsDraftWestinBallroomFamily(string? draftVenueName, string? draftRoomName)
+    {
+        if (string.IsNullOrWhiteSpace(draftVenueName)
+            || !draftVenueName.Contains("westin", StringComparison.OrdinalIgnoreCase)
+            || !draftVenueName.Contains("brisbane", StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (string.IsNullOrWhiteSpace(draftRoomName)) return false;
+        return string.Equals(draftRoomName, "Westin Ballroom", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(draftRoomName, "Westin Ballroom 1", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(draftRoomName, "Westin Ballroom 2", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(draftRoomName, "Ballroom", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(draftRoomName, "Ballroom 1", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(draftRoomName, "Ballroom 2", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsFullWestinBallroomRoomName(string? roomName)
+    {
+        var room = (roomName ?? "").Trim().ToLowerInvariant();
+        return room is "full westin ballroom" or "westin ballroom full" or "full ballroom";
+    }
+
+    private void TryPersistProjectorPlacementFromBaseAv(string threadId, BaseAvFormSubmission baseAv)
+    {
+        var p = (baseAv.ProjectorPlacement ?? "").Trim().ToUpperInvariant();
+        if (p.Length != 1 || p[0] < 'A' || p[0] > 'F') return;
+
+        var venue = HttpContext.Session.GetString("Draft:VenueName");
+        var room = HttpContext.Session.GetString("Draft:RoomName");
+        if (!IsDraftWestinBallroomFamily(venue, room)) return;
+
+        var allowed = GetAllowedProjectorAreasForRoom(room);
+        if (!allowed.Contains(p, StringComparer.OrdinalIgnoreCase)) return;
+
+        PersistProjectorAreaSelection(threadId, new List<string> { p });
+    }
+
     private async Task AddAssistantMessageAndPersistAsync(List<DisplayMessage> msgList, DisplayMessage message, CancellationToken ct)
     {
         msgList.Add(message);
@@ -3169,6 +3583,51 @@ public sealed class ChatController : Controller
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to persist assistant message to thread.");
+        }
+    }
+
+    /// <summary>
+    /// After timeout, client disconnect, or unexpected errors, either attach a success message if a quote file exists
+    /// or a "wait and refresh" assistant line. Ensures SendPartial sees an assistant delta so we do not append the generic
+    /// "temporary issue" fallback on top of a quote attempt.
+    /// </summary>
+    private async Task RecoverQuoteFromDiskOrAnnounceWaitAsync(
+        List<DisplayMessage> msgList,
+        string bookingNo,
+        string quotesDir,
+        CancellationToken ct,
+        string logContext)
+    {
+        var quoteFile = Directory.Exists(quotesDir)
+            ? Directory.GetFiles(quotesDir, $"Quote-{bookingNo}-*.html")
+                .OrderByDescending(f => System.IO.File.GetCreationTimeUtc(f))
+                .FirstOrDefault()
+            : null;
+
+        if (!string.IsNullOrEmpty(quoteFile))
+        {
+            var quoteUrl = $"/files/quotes/{Path.GetFileName(quoteFile)}";
+            HttpContext.Session.SetString("Draft:QuoteUrl", quoteUrl);
+            HttpContext.Session.SetString("Draft:QuoteComplete", "1");
+            HttpContext.Session.SetString("Draft:QuoteTimestamp", DateTime.UtcNow.ToString("O"));
+            _logger.LogInformation("[{LogContext}] Recovered quote on disk for booking {BookingNo}: {QuoteUrl}", logContext, bookingNo, quoteUrl);
+            await AddAssistantMessageAndPersistAsync(msgList, BuildQuoteReadyMessage(bookingNo, quoteUrl), ct);
+            AppendQuoteReviewPromptImmediately(msgList);
+        }
+        else
+        {
+            _logger.LogWarning("[{LogContext}] No quote file on disk yet for booking {BookingNo}", logContext, bookingNo);
+            var waitMessage = new DisplayMessage
+            {
+                Role = "assistant",
+                Timestamp = DateTimeOffset.UtcNow,
+                Parts = new List<string> {
+                    $"Your quote for booking {bookingNo} is being generated. Please wait a moment and refresh the page, or contact our team if you need immediate assistance."
+                },
+                FullText = $"Your quote for booking {bookingNo} is being generated. Please wait a moment and refresh the page, or contact our team if you need immediate assistance.",
+                Html = $"<p>Your quote for booking <strong>{bookingNo}</strong> is being generated. Please wait a moment and refresh the page, or contact our team if you need immediate assistance.</p>"
+            };
+            await AddAssistantMessageAndPersistAsync(msgList, waitMessage, ct);
         }
     }
 
@@ -3290,8 +3749,9 @@ public sealed class ChatController : Controller
     private static DisplayMessage BuildQuoteReadyMessage(string bookingNo, string quoteUrl)
     {
         const string confirmationPrompt = "\n\nWould you like to confirm this quote?";
-        var downloadHref = BuildQuoteDownloadHref(quoteUrl, bookingNo);
-        var successPart = $"Great news! I have successfully generated your quote for booking {bookingNo}. You can view it <a href=\"{quoteUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">here</a> or <a href=\"{downloadHref}\" rel=\"noopener noreferrer\" class=\"isla-quote-download\" data-quote-download=\"1\" data-download-name=\"Quote-{bookingNo}.pdf\"><i class=\"ph ph-download\"></i> download it</a>.";
+        var downloadHref = QuoteDownloadHref.Build(quoteUrl, bookingNo);
+        var downloadName = System.Net.WebUtility.HtmlEncode(QuoteDownloadHref.GetPdfFileName(quoteUrl, bookingNo));
+        var successPart = $"Great news! I have successfully generated your quote for booking {bookingNo}. You can view it <a href=\"{quoteUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">here</a> or <a href=\"{downloadHref}\" rel=\"noopener noreferrer\" class=\"isla-quote-download\" data-quote-download=\"1\" data-download-name=\"{downloadName}\"><i class=\"ph ph-download\"></i> download it</a>.";
         return new DisplayMessage
         {
             Role = "assistant",
@@ -3302,36 +3762,25 @@ public sealed class ChatController : Controller
         };
     }
 
-    private static string BuildSignedQuoteActionsHtml(string quoteUrl, string bookingNo)
+    private static string BuildSignedQuoteActionsHtml(string quoteUrl, string bookingNo, bool includeDownload = true)
     {
-        var downloadHref = BuildQuoteDownloadHref(quoteUrl, bookingNo);
+        var downloadName = System.Net.WebUtility.HtmlEncode(QuoteDownloadHref.GetPdfFileName(quoteUrl, bookingNo));
+        var viewBtn =
+            $"<a href=\"{quoteUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-download-btn isla-quote-open\" data-quote-open=\"1\">View Signed Quote</a>";
+        if (!includeDownload)
+        {
+            return
+                "<div style=\"margin-top:1rem;display:flex;gap:.75rem;flex-wrap:wrap;justify-content:center\">" +
+                viewBtn +
+                "</div>";
+        }
+
+        var downloadHref = QuoteDownloadHref.Build(quoteUrl, bookingNo);
         return
             "<div style=\"margin-top:1rem;display:flex;gap:.75rem;flex-wrap:wrap;justify-content:center\">" +
-            $"<a href=\"{quoteUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-download-btn isla-quote-open\" data-quote-open=\"1\">View Signed Quote</a>" +
-            $"<a href=\"{downloadHref}\" rel=\"noopener noreferrer\" class=\"isla-quote-download-btn isla-quote-download\" data-quote-download=\"1\" data-download-name=\"Quote-{bookingNo}.pdf\">Download Signed Quote</a>" +
+            viewBtn +
+            $"<a href=\"{downloadHref}\" rel=\"noopener noreferrer\" class=\"isla-quote-download-btn isla-quote-download\" data-quote-download=\"1\" data-download-name=\"{downloadName}\">Download Signed Quote</a>" +
             "</div>";
-    }
-
-    private static string BuildQuoteDownloadHref(string quoteUrl, string bookingNo)
-    {
-        if (string.IsNullOrWhiteSpace(quoteUrl))
-        {
-            return "#";
-        }
-
-        var srcPath = quoteUrl;
-        if (Uri.TryCreate(quoteUrl, UriKind.Absolute, out var absoluteQuoteUri))
-        {
-            srcPath = absoluteQuoteUri.AbsolutePath;
-        }
-
-        if (!srcPath.StartsWith("/", StringComparison.Ordinal))
-        {
-            srcPath = "/" + srcPath.TrimStart('/');
-        }
-
-        var fileName = $"Quote-{bookingNo}.pdf";
-        return $"/quotes/render?src={Uri.EscapeDataString(srcPath)}&outFile={Uri.EscapeDataString(fileName)}";
     }
 
     private sealed class ContactFormSubmission
@@ -3983,11 +4432,9 @@ public sealed class ChatController : Controller
         if (HttpContext.Session.GetString("Draft:QuoteComplete") == "1" && messages.Count > 0)
             return;
 
-        var hasQuoteSummary = messages.Any(m =>
-            string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase)
-            && (m.FullText ?? string.Join("\n", m.Parts ?? Enumerable.Empty<string>()))
-                .Contains("Would you like me to create the quote now?", StringComparison.OrdinalIgnoreCase));
-        if (hasQuoteSummary)
+        // Only skip wizard when assistant is at "generate the quote" — not generic "please confirm" (venue/email).
+        var assistantAskedQuoteGeneration = messages.Any(m => QuoteSummaryAskHelpers.AssistantMessageContainsQuoteGenerationPrompt(m));
+        if (assistantAskedQuoteGeneration)
             return;
 
         var entrySource = HttpContext.Session.GetString("Draft:EntrySource") ?? "general";
@@ -3999,7 +4446,12 @@ public sealed class ChatController : Controller
         var baseAvSubmitted = HttpContext.Session.GetString("Draft:BaseAvSubmitted") == "1";
         var followUpAvSubmitted = HttpContext.Session.GetString("Draft:FollowUpAvSubmitted") == "1";
 
+        // Lead links: after email verification, show venue wizard even if org/name are missing on the lead row.
         var hasContactDraft = contactFormSubmitted
+            || (IsLeadEntry()
+                && emailGateComplete
+                && (!string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:ContactEmail"))
+                    || !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:ContactPhone"))))
             || (!string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:ContactName"))
                 && !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:Organisation"))
                 && (!string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:ContactEmail"))
@@ -4126,11 +4578,9 @@ public sealed class ChatController : Controller
             }
             return;
         }
-        else if (HttpContext.Session.GetString("Draft:AvExtrasSubmitted") == "1"
-            && !messages.Any(m => MessageContainsUiType(m, "submittedForm") && (m.FullText ?? "").Contains("AV selections confirmed")))
+        else if (HttpContext.Session.GetString("Draft:AvExtrasSubmitted") == "1")
         {
             messages.RemoveAll(IsFollowUpAvFormMessage);
-            messages.Add(BuildUiAssistantMessage("AV selections confirmed:", BuildSubmittedFollowUpAvViewJson()));
         }
     }
 
@@ -4285,6 +4735,7 @@ public sealed class ChatController : Controller
     {
         var room = HttpContext.Session.GetString("Draft:RoomName") ?? "";
         var showPlacement = RoomSupportsProjectorPlacement(room);
+        var floorPlanUrl = showPlacement ? "/images/westin/westin-ballroom/floor-plan.png" : "";
         var payload = new
         {
             ui = new
@@ -4294,6 +4745,7 @@ public sealed class ChatController : Controller
                 submitLabel = "Next",
                 roomName = room,
                 showProjectorPlacement = showPlacement,
+                floorPlanUrl,
                 projectorPlacement = HttpContext.Session.GetString("Draft:ProjectorPlacementChoice") ?? "",
                 placementOptions = GetProjectorPlacementOptionsForRoom(room),
                 presenters = HttpContext.Session.GetString("Draft:PresenterCount") ?? "0",
@@ -4697,7 +5149,7 @@ public sealed class ChatController : Controller
         var list = messages as IReadOnlyList<DisplayMessage> ?? messages?.ToList();
         var sess = HttpContext.Session;
 
-        if (list != null && WasLastAssistantASummaryAsk(list))
+        if (list != null && WasLastAssistantQuoteGenerationConsentPrompt(list))
             return "third-step-active";
 
         if (string.Equals(sess.GetString("Draft:FollowUpAvSubmitted"), "1", StringComparison.Ordinal)
@@ -5183,7 +5635,7 @@ public sealed class ChatController : Controller
         string operation,
         Func<CancellationToken, Task<T>> action,
         CancellationToken requestCt,
-        int timeoutSeconds = 75)
+        int timeoutSeconds = 300)
     {
         using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(requestCt, timeoutCts.Token);

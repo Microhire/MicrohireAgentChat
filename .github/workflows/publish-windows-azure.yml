@@ -1,0 +1,71 @@
+# -----------------------------------------------------------------------------
+# Publish Windows (Playwright Chromium) — production zip for Azure App Service (win-x64)
+#
+# Prerequisites:
+#   - Repository on GitHub with Actions enabled (Settings → Actions → General).
+#   - This file on your default branch.
+#
+# How to run:
+#   Actions → "Publish Windows (Playwright Chromium)" → Run workflow.
+#
+# Output:
+#   Artifact name: site-win64-playwright  (contains site.zip)
+#
+# Deploy:
+#   Unzip or use site.zip directly, e.g. from repo root:
+#     az webapp deploy --resource-group <rg> --name <app> --src-path site.zip --type zip --async true
+#
+# Trigger: manual only (workflow_dispatch). Add push: branches: [main] under on: if you want every merge to build.
+# -----------------------------------------------------------------------------
+
+name: Publish Windows (Playwright Chromium)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: dotnet publish
+        run: dotnet publish MicrohireAgentChat/MicrohireAgentChat.csproj -c Release -o publish_out -r win-x64 --self-contained false
+
+      - name: Install Chromium into publish (pw-browsers)
+        shell: pwsh
+        run: |
+          $publish = Join-Path $env:GITHUB_WORKSPACE "publish_out"
+          $browserDir = Join-Path $publish "pw-browsers"
+          New-Item -ItemType Directory -Force -Path $browserDir | Out-Null
+          $env:PLAYWRIGHT_BROWSERS_PATH = $browserDir
+          Set-Location $publish
+          if (-not (Test-Path ".\playwright.ps1")) { throw "playwright.ps1 missing from publish output" }
+          ./playwright.ps1 install chromium
+
+      - name: Verify bundle
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "publish_out\.playwright\node")) { throw ".playwright/node missing" }
+          $b = Get-ChildItem -Path "publish_out\pw-browsers" -Recurse -ErrorAction SilentlyContinue
+          if (-not $b) { throw "pw-browsers is empty after playwright install" }
+
+      - name: Zip site package
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "publish_out\*" -DestinationPath "site.zip" -Force
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: site-win64-playwright
+          path: site.zip

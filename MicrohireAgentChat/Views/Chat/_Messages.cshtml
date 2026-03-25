@@ -168,6 +168,8 @@
   .isla-base-av-laptop-label-row{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;margin-bottom:.35rem;padding-right:0}
   .isla-base-av-laptop-head{font-weight:600;font-size:.8rem;color:#666;text-transform:uppercase;letter-spacing:.03em}
   .isla-base-av-qty-head{font-weight:600;font-size:.75rem;color:#666;text-transform:uppercase;letter-spacing:.03em;text-align:right;min-width:4.5rem}
+  .isla-floorplan-open{margin:0 0 .35rem 0;padding:0;border:none;background:none;color:#1d4ed8;font-size:.85rem;font-weight:600;text-decoration:underline;cursor:pointer;font-family:inherit}
+  .isla-floorplan-open:hover{color:#1e40af}
   .isla-base-av-laptop-controls{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem 1rem}
   .isla-base-av-laptop-radios{display:flex;align-items:center;gap:.75rem;flex:0 0 auto}
   .isla-base-av-laptop-controls input[data-ba-laptop-qty]{max-width:5.5rem;width:5rem;flex:0 0 auto;height:42px;box-sizing:border-box;margin-left:auto}
@@ -733,6 +735,9 @@ else
                                             var title = uiEl.TryGetProperty("title", out var bt) ? bt.GetString() : "Base AV";
                                             var submit = uiEl.TryGetProperty("submitLabel", out var bs) ? bs.GetString() : "Next";
                                             var showPl = uiEl.TryGetProperty("showProjectorPlacement", out var spEl) && spEl.ValueKind == JsonValueKind.True;
+                                            var floorPlanUrl = "";
+                                            if (uiEl.TryGetProperty("floorPlanUrl", out var fpu) && fpu.ValueKind == JsonValueKind.String)
+                                                floorPlanUrl = fpu.GetString() ?? "";
                                             var presenters = uiEl.TryGetProperty("presenters", out var prEl) ? prEl.GetString() : "0";
                                             var placementCur = uiEl.TryGetProperty("projectorPlacement", out var ppEl) ? ppEl.GetString() : "";
                                             var flipCur = uiEl.TryGetProperty("flipchart", out var fcEl) ? fcEl.GetString() : "no";
@@ -750,6 +755,10 @@ else
                                                     @if (showPl)
                                                     {
                                                         <div class="isla-form-field isla-base-av-placement" data-ba-pl-wrap>
+                                                            @if (!string.IsNullOrWhiteSpace(floorPlanUrl))
+                                                            {
+                                                                <button type="button" class="isla-floorplan-open" data-ba-floorplan-open data-floorplan-src="@floorPlanUrl" aria-haspopup="dialog">View floor plan</button>
+                                                            }
                                                             <label>Projector placement</label>
                                                             <select data-ba-placement>
                                                                 @if (uiEl.TryGetProperty("placementOptions", out var plOpts) && plOpts.ValueKind == JsonValueKind.Array)
@@ -1383,67 +1392,10 @@ else
         return string.Empty;
     }
 
-    // Strict detector - only show quote CTA after equipment has been confirmed.
-    // When equipment context is present, "asks about quote" uses the same rules as ChatController.WasLastAssistantASummaryAsk (QuoteSummaryAskHelpers).
-    bool IsFinalSummaryAskBubble(string rawLower, string rawFull){
-        if (string.IsNullOrWhiteSpace(rawLower)) return false;
-
-        // MUST have equipment-specific content (not just venue/attendee info)
-        bool hasEquipmentConfirmation =
-            rawLower.Contains("requirement summary") ||
-            rawLower.Contains("quote summary") ||          // Backward compatibility
-            rawLower.Contains("recommended equipment") ||  // Section header
-            rawLower.Contains("equipment selection") ||
-            rawLower.Contains("equipment lineup") ||
-            rawLower.Contains("finalised equipment") || rawLower.Contains("finalized equipment") ||  // Support both AUS and US spelling
-            rawLower.Contains("here's the equipment") ||
-            rawLower.Contains("your equipment") ||
-            rawLower.Contains("selected equipment") ||
-            rawLower.Contains("equipment includes") ||
-            rawLower.Contains("equipment confirmed") ||
-            rawLower.Contains("laptops:") ||
-            rawLower.Contains("projectors:") ||
-            rawLower.Contains("screens:") ||
-            rawLower.Contains("microphones:") ||
-            rawLower.Contains("audio equipment") ||
-            rawLower.Contains("av equipment") ||
-            rawLower.Contains("additional av equipment") ||
-            rawLower.Contains("built-in equipment") ||
-            rawLower.Contains("/day") ||
-            rawLower.Contains("estimated total") ||
-            (rawLower.Contains("equipment") && rawLower.Contains("correct"));
-
-        var normalized = QuoteSummaryAskHelpers.NormalizeForSummaryAsk(rawFull);
-
-        // Original explicit quote phrases + shared server-side summary-ask detection
-        bool asksAboutQuote =
-            rawLower.Contains("create your quote") ||
-            rawLower.Contains("create the quote") ||
-            rawLower.Contains("prepare your quote") ||
-            rawLower.Contains("prepare the quote") ||
-            rawLower.Contains("generate your quote") ||
-            rawLower.Contains("generate the quote") ||
-            rawLower.Contains("finalise the quote") || rawLower.Contains("finalize the quote") ||  // Support both AUS and US spelling
-            rawLower.Contains("ready for the quote") ||
-            rawLower.Contains("shall i prepare your quote") ||
-            rawLower.Contains("would you like me to create the quote") ||
-            rawLower.Contains("proceed with this equipment") ||
-            rawLower.Contains("equipment looks correct") ||   // Our new phrase
-            rawLower.Contains("yes, create quote") ||
-            rawLower.Contains("click **yes") ||
-            rawLower.Contains("no, i need changes") ||
-            (hasEquipmentConfirmation && QuoteSummaryAskHelpers.LooksLikeSummaryAskNormalized(normalized));
-
-        // Exclude venue-only messages (these should NOT trigger quote buttons)
-        bool isVenueOnly =
-            (rawLower.Contains("venue") || rawLower.Contains("room") || rawLower.Contains("ballroom")) &&
-            (rawLower.Contains("reservation") || rawLower.Contains("available") || rawLower.Contains("proceed with this venue")) &&
-            !hasEquipmentConfirmation;
-
-        // Only show CTA if equipment has been confirmed AND asking about quote/proceed
-        // (do NOT show when we're still collecting details, even if quote is mentioned)
-        return hasEquipmentConfirmation && asksAboutQuote && !isVenueOnly;
-    }
+    // Pre-quote "Yes, create quote" / "No, not yet" UI was removed: recommendation persists in session and
+    // generate_quote runs via wizard submit or explicit user text ("yes create quote"). Post-quote acceptance
+    // still uses _looksLikeQuoteAcceptanceAsk (separate from this).
+    bool IsFinalSummaryAskBubble(string rawLowerIgnored, string rawFullIgnored) => false;
 
     // Detect if a user message is a structured form submission
     bool IsFormSubmission(string text){
@@ -1852,6 +1804,10 @@ else
       return urlObj.toString();
     }
 
+    if(path.startsWith('/quotes/download')){
+      return urlObj.toString();
+    }
+
     if(path.startsWith('/files/quotes/') && path.toLowerCase().endsWith('.html')){
       const htmlFile = path.split('/').pop() || 'quote.html';
       const fallbackPdfName = htmlFile.replace(/\.html?$/i, '.pdf');
@@ -1862,6 +1818,40 @@ else
 
     return urlObj.toString();
   }
+
+  // --- Floor plan lightbox (Base AV); independent of image preview modal ---
+  (function initFloorplanModal(){
+    const overlay = document.getElementById('islaFloorplanOverlay');
+    const img = document.getElementById('islaFloorplanImage');
+    if (!overlay || !img) return;
+    function closeFloorplan(){
+      overlay.style.display = 'none';
+      img.removeAttribute('src');
+      document.body.style.overflow = '';
+    }
+    function openFloorplan(src){
+      const s = (src || '').trim();
+      if (!s) return;
+      img.src = s;
+      overlay.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+    }
+    document.addEventListener('click', (ev) => {
+      const openBtn = ev.target.closest('[data-ba-floorplan-open]');
+      if (openBtn) {
+        ev.preventDefault();
+        openFloorplan(openBtn.getAttribute('data-floorplan-src'));
+        return;
+      }
+      if (ev.target.closest('[data-isla-floorplan-close]') || ev.target.closest('.isla-floorplan-close')) {
+        closeFloorplan();
+      }
+    }, { passive: false });
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'Escape') return;
+      if (overlay.style.display === 'flex' || overlay.style.display === 'block') closeFloorplan();
+    });
+  })();
 
   async function downloadQuoteWithoutNavigation(anchor){
     const rawHref = anchor.getAttribute('href') || '';
@@ -2799,10 +2789,12 @@ else
   }
 
   document.addEventListener('click',(ev)=>{
+    if(ev.target.closest('.isla-quote-download,[data-quote-download="1"]')) return;
     const quoteLink = ev.target.closest('.isla-quote-open')
       || ev.target.closest('.chat-text a[href*="/files/quotes/"]');
     if(!quoteLink) return;
-    if(quoteLink.href && /\/quotes\/render/i.test(quoteLink.href)) return;
+    if(quoteLink.href && /\/quotes\/render(\?|$)/i.test(quoteLink.href)) return;
+    if(quoteLink.href && /\/quotes\/download(\?|$)/i.test(quoteLink.href)) return;
     ev.preventDefault();
     ev.stopPropagation();
     window.open(quoteLink.href, '_blank', 'noopener,noreferrer');
@@ -2811,7 +2803,8 @@ else
 
   document.addEventListener('click',async(ev)=>{
     const quoteDownloadLink = ev.target.closest('.isla-quote-download, .chat-text a[download]')
-      || ev.target.closest('.chat-text a[href*="/quotes/render"]');
+      || ev.target.closest('.chat-text a[href*="/quotes/render"]')
+      || ev.target.closest('.chat-text a[href*="/quotes/download"]');
     if(!quoteDownloadLink) return;
     ev.preventDefault();
     ev.stopPropagation();

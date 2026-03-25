@@ -420,9 +420,10 @@ public sealed class CrewPersistenceService
         try
         {
             // Resolve by product code via tblInvmas.ID -> tblInvmas_Labour_Rates.tblinvmasID
+            // Labour_rate is float/real in SQL Server; cast so SqlClient materializes as decimal for EF.
             var labourRate = await _db.Database
                 .SqlQuery<decimal?>($@"
-                    SELECT TOP 1 r.Labour_rate
+                    SELECT TOP 1 CAST(r.Labour_rate AS decimal(18, 4)) AS [Value]
                     FROM tblInvmas_Labour_Rates r
                     INNER JOIN tblInvmas i ON r.tblinvmasID = i.ID
                     WHERE LTRIM(RTRIM(i.product_code)) = {normalizedCode}
@@ -441,7 +442,7 @@ public sealed class CrewPersistenceService
             {
                 var avtechRate = await _db.Database
                     .SqlQuery<decimal?>($@"
-                        SELECT TOP 1 Labour_rate
+                        SELECT TOP 1 CAST(Labour_rate AS decimal(18, 4)) AS [Value]
                         FROM tblInvmas_Labour_Rates
                         WHERE tblinvmasID = 2939
                           AND Locn = 20

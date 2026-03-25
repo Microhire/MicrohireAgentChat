@@ -11,6 +11,9 @@ using System.Text.RegularExpressions;
 
 namespace MicrohireAgentChat.Services;
 
+/// <summary>Result of <see cref="AgentToolHandlerService.RecommendEquipmentFromWizardSessionAsync"/> (server-driven follow-up AV path).</summary>
+public sealed record WizardEquipmentRecommendResult(bool Success, string? ErrorMessage);
+
 /// <summary>
 /// Handles all Azure Agent tool calls - extracted from AzureAgentChatService
 /// </summary>
@@ -46,6 +49,38 @@ public sealed partial class AgentToolHandlerService
         _equipmentSearch = equipmentSearch;
         _smartEquipment = smartEquipment;
         _extraction = extraction;
+    }
+
+    /// <summary>
+    /// Runs the same recommendation pipeline as <c>recommend_equipment_for_event</c> with an empty
+    /// <c>equipment_requests</c> array so <see cref="MergeWizardSessionIntoEquipmentRequests"/> supplies
+    /// wizard fields from session (<c>Draft:FollowUpAvSubmitted</c>). Persists
+    /// <c>Draft:SelectedEquipment</c>, labor, rates, etc., when successful.
+    /// </summary>
+    public async Task<WizardEquipmentRecommendResult> RecommendEquipmentFromWizardSessionAsync(string threadId, CancellationToken ct)
+    {
+        const string argsJson = "{\"equipment_requests\":[]}";
+        var json = await HandleSmartEquipmentRecommendationAsync(argsJson, threadId, ct);
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("success", out var s) && s.ValueKind == JsonValueKind.True)
+                return new WizardEquipmentRecommendResult(true, null);
+            if (root.TryGetProperty("success", out s) && s.ValueKind == JsonValueKind.False)
+            {
+                var err = root.TryGetProperty("error", out var e) ? e.GetString() : "Equipment recommendation failed";
+                return new WizardEquipmentRecommendResult(false, err);
+            }
+            if (root.TryGetProperty("error", out var errEl))
+                return new WizardEquipmentRecommendResult(false, errEl.GetString());
+            return new WizardEquipmentRecommendResult(true, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[FollowUpAv] Failed to parse recommend_equipment JSON (len={Len})", json?.Length ?? 0);
+            return new WizardEquipmentRecommendResult(false, "Could not parse equipment recommendation response");
+        }
     }
 
     /// <summary>
@@ -1023,13 +1058,14 @@ public sealed partial class AgentToolHandlerService
         var contactEmail = session?.GetString("Draft:ContactEmail");
         var contactPhone = session?.GetString("Draft:ContactPhone");
         var organisation = session?.GetString("Draft:Organisation");
+        var isLeadEntry = string.Equals(session?.GetString("Draft:EntrySource"), "lead", StringComparison.OrdinalIgnoreCase);
 
         var missingFields = new List<string>();
         if (string.IsNullOrWhiteSpace(contactName))
             missingFields.Add("customer name");
         if (string.IsNullOrWhiteSpace(contactEmail) && string.IsNullOrWhiteSpace(contactPhone))
             missingFields.Add("contact email or phone number");
-        if (string.IsNullOrWhiteSpace(organisation))
+        if (string.IsNullOrWhiteSpace(organisation) && !isLeadEntry)
             missingFields.Add("organisation name");
 
         if (missingFields.Count > 0)
@@ -1265,9 +1301,16 @@ public sealed partial class AgentToolHandlerService
             (venueNormForRoomTrust.Contains("four points") && venueNormForRoomTrust.Contains("brisbane"));
         if (isWestinOrFourPointsForRoomTrust)
         {
-            eventContext.RoomName = !string.IsNullOrWhiteSpace(userStatedRoom)
-                ? userStatedRoom
-                : roomNameFromSession;  // session value was written from a prior user confirmation
+            // Lead + venue-confirm session room (e.g. Elevate from sales form) must not be overridden
+            // by fuzzy transcript extraction that echoes assistant "Westin Ballroom" wording.
+            var entryLead = string.Equals(session?.GetString("Draft:EntrySource"), "lead", StringComparison.OrdinalIgnoreCase);
+            var venueConfirmed = string.Equals(session?.GetString("Draft:VenueConfirmSubmitted"), "1", StringComparison.Ordinal);
+            if (!string.IsNullOrWhiteSpace(roomNameFromSession) && (entryLead || venueConfirmed))
+                eventContext.RoomName = roomNameFromSession;
+            else if (!string.IsNullOrWhiteSpace(userStatedRoom))
+                eventContext.RoomName = userStatedRoom;
+            else
+                eventContext.RoomName = roomNameFromSession;
         }
 
         if (string.IsNullOrWhiteSpace(setupStyle)
@@ -1568,8 +1611,14 @@ public sealed partial class AgentToolHandlerService
 
             // Guard against stale session carry-over: if this thread has never shown the floor plan prompt,
             // force re-collection from the user instead of silently reusing old projector areas.
+            // Exception: Base AV wizard captured placement into session — treat as authoritative.
             if (!hasProjectorAreaPromptInConversation && !projectorPromptShownForThread && !projectorSelectionCapturedForThread)
-                projectorAreas.Clear();
+            {
+                var baseAvPlacement = string.Equals(session?.GetString("Draft:BaseAvSubmitted"), "1", StringComparison.Ordinal)
+                    && !string.IsNullOrWhiteSpace(session?.GetString("Draft:ProjectorArea"));
+                if (!baseAvPlacement)
+                    projectorAreas.Clear();
+            }
         }
         else if (projectionNeeded)
         {
@@ -1600,7 +1649,12 @@ public sealed partial class AgentToolHandlerService
             var invalidAreas = projectorAreas.Where(a => !allowedAreas.Contains(a, StringComparer.OrdinalIgnoreCase)).ToList();
             var validAreas = projectorAreas.Where(a => allowedAreas.Contains(a, StringComparer.OrdinalIgnoreCase)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
 
-            if (invalidAreas.Count > 0 || validAreas.Count < requiredAreaCount)
+            var allowSingleBaseAvFullBallroom = isFullWestinBallroomSelection
+                && requiredAreaCount > 1
+                && validAreas.Count == 1
+                && string.Equals(session?.GetString("Draft:BaseAvSubmitted"), "1", StringComparison.Ordinal);
+
+            if (invalidAreas.Count > 0 || (validAreas.Count < requiredAreaCount && !allowSingleBaseAvFullBallroom))
             {
             if (session != null)
                 MarkProjectorPromptShown(session, threadId);
@@ -1722,15 +1776,13 @@ public sealed partial class AgentToolHandlerService
 
         // Capacity check: if Westin + room known, validate attendees vs room capacity for the setup
         string? capacityWarning = null;
-        string? capacityOkLine = null;
         if (!string.IsNullOrWhiteSpace(eventContext.VenueName) && !string.IsNullOrWhiteSpace(eventContext.RoomName) &&
             eventContext.VenueName.Trim().Contains("Westin", StringComparison.OrdinalIgnoreCase) && eventContext.VenueName.Trim().Contains("Brisbane", StringComparison.OrdinalIgnoreCase))
         {
-            var (warning, okLine) = await TryGetCapacityCheckAsync(
+            var (warning, _) = await TryGetCapacityCheckAsync(
                 eventContext.VenueName, eventContext.RoomName, eventContext.ExpectedAttendees,
                 setupStyle, ct);
             capacityWarning = warning;
-            capacityOkLine = okLine;
         }
 
         // Get smart recommendations
@@ -1825,214 +1877,31 @@ public sealed partial class AgentToolHandlerService
             }).ToList()
         }).ToList();
 
-        // Build COMPLETE booking summary with event details AND equipment
-        // This summary triggers the quote confirmation buttons in the UI
-        var summaryLines = new List<string>();
-        
-        // Retrieve date/time from session for display
-        var eventDateStr = session?.GetString("Draft:EventDate");
-        var startTimeStr = session?.GetString("Draft:StartTime");
-        var endTimeStr = session?.GetString("Draft:EndTime");
-        var setupTimeStr = session?.GetString("Draft:SetupTime");
-        var rehearsalTimeStr = session?.GetString("Draft:RehearsalTime");
-        var packupTimeStr = session?.GetString("Draft:PackupTime");
-        var technicianSchedule = new TechnicianScheduleInfo(setupTimeStr, rehearsalTimeStr, startTimeStr, endTimeStr, packupTimeStr);
-        
-        // Fallback: extract from conversation transcript if not in session
-        // Note: chatService is already declared earlier in the method for schedule validation
-        if ((string.IsNullOrWhiteSpace(eventDateStr) || string.IsNullOrWhiteSpace(startTimeStr) || string.IsNullOrWhiteSpace(endTimeStr)) && !string.IsNullOrEmpty(threadId))
+        // No long quote-summary UI: equipment is stored in session below. Brief line for the model only.
+        string fullOutputToUser;
+        var hasCapacityWarning = !string.IsNullOrEmpty(capacityWarning);
+        if (hasCapacityWarning)
         {
-            try
-            {
-                // Reuse chatService from earlier in the method if available, otherwise get it
-                var chatServiceForExtraction = chatService ?? (_http.HttpContext?.RequestServices.GetService(typeof(AzureAgentChatService)) as AzureAgentChatService);
-                if (chatServiceForExtraction != null)
-                {
-                    var (_, messages) = chatServiceForExtraction.GetTranscript(threadId);
-                    
-                    // Extract date if not in session
-                    if (string.IsNullOrWhiteSpace(eventDateStr))
-                    {
-                        var (dateDto, _) = _extraction.ExtractEventDate(messages);
-                        if (dateDto.HasValue)
-                        {
-                            eventDateStr = dateDto.Value.ToString("yyyy-MM-dd");
-                            _logger.LogInformation("[QUOTE_SUMMARY] Extracted date from conversation: {Date}", eventDateStr);
-                        }
-                    }
-                    
-                    // Extract times if not in session
-                    if (string.IsNullOrWhiteSpace(startTimeStr) || string.IsNullOrWhiteSpace(endTimeStr))
-                    {
-                        var scheduleTimes = _extraction.ExtractScheduleTimes(messages);
-                        
-                        if (string.IsNullOrWhiteSpace(startTimeStr) && scheduleTimes.ContainsKey("show_start_time"))
-                        {
-                            var extractedStart = scheduleTimes["show_start_time"];
-                            // Convert HHmm format to HH:mm for display
-                            if (extractedStart.Length == 4 && int.TryParse(extractedStart, out var startMinutes))
-                            {
-                                var hours = startMinutes / 100;
-                                var minutes = startMinutes % 100;
-                                startTimeStr = $"{hours:D2}:{minutes:D2}";
-                                _logger.LogInformation("[QUOTE_SUMMARY] Extracted start time from conversation: {Time}", startTimeStr);
-                            }
-                            else
-                            {
-                                startTimeStr = extractedStart;
-                            }
-                        }
-                        
-                        if (string.IsNullOrWhiteSpace(endTimeStr) && scheduleTimes.ContainsKey("show_end_time"))
-                        {
-                            var extractedEnd = scheduleTimes["show_end_time"];
-                            // Convert HHmm format to HH:mm for display
-                            if (extractedEnd.Length == 4 && int.TryParse(extractedEnd, out var endMinutes))
-                            {
-                                var hours = endMinutes / 100;
-                                var minutes = endMinutes % 100;
-                                endTimeStr = $"{hours:D2}:{minutes:D2}";
-                                _logger.LogInformation("[QUOTE_SUMMARY] Extracted end time from conversation: {Time}", endTimeStr);
-                            }
-                            else
-                            {
-                                endTimeStr = extractedEnd;
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // Log but don't fail - use session values only if extraction fails
-                _logger.LogWarning(ex, "[QUOTE_SUMMARY] Failed to extract date/time from conversation, using session values only");
-            }
+            fullOutputToUser =
+                $"**⚠️ Room capacity:** {capacityWarning}\n\n" +
+                "This room cannot fit the attendee count for the chosen setup. Please choose a larger room or reduce attendees before we create a quote.";
         }
-        
-        // Log if date/time are still missing
-        if (string.IsNullOrWhiteSpace(eventDateStr))
+        else if (conversationContextWarnings.Count > 0)
         {
-            _logger.LogWarning("[QUOTE_SUMMARY] Event date is missing from both session and conversation");
-        }
-        if (string.IsNullOrWhiteSpace(startTimeStr))
-        {
-            _logger.LogWarning("[QUOTE_SUMMARY] Start time is missing from both session and conversation");
-        }
-        if (string.IsNullOrWhiteSpace(endTimeStr))
-        {
-            _logger.LogWarning("[QUOTE_SUMMARY] End time is missing from both session and conversation");
-        }
-        
-        // Header - complete quote summary
-        summaryLines.Add("## 📋 Quote Summary\n");
-        
-        // Event Details Section
-        summaryLines.Add("### Event Details");
-        if (!string.IsNullOrWhiteSpace(eventContext.VenueName))
-            summaryLines.Add($"**Venue:** {eventContext.VenueName}");
-        if (!string.IsNullOrWhiteSpace(eventContext.RoomName))
-            summaryLines.Add($"**Room:** {eventContext.RoomName}");
-        if (projectorAreas.Count == 1)
-            summaryLines.Add($"**Projector Placement Area:** {projectorAreas[0]}");
-        else if (projectorAreas.Count > 1)
-            summaryLines.Add($"**Projector Placement Areas:** {string.Join(", ", projectorAreas)}");
-        summaryLines.Add($"**Event Type:** {(string.IsNullOrWhiteSpace(eventContext.EventType) ? "TBD" : eventContext.EventType)}");
-        summaryLines.Add($"**Attendees:** {(eventContext.ExpectedAttendees <= 0 ? "TBD" : eventContext.ExpectedAttendees.ToString())}");
-        
-        // Add event date if available
-        if (!string.IsNullOrWhiteSpace(eventDateStr) && DateTime.TryParse(eventDateStr, out var eventDate))
-        {
-            summaryLines.Add($"**Date:** {eventDate:dddd d MMMM yyyy}");
-        }
-        
-        // Add start and end times if available
-        if (!string.IsNullOrWhiteSpace(startTimeStr))
-        {
-            // TimeSpan format uses lowercase hh/mm (HH is for DateTime only)
-            if (TimeSpan.TryParse(startTimeStr, out var startTime))
-            {
-                summaryLines.Add($"**Start Time:** {startTime:hh\\:mm}");
-            }
-            else
-            {
-                summaryLines.Add($"**Start Time:** {startTimeStr}");
-            }
-        }
-        if (!string.IsNullOrWhiteSpace(endTimeStr))
-        {
-            // TimeSpan format uses lowercase hh/mm (HH is for DateTime only)
-            if (TimeSpan.TryParse(endTimeStr, out var endTime))
-            {
-                summaryLines.Add($"**End Time:** {endTime:hh\\:mm}");
-            }
-            else
-            {
-                summaryLines.Add($"**End Time:** {endTimeStr}");
-            }
-        }
-        
-        if (!string.IsNullOrEmpty(capacityOkLine) && eventContext.ExpectedAttendees > 0)
-            summaryLines.Add(capacityOkLine);
-        if (eventContext.DurationDays > 1)
-            summaryLines.Add($"**Duration:** {eventContext.DurationDays} days");
-        summaryLines.Add("");
-        
-        // Equipment Section
-        summaryLines.Add("### Requirement Summary\n");
-        
-        // Ensure equipment is displayed - add validation
-        if (eventContext.EquipmentRequests.Count == 0)
-        {
-            summaryLines.Add("*No equipment requirements collected yet. Please confirm required equipment first.*");
-            _logger.LogWarning("[QUOTE_SUMMARY] No equipment requests available for summary rendering");
+            fullOutputToUser = "**Note:** " + string.Join(". ", conversationContextWarnings) + ".";
         }
         else
         {
-            _logger.LogInformation("[QUOTE_SUMMARY] Displaying {Count} requirement-level equipment lines", eventContext.EquipmentRequests.Count);
-            foreach (var request in BuildRequirementSummaryLines(eventContext.EquipmentRequests))
-            {
-                summaryLines.Add($"- {request}");
-            }
-            summaryLines.Add("");
+            fullOutputToUser = "Equipment selection is saved. Next: call **generate_quote** (do not list equipment or ask to confirm a quote summary).";
         }
-        
-        // Technician Section
-        if (recommendations.LaborItems.Count > 0)
-        {
-            summaryLines.Add("### Technician Support\n");
-            foreach (var labor in recommendations.LaborItems)
-            {
-                summaryLines.Add($"- **{FormatLaborSummaryLine(labor, technicianSchedule)}**");
-            }
-            summaryLines.Add("");
-        }
-        
-        // Total - Removed price display as per user request
-        summaryLines.Add("");
-        
-        // This phrase triggers the quote confirmation buttons (Yes/No)
-        summaryLines.Add("Would you like me to create the quote now?");
 
-        var summaryMessage = string.Join("\n", summaryLines);
-        // Prepend capacity warning if present so user and AI always see it
-        var fullOutputToUser = !string.IsNullOrEmpty(capacityWarning)
-            ? $"**⚠️ Room capacity:** {capacityWarning}\n\n{summaryMessage}"
-            : summaryMessage;
-        
-        _logger.LogInformation("[QUOTE_SUMMARY] outputToUser length: {Length} chars (no alternatives section)", fullOutputToUser.Length);
+        _logger.LogInformation("[EQUIP_RECOMMEND] Minimal outputToUser length: {Length} chars", fullOutputToUser.Length);
 
-        // Build response - includes phrase to trigger quote confirmation buttons
-        // Include any context validation warnings
-        var contextWarnings = conversationContextWarnings.Count > 0 
-            ? $"\n\n**Note:** {string.Join(". ", conversationContextWarnings)}"
-            : "";
-        
-        var hasCapacityWarning = !string.IsNullOrEmpty(capacityWarning);
         var instruction = hasCapacityWarning
-            ? "CRITICAL: The room capacity is exceeded. Tell the user the room cannot fit their attendee count, state the room's capacity and suggest larger rooms or reducing attendees. Do NOT create the quote until they adjust. Then OUTPUT the 'outputToUser' EXACTLY AS-IS."
+            ? "CRITICAL: The room capacity is exceeded. OUTPUT the 'outputToUser' value EXACTLY AS-IS. Do NOT call generate_quote until the user adjusts room or attendees."
             : (conversationContextWarnings.Count > 0
-                ? $"BEFORE outputting the summary, address these potential missing items: {string.Join(", ", conversationContextWarnings)}. Ask the user if they need these items. Then OUTPUT the 'outputToUser' EXACTLY AS-IS."
-                : "MANDATORY: OUTPUT the 'outputToUser' EXACTLY AS-IS. This is the quote summary only. Do not add alternative pickers here; show alternatives only when the user explicitly asks (e.g. 'show me other microphones') using show_equipment_alternatives.");
+                ? $"Address these items briefly: {string.Join(", ", conversationContextWarnings)}. OUTPUT 'outputToUser' EXACTLY AS-IS, then call generate_quote if requirements are met."
+                : "Do NOT output an equipment quote summary or ask 'Would you like me to create the quote now?'. OUTPUT 'outputToUser' EXACTLY AS-IS (one short line). Then call **generate_quote** in this turn when contact and schedule requirements are satisfied; if something is still missing, ask only for that.");
 
         var response = JsonSerializer.Serialize(new
         {
@@ -2125,8 +1994,8 @@ public sealed partial class AgentToolHandlerService
             {
                 success = false,
                 error = "Failed to generate equipment recommendations",
-                message = "I wasn't able to load the equipment summary just now. Could you please try sending your message again?",
-                instruction = "Do NOT call recommend_equipment_for_event again in this response. Reply to the user once with this exact message: 'I wasn't able to load the equipment summary just now. Could you please try sending your message again?' Then stop. Do not mention technical issues or apologise further."
+                message = "I wasn't able to finalize equipment just now. Could you please try sending your message again?",
+                instruction = "Do NOT call recommend_equipment_for_event again in this response. Reply once briefly and ask the user to try again. Then stop."
             });
         }
     }

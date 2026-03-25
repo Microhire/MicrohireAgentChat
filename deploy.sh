@@ -73,8 +73,28 @@ cd $PROJECT_DIR
 echo "   Publishing to Release configuration..."
 dotnet publish -c Release -o ./out --self-contained false --runtime win-x64
 
-# Skip Playwright installation during deployment to speed up build
-echo "   Skipping Playwright installation for deployment..."
+# Playwright PDF: the Node driver ships under .playwright/ next to Microsoft.Playwright.dll.
+# Do NOT omit it from the zip — that caused Azure logs: .playwrightExists=False / Couldn't find driver.
+if [ ! -d "./out/.playwright" ] || [ ! -d "./out/.playwright/node" ]; then
+    echo "❌ Error: publish output is missing .playwright/node (quote PDFs will fail on Azure)."
+    echo "   Ensure you publish with -r win-x64; on Linux/macOS, playwright.ps1 install may be skipped — the bundled folder should still exist."
+    exit 1
+fi
+echo "   Playwright driver bundle present (.playwright/node)."
+
+# Windows Chromium cannot be bundled when publishing from macOS/Linux (Playwright installs host-OS browsers).
+# Production path: run .github/workflows/publish-windows-azure.yml on GitHub Actions (windows-latest), download
+# artifact site-win64-playwright (site.zip), deploy with: az webapp deploy ... --src-path site.zip
+if [ -d "./out/pw-browsers" ] && [ "$(find ./out/pw-browsers -type f 2>/dev/null | head -1)" ]; then
+    echo "   Windows Chromium bundle present (out/pw-browsers) — runtime Playwright install should be skipped."
+elif [ "${ALLOW_DEPLOY_WITHOUT_PW_BROWSERS:-}" = "1" ]; then
+    echo "⚠️  ALLOW_DEPLOY_WITHOUT_PW_BROWSERS=1 — deploying without bundled Windows Chromium (PDFs may download/install Chromium on first use)."
+else
+    echo "❌ Error: out/pw-browsers is missing or empty."
+    echo "   macOS/Linux publish cannot include Windows Chromium. Use GitHub Actions: workflow \"Publish Windows (Playwright Chromium)\","
+    echo "   download artifact site-win64-playwright, deploy site.zip. Or set ALLOW_DEPLOY_WITHOUT_PW_BROWSERS=1 to override (not recommended)."
+    exit 1
+fi
 
 # Create deployment package
 echo "📦 Creating deployment package..."
@@ -85,9 +105,9 @@ if [ -f ../site.zip ]; then
     rm ../site.zip
 fi
 
-# Create optimized zip package (exclude unnecessary files but keep web.config)
+# Create optimized zip package (exclude unnecessary files but keep web.config and .playwright)
 echo "   Creating optimized zip package..."
-zip -r ../site.zip . -x "*.pdb" "*.log" "*.tmp" "*/.git/*" "*.DS_Store" ".playwright/*"
+zip -r ../site.zip . -x "*.pdb" "*.log" "*.tmp" "*/.git/*" "*.DS_Store"
 
 # Get package size
 PACKAGE_SIZE=$(du -h ../site.zip | cut -f1)

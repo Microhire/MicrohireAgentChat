@@ -1,4 +1,5 @@
 using MicrohireAgentChat.Data;
+using MicrohireAgentChat.Helpers;
 using MicrohireAgentChat.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -154,7 +155,7 @@ public class QuoteGenerationService
                 _logger.LogInformation("PDF generated successfully: {FileName}", fileName);
 
                 // 10. Return URL
-                var url = $"/files/quotes/{Uri.EscapeDataString(fileName)}";
+                var url = QuoteFilesPaths.PublicUrlForFileName(fileName);
                 _logger.LogInformation("Quote generation completed for booking {BookingNo}: {Url}", bookingNo, url);
 
                 return (true, url, null);
@@ -568,8 +569,7 @@ public class QuoteGenerationService
     {
         try
         {
-            var webRoot = _env.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot");
-            var quotesDir = Path.Combine(webRoot, "files", "quotes");
+            var quotesDir = QuoteFilesPaths.GetPhysicalQuotesDirectory(_env);
 
             if (!Directory.Exists(quotesDir))
                 return (false, null);
@@ -582,7 +582,7 @@ public class QuoteGenerationService
             if (pdfFiles.Length > 0)
             {
                 var fileName = Path.GetFileName(pdfFiles[0]);
-                var url = $"/files/quotes/{Uri.EscapeDataString(fileName)}";
+                var url = QuoteFilesPaths.PublicUrlForFileName(fileName);
                 return (true, url);
             }
 

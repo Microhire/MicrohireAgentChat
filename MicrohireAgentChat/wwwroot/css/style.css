@@ -1259,6 +1259,71 @@ form#sendForm
             justify-content: center;
         }
     }
+
+    /* Floor plan lightbox (Base AV) */
+    .isla-floorplan-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 10050;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    .isla-floorplan-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.65);
+        cursor: pointer;
+    }
+
+    .isla-floorplan-modal {
+        position: relative;
+        z-index: 1;
+        max-width: min(96vw, 1100px);
+        max-height: 90vh;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+        padding: 2.5rem 1rem 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .isla-floorplan-modal img {
+        max-width: 100%;
+        max-height: calc(90vh - 3rem);
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        display: block;
+    }
+
+    .isla-floorplan-close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        background: rgba(255, 255, 255, 0.95);
+        font-size: 1.5rem;
+        line-height: 1;
+        cursor: pointer;
+        color: #1e293b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+    }
+
+    .isla-floorplan-close:hover {
+        background: #fff;
+    }
+
     /* ================== Time chips ================== */
     .isla-timechips {
         margin: 12px 0;

@@ -26,7 +26,7 @@ public sealed partial class AgentToolHandlerService
             return JsonSerializer.Serialize(new
             {
                 error = "No quote summary to update.",
-                instruction = "Do NOT call update_equipment or recommend_equipment_for_event again in this response. Please show a quote summary first (e.g. by confirming equipment with recommend_equipment_for_event), then I can apply your changes. Ask the user to confirm their equipment needs so we can show a summary, then they can request edits."
+                instruction = "Do NOT call update_equipment again in this response. There is no equipment list in session yet — call recommend_equipment_for_event first with full event context and equipment_requests, then call update_equipment if the user wants edits."
             });
         }
 
@@ -214,183 +214,20 @@ public sealed partial class AgentToolHandlerService
             .GroupBy(x => x.product_code ?? "")
             .ToDictionary(g => g.Key, g => (double)(g.First().rate_1st_day ?? 0));
 
-        // Retrieve date/time from session for display
-        var eventDateStr = session.GetString("Draft:EventDate");
-        var startTimeStr = session.GetString("Draft:StartTime");
-        var endTimeStr = session.GetString("Draft:EndTime");
-        var setupTimeStr = session.GetString("Draft:SetupTime");
-        var rehearsalTimeStr = session.GetString("Draft:RehearsalTime");
-        var packupTimeStr = session.GetString("Draft:PackupTime");
-        var technicianSchedule = new TechnicianScheduleInfo(setupTimeStr, rehearsalTimeStr, startTimeStr, endTimeStr, packupTimeStr);
-
-        // Fallback: extract from conversation transcript if not in session
-        var threadId = session.GetString("AgentThreadId");
-        if ((string.IsNullOrWhiteSpace(eventDateStr) || string.IsNullOrWhiteSpace(startTimeStr) || string.IsNullOrWhiteSpace(endTimeStr)) && !string.IsNullOrEmpty(threadId))
-        {
-            try
-            {
-                var chatService = _http.HttpContext?.RequestServices.GetService(typeof(AzureAgentChatService)) as AzureAgentChatService;
-                if (chatService != null)
-                {
-                    var (_, messages) = chatService.GetTranscript(threadId);
-
-                    // Extract date if not in session
-                    if (string.IsNullOrWhiteSpace(eventDateStr))
-                    {
-                        var (dateDto, _) = _extraction.ExtractEventDate(messages);
-                        if (dateDto.HasValue)
-                        {
-                            eventDateStr = dateDto.Value.ToString("yyyy-MM-dd");
-                            _logger.LogInformation("[update_equipment] Extracted date from conversation: {Date}", eventDateStr);
-                        }
-                    }
-
-                    // Extract times if not in session
-                    if (string.IsNullOrWhiteSpace(startTimeStr) || string.IsNullOrWhiteSpace(endTimeStr))
-                    {
-                        var scheduleTimes = _extraction.ExtractScheduleTimes(messages);
-
-                        if (string.IsNullOrWhiteSpace(startTimeStr) && scheduleTimes.ContainsKey("show_start_time"))
-                        {
-                            var extractedStart = scheduleTimes["show_start_time"];
-                            // Convert HHmm format to HH:mm for display
-                            if (extractedStart.Length == 4 && int.TryParse(extractedStart, out var startMinutes))
-                            {
-                                var hours = startMinutes / 100;
-                                var minutes = startMinutes % 100;
-                                startTimeStr = $"{hours:D2}:{minutes:D2}";
-                                _logger.LogInformation("[update_equipment] Extracted start time from conversation: {Time}", startTimeStr);
-                            }
-                            else
-                            {
-                                startTimeStr = extractedStart;
-                            }
-                        }
-
-                        if (string.IsNullOrWhiteSpace(endTimeStr) && scheduleTimes.ContainsKey("show_end_time"))
-                        {
-                            var extractedEnd = scheduleTimes["show_end_time"];
-                            // Convert HHmm format to HH:mm for display
-                            if (extractedEnd.Length == 4 && int.TryParse(extractedEnd, out var endMinutes))
-                            {
-                                var hours = endMinutes / 100;
-                                var minutes = endMinutes % 100;
-                                endTimeStr = $"{hours:D2}:{minutes:D2}";
-                                _logger.LogInformation("[update_equipment] Extracted end time from conversation: {Time}", endTimeStr);
-                            }
-                            else
-                            {
-                                endTimeStr = extractedEnd;
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // Log but don't fail - use session values only if extraction fails
-                _logger.LogWarning(ex, "[update_equipment] Failed to extract date/time from conversation, using session values only");
-            }
-        }
-
-        // Log if date/time are still missing
-        if (string.IsNullOrWhiteSpace(eventDateStr))
-        {
-            _logger.LogWarning("[update_equipment] Event date is missing from both session and conversation");
-        }
-        if (string.IsNullOrWhiteSpace(startTimeStr))
-        {
-            _logger.LogWarning("[update_equipment] Start time is missing from both session and conversation");
-        }
-        if (string.IsNullOrWhiteSpace(endTimeStr))
-        {
-            _logger.LogWarning("[update_equipment] End time is missing from both session and conversation");
-        }
-
         double totalDayRate = 0;
         var summaryRequests = GetSummaryRequestsFromSession(session, currentItems);
         ApplySummaryRequestRemovals(summaryRequests, removeTypes);
         AppendSummaryRequests(summaryRequests, root);
-        var projectionNeededForSummary = RequiresProjectorPlacementArea(summaryRequests);
-        var projectorAreas = new List<string>();
-        if (projectionNeededForSummary)
-        {
-            projectorAreas = GetNormalizedProjectorAreas(session.GetString("Draft:ProjectorAreas"));
-            if (projectorAreas.Count == 0)
-                projectorAreas = GetNormalizedProjectorAreas(session.GetString("Draft:ProjectorArea"));
-        }
-        var summaryLines = new List<string>();
-        summaryLines.Add("## 📋 Quote Summary\n");
-        summaryLines.Add("### Event Details");
-        if (!string.IsNullOrWhiteSpace(venueName)) summaryLines.Add($"**Venue:** {venueName}");
-        if (!string.IsNullOrWhiteSpace(roomName)) summaryLines.Add($"**Room:** {roomName}");
-        if (projectorAreas.Count == 1) summaryLines.Add($"**Projector Placement Area:** {projectorAreas[0]}");
-        else if (projectorAreas.Count > 1) summaryLines.Add($"**Projector Placement Areas:** {string.Join(", ", projectorAreas)}");
-        summaryLines.Add($"**Event Type:** {eventType}");
-        summaryLines.Add($"**Attendees:** {expectedAttendees}");
 
-        // Add event date if available
-        if (!string.IsNullOrWhiteSpace(eventDateStr) && DateTime.TryParse(eventDateStr, out var eventDate))
+        _logger.LogInformation("[update_equipment] Calculating total day rate from {Count} selected items", currentItems.Count);
+        foreach (var item in currentItems)
         {
-            summaryLines.Add($"**Date:** {eventDate:dddd d MMMM yyyy}");
+            _logger.LogInformation("[update_equipment] Processing item: {Qty}x {Desc} (Code: {Code})", item.Quantity, item.Description, item.ProductCode);
+            var rate = rates.GetValueOrDefault(item.ProductCode ?? "", 0);
+            totalDayRate += rate * item.Quantity;
         }
-
-        // Add start and end times if available
-        if (!string.IsNullOrWhiteSpace(startTimeStr))
-        {
-            // TimeSpan format uses lowercase hh/mm (HH is for DateTime only)
-            if (TimeSpan.TryParse(startTimeStr, out var startTime))
-            {
-                summaryLines.Add($"**Start Time:** {startTime:hh\\:mm}");
-            }
-            else
-            {
-                summaryLines.Add($"**Start Time:** {startTimeStr}");
-            }
-        }
-        if (!string.IsNullOrWhiteSpace(endTimeStr))
-        {
-            // TimeSpan format uses lowercase hh/mm (HH is for DateTime only)
-            if (TimeSpan.TryParse(endTimeStr, out var endTime))
-            {
-                summaryLines.Add($"**End Time:** {endTime:hh\\:mm}");
-            }
-            else
-            {
-                summaryLines.Add($"**End Time:** {endTimeStr}");
-            }
-        }
-
-        summaryLines.Add("");
-        summaryLines.Add("### Requirement Summary\n");
-
-        // Ensure equipment is displayed - add validation
-        if (currentItems.Count == 0)
-        {
-            summaryLines.Add("*No equipment items in the quote. Please add equipment to continue.*");
-            _logger.LogWarning("[update_equipment] Equipment list is empty after updates");
-        }
-        else
-        {
-            _logger.LogInformation("[update_equipment] Displaying {Count} requirement-level equipment lines", summaryRequests.Count);
-            foreach (var line in BuildRequirementSummaryLines(summaryRequests))
-                summaryLines.Add($"- {line}");
-            summaryLines.Add("");
-
-            _logger.LogInformation("[update_equipment] Calculating total day rate from {Count} selected items", currentItems.Count);
-            foreach (var item in currentItems)
-            {
-                _logger.LogInformation("[update_equipment] Processing item: {Qty}x {Desc} (Code: {Code})", item.Quantity, item.Description, item.ProductCode);
-
-                var rate = rates.GetValueOrDefault(item.ProductCode ?? "", 0);
-                totalDayRate += rate * item.Quantity;
-            }
-            if (addCouldNotFind.Count > 0)
-            {
-                summaryLines.Add($"*Note: Could not find {string.Join(", ", addCouldNotFind)} to add; please ask for alternatives if needed.*\n");
-                _logger.LogWarning("[update_equipment] Could not find {Count} requested items: {Items}", addCouldNotFind.Count, string.Join(", ", addCouldNotFind));
-            }
-        }
+        if (addCouldNotFind.Count > 0)
+            _logger.LogWarning("[update_equipment] Could not find {Count} requested items: {Items}", addCouldNotFind.Count, string.Join(", ", addCouldNotFind));
 
         // Recalculate technician support from updated equipment so Technician Support section is not dropped
         List<RecommendedLaborItem> laborItems = new List<RecommendedLaborItem>();
@@ -476,21 +313,9 @@ public sealed partial class AgentToolHandlerService
             }
         }
 
-        if (laborItems.Count > 0)
-        {
-            summaryLines.Add("### Technician Support\n");
-            foreach (var labor in laborItems)
-            {
-                summaryLines.Add($"- **{FormatLaborSummaryLine(labor, technicianSchedule)}**");
-            }
-            summaryLines.Add("");
-        }
-
-        // Total - Removed price display as per user request
-        summaryLines.Add("");
-        summaryLines.Add("Would you like me to create the quote now?");
-
-        var outputToUser = string.Join("\n", summaryLines);
+        var outputToUser = addCouldNotFind.Count > 0
+            ? $"Equipment updated. Some items were not found: {string.Join(", ", addCouldNotFind)}. When the user is ready, call **generate_quote** (do not show a quote summary card)."
+            : "Equipment updated and saved. When the user is ready, call **generate_quote** (do not show a quote summary card).";
 
         session.SetString("Draft:SelectedEquipment", JsonSerializer.Serialize(currentItems));
         session.SetString("Draft:SummaryEquipmentRequests", JsonSerializer.Serialize(summaryRequests));
@@ -517,7 +342,7 @@ public sealed partial class AgentToolHandlerService
             success = true,
             total_day_rate = totalDayRate,
             outputToUser = outputToUser,
-            instruction = "MANDATORY: OUTPUT the 'outputToUser' value EXACTLY AS-IS. This is the updated quote summary. Do NOT call generate_quote in this response; wait for the user to confirm (e.g. 'yes create quote', 'looks good')."
+            instruction = "OUTPUT 'outputToUser' EXACTLY AS-IS (brief). Do NOT show a quote summary or ask 'Would you like me to create the quote now?'. Call **generate_quote** in this turn if contact and schedule are satisfied and the user wants the quote; otherwise ask only for missing details."
         });
     }
 

@@ -6,6 +6,7 @@ using Azure.Core;
 using Markdig;
 using MicrohireAgentChat.Config;
 using MicrohireAgentChat.Data;
+using MicrohireAgentChat.Helpers;
 using MicrohireAgentChat.Models;
 using MicrohireAgentChat.Services.Extraction;
 using MicrohireAgentChat.Services.Orchestration;
@@ -263,37 +264,12 @@ namespace MicrohireAgentChat.Services
                                                     outputs.Add((toolCallId, JsonSerializer.Serialize(new
                                                     {
                                                         error = "Quote generation is awaiting explicit user confirmation.",
-                                                        instruction = "Before I create the quote, please confirm by clicking 'Yes, create quote'."
+                                                        instruction = "Quote generation is locked until the user consents (e.g. they say 'yes create quote' / 'generate the quote') or submits structured follow-up AV (Generate quote). Do not ask for a long equipment summary; when requirements are complete, ask one short consent line if needed, then call generate_quote after they agree."
                                                     })));
                                                     break;
                                                 }
                                                 session?.Remove("Draft:GenerateQuote");
 
-                                                static string BuildQuoteDownloadHref(string sourceQuoteUrl, string? bookingRef)
-                                                {
-                                                    if (string.IsNullOrWhiteSpace(sourceQuoteUrl))
-                                                    {
-                                                        return "#";
-                                                    }
-
-                                                    var srcPath = sourceQuoteUrl;
-                                                    if (Uri.TryCreate(sourceQuoteUrl, UriKind.Absolute, out var absoluteQuoteUri))
-                                                    {
-                                                        srcPath = absoluteQuoteUri.AbsolutePath;
-                                                    }
-
-                                                    if (!srcPath.StartsWith("/", StringComparison.Ordinal))
-                                                    {
-                                                        srcPath = "/" + srcPath.TrimStart('/');
-                                                    }
-
-                                                    var safeBookingRef = string.IsNullOrWhiteSpace(bookingRef)
-                                                        ? DateTime.UtcNow.ToString("yyyyMMddHHmmss")
-                                                        : bookingRef.Trim();
-                                                    var outFile = $"Quote-{safeBookingRef}.pdf";
-                                                    return $"/quotes/render?src={Uri.EscapeDataString(srcPath)}&outFile={Uri.EscapeDataString(outFile)}";
-                                                }
-                                                
                                                 // ========== IDEMPOTENCY CHECK - Return existing quote if already generated ==========
                                                 var existingQuoteUrl = session?.GetString("Draft:QuoteUrl");
                                                 var quoteComplete = session?.GetString("Draft:QuoteComplete") == "1";
@@ -328,7 +304,8 @@ namespace MicrohireAgentChat.Services
                                                     var existingReq = _http.HttpContext?.Request;
                                                     var existingBaseUrl = (existingReq == null) ? "" : $"{existingReq.Scheme}://{existingReq.Host}";
                                                     var fullExistingUrl = existingQuoteUrl.StartsWith("http") ? existingQuoteUrl : $"{existingBaseUrl}{existingQuoteUrl}";
-                                                    var existingDownloadUrl = BuildQuoteDownloadHref(existingQuoteUrl, existingBookingNo);
+                                                    var existingDownloadUrl = QuoteDownloadHref.Build(existingQuoteUrl, existingBookingNo);
+                                                    var existingDn = WebUtility.HtmlEncode(QuoteDownloadHref.GetPdfFileName(existingQuoteUrl, existingBookingNo));
                                                     
                                                     outputs.Add((toolCallId, JsonSerializer.Serialize(new
                                                     {
@@ -338,7 +315,7 @@ namespace MicrohireAgentChat.Services
                                                             bookingNo = existingBookingNo,
                                                             isHtml = true
                                                         },
-                                                        message = $"Great news! I have successfully generated your quote for booking {existingBookingNo}. You can view it <a href=\"{fullExistingUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">here</a> or <a href=\"{existingDownloadUrl}\" rel=\"noopener noreferrer\" class=\"isla-quote-download\" data-quote-download=\"1\" data-download-name=\"Quote-{existingBookingNo}.pdf\"><i class=\"ph ph-download\"></i> download it</a>.\n\nWould you like to confirm this quote?",
+                                                        message = $"Great news! I have successfully generated your quote for booking {existingBookingNo}. You can view it <a href=\"{fullExistingUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">here</a> or <a href=\"{existingDownloadUrl}\" rel=\"noopener noreferrer\" class=\"isla-quote-download\" data-quote-download=\"1\" data-download-name=\"{existingDn}\"><i class=\"ph ph-download\"></i> download it</a>.\n\nWould you like to confirm this quote?",
                                                         alreadyExists = true,
                                                         success = true,
                                                         instruction = "OUTPUT ONLY the message field with the View Quote link and the confirmation prompt. Do not add any other text or mention issues."
@@ -353,8 +330,7 @@ namespace MicrohireAgentChat.Services
                                                 var sessionHasEquipment = !string.IsNullOrWhiteSpace(session?.GetString("Draft:SelectedEquipment"));
                                                 if (!string.IsNullOrWhiteSpace(existingBookingNo) && !sessionHasEquipment)
                                                 {
-                                                    var webRoot = _env.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot");
-                                                    var quotesDir = Path.Combine(webRoot, "files", "quotes");
+                                                    var quotesDir = QuoteFilesPaths.GetPhysicalQuotesDirectory(_env);
                                                     if (Directory.Exists(quotesDir))
                                                     {
                                                         var existingQuoteFiles = Directory.GetFiles(quotesDir, $"Quote-{existingBookingNo}-*.html")
@@ -382,7 +358,8 @@ namespace MicrohireAgentChat.Services
                                                                 var existingReq2 = _http.HttpContext?.Request;
                                                                 var existingBaseUrl2 = (existingReq2 == null) ? "" : $"{existingReq2.Scheme}://{existingReq2.Host}";
                                                                 var fullExistingUrl2 = $"{existingBaseUrl2}{existingUrl}";
-                                                                var existingDownloadUrl2 = BuildQuoteDownloadHref(existingUrl, existingBookingNo);
+                                                                var existingDownloadUrl2 = QuoteDownloadHref.Build(existingUrl, existingBookingNo);
+                                                                var existingDn2 = WebUtility.HtmlEncode(QuoteDownloadHref.GetPdfFileName(existingUrl, existingBookingNo));
                                                                 
                                                                 outputs.Add((toolCallId, JsonSerializer.Serialize(new
                                                                 {
@@ -392,7 +369,7 @@ namespace MicrohireAgentChat.Services
                                                                         bookingNo = existingBookingNo,
                                                                         isHtml = true
                                                                     },
-                                                                    message = $"Great news! I have successfully generated your quote for booking {existingBookingNo}. You can view it <a href=\"{fullExistingUrl2}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">here</a> or <a href=\"{existingDownloadUrl2}\" rel=\"noopener noreferrer\" class=\"isla-quote-download\" data-quote-download=\"1\" data-download-name=\"Quote-{existingBookingNo}.pdf\"><i class=\"ph ph-download\"></i> download it</a>.\n\nWould you like to confirm this quote?",
+                                                                    message = $"Great news! I have successfully generated your quote for booking {existingBookingNo}. You can view it <a href=\"{fullExistingUrl2}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">here</a> or <a href=\"{existingDownloadUrl2}\" rel=\"noopener noreferrer\" class=\"isla-quote-download\" data-quote-download=\"1\" data-download-name=\"{existingDn2}\"><i class=\"ph ph-download\"></i> download it</a>.\n\nWould you like to confirm this quote?",
                                                                     alreadyExists = true,
                                                                     success = true,
                                                                     instruction = "OUTPUT ONLY the message field with the View Quote link and the confirmation prompt. Do not add any other text or mention issues."
@@ -554,7 +531,8 @@ namespace MicrohireAgentChat.Services
                                                         var fullExistingQuoteUrl = existingErrorQuoteUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase)
                                                             ? existingErrorQuoteUrl
                                                             : $"{baseExisting}{existingErrorQuoteUrl}";
-                                                        var existingErrorDownloadUrl = BuildQuoteDownloadHref(existingErrorQuoteUrl, bookingNo);
+                                                        var existingErrorDownloadUrl = QuoteDownloadHref.Build(existingErrorQuoteUrl, bookingNo);
+                                                        var errDn = WebUtility.HtmlEncode(QuoteDownloadHref.GetPdfFileName(existingErrorQuoteUrl, bookingNo));
 
                                                         outputs.Add((toolCallId, JsonSerializer.Serialize(new
                                                         {
@@ -564,7 +542,7 @@ namespace MicrohireAgentChat.Services
                                                                 bookingNo,
                                                                 isHtml = true
                                                             },
-                                                            message = $"Great news! I have successfully generated your quote for booking {bookingNo}. You can view it <a href=\"{fullExistingQuoteUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">here</a> or <a href=\"{existingErrorDownloadUrl}\" rel=\"noopener noreferrer\" class=\"isla-quote-download\" data-quote-download=\"1\" data-download-name=\"Quote-{bookingNo}.pdf\"><i class=\"ph ph-download\"></i> download it</a>.\n\nWould you like to confirm this quote?",
+                                                            message = $"Great news! I have successfully generated your quote for booking {bookingNo}. You can view it <a href=\"{fullExistingQuoteUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">here</a> or <a href=\"{existingErrorDownloadUrl}\" rel=\"noopener noreferrer\" class=\"isla-quote-download\" data-quote-download=\"1\" data-download-name=\"{errDn}\"><i class=\"ph ph-download\"></i> download it</a>.\n\nWould you like to confirm this quote?",
                                                             recoveredFromError = true,
                                                             success = true,
                                                             instruction = "OUTPUT ONLY the message field with the View Quote link and the confirmation prompt. Do not add any other text or mention issues."
@@ -588,7 +566,8 @@ namespace MicrohireAgentChat.Services
                                                 var req = _http.HttpContext?.Request;
                                                 var baseUrl = (req == null) ? "" : $"{req.Scheme}://{req.Host}";
                                                 var fullQuoteUrl = $"{baseUrl}{htmlUrl}";
-                                                var quoteDownloadUrl = BuildQuoteDownloadHref(htmlUrl, bookingNo);
+                                                var quoteDownloadUrl = QuoteDownloadHref.Build(htmlUrl, bookingNo);
+                                                var quoteDn = WebUtility.HtmlEncode(QuoteDownloadHref.GetPdfFileName(htmlUrl, bookingNo));
 
                                                 // ========== SYNC QUOTE STATE ==========
                                                 session?.SetString("Draft:QuoteUrl", htmlUrl);
@@ -615,7 +594,7 @@ namespace MicrohireAgentChat.Services
                                                         bookingNo,
                                                         isHtml = true
                                                     },
-                                                    message = $"Great news! I have successfully generated your quote for booking {bookingNo}. You can view it <a href=\"{fullQuoteUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">here</a> or <a href=\"{quoteDownloadUrl}\" rel=\"noopener noreferrer\" class=\"isla-quote-download\" data-quote-download=\"1\" data-download-name=\"Quote-{bookingNo}.pdf\"><i class=\"ph ph-download\"></i> download it</a>.\n\nWould you like to confirm this quote?",
+                                                    message = $"Great news! I have successfully generated your quote for booking {bookingNo}. You can view it <a href=\"{fullQuoteUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">here</a> or <a href=\"{quoteDownloadUrl}\" rel=\"noopener noreferrer\" class=\"isla-quote-download\" data-quote-download=\"1\" data-download-name=\"{quoteDn}\"><i class=\"ph ph-download\"></i> download it</a>.\n\nWould you like to confirm this quote?",
                                                     success = true,
                                                     instruction = "OUTPUT ONLY the message field with the View Quote link and the confirmation prompt. Do not add any other text or mention issues."
                                                 })));

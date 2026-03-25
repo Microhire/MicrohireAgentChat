@@ -130,6 +130,41 @@ namespace MicrohireAgentChat.Services
             AgentsClient.Messages.CreateMessage(threadId, Azure.AI.Agents.Persistent.MessageRole.Agent, text.Trim());
         }
 
+        /// <summary>
+        /// Appends a user message to the Azure thread without starting an agent run (e.g. structured wizard submit
+        /// handled server-side). Mirrors the user-message step in <see cref="SendAsync"/>.
+        /// </summary>
+        public async Task AppendUserMessageAsync(ISession session, string text, CancellationToken ct)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+                return;
+
+            var threadId = EnsureThreadId(session);
+            await WaitForNoActiveRunAsync(threadId, ct, TimeSpan.FromSeconds(10));
+            var activeRuns = AgentsClient.Runs.GetRuns(threadId).Where(r => IsActive(r.Status)).ToList();
+            if (activeRuns.Count > 0)
+            {
+                CancelActiveRuns(threadId);
+                await Task.Delay(500, ct);
+                await WaitForNoActiveRunAsync(threadId, ct, TimeSpan.FromSeconds(5));
+            }
+
+            try
+            {
+                AgentsClient.Messages.CreateMessage(threadId, Azure.AI.Agents.Persistent.MessageRole.User, text.Trim());
+                _logger.LogInformation("AppendUserMessageAsync: user message added to thread {ThreadId}", threadId);
+                await Task.Delay(300, ct);
+            }
+            catch (RequestFailedException ex) when (ex.Status == 400 && ex.Message.Contains("run", StringComparison.OrdinalIgnoreCase) && ex.Message.Contains("active", StringComparison.OrdinalIgnoreCase))
+            {
+                CancelActiveRuns(threadId);
+                await Task.Delay(2000, ct);
+                await WaitForNoActiveRunAsync(threadId, ct, TimeSpan.FromSeconds(5));
+                AgentsClient.Messages.CreateMessage(threadId, Azure.AI.Agents.Persistent.MessageRole.User, text.Trim());
+                await Task.Delay(300, ct);
+            }
+        }
+
         private static bool IsActive(Azure.AI.Agents.Persistent.RunStatus s)
             => s == Azure.AI.Agents.Persistent.RunStatus.Queued || s == Azure.AI.Agents.Persistent.RunStatus.InProgress || s == Azure.AI.Agents.Persistent.RunStatus.RequiresAction;
 

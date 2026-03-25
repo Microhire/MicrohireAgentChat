@@ -442,7 +442,7 @@ function detectSignals(text) {
     asksTechnicianStages: /which stages would you like technician support for|setup, rehearsal\/test & connect, operate during the event, and\/or pack down/.test(t),
     asksConfirmEverything: /have i captured everything|anything else needs to be added|anything else to add|let me know if anything else needs to be added|have i captured everything you mentioned/.test(t),
     asksCreateQuote: /would you like me to create the quote now|yes, create quote|no, not yet/.test(t),
-    hasQuoteSummary: /quote summary/.test(t),
+    hasQuoteSuccess: /successfully generated your quote|generated your quote for booking/.test(t),
     hasTechnicalIssue: /temporary issue|technical issue|still not processing the attendee count|escalate this issue/.test(t),
     assumesVideoWithoutAsk:
       /(i'?ll include|i will include).*(video conferencing|zoom|teams)/.test(t) && !t.includes("?"),
@@ -570,7 +570,7 @@ function recordAssistantInsights(runLog, assistantText) {
   if (signals.hasTechnicalIssue) runLog.metrics.technicalIssueCount += 1;
   if (signals.assumesVideoWithoutAsk) runLog.metrics.videoAssumptionCount += 1;
   if (signals.asksTechnicianStages) runLog.metrics.technicianPromptCount += 1;
-  if (signals.asksCreateQuote || signals.hasQuoteSummary) runLog.metrics.quoteReached = true;
+  if (signals.asksCreateQuote || signals.hasQuoteSuccess) runLog.metrics.quoteReached = true;
 }
 
 function evaluateScenario(runLog, profile) {
@@ -588,9 +588,10 @@ function evaluateScenario(runLog, profile) {
   }
 
   if (expected.requiresQuoteSummary) {
-    const passed = normalizedJoined.includes("would you like me to create the quote now")
-      || normalizedJoined.includes("quote summary");
-    addAssertion("quote summary reached", passed);
+    const passed =
+      normalizedJoined.includes("successfully generated your quote")
+      || normalizedJoined.includes("generated your quote for booking");
+    addAssertion("quote success reached", passed);
   }
 
   if (expected.requiresTechnicianPrompt !== undefined) {

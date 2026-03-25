@@ -44,6 +44,8 @@
 		<PackageReference Include="Dapper" Version="2.1.38" />
 		<PackageReference Include="MailKit" Version="4.15.1" />
 		<PackageReference Include="Markdig" Version="0.42.0" />
+		<PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
+		<PackageReference Include="Microsoft.Extensions.Logging.AzureAppServices" Version="8.*" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.*" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="8.*">
 			<PrivateAssets>all</PrivateAssets>
@@ -87,8 +89,8 @@
 		<Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(TargetDir)playwright.ps1&quot; install" ContinueOnError="false" />
 	</Target>
 
-	<!-- Publish: skip Playwright install for Azure deployment (set SkipPlaywrightInstall=true) -->
-	<Target Name="PlaywrightInstallOnPublishTarget" AfterTargets="Publish" DependsOnTargets="PlaywrightToolRestore" Condition="'$(SkipPlaywrightInstall)'!='true'">
+		<!-- Publish: quotes pre-generate a sibling PDF next to HTML; downloads use /quotes/download without runtime Playwright when that file exists. Skip browser install only if you accept that /quotes/render on-the-fly PDF may fail (set SkipPlaywrightInstall=true). -->
+		<Target Name="PlaywrightInstallOnPublishTarget" AfterTargets="Publish" DependsOnTargets="PlaywrightToolRestore" Condition="'$(SkipPlaywrightInstall)'!='true'">
 		<Exec Command="dotnet tool run playwright install" WorkingDirectory="$(DotNetToolsDir)" ContinueOnError="true">
 			<Output TaskParameter="ExitCode" PropertyName="PlaywrightPublishExitCode" />
 		</Exec>

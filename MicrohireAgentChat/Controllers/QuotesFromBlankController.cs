@@ -1,4 +1,4 @@
-﻿// Controllers/QuotesFromBlankControlle+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++r.cs
+using MicrohireAgentChat.Helpers;
 using MicrohireAgentChat.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -151,8 +151,9 @@ public class QuotesFromBlankController : Controller
     public IActionResult Preview([FromQuery] string file)
     {
         var safe = Path.GetFileName(file);
-        var path = Path.Combine(_env.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot"),
-                                "files", "quotes", safe);
+        if (!QuoteFilesPaths.IsSafeQuoteFileName(safe))
+            return NotFound();
+        var path = Path.Combine(QuoteFilesPaths.GetPhysicalQuotesDirectory(_env), safe);
         if (!System.IO.File.Exists(path)) return NotFound();
         return File(System.IO.File.OpenRead(path), "application/pdf");
     }
@@ -161,8 +162,9 @@ public class QuotesFromBlankController : Controller
     public IActionResult Download([FromQuery] string file)
     {
         var safe = Path.GetFileName(file);
-        var path = Path.Combine(_env.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot"),
-                                "files", "quotes", safe);
+        if (!QuoteFilesPaths.IsSafeQuoteFileName(safe))
+            return NotFound();
+        var path = Path.Combine(QuoteFilesPaths.GetPhysicalQuotesDirectory(_env), safe);
         if (!System.IO.File.Exists(path)) return NotFound();
         return File(System.IO.File.OpenRead(path), "application/pdf", fileDownloadName: safe);
     }

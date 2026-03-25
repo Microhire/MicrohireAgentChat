@@ -6,10 +6,23 @@ using MicrohireAgentChat.Services;
 using MicrohireAgentChat.Services.Extraction;
 using MicrohireAgentChat.Services.Orchestration;
 using MicrohireAgentChat.Services.Persistence;
+using MicrohireAgentChat.Middleware;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Logging.AddAzureWebAppDiagnostics();
+
+// Sends ILogger + request telemetry to the linked Application Insights resource (portal sets APPLICATIONINSIGHTS_* env vars).
+if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("APPLICATIONINSIGHTS_CONNECTION_STRING"))
+    || !string.IsNullOrEmpty(Environment.GetEnvironmentVariable("APPINSIGHTS_INSTRUMENTATIONKEY")))
+{
+    builder.Services.AddApplicationInsightsTelemetry();
+}
+
+// Writable browser cache + startup install so quote PDFs work on Azure when publish omitted Chromium.
+PlaywrightBootstrap.ConfigureBrowserDirectory(builder.Environment);
 
 // Local overrides (gitignored) - copy appsettings.Development.Local.json.example and fill in your Gmail
 builder.Configuration.AddJsonFile("appsettings.Development.Local.json", optional: true, reloadOnChange: true);
@@ -77,6 +90,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AzureAgentChatService>();
 builder.Services.AddScoped<BookingService>();
+builder.Services.AddHostedService<PlaywrightBootstrapHostedService>();
 builder.Services.AddHostedService<AgentToolInstaller>();
 builder.Services.AddSingleton<PdfStamperService>();
 builder.Services.AddSingleton<PdfFromBlankService>();
@@ -142,6 +156,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseMiddleware<AzureQuotesStaticMiddleware>();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseCors();

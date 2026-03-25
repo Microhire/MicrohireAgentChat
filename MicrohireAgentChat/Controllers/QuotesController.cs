@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Playwright;
+using MicrohireAgentChat.Helpers;
 using MicrohireAgentChat.Services;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 
 namespace MicrohireAgentChat.Controllers
 {
@@ -27,9 +27,7 @@ namespace MicrohireAgentChat.Controllers
             if (!outFile.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
                 outFile += ".pdf";
 
-            var webRoot = _env.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot");
-
-            if (!TryResolveSourcePath(src, webRoot, out var srcPath) || !System.IO.File.Exists(srcPath))
+            if (!QuoteFilesPaths.TryResolveExistingQuoteFile(_env, src, out var srcPath) || !System.IO.File.Exists(srcPath))
                 return NotFound("HTML source not found");
 
             // 1. Serve pre-generated PDF if it exists alongside the HTML
@@ -42,14 +40,13 @@ namespace MicrohireAgentChat.Controllers
             }
 
             // 2. Generate on-the-fly with Playwright (SetContentAsync for reliable font loading)
-            var outDir = Path.Combine(webRoot, "files", "quotes");
-            Directory.CreateDirectory(outDir);
+            var outDir = QuoteFilesPaths.GetPhysicalQuotesDirectory(_env);
             var outPath = Path.Combine(outDir, outFile);
 
             var html = await System.IO.File.ReadAllTextAsync(srcPath);
-            await HtmlQuoteGenerationService.GeneratePdfFromHtmlAsync(html, outPath, _logger);
+            var generated = await HtmlQuoteGenerationService.GeneratePdfFromHtmlAsync(html, outPath, _logger, HttpContext.RequestAborted);
 
-            if (!System.IO.File.Exists(outPath))
+            if (!generated || !System.IO.File.Exists(outPath))
                 return StatusCode(500, "PDF generation failed");
 
             _logger.LogInformation("Serving on-the-fly Playwright PDF for src {Source}", src);
@@ -62,58 +59,15 @@ namespace MicrohireAgentChat.Controllers
             var html = StaticQuoteHtml(); // your existing method that returns the full HTML string
             if (string.IsNullOrWhiteSpace(outFile)) outFile = $"quote-{DateTime.UtcNow:yyyyMMddHHmmss}.pdf";
 
-            var webRoot = _env.WebRootPath ?? Path.Combine(AppContext.BaseDirectory, "wwwroot");
-            var outDir = Path.Combine(webRoot, "files", "quotes");
-            Directory.CreateDirectory(outDir);
+            var outDir = QuoteFilesPaths.GetPhysicalQuotesDirectory(_env);
             var outPath = Path.Combine(outDir, outFile);
 
-            using var pw = await Microsoft.Playwright.Playwright.CreateAsync();
-            await using var browser = await pw.Chromium.LaunchAsync(new() { Headless = true });
-            var page = await browser.NewPageAsync();
-            await page.SetContentAsync(html);
-            await page.PdfAsync(new()
-            {
-                Path = outPath,
-                Format = "A4",
-                PrintBackground = true,
-                Margin = new() { Top = "10mm", Bottom = "12mm", Left = "10mm", Right = "10mm" }
-            });
+            var generated = await HtmlQuoteGenerationService.GeneratePdfFromHtmlAsync(html, outPath, _logger, HttpContext.RequestAborted);
+            if (!generated || !System.IO.File.Exists(outPath))
+                return StatusCode(500, "PDF generation failed");
 
             var stream = System.IO.File.OpenRead(outPath);
             return File(stream, "application/pdf", fileDownloadName: outFile); // forces download
-        }
-
-        private static bool TryResolveSourcePath(string src, string webRoot, out string fullPath)
-        {
-            fullPath = string.Empty;
-            if (string.IsNullOrWhiteSpace(src))
-            {
-                return false;
-            }
-
-            var sourcePath = src.Trim();
-            if (Uri.TryCreate(sourcePath, UriKind.Absolute, out var absoluteUri))
-            {
-                sourcePath = absoluteUri.AbsolutePath;
-            }
-
-            sourcePath = Uri.UnescapeDataString(sourcePath);
-            sourcePath = sourcePath.TrimStart('/');
-            sourcePath = sourcePath.Replace('/', Path.DirectorySeparatorChar);
-
-            var rootFull = Path.GetFullPath(webRoot);
-            var candidate = Path.GetFullPath(Path.Combine(rootFull, sourcePath));
-            var rootWithSep = rootFull.EndsWith(Path.DirectorySeparatorChar)
-                ? rootFull
-                : rootFull + Path.DirectorySeparatorChar;
-
-            if (!candidate.StartsWith(rootWithSep, StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            fullPath = candidate;
-            return true;
         }
 
         private static string StaticQuoteHtml()

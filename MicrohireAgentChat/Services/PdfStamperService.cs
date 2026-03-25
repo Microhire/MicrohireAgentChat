@@ -1,4 +1,5 @@
 // Services/PdfStamperService.cs
+using MicrohireAgentChat.Helpers;
 using System.Linq;
 using iText.Bouncycastleconnector;
 using iText.IO.Font.Constants;
@@ -38,8 +39,7 @@ namespace MicrohireAgentChat.Services
             if (!File.Exists(src))
                 throw new FileNotFoundException("Template not found at /wwwroot/files/quotes/Quote-TEMPLATE.pdf", src);
 
-            var outDir = Path.Combine(webRoot, "files", "quotes");
-            Directory.CreateDirectory(outDir);
+            var outDir = QuoteFilesPaths.GetPhysicalQuotesDirectory(_env);
 
             var timestamp = DateTime.UtcNow.ToString("yyyyMMddHHmmss");
             var identifier = SanitizeFilenameSegment(q.Reference);

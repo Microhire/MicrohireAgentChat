@@ -118,38 +118,39 @@ public sealed class BookingQueryService
     }
 
     /// <summary>
-    /// Finds contact by email, then the best "upcoming" booking (soonest event day on/after today).
-    /// If none upcoming, returns the most recently ordered booking for that contact.
+    /// Finds contact by email in RentalPoint (AITEST), then the best booking for pre-fill:
+    /// soonest event day on/after today; if none, the most recently ordered booking.
+    /// Queries are scoped in SQL (no loading all rows for the contact) so email verification stays fast.
     /// </summary>
     public async Task<BookingPrefillFromEmailResult?> FindLatestUpcomingBookingForEmailAsync(string email, CancellationToken ct)
     {
-        var contact = await FindContactByEmailAsync(email, ct);
+        var normalized = email.Trim().ToLowerInvariant();
+        var contact = await _db.Contacts
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Email != null && c.Email.ToLower() == normalized, ct);
         if (contact == null)
             return null;
 
-        var bookings = await _db.TblBookings
-            .AsNoTracking()
-            .Where(b => b.ContactID == contact.Id && b.booking_no != null)
-            .ToListAsync(ct);
-
-        if (bookings.Count == 0)
-            return new BookingPrefillFromEmailResult { Contact = contact, Booking = null, VenueDisplayName = null };
-
+        var cid = contact.Id;
         var today = DateTime.Today;
 
-        static DateTime? EventDay(TblBooking b) =>
-            b.ShowSDate ?? b.dDate ?? b.SDate;
+        // Same event-day rule as before: ShowSDate, else dDate, else SDate — evaluated on the server.
+        var upcoming = await _db.TblBookings
+            .AsNoTracking()
+            .Where(b => b.ContactID == cid && b.booking_no != null)
+            .Where(b => (b.ShowSDate ?? b.dDate ?? b.SDate) != null)
+            .Where(b => (b.ShowSDate ?? b.dDate ?? b.SDate)!.Value.Date >= today)
+            .OrderBy(b => b.ShowSDate ?? b.dDate ?? b.SDate)
+            .FirstOrDefaultAsync(ct);
 
-        TblBooking? pick = bookings
-            .Where(b => EventDay(b) is { } d && d.Date >= today)
-            .OrderBy(b => EventDay(b))
-            .FirstOrDefault();
-
+        var pick = upcoming;
         if (pick == null)
         {
-            pick = bookings
-                .OrderByDescending(b => b.order_date ?? EventDay(b) ?? DateTime.MinValue)
-                .FirstOrDefault();
+            pick = await _db.TblBookings
+                .AsNoTracking()
+                .Where(b => b.ContactID == cid && b.booking_no != null)
+                .OrderByDescending(b => b.order_date ?? b.ShowSDate ?? b.dDate ?? b.SDate)
+                .FirstOrDefaultAsync(ct);
         }
 
         if (pick == null)

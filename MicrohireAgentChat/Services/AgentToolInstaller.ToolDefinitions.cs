@@ -8,13 +8,23 @@ using System.Text.Json;
 
 public sealed partial class AgentToolInstaller
 {
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public Task StartAsync(CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(_opts.AgentId))
         {
             _log.LogWarning("AzureAgent:AgentId is not configured - skipping tool installation");
-            return;
+            return Task.CompletedTask;
         }
+
+        // Do not block IIS/ANCM startup: UpdateAgent + large payload can take minutes and causes HTTP 500.37
+        // while the site appears "down". Tools sync in background; agent may briefly run pre-deploy tool defs.
+        _ = RunToolInstallAsync();
+        return Task.CompletedTask;
+    }
+
+    private async Task RunToolInstallAsync()
+    {
+        await Task.Yield();
 
         try
         {
@@ -52,7 +62,7 @@ public sealed partial class AgentToolInstaller
                     }),
 
                 FunctionTool("recommend_equipment_for_event", 
-                    "Smart equipment recommendation based on event context. Returns outputToUser with recommendations - output it EXACTLY. If venue and room are provided, the tool may return a capacity warning when attendee count exceeds the room's capacity for the chosen setup; you MUST relay that warning and not create the quote until the user adjusts (e.g. choose a larger room or reduce attendees). CRITICAL: The server validates expected_attendees and setup_style against the actual conversation transcript. If the user never stated them, passing fabricated values will be rejected and you will receive an error. Only pass values the user has explicitly provided.",
+                    "Smart equipment recommendation based on event context. Persists equipment to session; outputToUser is brief (not a markdown quote summary). When requirements are complete, call generate_quote in the same or next turn per flow rules—do not output a long equipment list or ask 'create the quote now?'. If venue and room are provided, the tool may return a capacity warning when attendee count exceeds the room's capacity for the chosen setup; you MUST relay that warning and not create the quote until the user adjusts. CRITICAL: The server validates expected_attendees and setup_style against the transcript; only pass values the user has explicitly provided.",
                     new {
                         type = "object",
                         properties = new {
@@ -89,7 +99,7 @@ public sealed partial class AgentToolInstaller
                     }),
 
                 FunctionTool("update_equipment",
-                    "Apply equipment edits to the current quote summary (remove items, add items). Call when user says 'remove X and add Y', 'the quote is wrong - remove projector add mic', or similar. Returns updated quote summary; output it EXACTLY. Do NOT call generate_quote until user confirms the new summary.",
+                    "Apply equipment edits to the current session selection (remove items, add items). Call when user says 'remove X and add Y', or similar. Returns short outputToUser; relay it briefly. Do NOT call generate_quote until the user confirms (e.g. 'yes create quote').",
                     new {
                         type = "object",
                         properties = new {
@@ -263,7 +273,7 @@ public sealed partial class AgentToolInstaller
                     }),
 
                 FunctionTool("generate_quote", 
-                    "Generate quote. Call IMMEDIATELY when user confirms equipment - do NOT ask for additional confirmation!",
+                    "Generate quote PDF/booking. Call when requirements are complete and the user has consented (e.g. 'yes create quote', structured FollowUpAv submit) or after update_equipment when they confirm. Do not paste a long pre-quote equipment summary first.",
                     new {
                         type = "object",
                         properties = new { 
@@ -655,25 +665,22 @@ public sealed partial class AgentToolInstaller
                 "     \"needs_recording\": true\n" +
                 "   }\n" +
                 "   ```\n\n" +
-                "   **NEVER call with empty equipment_requests array - this will show empty quote summary!**\n\n" +
-                "3. **CRITICAL OUTPUT RULE:** The tool returns 'outputToUser' containing the quote summary in markdown format only (no alternative pickers). Output it EXACTLY AS-IS.\n" +
-                "4. The system will automatically show Yes/No confirmation buttons after your message\n" +
-                "5. **When user asks for alternatives:** Call show_equipment_alternatives exactly ONCE with ONLY the type the user asked for.\n" +
+                "   **NEVER call with empty equipment_requests array.**\n\n" +
+                "3. **OUTPUT RULE:** recommend_equipment outputToUser is short (not a quote summary). You may omit it or say one brief line; do NOT paste a markdown equipment table or ask 'Would you like me to create the quote now?'.\n" +
+                "4. **When user asks for alternatives:** Call show_equipment_alternatives exactly ONCE with ONLY the type the user asked for.\n" +
                 "   - Example: User says 'show me other wireless microphones' → call show_equipment_alternatives with equipment_type='microphone' once; do NOT call for projectors, laptops, screens, etc.\n" +
                 "   - Example: User says 'are there other screens?' → call show_equipment_alternatives with equipment_type='screen' once only.\n" +
                 "   - Then OUTPUT the outputToUser from that call EXACTLY including [[ISLA_GALLERY]] content\n\n" +
-                "### GENERATE QUOTE VS QUOTE SUMMARY (CRITICAL DISTINCTION)\n" +
-                "1. **Default (non-wizard) flow — summary first:** Before creating a quote, you MUST show the quote summary by calling recommend_equipment_for_event and outputting the result — **unless** **structured wizard Follow-up AV** (item 4) applies.\n" +
-                "2. **ONLY GENERATE ON BUTTON CLICK (default flow):** Outside the structured wizard, do not call **generate_quote** until the user explicitly clicks 'Yes, create quote' or sends equivalent consent ('yes create quote').\n" +
-                "3. **Do not call recommend_equipment_for_event and generate_quote in the same response** — **except** for **structured wizard Follow-up AV** (item 4).\n" +
-                "4. **STRUCTURED WIZARD — Follow-up AV (`FollowUpAv:` / Generate quote button):** When the user submits follow-up AV (message starts with FollowUpAv:), the form submit **is** the quote consent; the server unlocks **generate_quote** for this turn. You MUST call **recommend_equipment_for_event** first, then **generate_quote** in the **same** assistant turn. **Do NOT** output the recommend_equipment **outputToUser** text to the user and **do NOT** ask 'Would you like me to create the quote now?' — output **only** the **generate_quote** tool result (success message with view/download links and confirmation ask). If recommend_equipment fails, follow its error instruction; do not call generate_quote until requirements are satisfied.\n\n" +
-                "### GENERATE QUOTE (internal - do not show this heading or any step number to user)\n" +
-                "When user clicks 'Yes, create quote' or says yes/looks good/perfect, IMMEDIATELY call generate_quote.\n" +
-                "DO NOT ask 'Shall I create the quote now?' - the summary already asks that.\n\n" +
-                "**EQUIPMENT EDITS (remove X, add Y):** When the user says 'remove the projector and add a mic', 'the quote is wrong - remove screen add microphone', 'remove the macbook and add a windows laptop', or similar, call **update_equipment** with remove_types and add_requests. For 'windows laptop' or 'mac laptop' use equipment_type='laptop' and preference='windows' or preference='mac'. Pass venue_name and room_name when you know them (e.g. Westin Brisbane, Thrive Boardroom) so add_requests resolve correctly. Before calling update_equipment, ensure event type, attendees, and setup style are already known; if any are missing, ask one question to collect the next missing item first. Output the returned summary EXACTLY. Do NOT call generate_quote until the user confirms the new summary (e.g. 'yes create quote', 'looks good').\n\n" +
+                "### GENERATE QUOTE VS RECOMMENDATION (CRITICAL)\n" +
+                "1. **Default flow:** Call **recommend_equipment_for_event** when AV requirements are known; it saves equipment to session. Do **not** show a long quote summary in chat. When the user consents to quoting ('yes create quote', 'generate the quote', or equivalent), call **generate_quote**.\n" +
+                "2. **Same-turn chaining:** You **may** call **recommend_equipment_for_event** then **generate_quote** in one assistant turn when the user has already consented to create the quote (or after structured **FollowUpAv:** per item 3).\n" +
+                "3. **STRUCTURED WIZARD — Follow-up AV (`FollowUpAv:` / Generate quote):** Form submit **is** quote consent; the server may run recommendation + quote without an assistant turn. If you **do** respond after that submit, call **recommend_equipment_for_event** then **generate_quote** in the **same** turn. **Do NOT** output recommend_equipment **outputToUser** as a summary and **do NOT** ask 'Would you like me to create the quote now?' — output **only** the **generate_quote** success message (view/download + 'Would you like to confirm this quote?'). **Do NOT** duplicate a consolidated AV summary if the server already produced the quote.\n\n" +
+                "### GENERATE QUOTE (internal - do not show this heading to user)\n" +
+                "After consent, call **generate_quote** immediately. Do not ask for a separate pre-quote confirmation step.\n\n" +
+                "**EQUIPMENT EDITS (remove X, add Y):** Call **update_equipment** with remove_types and add_requests. Pass venue_name and room_name when known. Output returned outputToUser briefly. Do NOT call generate_quote until the user confirms (e.g. 'yes create quote').\n\n" +
                 "**CONFIRMATION RULE:** Do NOT call generate_quote in the same response where you ask 'Could you confirm if anything else needs to be added?' or 'Is there anything else to add?' Only call generate_quote after the user has replied (e.g. 'no that's all', 'yes create quote', 'looks good'). If you need to ask for confirmation of changes, ask first, wait for the next message, then call generate_quote if they confirm.\n\n" +
                 "**MODIFY EXISTING QUOTE:** When the user wants to change a quote that was already created (e.g. 'I want to add a second microphone', 'remove the projector from my quote'), first call **update_equipment** with the requested changes (if equipment-related), then call **regenerate_quote**. Output the new View Quote link.\n\n" +
-                "**When user declines quote (No, not yet):** When the user says 'no, not yet', 'no', 'not yet', or otherwise declines creating the quote now: (1) Acknowledge briefly (e.g. 'Got it!'). (2) Tell them they can create the quote later by saying 'create the quote', 'yes create quote', or 'I'm ready for the quote', and that they can ask to change equipment first—then you will update the summary and they can confirm to create the quote. (3) Always end your response with the line: 'Would you like me to create the quote now?' so the Yes/No buttons appear again; do NOT only say 'What would you like to modify?' without offering to create the quote when ready. If they mention specific changes (e.g. 'remove the projector, add a mic'), call **update_equipment** with those changes, output the returned summary exactly, then ask 'Would you like me to create the quote now?' and wait for their confirmation before calling generate_quote.\n\n" +
+                "**When user declines quote:** Acknowledge briefly. They can say 'create the quote' or 'yes create quote' when ready, or ask to change equipment first (then **update_equipment**). Do **not** end with 'Would you like me to create the quote now?' as a mandatory line — the UI no longer shows Yes/No for that.\n\n" +
                 "## DATE PARSING RULES:\n" +
                 "- CRITICAL: For ANY date mentioned by user, you MUST call get_now_aest FIRST to get current date\n" +
                 "- Then apply this exact logic for dates without years:\n" +
@@ -691,7 +698,7 @@ public sealed partial class AgentToolInstaller
                 "**Understanding how prices are displayed:**\n" +
                 "- Prices are NOT displayed in the chat interface (they are redacted for user privacy)\n" +
                 "- Prices ARE included in the generated quote PDF/HTML document\n" +
-                "- The quote summary in chat shows equipment list but NOT individual prices\n\n" +
+                "- Chat does not show a full equipment quote summary before PDF generation\n\n" +
                 "**What you SHOULD say:**\n" +
                 "- 'Your detailed quote with all pricing will be available in the generated document.'\n" +
                 "- 'The quote document will include a full breakdown of costs.'\n" +
@@ -724,8 +731,8 @@ public sealed partial class AgentToolInstaller
                 "- **get_product_knowledge** → Output outputToUser EXACTLY (warehouse names, counts, and event recommendations shown verbatim)\n" +
                 "- **get_westin_venue_guide** → Output outputToUser EXACTLY (venue capacities, AV, and room setup types)\n" +
                 "- **get_capacity_table** → Output outputToUser EXACTLY (Markdown table of sorted capacities)\n" +
-                "- **recommend_equipment_for_event** → Output the quote summary EXACTLY AS-IS (no alternative galleries in this response; show alternatives only when user asks via show_equipment_alternatives). **Exception:** When the user message is structured follow-up AV (`FollowUpAv:`), do not output this summary; chain to **generate_quote** in the same turn per structured wizard rules.\n" +
-                "- **update_equipment** → Output the returned outputToUser (updated quote summary) EXACTLY AS-IS. Do not call generate_quote in the same response.\n" +
+                "- **recommend_equipment_for_event** → Optional one-line ack; do not paste a long summary. **Exception:** Follow-up AV (`FollowUpAv:`) — chain to **generate_quote** in the same turn; do not output recommend outputToUser as a summary.\n" +
+                "- **update_equipment** → Output returned outputToUser briefly. Do not call generate_quote in the same response.\n" +
                 "- **regenerate_quote** → Output the message with the new View Quote link.\n" +
                 "- **build_time_picker** → Output the JSON picker definition exactly as returned\n" +
                 "- **get_product_info** → Output outputToUser EXACTLY if it contains gallery content\n\n" +
@@ -780,20 +787,20 @@ public sealed partial class AgentToolInstaller
         {
             _log.LogWarning(ex, "Failed to install tools on agent. The app will continue but tools may not be updated.");
         }
-
-        await Task.CompletedTask;
     }
 
     private string LoadIslaInstructions()
     {
         try
         {
-            // Prefer runtime output path, then local project path when running from source.
-            var candidatePaths = new[]
-            {
-                Path.Combine(AppContext.BaseDirectory, "wwwroot", "data", "isla-instructions.md"),
-                Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "data", "isla-instructions.md")
-            };
+            // Use WebRootPath first (same as static files / other services). Avoid AppContext.BaseDirectory + "wwwroot"
+            // when content root is already the site wwwroot — that produced ...\wwwroot\wwwroot\... on Azure.
+            var candidatePaths = new List<string>();
+            if (!string.IsNullOrWhiteSpace(_hostEnv.WebRootPath))
+                candidatePaths.Add(Path.Combine(_hostEnv.WebRootPath, "data", "isla-instructions.md"));
+            candidatePaths.Add(Path.Combine(_hostEnv.ContentRootPath, "data", "isla-instructions.md"));
+            candidatePaths.Add(Path.Combine(AppContext.BaseDirectory, "wwwroot", "data", "isla-instructions.md"));
+            candidatePaths.Add(Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "data", "isla-instructions.md"));
 
             foreach (var instructionsPath in candidatePaths.Distinct(StringComparer.OrdinalIgnoreCase))
             {
