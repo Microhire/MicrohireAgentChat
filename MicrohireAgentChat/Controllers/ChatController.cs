@@ -24,6 +24,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace MicrohireAgentChat.Controllers;
 
@@ -47,6 +48,7 @@ public sealed class ChatController : Controller
     private readonly ILogger<ChatController> _logger;
     private readonly AgentToolHandlerService _toolHandler;
     private readonly ChatSessionPersistenceService _sessionPersistence;
+    private readonly IServiceScopeFactory _scopeFactory;
 
     // Detect: "Choose time: 09:00–10:30" (supports hyphen or en dash)
     private static readonly Regex ChooseTimeRe =
@@ -118,7 +120,8 @@ public sealed class ChatController : Controller
         IRazorViewEngine razorViewEngine,
         ILogger<ChatController> logger,
         AgentToolHandlerService toolHandler,
-        ChatSessionPersistenceService sessionPersistence)
+        ChatSessionPersistenceService sessionPersistence,
+        IServiceScopeFactory scopeFactory)
     {
         _chat = chat;
         _appDb = appDb;
@@ -138,6 +141,7 @@ public sealed class ChatController : Controller
         _logger = logger;
         _toolHandler = toolHandler;
         _sessionPersistence = sessionPersistence;
+        _scopeFactory = scopeFactory;
     }
 
     // Small helper to pick a stable user key for persistence.
@@ -153,6 +157,26 @@ public sealed class ChatController : Controller
             HttpContext.Session.SetString("PersistUserKey", sid);
         }
         return sid!;
+    }
+
+    /// <summary>
+    /// Persists draft state after the HTTP request completes using a new DI scope (request-scoped DbContext must not be used from Task.Run).
+    /// </summary>
+    private void QueuePersistDraftStateBackground(string email, string userKey, Dictionary<string, string> snapshot)
+    {
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var scope = _scopeFactory.CreateScope();
+                var persistence = scope.ServiceProvider.GetRequiredService<ChatSessionPersistenceService>();
+                await persistence.SaveAsync(userKey, email, snapshot, CancellationToken.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to persist draft state for {Email}", email);
+            }
+        });
     }
 
     #region agent log
@@ -341,6 +365,11 @@ public sealed class ChatController : Controller
     {
         try
         {
+            _logger.LogInformation(
+                "Chat Index start TraceId={TraceId} Path={Path}",
+                HttpContext.TraceIdentifier,
+                Request.Path);
+
             var userKey = GetUserKey();
             var startedFreshLeadChat = false;
             var leadDatabaseHit = false;
@@ -470,9 +499,16 @@ public sealed class ChatController : Controller
                     var email = HttpContext.Session.GetString("Draft:ContactEmail");
                     if (!string.IsNullOrWhiteSpace(email))
                     {
-                        var saved = await _sessionPersistence.FindByEmailAsync(email, ct);
-                        if (saved != null)
-                            _sessionPersistence.RestoreToSession(HttpContext.Session, saved);
+                        try
+                        {
+                            var saved = await _sessionPersistence.FindByEmailAsync(email, ct);
+                            if (saved != null)
+                                _sessionPersistence.RestoreToSession(HttpContext.Session, saved);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Session restore by email skipped on Index for TraceId={TraceId}", HttpContext.TraceIdentifier);
+                        }
                     }
                 }
                 
@@ -511,12 +547,18 @@ public sealed class ChatController : Controller
         }
         catch (OperationCanceledException ex)
         {
-            // Client disconnect, host shutdown/recycle (e.g. during deploy), or linked token timeout — not a product defect.
+            // Do not rethrow — cancellation would surface as a generic 500 via UseExceptionHandler.
             _logger.LogInformation(
                 ex,
-                "Chat Index canceled (requestAborted={RequestAborted}).",
+                "Chat Index canceled (requestAborted={RequestAborted}); returning empty transcript.",
                 HttpContext.RequestAborted.IsCancellationRequested);
-            throw;
+            SetScheduleTimesInViewData();
+            ViewData["ProgressStep"] = "";
+            ViewData["QuoteAccepted"] = HttpContext.Session.GetString("Draft:QuoteAccepted") ?? "0";
+            ViewData["QuoteComplete"] = false;
+            ViewData["DevModeEnabled"] = _devOptions.Enabled;
+            ViewData["IsDevelopment"] = _env.IsDevelopment();
+            return View(Enumerable.Empty<DisplayMessage>());
         }
         catch (Exception ex)
         {
@@ -1389,25 +1431,37 @@ public sealed class ChatController : Controller
 
                 if (shouldRestore && existingSession != null)
                 {
-                    // Restore thread + all draft state from the database
-                    _sessionPersistence.RestoreToSession(HttpContext.Session, existingSession);
-                    
-                    // Update the DB row's UserKey to this session's key for future lookups
-                    existingSession.UserKey = GetUserKey();
-                    existingSession.LastSeenUtc = DateTime.UtcNow;
-                    await _appDb.SaveChangesAsync(ct);
-                    
-                    // Return the restored transcript immediately (skip booking lookup + AI agent call)
-                    var restoredThreadId = _chat.EnsureThreadId(HttpContext.Session);
-                    var (_, restoredMessages) = _chat.GetTranscript(restoredThreadId);
-                    var restoredList = restoredMessages.ToList();
-                    EnsureStructuredFormsInChat(restoredList);
-                    RedactPricesForUiInPlace(restoredList);
-                    ViewData["QuoteAccepted"] = HttpContext.Session.GetString("Draft:QuoteAccepted") ?? "0";
-                    SetScheduleTimesInViewData();
-                    ViewData["ProgressStep"] = DetermineProgressStep(restoredList);
-                    var restoredHtml = await RenderPartialViewToStringAsync("_Messages", restoredList);
-                    return Json(new { success = true, html = restoredHtml });
+                    try
+                    {
+                        // Restore thread + all draft state from the database
+                        _sessionPersistence.RestoreToSession(HttpContext.Session, existingSession);
+
+                        // Update the DB row's UserKey to this session's key for future lookups
+                        // (FindByEmailAsync uses AsNoTracking — must mark entity modified before SaveChanges.)
+                        existingSession.UserKey = GetUserKey();
+                        existingSession.LastSeenUtc = DateTime.UtcNow;
+                        _appDb.AgentThreads.Update(existingSession);
+                        await _appDb.SaveChangesAsync(ct);
+
+                        // Return the restored transcript immediately (skip booking lookup + AI agent call)
+                        var restoredThreadId = _chat.EnsureThreadId(HttpContext.Session);
+                        var (_, restoredMessages) = _chat.GetTranscript(restoredThreadId);
+                        var restoredList = restoredMessages.ToList();
+                        EnsureStructuredFormsInChat(restoredList);
+                        RedactPricesForUiInPlace(restoredList);
+                        ViewData["QuoteAccepted"] = HttpContext.Session.GetString("Draft:QuoteAccepted") ?? "0";
+                        SetScheduleTimesInViewData();
+                        ViewData["ProgressStep"] = DetermineProgressStep(restoredList);
+                        var restoredHtml = await RenderPartialViewToStringAsync("_Messages", restoredList);
+                        return Json(new { success = true, html = restoredHtml });
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(
+                            ex,
+                            "Failed to restore persisted chat session for {Email}; falling back to normal email verification flow.",
+                            emailNorm);
+                    }
                 }
 
                 if (IsLeadEntry())
@@ -2205,17 +2259,7 @@ public sealed class ChatController : Controller
             {
                 var snapshot = _sessionPersistence.SnapshotDraftState(HttpContext.Session);
                 var currentUserKey = GetUserKey();
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _sessionPersistence.SaveAsync(currentUserKey, emailForSave, snapshot, CancellationToken.None);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "Failed to persist draft state for {Email}", emailForSave);
-                    }
-                });
+                QueuePersistDraftStateBackground(emailForSave, currentUserKey, snapshot);
             }
 
             // Log final message count for debugging
@@ -2267,17 +2311,7 @@ public sealed class ChatController : Controller
                 {
                     var snapshot = _sessionPersistence.SnapshotDraftState(HttpContext.Session);
                     var currentUserKey = GetUserKey();
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await _sessionPersistence.SaveAsync(currentUserKey, emailForErrorSave, snapshot, CancellationToken.None);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(ex, "Failed to persist draft state for {Email} on error", emailForErrorSave);
-                        }
-                    });
+                    QueuePersistDraftStateBackground(emailForErrorSave, currentUserKey, snapshot);
                 }
 
                 return PartialView("_Messages", msgList);

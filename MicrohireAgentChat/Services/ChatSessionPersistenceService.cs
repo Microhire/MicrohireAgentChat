@@ -68,13 +68,23 @@ public sealed class ChatSessionPersistenceService
 
     /// <summary>
     /// Finds the most recent session for a verified email address.
+    /// Fail-open: returns null on any DB/schema error so the chat page still loads.
     /// </summary>
     public async Task<AgentThread?> FindByEmailAsync(string email, CancellationToken ct = default)
     {
-        var normalized = email.Trim().ToLowerInvariant();
-        return await _db.AgentThreads
-            .OrderByDescending(x => x.LastSeenUtc)
-            .FirstOrDefaultAsync(x => x.Email == normalized, ct);
+        try
+        {
+            var normalized = email.Trim().ToLowerInvariant();
+            return await _db.AgentThreads
+                .AsNoTracking()
+                .OrderByDescending(x => x.LastSeenUtc)
+                .FirstOrDefaultAsync(x => x.Email == normalized, ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "FindByEmailAsync failed; continuing without cross-session restore.");
+            return null;
+        }
     }
 
     /// <summary>
