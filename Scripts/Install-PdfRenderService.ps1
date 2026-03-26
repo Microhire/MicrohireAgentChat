@@ -34,7 +34,7 @@ if (Test-Path $pwSrc) {
     if (Test-Path $pwDst) { Remove-Item -Recurse -Force $pwDst }
     Copy-Item -Recurse -Force $pwSrc $pwDst
 } elseif (-not (Test-Path $pwDst)) {
-    Write-Host "No $pwSrc — run: cd PdfRenderService; playwright install chromium"
+    Write-Host "No $pwSrc - run: cd PdfRenderService; playwright install chromium"
     Write-Host "Then copy publish_out\pw-browsers into $pwDst"
 }
 
@@ -66,6 +66,6 @@ Start-Service -Name $svcName
 Get-Service $svcName | Format-List *
 
 Write-Host ""
-Write-Host "Smoke test (from this VM):"
-Write-Host "  curl.exe -s http://127.0.0.1:5100/health"
-Write-Host "Azure App Service app setting: PdfService__BaseUrl = http://<VM_PUBLIC_IP>:5100"
+Write-Host 'Smoke test (from this VM):'
+Write-Host '  curl.exe -s http://127.0.0.1:5100/health'
+Write-Host 'Azure App Service application setting: PdfService__BaseUrl = http://YOUR_VM_PUBLIC_IP:5100'
