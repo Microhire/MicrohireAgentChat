@@ -4738,6 +4738,9 @@ public sealed class ChatController : Controller
         }
 
         // 7) Follow-up AV questions
+        // Strip legacy tool-built avExtrasForm messages — they duplicate the server-injected followUpAvForm.
+        messages.RemoveAll(IsAvExtrasFormMessage);
+
         if (!followUpAvSubmitted)
         {
             if (!messages.Any(m => MessageContainsUiType(m, "followUpAvForm")))

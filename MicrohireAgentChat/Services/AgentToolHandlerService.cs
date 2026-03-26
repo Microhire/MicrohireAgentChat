@@ -103,7 +103,7 @@ public sealed partial class AgentToolHandlerService
                 "build_time_picker" => HandleBuildTimePicker(argsJson, threadId),
                 "build_contact_form" => HandleBuildContactForm(argsJson),
                 "build_event_form" => HandleBuildEventForm(argsJson),
-                "build_av_extras_form" => HandleBuildAvExtrasForm(argsJson),
+                "build_av_extras_form" => HandleBuildAvExtrasFormDeprecated(argsJson),
                 "get_room_images" => await HandleGetRoomImagesAsync(argsJson, ct),
                 "get_product_info" => await HandleGetProductInfoAsync(argsJson, ct),
                 "get_product_images" => await HandleGetProductImagesAsync(argsJson, ct),
@@ -692,46 +692,21 @@ public sealed partial class AgentToolHandlerService
         });
     }
 
-    private string HandleBuildAvExtrasForm(string argsJson)
+    /// <summary>
+    /// Legacy tool removed from agent definitions — chat wizard injects followUpAvForm after Base AV.
+    /// Kept so stale Azure agent configs that still expose the tool do not render a duplicate form.
+    /// </summary>
+    private static string HandleBuildAvExtrasFormDeprecated(string argsJson)
     {
-        using var doc = JsonDocument.Parse(string.IsNullOrWhiteSpace(argsJson) ? "{}" : argsJson);
-        var session = _http.HttpContext?.Session;
-
-        var title = doc.RootElement.TryGetProperty("title", out var t) && t.ValueKind == JsonValueKind.String
-            ? t.GetString()
-            : "Finally, confirm your AV extras";
-        var submitLabel = doc.RootElement.TryGetProperty("submitLabel", out var s) && s.ValueKind == JsonValueKind.String
-            ? s.GetString()
-            : "Send AV extras";
-
-        var eventStart = session?.GetString("Draft:StartTime") ?? "10:00";
-        var eventEnd = session?.GetString("Draft:EndTime") ?? "16:00";
-
-        var payload = new
-        {
-            ui = new
-            {
-                type = "avExtrasForm",
-                title,
-                submitLabel,
-                presenters = "",
-                speakers = "",
-                clicker = false,
-                recording = false,
-                techStart = eventStart,
-                techEnd = eventEnd,
-                eventStart,
-                eventEnd,
-                stepMinutes = 30
-            }
-        };
-
-        var jsonToEmbed = JsonSerializer.Serialize(payload);
+        _ = argsJson;
         return JsonSerializer.Serialize(new
         {
             success = true,
-            outputToUser = $"Please complete this AV extras form:\n\n{jsonToEmbed}",
-            instruction = "OUTPUT THE 'outputToUser' VALUE EXACTLY AS-IS in your response so the form renders."
+            deprecated = true,
+            outputToUser =
+                "Do not show an AV extras form. The chat already includes the structured follow-up card (microphones, lectern, wireless presenter, laptop switcher, stage laptop, video conference). Ask the customer in one short sentence to complete that red button card if it is visible, or acknowledge if they already submitted it.",
+            instruction =
+                "Reply in plain text only. Do not embed JSON or {\"ui\":...} blocks. Do not call this tool again."
         });
     }
 

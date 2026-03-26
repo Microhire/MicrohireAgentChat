@@ -259,19 +259,6 @@ public sealed partial class AgentToolInstaller
                         additionalProperties = false
                     }),
 
-                FunctionTool("build_av_extras_form",
-                    "Display a single AV extras form for presenters/speakers, clicker, recording, and technician coverage. CRITICAL: Output outputToUser EXACTLY AS-IS so the form renders.",
-                    new
-                    {
-                        type = "object",
-                        properties = new
-                        {
-                            title = new { type = "string" },
-                            submitLabel = new { type = "string" }
-                        },
-                        additionalProperties = false
-                    }),
-
                 FunctionTool("generate_quote", 
                     "Generate quote PDF/booking. Call when requirements are complete and the user has consented (e.g. 'yes create quote', structured FollowUpAv submit) or after update_equipment when they confirm. Do not paste a long pre-quote equipment summary first.",
                     new {
