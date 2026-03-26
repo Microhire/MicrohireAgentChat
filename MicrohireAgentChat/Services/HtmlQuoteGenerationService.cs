@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
+using System.Net.Http.Json;
 using System.Text;
 using System.Web;
 
@@ -23,6 +24,8 @@ public partial class HtmlQuoteGenerationService
     private readonly IWebHostEnvironment _env;
     private readonly IHostApplicationLifetime _hostLifetime;
     private readonly IPlaywrightQuotePdfRenderer _pdfRenderer;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IConfiguration _config;
     private readonly ILogger<HtmlQuoteGenerationService> _logger;
 
     /// <summary>Hard cap for Playwright/Chromium (install + launch + PDF) so work cannot hang forever.</summary>
@@ -33,12 +36,16 @@ public partial class HtmlQuoteGenerationService
         IWebHostEnvironment env,
         IHostApplicationLifetime hostLifetime,
         IPlaywrightQuotePdfRenderer pdfRenderer,
+        IHttpClientFactory httpClientFactory,
+        IConfiguration config,
         ILogger<HtmlQuoteGenerationService> logger)
     {
         _db = db;
         _env = env;
         _hostLifetime = hostLifetime;
         _pdfRenderer = pdfRenderer;
+        _httpClientFactory = httpClientFactory;
+        _config = config;
         _logger = logger;
     }
 
@@ -257,60 +264,39 @@ public partial class HtmlQuoteGenerationService
                 /* optional Development-only file log */
             }
 
-            // 10. Optional PDF from HTML (Playwright). Quote success is HTML-first: PDF failure does not remove HTML or block the user.
-            // Do NOT pass the HTTP request token: Azure/proxy timeouts and client disconnects cancel ct while Playwright
-            // (especially first-run chromium install) can exceed that. Stop only on host shutdown or absolute cap.
+            // 10. PDF from HTML via remote PdfRenderService (fire-and-forget background task).
+            // HTML is ready -- return the URL immediately so the user is never blocked.
+            // PDF generation continues in the background; the file appears on disk when done.
+            var url = QuoteFilesPaths.PublicUrlForFileName(outName);
             var pdfName = Path.ChangeExtension(outName, ".pdf");
             var pdfDest = Path.Combine(outDir, pdfName);
-            using var pdfTimeout = new CancellationTokenSource(PdfGenerationAbsoluteTimeout);
-            using var pdfWork = CancellationTokenSource.CreateLinkedTokenSource(
-                _hostLifetime.ApplicationStopping,
-                pdfTimeout.Token);
-            _logger.LogInformation(
-                "[QUOTE GEN] trace={Trace} phase=pdf_start booking={BookingNo} pdfPath={PdfPath} pdfTimeoutMin={TimeoutMin} playwrightBootstrap={Diag}",
-                trace,
-                bookingNo,
-                pdfDest,
-                PdfGenerationAbsoluteTimeout.TotalMinutes,
-                PlaywrightBootstrap.GetStartupBrowserPathSummary());
 
-            var pdfWall = Stopwatch.StartNew();
-            var pdfOk = await GeneratePdfFromHtmlAsync(html, pdfDest, _logger, pdfWork.Token, trace);
-            pdfWall.Stop();
+            var capturedHtml = html;
+            var capturedTrace = trace;
+            var capturedBookingNo = bookingNo;
+            var capturedOutName = outName;
+            var capturedStartTime = startTime;
 
-            var pdfLen = File.Exists(pdfDest) ? new FileInfo(pdfDest).Length : 0;
-            _logger.LogInformation(
-                "[QUOTE GEN] trace={Trace} phase=pdf_renderer_returned booking={BookingNo} pdfOk={PdfOk} wallMs={WallMs} pdfExists={Exists} pdfBytes={PdfBytes}",
-                trace,
-                bookingNo,
-                pdfOk,
-                pdfWall.ElapsedMilliseconds,
-                File.Exists(pdfDest),
-                pdfLen);
-
-            if (!pdfOk || !File.Exists(pdfDest) || new FileInfo(pdfDest).Length == 0)
+            _ = Task.Run(async () =>
             {
-                _logger.LogWarning(
-                    "[QUOTE GEN] trace={Trace} phase=pdf_optional_failed booking={BookingNo} pdfOk={PdfOk} pdfPath={PdfPath} pdfBytes={PdfBytes} — continuing with HTML-only quote",
-                    trace,
-                    bookingNo,
-                    pdfOk,
-                    pdfDest,
-                    pdfLen);
-            }
+                try
+                {
+                    await GeneratePdfInBackgroundAsync(
+                        capturedHtml, pdfDest, capturedTrace, capturedBookingNo,
+                        capturedOutName, capturedStartTime);
+                }
+                catch (Exception bgEx)
+                {
+                    _logger.LogError(bgEx,
+                        "[QUOTE GEN] trace={Trace} phase=background_pdf_crash booking={BookingNo}",
+                        capturedTrace, capturedBookingNo);
+                }
+            }, CancellationToken.None);
 
-            var elapsedMs = (DateTime.UtcNow - startTime).TotalMilliseconds;
             _logger.LogInformation(
-                "[QUOTE GEN] trace={Trace} phase=success booking={BookingNo} htmlFile={HtmlFile} htmlChars={HtmlChars} pdfBytes={PdfBytes} totalMs={TotalMs} publicUrlPath=/files/quotes/{FileName}",
-                trace,
-                bookingNo,
-                outName,
-                html.Length,
-                pdfLen,
-                elapsedMs,
-                outName);
+                "[QUOTE GEN] trace={Trace} phase=success_html_returned booking={BookingNo} htmlFile={HtmlFile} htmlChars={HtmlChars} pdfQueued=true publicUrlPath=/files/quotes/{FileName}",
+                trace, bookingNo, outName, html.Length, outName);
 
-            var url = QuoteFilesPaths.PublicUrlForFileName(outName);
             return (true, url, null);
         }
         catch (Exception ex)
@@ -325,6 +311,91 @@ public partial class HtmlQuoteGenerationService
                 errorDetail);
             return (false, null, errorDetail);
         }
+    }
+
+    /// <summary>
+    /// Tries the remote PdfRenderService first (VM-based Playwright). Falls back to local Playwright
+    /// if the remote service is not configured or unreachable.
+    /// Runs as a fire-and-forget background task -- never blocks the HTTP response.
+    /// </summary>
+    private async Task GeneratePdfInBackgroundAsync(
+        string html, string pdfDest, string trace, string bookingNo,
+        string outName, DateTime startTime)
+    {
+        var pdfSw = Stopwatch.StartNew();
+        var remoteBaseUrl = _config["PdfService:BaseUrl"];
+        bool pdfOk = false;
+
+        // --- Try remote PDF service first ---
+        if (!string.IsNullOrWhiteSpace(remoteBaseUrl))
+        {
+            _logger.LogInformation(
+                "[QUOTE GEN] trace={Trace} phase=pdf_remote_start booking={BookingNo} serviceUrl={Url}",
+                trace, bookingNo, remoteBaseUrl);
+            try
+            {
+                var client = _httpClientFactory.CreateClient("PdfRenderService");
+                var payload = new { html };
+                var response = await client.PostAsJsonAsync("pdf/from-html", payload, _hostLifetime.ApplicationStopping)
+                    .ConfigureAwait(false);
+
+                if (response.IsSuccessStatusCode)
+                {
+                    var pdfBytes = await response.Content.ReadAsByteArrayAsync(_hostLifetime.ApplicationStopping)
+                        .ConfigureAwait(false);
+                    if (pdfBytes.Length > 0)
+                    {
+                        await File.WriteAllBytesAsync(pdfDest, pdfBytes, _hostLifetime.ApplicationStopping)
+                            .ConfigureAwait(false);
+                        pdfOk = true;
+                        _logger.LogInformation(
+                            "[QUOTE GEN] trace={Trace} phase=pdf_remote_ok booking={BookingNo} pdfBytes={Bytes} ms={Ms}",
+                            trace, bookingNo, pdfBytes.Length, pdfSw.ElapsedMilliseconds);
+                    }
+                }
+                else
+                {
+                    var body = await response.Content.ReadAsStringAsync(_hostLifetime.ApplicationStopping).ConfigureAwait(false);
+                    _logger.LogWarning(
+                        "[QUOTE GEN] trace={Trace} phase=pdf_remote_failed booking={BookingNo} status={Status} body={Body}",
+                        trace, bookingNo, (int)response.StatusCode, body.Length > 500 ? body[..500] : body);
+                }
+            }
+            catch (Exception remoteEx)
+            {
+                _logger.LogWarning(remoteEx,
+                    "[QUOTE GEN] trace={Trace} phase=pdf_remote_exception booking={BookingNo}",
+                    trace, bookingNo);
+            }
+        }
+
+        // --- Fallback: local Playwright (may hang on Azure App Service, but works locally) ---
+        if (!pdfOk)
+        {
+            _logger.LogInformation(
+                "[QUOTE GEN] trace={Trace} phase=pdf_local_fallback booking={BookingNo}",
+                trace, bookingNo);
+            using var pdfTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            using var pdfWork = CancellationTokenSource.CreateLinkedTokenSource(
+                _hostLifetime.ApplicationStopping, pdfTimeout.Token);
+            try
+            {
+                pdfOk = await GeneratePdfFromHtmlAsync(html, pdfDest, _logger, pdfWork.Token, trace);
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning(
+                    "[QUOTE GEN] trace={Trace} phase=pdf_local_timeout booking={BookingNo}",
+                    trace, bookingNo);
+            }
+        }
+
+        pdfSw.Stop();
+        var pdfLen = File.Exists(pdfDest) ? new FileInfo(pdfDest).Length : 0;
+        var totalMs = (DateTime.UtcNow - startTime).TotalMilliseconds;
+        _logger.LogInformation(
+            "[QUOTE GEN] trace={Trace} phase=pdf_background_done booking={BookingNo} pdfOk={PdfOk} pdfBytes={PdfBytes} pdfMs={PdfMs} totalMs={TotalMs}",
+            trace, bookingNo, pdfOk, pdfLen, pdfSw.ElapsedMilliseconds, totalMs);
     }
 
     private QuoteHtmlData BuildQuoteData(

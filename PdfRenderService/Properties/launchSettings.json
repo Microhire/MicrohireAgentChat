@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "PdfRenderService": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "applicationUrl": "http://0.0.0.0:5100",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Production"
+      }
+    }
+  }
+}

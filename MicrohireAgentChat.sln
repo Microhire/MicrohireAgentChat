@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicrohireAgentChat", "Micro
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicrohireAgentChat.Tests", "MicrohireAgentChat.Tests\MicrohireAgentChat.Tests.csproj", "{28312702-0F4C-4A70-9532-DA43FA00A749}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PdfRenderService", "PdfRenderService\PdfRenderService.csproj", "{FD9E38FA-0AF0-43AE-9296-A715C3006ED7}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{28312702-0F4C-4A70-9532-DA43FA00A749}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{28312702-0F4C-4A70-9532-DA43FA00A749}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{28312702-0F4C-4A70-9532-DA43FA00A749}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FD9E38FA-0AF0-43AE-9296-A715C3006ED7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FD9E38FA-0AF0-43AE-9296-A715C3006ED7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FD9E38FA-0AF0-43AE-9296-A715C3006ED7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FD9E38FA-0AF0-43AE-9296-A715C3006ED7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

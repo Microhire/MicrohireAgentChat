@@ -118,6 +118,16 @@ builder.Services.AddScoped<QuestionDetectionService>();
 // HTTP client for AI services
 builder.Services.AddHttpClient();
 
+// Named HttpClient for the remote PDF rendering service (VM-based Playwright)
+builder.Services.AddHttpClient("PdfRenderService", (sp, client) =>
+{
+    var config = sp.GetRequiredService<IConfiguration>();
+    var baseUrl = config["PdfService:BaseUrl"];
+    if (!string.IsNullOrWhiteSpace(baseUrl))
+        client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
+    client.Timeout = TimeSpan.FromMinutes(3);
+});
+
 // Register new modular services (extracted from AzureAgentChatService)
 builder.Services.AddScoped<EquipmentSearchService>();
 builder.Services.AddScoped<AIEquipmentQueryService>(); // AI-powered dynamic equipment search

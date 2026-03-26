@@ -11,7 +11,13 @@ namespace MicrohireAgentChat.Services;
 public sealed class PlaywrightQuotePdfRenderer : IPlaywrightQuotePdfRenderer, IHostedService
 {
     /// <summary>Max wait (ms) for Chromium to start when (re)launching the shared browser.</summary>
-    private const float ChromiumLaunchTimeoutMs = 120_000f;
+    private const float ChromiumLaunchTimeoutMs = 60_000f;
+
+    /// <summary>Max time to wait for the PDF semaphore before giving up (prevents deadlock from hung Chromium).</summary>
+    private static readonly TimeSpan PdfGateTimeout = TimeSpan.FromSeconds(30);
+
+    /// <summary>Max time for browser init lock acquisition.</summary>
+    private static readonly TimeSpan BrowserInitLockTimeout = TimeSpan.FromSeconds(45);
 
     private readonly ILogger<PlaywrightQuotePdfRenderer> _logger;
     private readonly IHostApplicationLifetime _lifetime;
@@ -37,8 +43,28 @@ public sealed class PlaywrightQuotePdfRenderer : IPlaywrightQuotePdfRenderer, IH
     {
         var trace = quoteTraceId ?? "(no-trace)";
         var gateWaitSw = Stopwatch.StartNew();
-        await _pdfGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        using var gateCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        gateCts.CancelAfter(PdfGateTimeout);
+        bool acquired;
+        try
+        {
+            acquired = await _pdfGate.WaitAsync(PdfGateTimeout, gateCts.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException) when (gateCts.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+        {
+            acquired = false;
+        }
         gateWaitSw.Stop();
+
+        if (!acquired)
+        {
+            var log0 = logger ?? _logger;
+            log0.LogWarning(
+                "[QUOTE GEN] PDF trace={Trace} phase=gate_timeout — another PDF call is hung; skipping local Playwright. waitMs={Ms}",
+                trace, gateWaitSw.ElapsedMilliseconds);
+            return false;
+        }
+
         var log = logger ?? _logger;
         var gateSw = Stopwatch.StartNew();
         try
@@ -160,7 +186,11 @@ public sealed class PlaywrightQuotePdfRenderer : IPlaywrightQuotePdfRenderer, IH
             return;
         }
 
-        await _browserInitLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+        if (!await _browserInitLock.WaitAsync(BrowserInitLockTimeout, cancellationToken).ConfigureAwait(false))
+        {
+            logger?.LogWarning("[QUOTE GEN] PDF trace={Trace} phase=browser_init_lock_timeout — another init is hung", trace);
+            return;
+        }
         try
         {
             if (_browser is { IsConnected: true })
@@ -191,7 +221,7 @@ public sealed class PlaywrightQuotePdfRenderer : IPlaywrightQuotePdfRenderer, IH
             _browser = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
             {
                 Headless = true,
-                Args = new[] { "--no-sandbox", "--disable-dev-shm-usage" },
+                Args = new[] { "--no-sandbox", "--disable-dev-shm-usage", "--disable-gpu" },
                 Timeout = ChromiumLaunchTimeoutMs
             }).ConfigureAwait(false);
             launchSw.Stop();
@@ -209,7 +239,11 @@ public sealed class PlaywrightQuotePdfRenderer : IPlaywrightQuotePdfRenderer, IH
 
     private async Task InvalidateBrowserAsync(ILogger? logger)
     {
-        await _browserInitLock.WaitAsync().ConfigureAwait(false);
+        if (!await _browserInitLock.WaitAsync(TimeSpan.FromSeconds(10)).ConfigureAwait(false))
+        {
+            logger?.LogWarning("[QUOTE GEN] Could not acquire browser init lock for invalidation (timeout).");
+            return;
+        }
         try
         {
             try

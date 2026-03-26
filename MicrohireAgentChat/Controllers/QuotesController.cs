@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Net.Http.Json;
 using MicrohireAgentChat.Helpers;
 using MicrohireAgentChat.Services;
 using Microsoft.AspNetCore.Hosting;
@@ -12,17 +14,23 @@ namespace MicrohireAgentChat.Controllers
         private readonly ILogger<QuotesController> _logger;
         private readonly IHostApplicationLifetime _hostLifetime;
         private readonly IPlaywrightQuotePdfRenderer _quotePdf;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IConfiguration _config;
 
         public QuotesController(
             IWebHostEnvironment env,
             ILogger<QuotesController> logger,
             IHostApplicationLifetime hostLifetime,
-            IPlaywrightQuotePdfRenderer quotePdf)
+            IPlaywrightQuotePdfRenderer quotePdf,
+            IHttpClientFactory httpClientFactory,
+            IConfiguration config)
         {
             _env = env;
             _logger = logger;
             _hostLifetime = hostLifetime;
             _quotePdf = quotePdf;
+            _httpClientFactory = httpClientFactory;
+            _config = config;
         }
 
         [HttpGet("/quotes/render")]
@@ -84,6 +92,145 @@ namespace MicrohireAgentChat.Controllers
 
             var stream = System.IO.File.OpenRead(outPath);
             return File(stream, "application/pdf", fileDownloadName: outFile); // forces download
+        }
+
+        [HttpGet("/quotes/test-pipeline")]
+        public async Task<IActionResult> TestPipeline()
+        {
+            var result = new Dictionary<string, object?>();
+            var quotesDir = QuoteFilesPaths.GetPhysicalQuotesDirectory(_env);
+            result["quotesDir"] = quotesDir;
+            result["isAzure"] = QuoteFilesPaths.IsAzureAppService;
+            result["playwrightBootstrap"] = PlaywrightBootstrap.GetStartupBrowserPathSummary();
+
+            var html = StaticQuoteHtml();
+            var testName = $"Quote-TEST-{DateTime.UtcNow:yyyyMMddHHmmss}";
+            var htmlFileName = testName + ".html";
+            var pdfFileName = testName + ".pdf";
+            var htmlPath = Path.Combine(quotesDir, htmlFileName);
+            var pdfPath = Path.Combine(quotesDir, pdfFileName);
+
+            // 1. HTML generation
+            var htmlSw = Stopwatch.StartNew();
+            try
+            {
+                await System.IO.File.WriteAllTextAsync(htmlPath, html);
+                htmlSw.Stop();
+                result["htmlOk"] = true;
+                result["htmlPath"] = $"/files/quotes/{htmlFileName}";
+                result["htmlBytes"] = new FileInfo(htmlPath).Length;
+                result["htmlMs"] = htmlSw.ElapsedMilliseconds;
+            }
+            catch (Exception ex)
+            {
+                htmlSw.Stop();
+                result["htmlOk"] = false;
+                result["htmlMs"] = htmlSw.ElapsedMilliseconds;
+                result["htmlError"] = ex.Message;
+            }
+
+            // 2. Remote PDF service
+            var pdfServiceUrl = _config["PdfService:BaseUrl"];
+            result["pdfServiceUrl"] = pdfServiceUrl ?? "(not configured)";
+
+            if (!string.IsNullOrWhiteSpace(pdfServiceUrl))
+            {
+                // 2a. Health check
+                try
+                {
+                    var client = _httpClientFactory.CreateClient("PdfRenderService");
+                    var healthSw = Stopwatch.StartNew();
+                    var healthResp = await client.GetAsync("health");
+                    healthSw.Stop();
+                    if (healthResp.IsSuccessStatusCode)
+                    {
+                        var healthBody = await healthResp.Content.ReadAsStringAsync();
+                        result["pdfServiceHealthy"] = true;
+                        result["pdfServiceHealthMs"] = healthSw.ElapsedMilliseconds;
+                        result["pdfServiceHealth"] = healthBody;
+                    }
+                    else
+                    {
+                        result["pdfServiceHealthy"] = false;
+                        result["pdfServiceHealthMs"] = healthSw.ElapsedMilliseconds;
+                        result["pdfServiceHealthStatus"] = (int)healthResp.StatusCode;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    result["pdfServiceHealthy"] = false;
+                    result["pdfServiceHealthError"] = ex.Message;
+                }
+
+                // 2b. PDF generation via remote service
+                var pdfSw = Stopwatch.StartNew();
+                try
+                {
+                    var client = _httpClientFactory.CreateClient("PdfRenderService");
+                    var resp = await client.PostAsJsonAsync("pdf/from-html", new { html });
+                    pdfSw.Stop();
+
+                    if (resp.IsSuccessStatusCode)
+                    {
+                        var pdfBytes = await resp.Content.ReadAsByteArrayAsync();
+                        if (pdfBytes.Length > 0)
+                        {
+                            await System.IO.File.WriteAllBytesAsync(pdfPath, pdfBytes);
+                            result["pdfOk"] = true;
+                            result["pdfPath"] = $"/files/quotes/{pdfFileName}";
+                            result["pdfBytes"] = pdfBytes.Length;
+                            result["pdfMs"] = pdfSw.ElapsedMilliseconds;
+                            result["pdfSource"] = "remote";
+                        }
+                        else
+                        {
+                            result["pdfOk"] = false;
+                            result["pdfError"] = "Remote service returned empty PDF";
+                            result["pdfMs"] = pdfSw.ElapsedMilliseconds;
+                        }
+                    }
+                    else
+                    {
+                        var body = await resp.Content.ReadAsStringAsync();
+                        result["pdfOk"] = false;
+                        result["pdfError"] = $"HTTP {(int)resp.StatusCode}: {(body.Length > 300 ? body[..300] : body)}";
+                        result["pdfMs"] = pdfSw.ElapsedMilliseconds;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    pdfSw.Stop();
+                    result["pdfOk"] = false;
+                    result["pdfError"] = ex.Message;
+                    result["pdfMs"] = pdfSw.ElapsedMilliseconds;
+                }
+            }
+            else
+            {
+                // 2c. Fallback: local Playwright
+                var pdfSw = Stopwatch.StartNew();
+                try
+                {
+                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(45));
+                    var ok = await _quotePdf.GeneratePdfFromHtmlAsync(html, pdfPath, _logger, cts.Token, "test-pipeline");
+                    pdfSw.Stop();
+                    result["pdfOk"] = ok && System.IO.File.Exists(pdfPath) && new FileInfo(pdfPath).Length > 0;
+                    result["pdfPath"] = ok ? $"/files/quotes/{pdfFileName}" : null;
+                    result["pdfBytes"] = System.IO.File.Exists(pdfPath) ? new FileInfo(pdfPath).Length : 0;
+                    result["pdfMs"] = pdfSw.ElapsedMilliseconds;
+                    result["pdfSource"] = "local-playwright";
+                }
+                catch (Exception ex)
+                {
+                    pdfSw.Stop();
+                    result["pdfOk"] = false;
+                    result["pdfError"] = ex.Message;
+                    result["pdfMs"] = pdfSw.ElapsedMilliseconds;
+                    result["pdfSource"] = "local-playwright";
+                }
+            }
+
+            return Json(result);
         }
 
         private static string StaticQuoteHtml()
