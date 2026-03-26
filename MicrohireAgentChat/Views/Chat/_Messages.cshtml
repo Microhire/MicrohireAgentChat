@@ -1791,6 +1791,11 @@ else
   }
 
   function toQuoteDownloadEndpoint(rawHref, suggestedName){
+    const h = (rawHref || '').trim();
+    // Pending chat links use href="#" with data-download-name until the PDF is written beside the HTML.
+    if((h === '#' || h === '' || /^javascript:/i.test(h)) && (suggestedName || '').trim()){
+      return `/quotes/download?file=${encodeURIComponent(suggestedName.trim())}`;
+    }
     if(!rawHref) return '';
     let urlObj;
     try{
@@ -1879,6 +1884,55 @@ else
     dl.click();
     dl.remove();
     setTimeout(()=>URL.revokeObjectURL(blobUrl), 1500);
+  }
+
+  /**
+   * PDF is generated asynchronously after HTML is returned. Poll /quotes/download until the file exists.
+   */
+  async function downloadQuotePdfWhenReady(anchor){
+    const preferredName = (anchor.getAttribute('data-download-name') || '').trim();
+    if(!preferredName){
+      throw new Error('Missing data-download-name');
+    }
+    if(anchor.hasAttribute('data-isla-quote-pdf-fetching')){
+      return;
+    }
+    anchor.setAttribute('data-isla-quote-pdf-fetching','1');
+    const endpoint = `/quotes/download?file=${encodeURIComponent(preferredName)}`;
+    const maxMs = 125000;
+    const intervalMs = 400;
+    const start = Date.now();
+    try{
+      while(Date.now() - start < maxMs){
+        let resp;
+        try{
+          resp = await fetch(endpoint, { method: 'GET', credentials: 'same-origin' });
+        }catch(_){
+          resp = null;
+        }
+        if(resp && resp.ok){
+          const blob = await resp.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          const headerName = parseDownloadFilename(resp.headers.get('content-disposition'));
+          const fallbackName = preferredName || headerName || 'Quote.pdf';
+          const dl = document.createElement('a');
+          dl.href = blobUrl;
+          dl.download = fallbackName;
+          dl.style.display = 'none';
+          document.body.appendChild(dl);
+          dl.click();
+          dl.remove();
+          setTimeout(()=>URL.revokeObjectURL(blobUrl), 1500);
+          anchor.removeAttribute('data-isla-quote-pdf-pending');
+          anchor.setAttribute('href', endpoint);
+          return;
+        }
+        await new Promise(r=>setTimeout(r, intervalMs));
+      }
+      throw new Error('timeout');
+    }finally{
+      anchor.removeAttribute('data-isla-quote-pdf-fetching');
+    }
   }
 
   // --- Image Preview Modal Logic ---
@@ -2809,7 +2863,13 @@ else
     if(quoteDownloadLink.hasAttribute('data-isla-quote-pdf-pending')){
       ev.preventDefault();
       ev.stopPropagation();
-      alert('PDF download is temporarily unavailable while we finish this feature. You can still open the full quote using View.');
+      try{
+        await downloadQuotePdfWhenReady(quoteDownloadLink);
+        notifyQuoteReviewed();
+      }catch(err){
+        console.warn('quote PDF not ready', err);
+        alert('The PDF is still being prepared. Wait a few seconds and try Download again, or open the full quote with View.');
+      }
       return;
     }
     ev.preventDefault();

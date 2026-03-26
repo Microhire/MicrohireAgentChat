@@ -66,7 +66,8 @@ public static class QuoteDownloadHref
     }
 
     /// <summary>
-    /// Chat "download" control: does not navigate to PDF; client shows an in-progress message (<c>data-isla-quote-pdf-pending</c>).
+    /// Chat download control while PDF is generating: <c>href=\"#\"</c> plus <c>data-isla-quote-pdf-pending</c>;
+    /// the UI polls <c>/quotes/download?file=...</c> until the sibling PDF exists.
     /// </summary>
     public static string BuildPendingDownloadAnchor(string quoteUrl, string? bookingNo)
     {
