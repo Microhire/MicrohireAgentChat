@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Delete all app + Microhire (AITESTDB) data for one email address.
+#
+# AgentThreads: UserKey is normally the anonymous ASP.NET session id; Email holds the verified address.
+# Rows must be deleted by Email (not only UserKey=email) or orphaned mappings survive after wiping a contact.
 # Usage:
 #   export AITEST_PASSWORD=... INTENT_PASSWORD=...   # or source Scripts/delete-email.env
 #   ./Scripts/delete-email-data.sh 'nith@intent.do'
@@ -159,13 +162,17 @@ DELETE FROM dbo.WestinLeads WHERE LOWER(LTRIM(Email)) = LOWER(N'$EMAIL_SQL');
 COMMIT TRANSACTION;
 "
 
-echo "--- IntentTestDB: AgentThreads (UserKey equals email) ---"
+# AgentThreads: anonymous browsers map by session id in UserKey; verified email is stored in Email.
+# Delete by Email (primary) and by UserKey=email for any legacy rows.
+echo "--- IntentTestDB: AgentThreads (Email or UserKey equals email) ---"
 run_intent_sql "
 SET NOCOUNT ON;
 IF OBJECT_ID('dbo.AgentThreads','U') IS NOT NULL
 BEGIN
   BEGIN TRANSACTION;
-  DELETE FROM dbo.AgentThreads WHERE LOWER(LTRIM(UserKey)) = LOWER(N'$EMAIL_SQL');
+  DELETE FROM dbo.AgentThreads
+  WHERE LOWER(LTRIM(ISNULL(Email,''))) = LOWER(N'$EMAIL_SQL')
+     OR LOWER(LTRIM(UserKey)) = LOWER(N'$EMAIL_SQL');
   COMMIT TRANSACTION;
 END
 "

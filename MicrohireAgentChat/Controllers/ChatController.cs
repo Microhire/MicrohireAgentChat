@@ -302,6 +302,139 @@ public sealed class ChatController : Controller
         HttpContext.Session.Remove("Draft:VideoConference");
     }
 
+    /// <summary>
+    /// Session keys to keep when the DB has no persisted draft for this email (e.g. row deleted) but the
+    /// browser still holds an old Azure thread id and wizard flags. Matches lead prefill + identity.
+    /// </summary>
+    private static readonly string[] SessionKeysPreservedWhenResettingChatProgress =
+    {
+        "Draft:EntrySource",
+        "Draft:EmailGateCompleted",
+        "Draft:ContactEmail",
+        "Draft:LeadVerifyEmail",
+        "Draft:ContactName",
+        "Draft:ContactFirstName",
+        "Draft:ContactLastName",
+        "Draft:ContactPhone",
+        "Draft:Organisation",
+        "Draft:OrganisationAddress",
+        "Draft:Position",
+        "Draft:VenueName",
+        "Draft:RoomName",
+        "Draft:EventDate",
+        "Draft:EventEndDate",
+        "Draft:ExpectedAttendees",
+    };
+
+    private Dictionary<string, string> SnapshotPreservedChatIdentityKeys()
+    {
+        var snap = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var key in SessionKeysPreservedWhenResettingChatProgress)
+        {
+            var v = HttpContext.Session.GetString(key);
+            if (!string.IsNullOrEmpty(v))
+                snap[key] = v;
+        }
+
+        return snap;
+    }
+
+    private static void RestorePreservedChatIdentityKeys(ISession session, Dictionary<string, string> snap)
+    {
+        foreach (var kvp in snap)
+            session.SetString(kvp.Key, kvp.Value);
+    }
+
+    /// <summary>
+    /// Clears quote, wizard, and Azure thread binding while restoring identity/lead prefill. Then creates
+    /// a new Azure thread and persists the mapping for <paramref name="userKey"/>.
+    /// </summary>
+    private async Task ResetChatProgressForFreshPersistenceAsync(string userKey, CancellationToken ct)
+    {
+        var snap = SnapshotPreservedChatIdentityKeys();
+        ClearBookingAndQuoteDraftState();
+        RestorePreservedChatIdentityKeys(HttpContext.Session, snap);
+
+        var session = HttpContext.Session;
+        session.Remove("AgentThreadId");
+        session.Remove("IslaGreeted");
+        session.Remove("Draft:EventFormSubmitted");
+        session.Remove("Draft:ContactFormSubmitted");
+        session.Remove("Draft:ShowContactSummary");
+        session.Remove("Draft:PresenterCount");
+        session.Remove("Draft:SpeakerCount");
+        session.Remove("Draft:NeedsClicker");
+        session.Remove("Draft:NeedsRecording");
+        session.Remove("Draft:TechStartTime");
+        session.Remove("Draft:TechEndTime");
+        session.Remove("Draft:TechWholeEvent");
+        session.Remove("Draft:AvExtrasSubmitted");
+        session.Remove("Draft:TechnicianCoverage");
+        session.Remove("Draft:SetupTime");
+        session.Remove("Draft:RehearsalTime");
+        session.Remove("Draft:StartTime");
+        session.Remove("Draft:EndTime");
+        session.Remove("Draft:PackupTime");
+        session.Remove("Draft:SummaryEquipmentRequests");
+        session.Remove("Draft:QuoteTimestamp");
+        session.Remove("Draft:IsContentHeavy");
+        session.Remove("Draft:IsContentLight");
+        session.Remove("Draft:NeedsSdiCross");
+        session.Remove("Draft:EventType");
+        session.Remove("Draft:SetupStyle");
+        session.Remove(GenerateQuoteFlag);
+        session.Remove("Draft:ContactId");
+        session.Remove("Draft:CustomerCode");
+        session.Remove("Draft:OrgId");
+        session.Remove("Ack:Budget");
+        session.Remove("Ack:Attendees");
+        session.Remove("Ack:SetupStyle");
+        session.Remove("Ack:Venue");
+        session.Remove("Ack:SpecialRequests");
+        session.Remove("Ack:Dates");
+        session.Remove("ContactSavePending");
+        session.Remove("ContactSaveCompleted");
+
+        var newThreadId = _chat.EnsureThreadId(session);
+        await _chat.ReplacePersistedThreadAsync(userKey, newThreadId, ct);
+        await _chat.EnsureGreetingAsync(session, GreetingText, ct);
+    }
+
+    /// <summary>
+    /// After a DB wipe, the browser session can still hold wizard flags and an Azure thread id.
+    /// If there is no <see cref="AgentThreads"/> row for the verified email, reset when progress looks non-trivial.
+    /// </summary>
+    private async Task MaybeResetOrphanSessionAfterDbWipeAsync(string userKey, CancellationToken ct)
+    {
+        if (!string.Equals(HttpContext.Session.GetString("Draft:EmailGateCompleted"), "1", StringComparison.Ordinal))
+            return;
+
+        var email = HttpContext.Session.GetString("Draft:ContactEmail");
+        if (string.IsNullOrWhiteSpace(email))
+            return;
+
+        var saved = await _sessionPersistence.FindByEmailAsync(email.Trim(), ct);
+        if (saved != null)
+            return;
+
+        var s = HttpContext.Session;
+        var stale =
+            string.Equals(s.GetString("Draft:QuoteComplete"), "1", StringComparison.Ordinal)
+            || !string.IsNullOrWhiteSpace(s.GetString("Draft:BookingNo"))
+            || string.Equals(s.GetString("Draft:BaseAvSubmitted"), "1", StringComparison.Ordinal)
+            || string.Equals(s.GetString("Draft:FollowUpAvSubmitted"), "1", StringComparison.Ordinal)
+            || string.Equals(s.GetString("Draft:VenueConfirmSubmitted"), "1", StringComparison.Ordinal)
+            || string.Equals(s.GetString("Draft:EventFormSubmitted"), "1", StringComparison.Ordinal);
+
+        if (!stale)
+            return;
+
+        _logger.LogInformation(
+            "Reconciling stale session: no AgentThreads row for verified email {Email}; resetting chat progress.",
+            email);
+        await ResetChatProgressForFreshPersistenceAsync(userKey, ct);
+    }
+
     private void PersistProjectorAreaSelection(string threadId, IReadOnlyList<string> projectorAreas)
     {
         if (projectorAreas == null || projectorAreas.Count == 0)
@@ -491,27 +624,27 @@ public sealed class ChatController : Controller
 
             if (!startedFreshLeadChat)
             {
+                await MaybeResetOrphanSessionAfterDbWipeAsync(userKey, ct);
+
                 await _chat.EnsureThreadIdPersistedAsync(HttpContext.Session, userKey, ct);
-                
-                // Restore draft state from DB if session is missing critical keys
-                if (string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:EntrySource")))
+
+                // Restore draft state from DB when the session has no EntrySource (cold load edge case).
+                var emailForRestore = HttpContext.Session.GetString("Draft:ContactEmail");
+                if (string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:EntrySource"))
+                    && !string.IsNullOrWhiteSpace(emailForRestore))
                 {
-                    var email = HttpContext.Session.GetString("Draft:ContactEmail");
-                    if (!string.IsNullOrWhiteSpace(email))
+                    try
                     {
-                        try
-                        {
-                            var saved = await _sessionPersistence.FindByEmailAsync(email, ct);
-                            if (saved != null)
-                                _sessionPersistence.RestoreToSession(HttpContext.Session, saved);
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(ex, "Session restore by email skipped on Index for TraceId={TraceId}", HttpContext.TraceIdentifier);
-                        }
+                        var saved = await _sessionPersistence.FindByEmailAsync(emailForRestore, ct);
+                        if (saved != null && !string.IsNullOrWhiteSpace(saved.DraftStateJson))
+                            _sessionPersistence.RestoreToSession(HttpContext.Session, saved);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Session restore by email skipped on Index for TraceId={TraceId}", HttpContext.TraceIdentifier);
                     }
                 }
-                
+
                 await _chat.EnsureGreetingAsync(HttpContext.Session, GreetingText, ct);
             }
 
@@ -1427,6 +1560,16 @@ public sealed class ChatController : Controller
                             shouldRestore = true; // fallback to restore if JSON is corrupt
                         }
                     }
+                }
+
+                var noPersistedDraftToRestore = existingSession == null
+                    || string.IsNullOrWhiteSpace(existingSession.DraftStateJson);
+                if (noPersistedDraftToRestore && !shouldRestore)
+                {
+                    _logger.LogInformation(
+                        "No persisted chat draft for {Email}; resetting Azure thread and wizard session while preserving contact/lead keys.",
+                        emailNorm);
+                    await ResetChatProgressForFreshPersistenceAsync(userKey, ct);
                 }
 
                 if (shouldRestore && existingSession != null)
