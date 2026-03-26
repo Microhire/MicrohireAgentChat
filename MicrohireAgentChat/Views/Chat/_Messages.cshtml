@@ -1889,6 +1889,10 @@ else
 
     const resp = await fetch(endpoint, { method: 'GET', credentials: 'same-origin' });
     if(!resp.ok){
+      if(resp.status === 404 && preferredName && endpoint.indexOf('/quotes/download') >= 0){
+        await downloadQuotePdfWhenReady(anchor);
+        return;
+      }
       throw new Error(`Download failed with status ${resp.status}`);
     }
 

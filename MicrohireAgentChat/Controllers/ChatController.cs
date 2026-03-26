@@ -8,6 +8,7 @@ using MicrohireAgentChat.Services;
 using MicrohireAgentChat.Services.Extraction;
 using MicrohireAgentChat.Services.Orchestration;
 using MicrohireAgentChat.Services.Persistence;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -490,6 +491,18 @@ public sealed class ChatController : Controller
         {
             return null;
         }
+    }
+
+    /// <summary>Fresh antiforgery token for JS (partial reloads may omit the form token in DOM).</summary>
+    [HttpGet]
+    [IgnoreAntiforgeryToken]
+    public IActionResult AntiforgeryToken([FromServices] IAntiforgery antiforgery)
+    {
+        var tokens = antiforgery.GetAndStoreTokens(HttpContext);
+        var token = tokens.RequestToken;
+        if (string.IsNullOrEmpty(token))
+            return StatusCode(500, new { error = "Antiforgery token unavailable" });
+        return Json(new { token });
     }
 
     // Full page
@@ -4060,9 +4073,8 @@ public sealed class ChatController : Controller
     private static DisplayMessage BuildQuoteReadyMessage(string bookingNo, string quoteUrl)
     {
         const string confirmationPrompt = "\n\nWould you like to confirm this quote?";
-        var downloadHref = QuoteDownloadHref.Build(quoteUrl, bookingNo);
-        var downloadName = System.Net.WebUtility.HtmlEncode(QuoteDownloadHref.GetPdfFileName(quoteUrl, bookingNo));
-        var successPart = $"Great news! I have successfully generated your quote for booking {bookingNo}. You can view it <a href=\"{quoteUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">here</a> or <a href=\"{downloadHref}\" rel=\"noopener noreferrer\" class=\"isla-quote-download\" data-quote-download=\"1\" data-download-name=\"{downloadName}\"><i class=\"ph ph-download\"></i> download it</a>.";
+        var downloadAnchor = QuoteDownloadHref.BuildPendingDownloadAnchor(quoteUrl, bookingNo);
+        var successPart = $"Great news! I have successfully generated your quote for booking {bookingNo}. You can view it <a href=\"{quoteUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">here</a> or {downloadAnchor}.";
         return new DisplayMessage
         {
             Role = "assistant",
@@ -4075,7 +4087,6 @@ public sealed class ChatController : Controller
 
     private static string BuildSignedQuoteActionsHtml(string quoteUrl, string bookingNo, bool includeDownload = true)
     {
-        var downloadName = System.Net.WebUtility.HtmlEncode(QuoteDownloadHref.GetPdfFileName(quoteUrl, bookingNo));
         var viewBtn =
             $"<a href=\"{quoteUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-download-btn isla-quote-open\" data-quote-open=\"1\">View Signed Quote</a>";
         if (!includeDownload)
@@ -4086,11 +4097,11 @@ public sealed class ChatController : Controller
                 "</div>";
         }
 
-        var downloadHref = QuoteDownloadHref.Build(quoteUrl, bookingNo);
+        var downloadBtn = QuoteDownloadHref.BuildPendingSignedDownloadButton(quoteUrl, bookingNo);
         return
             "<div style=\"margin-top:1rem;display:flex;gap:.75rem;flex-wrap:wrap;justify-content:center\">" +
             viewBtn +
-            $"<a href=\"{downloadHref}\" rel=\"noopener noreferrer\" class=\"isla-quote-download-btn isla-quote-download\" data-quote-download=\"1\" data-download-name=\"{downloadName}\">Download Signed Quote</a>" +
+            downloadBtn +
             "</div>";
     }
 
