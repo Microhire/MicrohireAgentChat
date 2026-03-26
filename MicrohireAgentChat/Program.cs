@@ -92,6 +92,10 @@ builder.Services.AddScoped<AzureAgentChatService>();
 builder.Services.AddScoped<ChatSessionPersistenceService>();
 builder.Services.AddScoped<BookingService>();
 builder.Services.AddHostedService<PlaywrightBootstrapHostedService>();
+// Single instance: PDF rendering (scoped services inject IPlaywrightQuotePdfRenderer) + IHostedService lifetime hook.
+builder.Services.AddSingleton<PlaywrightQuotePdfRenderer>();
+builder.Services.AddSingleton<IPlaywrightQuotePdfRenderer>(sp => sp.GetRequiredService<PlaywrightQuotePdfRenderer>());
+builder.Services.AddHostedService(sp => sp.GetRequiredService<PlaywrightQuotePdfRenderer>());
 builder.Services.AddHostedService<AgentToolInstaller>();
 builder.Services.AddSingleton<PdfStamperService>();
 builder.Services.AddSingleton<PdfFromBlankService>();
@@ -158,16 +162,20 @@ using (var scope = app.Services.CreateScope())
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
     {
-        context.Database.ExecuteSqlRaw(@"
+        // Separate batches: T-SQL validates the whole batch before execute, so CREATE INDEX on
+        // Email cannot share a batch with ALTER TABLE ADD Email.
+        context.Database.ExecuteSqlRaw("""
             IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AgentThreads') AND name = 'Email')
                 ALTER TABLE dbo.AgentThreads ADD Email NVARCHAR(200) NULL;
-
+            """);
+        context.Database.ExecuteSqlRaw("""
             IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AgentThreads') AND name = 'DraftStateJson')
                 ALTER TABLE dbo.AgentThreads ADD DraftStateJson NVARCHAR(MAX) NULL;
-
+            """);
+        context.Database.ExecuteSqlRaw("""
             IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('dbo.AgentThreads') AND name = 'IX_AgentThreads_Email')
                 CREATE NONCLUSTERED INDEX IX_AgentThreads_Email ON dbo.AgentThreads (Email) WHERE Email IS NOT NULL;
-        ");
+            """);
         logger.LogInformation("Ensured AgentThreads schema is up to date.");
     }
     catch (Exception ex)
