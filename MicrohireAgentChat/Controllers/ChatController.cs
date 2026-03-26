@@ -1337,9 +1337,57 @@ public sealed class ChatController : Controller
                 HttpContext.Session.SetString("Draft:EmailGateCompleted", "1");
                 HttpContext.Session.Remove("Draft:LeadVerifyEmail");
 
-                // Check for existing session to restore
+                // Check for existing session to restore, but only if it's for the same booking
+                var lookup = IsLeadEntry() ? null : await _bookingQuery.FindLatestUpcomingBookingForEmailAsync(emailNorm, ct);
                 var existingSession = await _sessionPersistence.FindByEmailAsync(emailNorm, ct);
+                
+                bool shouldRestore = false;
                 if (existingSession != null && !string.IsNullOrWhiteSpace(existingSession.DraftStateJson))
+                {
+                    if (IsLeadEntry())
+                    {
+                        // Lead entries: if they are returning to the same thread, restore it
+                        shouldRestore = true;
+                    }
+                    else if (lookup?.Booking == null)
+                    {
+                        // No new booking found in RentalPoint, restore whatever progress they had
+                        shouldRestore = true;
+                    }
+                    else
+                    {
+                        // We found a booking in RentalPoint. Check if it matches the one in our saved session.
+                        try
+                        {
+                            var state = JsonSerializer.Deserialize<Dictionary<string, string>>(existingSession.DraftStateJson);
+                            if (state != null && state.TryGetValue("Draft:BookingNo", out var savedBookingNo) && savedBookingNo == lookup.Booking.booking_no)
+                            {
+                                shouldRestore = true;
+                            }
+                            else
+                            {
+                                var oldBooking = (state != null && state.TryGetValue("Draft:BookingNo", out var sbn)) ? sbn : "none";
+                                _logger.LogInformation("New booking {NewBooking} found for {Email}; starting fresh instead of restoring old session {OldBooking}", 
+                                    lookup.Booking.booking_no, emailNorm, oldBooking);
+                                
+                                // FORCE START FRESH: clear progress and start a new Azure thread
+                                ClearBookingAndQuoteDraftState();
+                                HttpContext.Session.Remove("AgentThreadId");
+                                var freshThreadId = _chat.EnsureThreadId(HttpContext.Session);
+                                await _chat.ReplacePersistedThreadAsync(userKey, freshThreadId, ct);
+                                await _chat.EnsureGreetingAsync(HttpContext.Session, GreetingText, ct);
+                                
+                                shouldRestore = false;
+                            }
+                        }
+                        catch
+                        {
+                            shouldRestore = true; // fallback to restore if JSON is corrupt
+                        }
+                    }
+                }
+
+                if (shouldRestore && existingSession != null)
                 {
                     // Restore thread + all draft state from the database
                     _sessionPersistence.RestoreToSession(HttpContext.Session, existingSession);
@@ -1371,7 +1419,7 @@ public sealed class ChatController : Controller
                 }
                 else
                 {
-                    var lookup = await _bookingQuery.FindLatestUpcomingBookingForEmailAsync(emailNorm, ct);
+                    // Use the lookup we already performed above
                     if (lookup == null)
                     {
                         HttpContext.Session.SetString("Draft:NeedManualContact", "1");

@@ -151,6 +151,33 @@ builder.Services.AddAntiforgery(o => o.HeaderName = "RequestVerificationToken");
 
 var app = builder.Build();
 
+// Ensure database schema is up to date for AgentThreads
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        // Check if columns exist and add them if not. 
+        // This is a safety measure since we don't use EF Migrations here.
+        context.Database.ExecuteSqlRaw(@"
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AgentThreads') AND name = 'Email')
+                ALTER TABLE dbo.AgentThreads ADD Email NVARCHAR(200) NULL;
+
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.AgentThreads') AND name = 'DraftStateJson')
+                ALTER TABLE dbo.AgentThreads ADD DraftStateJson NVARCHAR(MAX) NULL;
+
+            IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('dbo.AgentThreads') AND name = 'IX_AgentThreads_Email')
+                CREATE NONCLUSTERED INDEX IX_AgentThreads_Email ON dbo.AgentThreads (Email) WHERE Email IS NOT NULL;
+        ");
+        logger.LogInformation("Ensured AgentThreads schema is up to date.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogWarning(ex, "Failed to ensure AgentThreads schema is up to date. The columns might already exist or the user might not have permissions.");
+    }
+}
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
