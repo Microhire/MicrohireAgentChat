@@ -8,6 +8,7 @@ using MicrohireAgentChat.Services;
 using MicrohireAgentChat.Services.Extraction;
 using MicrohireAgentChat.Services.Orchestration;
 using MicrohireAgentChat.Services.Persistence;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -3001,6 +3002,21 @@ public sealed class ChatController : Controller
             Response.StatusCode = 500;
             return Content("Unable to update quote review state.");
         }
+    }
+
+    /// <summary>
+    /// Returns a request token bound to the current antiforgery cookie. Use before sensitive AJAX POSTs when
+    /// the page may hold a stale hidden field (e.g. session/cookie rotated after another navigation in the same browser).
+    /// </summary>
+    [HttpGet]
+    public IActionResult AntiforgeryToken([FromServices] IAntiforgery antiforgery)
+    {
+        var tokens = antiforgery.GetAndStoreTokens(HttpContext);
+        if (string.IsNullOrEmpty(tokens.RequestToken))
+            return BadRequest();
+
+        Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
+        return Json(new { token = tokens.RequestToken, headerName = "RequestVerificationToken" });
     }
 
     [HttpPost]

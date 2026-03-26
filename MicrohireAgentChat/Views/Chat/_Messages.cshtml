@@ -1521,8 +1521,20 @@ else
   console.log('isla-chat-binder binding started');
 
   function getCsrf(){
+    const inTranscript=document.querySelector('#messagesWrap input[name="__RequestVerificationToken"]');
+    if(inTranscript && inTranscript.value) return inTranscript.value;
     const el=document.querySelector('input[name="__RequestVerificationToken"]');
     return el?el.value:'';
+  }
+  async function getCsrfForPost(){
+    try{
+      const r=await fetch('/Chat/AntiforgeryToken',{method:'GET',credentials:'same-origin',cache:'no-store'});
+      if(r.ok){
+        const j=await r.json();
+        if(j && j.token) return j.token;
+      }
+    }catch(_){ /* fall back */ }
+    return getCsrf();
   }
   function showBusy(btn){
     if(!btn) return;
@@ -2795,18 +2807,33 @@ else
     const sigData=canvas.toDataURL('image/png');
     btn.disabled=true; btn.innerHTML='Submitting…<span class="isla-spinner"></span>';
     try{
-      const token=getCsrf();
+      const token=await getCsrfForPost();
+      if(!token){ showErr('Your page session expired. Please refresh and open your quote again.'); throw new Error('csrf'); }
+      const params=new URLSearchParams();
+      params.set('__RequestVerificationToken',token);
+      params.set('fullName',name);
+      params.set('signDate',date);
+      params.set('titlePosition',title);
+      params.set('purchaseOrder',po);
+      params.set('signatureData',sigData);
       const resp=await fetch('/Chat/AcceptQuoteWithSignaturePartial',{
         method:'POST',
+        credentials:'same-origin',
         headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8','RequestVerificationToken':token},
-        body:new URLSearchParams({fullName:name,signDate:date,titlePosition:title,purchaseOrder:po,signatureData:sigData})
+        body:params
       });
+      if(resp.status===400){
+        showErr('Your session may have expired. Refresh the page and try signing again.');
+        throw new Error('csrf400');
+      }
       if(!resp.ok) throw new Error('Server error '+resp.status);
       const html=await resp.text();
       const wrap=document.getElementById('messagesWrap');
       if(wrap){ applyMessagesPartialHtml(wrap, html); }
     }catch(ex){
-      showErr('Something went wrong. Please try again.');
+      if(!ex || (ex.message!=='csrf' && ex.message!=='csrf400')){
+        showErr('Something went wrong. Please try again.');
+      }
       btn.disabled=false; btn.textContent='Sign & Accept';
     }
   },{passive:false});
