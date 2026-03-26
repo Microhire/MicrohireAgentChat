@@ -1664,6 +1664,7 @@ public sealed class ChatController : Controller
                 venueConfirmThisRequest = true;
             }
 
+            var baseAvThisRequest = false;
             if (TryCaptureEventDetailsFormSubmission(text, out var eventDetails))
             {
                 SaveEventDetailsToSession(eventDetails);
@@ -1675,6 +1676,7 @@ public sealed class ChatController : Controller
                 SaveBaseAvToSession(baseAv);
                 text = BuildBaseAvSyntheticMessage(baseAv);
                 TryPersistProjectorPlacementFromBaseAv(threadId, baseAv);
+                baseAvThisRequest = true;
             }
 
             var followUpAvThisRequest = false;
@@ -1844,14 +1846,15 @@ public sealed class ChatController : Controller
                         _logger.LogInformation("[CHAT_FLOW] SendAsync completed in {Duration}s", (DateTime.UtcNow - sendStart).TotalSeconds);
                     }
                 }
-                else if (emailFormThisRequest || venueConfirmThisRequest)
+                else if (emailFormThisRequest || venueConfirmThisRequest || baseAvThisRequest)
                 {
                     // Structured wizard: persist user line to Azure for transcript continuity but skip the agent run.
                     // SendAsync post-processing (contact/booking DB, time picker, etc.) routinely exceeds client fetch
                     // timeouts for this step; EnsureStructuredFormsInChat supplies the next UI immediately.
+                    var structuredStep = emailFormThisRequest ? "email gate" : venueConfirmThisRequest ? "venue confirm" : "base AV";
                     _logger.LogInformation(
                         "[CHAT_FLOW] Skipping SendAsync for structured {Step}; AppendUserMessageAsync only ({Duration}s since send start)",
-                        emailFormThisRequest ? "email gate" : "venue confirm",
+                        structuredStep,
                         (DateTime.UtcNow - sendStart).TotalSeconds);
                     await _chat.AppendUserMessageAsync(HttpContext.Session, text, ct);
                     var (_, mlSkip) = _chat.GetTranscript(threadId);
@@ -1901,7 +1904,8 @@ public sealed class ChatController : Controller
             // Email/venue structured steps skip SendAsync (user line only); no new assistant turn is expected.
             if (!HasAssistantDelta(assistantCountBeforeTurn, msgList)
                 && !emailFormThisRequest
-                && !venueConfirmThisRequest)
+                && !venueConfirmThisRequest
+                && !baseAvThisRequest)
             {
                 _logger.LogWarning("[CHAT_FLOW] SendPartial produced no assistant delta for thread {ThreadId} (sendFailed={SendFailed}). Appending fallback reply.", threadId, sendFailed);
                 await AddAssistantMessageAndPersistAsync(msgList, BuildTransientFailureFallbackMessage(), ct);
@@ -4754,9 +4758,13 @@ public sealed class ChatController : Controller
         if (HttpContext.Session.GetString("Draft:QuoteComplete") == "1" && messages.Count > 0)
             return;
 
-        // Only skip wizard when assistant is at "generate the quote" — not generic "please confirm" (venue/email).
+        var followUpAvSubmitted = HttpContext.Session.GetString("Draft:FollowUpAvSubmitted") == "1";
+
+        // Skip re-injecting wizard UI when assistant is steering to quote *and* follow-up AV is already done.
+        // Do not bail while follow-up is still pending — otherwise a premature "generate the quote now?" model line
+        // blocks injection of the follow-up form (section 7).
         var assistantAskedQuoteGeneration = messages.Any(m => QuoteSummaryAskHelpers.AssistantMessageContainsQuoteGenerationPrompt(m));
-        if (assistantAskedQuoteGeneration)
+        if (assistantAskedQuoteGeneration && followUpAvSubmitted)
             return;
 
         var entrySource = HttpContext.Session.GetString("Draft:EntrySource") ?? "general";
@@ -4766,7 +4774,6 @@ public sealed class ChatController : Controller
         var venueConfirmSubmitted = HttpContext.Session.GetString("Draft:VenueConfirmSubmitted") == "1";
         var eventFormSubmitted = HttpContext.Session.GetString("Draft:EventFormSubmitted") == "1";
         var baseAvSubmitted = HttpContext.Session.GetString("Draft:BaseAvSubmitted") == "1";
-        var followUpAvSubmitted = HttpContext.Session.GetString("Draft:FollowUpAvSubmitted") == "1";
 
         // Lead links: after email verification, show venue wizard even if org/name are missing on the lead row.
         var hasContactDraft = contactFormSubmitted
@@ -4899,7 +4906,9 @@ public sealed class ChatController : Controller
         {
             if (!messages.Any(m => MessageContainsUiType(m, "followUpAvForm")))
             {
-                messages.Add(BuildUiAssistantMessage("I have a few follow-up questions.", BuildFollowUpAvFormUiJson()));
+                messages.Add(BuildUiAssistantMessage(
+                    "Thanks for confirming the base AV package. I have a few follow-up questions.",
+                    BuildFollowUpAvFormUiJson()));
             }
             return;
         }

@@ -129,6 +129,7 @@ The chat follows a wizard flow. Isla should elaborate on the data captured at ea
 ### 3. AV REQUIREMENTS (FORM-FIRST FLOW)
 - Form: `BaseAv: ...`
 - Isla: Elaborate on the vision package chosen. If they chose Position A in Westin Ballroom, mention it provides great visibility from the south side.
+- **After `BaseAv:` do not** ask whether to generate or create the quote, or any variant (“Would you like me to generate the quote now?”, “shall I create the quote”, etc.). The next step is always the **Follow-up AV** card and **Get quote**; the app runs quoting after `FollowUpAv:` / that button — not after Base AV alone.
 - Form: `FollowUpAv: ...` (the chat shows this as **"I have a few follow-up questions"** with the red action button — microphones, lectern, foldback, wireless presenter, laptop switcher, stage laptop, video conference).
 - Isla: Elaborate on microphones and extras. For example, "With 4 lapel microphones, your presenters will have total freedom to move around the stage while being clearly heard through the ceiling speakers."
 
