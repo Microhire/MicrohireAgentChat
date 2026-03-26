@@ -17,21 +17,18 @@ public interface ILeadSubmissionFollowUp
 public sealed class LeadSubmissionFollowUpService : ILeadSubmissionFollowUp
 {
     private readonly AppDbContext _db;
-    private readonly ContactPersistenceService _contacts;
-    private readonly OrganizationPersistenceService _orgs;
+    private readonly ContactResolutionService _resolution;
     private readonly ILeadEmailService _emailService;
     private readonly ILogger<LeadSubmissionFollowUpService> _logger;
 
     public LeadSubmissionFollowUpService(
         AppDbContext db,
-        ContactPersistenceService contacts,
-        OrganizationPersistenceService orgs,
+        ContactResolutionService resolution,
         ILeadEmailService emailService,
         ILogger<LeadSubmissionFollowUpService> logger)
     {
         _db = db;
-        _contacts = contacts;
-        _orgs = orgs;
+        _resolution = resolution;
         _emailService = emailService;
         _logger = logger;
     }
@@ -41,56 +38,33 @@ public sealed class LeadSubmissionFollowUpService : ILeadSubmissionFollowUp
         try
         {
             var fullName = $"{request.FirstName!.Trim()} {request.LastName!.Trim()}".Trim();
-            var contactRes = await _contacts.UpsertContactAsync(
+            
+            var res = await _resolution.ResolveAsync(
                 fullName,
-                request.Email!.Trim(),
-                request.PhoneNumber!.Trim(),
-                position: null,
-                ct);
-
-            if (!contactRes.Id.HasValue || contactRes.Id.Value <= 0)
-            {
-                _logger.LogWarning(
-                    "BookingsDb sync skipped: contact action {Action} for email {Email}",
-                    contactRes.Action,
-                    request.Email);
-                return new LeadBookingsSyncResult
-                {
-                    ContactAction = contactRes.Action,
-                    OrgAction = "skipped",
-                };
-            }
-
-            var orgRes = await _orgs.UpsertOrganisationAsync(
-                request.Organisation!.Trim(),
-                request.OrganisationAddress!.Trim(),
-                contactRes.Id,
+                request.Email,
+                request.PhoneNumber,
+                contactPosition: null,
+                request.Organisation,
+                request.OrganisationAddress,
                 ct,
                 leadAuthoritative: true);
 
-            if (!orgRes.Id.HasValue)
+            if (!res.contactId.HasValue || res.contactId.Value <= 0)
             {
-                return new LeadBookingsSyncResult
-                {
-                    ContactAction = contactRes.Action,
-                    OrgAction = orgRes.Action,
-                };
+                _logger.LogWarning("BookingsDb lead sync: contact resolution failed for {Email}", request.Email);
+                return new LeadBookingsSyncResult { ContactAction = "error", OrgAction = res.orgAction };
             }
-
-            var code = await _orgs.GetCustomerCodeByIdAsync(orgRes.Id.Value, ct);
-            if (!string.IsNullOrWhiteSpace(code))
-                await _orgs.LinkContactToOrganisationAsync(code, contactRes.Id.Value, ct);
 
             _logger.LogInformation(
                 "BookingsDb lead sync: contact {ContactAction}, org {OrgAction} for {Email}",
-                contactRes.Action,
-                orgRes.Action,
+                res.contactAction,
+                res.orgAction,
                 request.Email);
 
             return new LeadBookingsSyncResult
             {
-                ContactAction = contactRes.Action,
-                OrgAction = orgRes.Action,
+                ContactAction = res.contactAction,
+                OrgAction = res.orgAction,
             };
         }
         catch (Exception ex)

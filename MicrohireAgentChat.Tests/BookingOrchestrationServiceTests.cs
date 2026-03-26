@@ -29,12 +29,12 @@ public sealed class BookingOrchestrationServiceTests
         var extractor = new ConversationExtractionService(NullLogger<ConversationExtractionService>.Instance);
         var contactService = new ContactPersistenceService(db, NullLogger<ContactPersistenceService>.Instance);
         var orgService = new OrganizationPersistenceService(db, NullLogger<OrganizationPersistenceService>.Instance);
+        var resolution = new ContactResolutionService(contactService, orgService, NullLogger<ContactResolutionService>.Instance);
 
         var orchestration = new BookingOrchestrationService(
             db,
             extractor,
-            contactService,
-            orgService,
+            resolution,
             null!,
             null!,
             null!,
@@ -62,6 +62,7 @@ public sealed class BookingOrchestrationServiceTests
         var chatExtractor = new ChatExtractionService(NullLogger<ChatExtractionService>.Instance);
         var contactService = new ContactPersistenceService(db, NullLogger<ContactPersistenceService>.Instance);
         var orgService = new OrganizationPersistenceService(db, NullLogger<OrganizationPersistenceService>.Instance);
+        var resolution = new ContactResolutionService(contactService, orgService, NullLogger<ContactResolutionService>.Instance);
         var itemService = new ItemPersistenceService(db, NullLogger<ItemPersistenceService>.Instance);
         var crewService = new CrewPersistenceService(db, NullLogger<CrewPersistenceService>.Instance);
         var bookingService = new BookingPersistenceService(
@@ -69,16 +70,14 @@ public sealed class BookingOrchestrationServiceTests
             chatExtractor,
             itemService,
             crewService,
-            contactService,
-            orgService,
+            resolution,
             Options.Create(new RentalPointDefaultsOptions()),
             NullLogger<BookingPersistenceService>.Instance);
 
         var orchestration = new BookingOrchestrationService(
             db,
             extractor,
-            contactService,
-            orgService,
+            resolution,
             bookingService,
             itemService,
             crewService,

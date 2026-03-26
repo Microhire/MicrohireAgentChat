@@ -20,12 +20,14 @@ public sealed class OrganizationPersistenceService
     }
 
     /// <param name="leadAuthoritative">When true (sales lead sync): resolve org via contact links + normalized name key; refresh OrganisationV6 and primary contact.</param>
+    /// <param name="noUpdateExisting">When true: if organization exists, return it without updating its fields.</param>
     public async Task<OrganisationUpsertResult> UpsertOrganisationAsync(
         string organisation,
         string? address,
         decimal? contactId,
         CancellationToken ct,
-        bool leadAuthoritative = false)
+        bool leadAuthoritative = false,
+        bool noUpdateExisting = false)
     {
         var org = Normalize(organisation);
         var addr = Normalize(address);
@@ -73,6 +75,11 @@ public sealed class OrganizationPersistenceService
                 await _db.SaveChangesAsync(ct);
 
                 return new OrganisationUpsertResult(row.ID, "created");
+            }
+
+            if (noUpdateExisting)
+            {
+                return new OrganisationUpsertResult(existing.ID, "reused");
             }
 
             if (!string.IsNullOrWhiteSpace(org))
@@ -266,6 +273,26 @@ public sealed class OrganizationPersistenceService
         var ticks = DateTime.UtcNow.Ticks;
         var rand = Guid.NewGuid().ToString("N")[..4];
         return $"C_TMP_{ticks}_{rand}";
+    }
+
+    /// <summary>
+    /// Check if a contact is linked to an organization (either as primary or in tblLinkCustContact)
+    /// </summary>
+    public async Task<bool> IsContactLinkedToOrganisationAsync(decimal orgId, decimal contactId, CancellationToken ct)
+    {
+        if (orgId <= 0 || contactId <= 0) return false;
+
+        // 1. Check primary link on tblcust
+        var isPrimary = await _db.TblCusts
+            .AnyAsync(c => c.ID == orgId && c.ILink_ContactID == contactId, ct);
+        if (isPrimary) return true;
+
+        // 2. Check tblLinkCustContact
+        var code = await GetCustomerCodeByIdAsync(orgId, ct);
+        if (string.IsNullOrWhiteSpace(code)) return false;
+
+        return await _db.Set<TblLinkCustContact>()
+            .AnyAsync(l => l.Customer_Code == code && l.ContactID == contactId, ct);
     }
 }
 

@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace MicrohireAgentChat.Data;
 
-public sealed class BookingDbContext : DbContext
+public class BookingDbContext : DbContext
 {
     public BookingDbContext(DbContextOptions<BookingDbContext> options) : base(options) { }
 

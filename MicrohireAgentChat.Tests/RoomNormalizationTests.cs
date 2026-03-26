@@ -28,6 +28,7 @@ public sealed class RoomNormalizationTests
         var chatExtractor = new ChatExtractionService(NullLogger<ChatExtractionService>.Instance);
         var contactService = new ContactPersistenceService(db, NullLogger<ContactPersistenceService>.Instance);
         var orgService = new OrganizationPersistenceService(db, NullLogger<OrganizationPersistenceService>.Instance);
+        var resolution = new ContactResolutionService(contactService, orgService, NullLogger<ContactResolutionService>.Instance);
         var itemService = new ItemPersistenceService(db, NullLogger<ItemPersistenceService>.Instance);
         var crewService = new CrewPersistenceService(db, NullLogger<CrewPersistenceService>.Instance);
         return new BookingPersistenceService(
@@ -35,8 +36,7 @@ public sealed class RoomNormalizationTests
             chatExtractor,
             itemService,
             crewService,
-            contactService,
-            orgService,
+            resolution,
             Options.Create(new RentalPointDefaultsOptions()),
             NullLogger<BookingPersistenceService>.Instance);
     }

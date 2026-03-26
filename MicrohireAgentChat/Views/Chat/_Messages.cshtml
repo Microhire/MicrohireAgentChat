@@ -1783,10 +1783,19 @@ else
         keepalive:true
       });
       if(!resp.ok) return;
-      const html=await resp.text();
+      
+      const text = await resp.text();
+      let parsed = null;
+      try { parsed = JSON.parse(text); } catch(e) {}
+      
+      if (parsed && parsed.success && parsed.noChange) {
+          // No prompt was added, avoid re-rendering to prevent flicker
+          return;
+      }
+
       const host=document.getElementById('messagesWrap')||
                   document.querySelector('#messages, .messages, .chat-transcript')||null;
-      if(host){ applyMessagesPartialHtml(host, html); }
+      if(host){ applyMessagesPartialHtml(host, text); }
     }catch(e){
       console.warn('quote reviewed notify failed',e);
     }

@@ -238,7 +238,7 @@ public sealed class ContactPersistenceService
     }
 
     /// <summary>Email first, then optional phone (digits), then contact name.</summary>
-    private async Task<TblContact?> FindExistingContactAsync(
+    public async Task<TblContact?> FindExistingContactAsync(
         string? email,
         string? phoneE164,
         string? displayForNameMatch,
@@ -282,6 +282,53 @@ public sealed class ContactPersistenceService
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Creates a brand new contact record without checking for existing ones.
+    /// Used when the "no-update" policy requires a new record instead of reusing an unlinked one.
+    /// </summary>
+    public async Task<ContactUpsertResult> CreateNewContactAsync(
+        string? fullName,
+        string? email,
+        string? phoneE164,
+        string? position,
+        CancellationToken ct)
+    {
+        var now = NowAest();
+        var (first, middle, last, displayRaw) = SplitName(fullName);
+        if (string.Equals(middle, "from", StringComparison.OrdinalIgnoreCase))
+            middle = null;
+
+        string? display = LooksLikeAssistantName(displayRaw) ? null : displayRaw;
+        if (LooksLikeAssistantName(displayRaw))
+        {
+            first = null;
+            middle = null;
+            last = null;
+        }
+
+        string? pos = Trunc(NormalizePosition(position), 35);
+
+        var row = new TblContact
+        {
+            Contactname = Trunc(display, 35),
+            Firstname = Trunc(first, 25),
+            MidName = string.IsNullOrWhiteSpace(middle) ? null : Trunc(middle, 35),
+            Surname = Trunc(last, 35),
+            Email = Trunc(email, 80),
+            Cell = Trunc(phoneE164, 16),
+            Position = pos,
+            Active = "Y",
+            CreateDate = now,
+            LastContact = now,
+            LastAttempt = now,
+            LastUpdate = now
+        };
+
+        _db.Contacts.Add(row);
+        await _db.SaveChangesAsync(ct);
+        return new ContactUpsertResult(row.Id, "created");
     }
 
     // ==================== PRIVATE HELPERS ====================

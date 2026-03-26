@@ -25,8 +25,12 @@ namespace MicrohireAgentChat.Data
 
                 e.Property(x => x.UserKey).HasMaxLength(200).IsRequired();
                 e.Property(x => x.ThreadId).HasMaxLength(200).IsRequired();
+                e.Property(x => x.Email).HasMaxLength(200);
+                e.Property(x => x.DraftStateJson); // nvarchar(max) for the JSON blob
                 e.Property(x => x.CreatedUtc).IsRequired();
                 e.Property(x => x.LastSeenUtc).IsRequired();
+
+                e.HasIndex(x => x.Email); // non-unique: multiple threads per email is allowed (lead links create fresh ones)
             });
 
             modelBuilder.Entity<WestinLead>(e =>

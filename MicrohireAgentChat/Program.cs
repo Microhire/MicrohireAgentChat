@@ -89,11 +89,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 });
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AzureAgentChatService>();
+builder.Services.AddScoped<ChatSessionPersistenceService>();
 builder.Services.AddScoped<BookingService>();
 builder.Services.AddHostedService<PlaywrightBootstrapHostedService>();
-builder.Services.AddSingleton<PlaywrightQuotePdfRenderer>();
-builder.Services.AddSingleton<IPlaywrightQuotePdfRenderer>(sp => sp.GetRequiredService<PlaywrightQuotePdfRenderer>());
-builder.Services.AddHostedService(sp => sp.GetRequiredService<PlaywrightQuotePdfRenderer>());
 builder.Services.AddHostedService<AgentToolInstaller>();
 builder.Services.AddSingleton<PdfStamperService>();
 builder.Services.AddSingleton<PdfFromBlankService>();
@@ -105,6 +103,7 @@ builder.Services.AddScoped<ConversationExtractionService>();
 builder.Services.AddScoped<ChatExtractionService>();
 builder.Services.AddScoped<ContactPersistenceService>();
 builder.Services.AddScoped<OrganizationPersistenceService>();
+builder.Services.AddScoped<ContactResolutionService>();
 builder.Services.AddScoped<BookingPersistenceService>();
 builder.Services.AddScoped<ItemPersistenceService>();
 builder.Services.AddScoped<CrewPersistenceService>();
@@ -117,16 +116,6 @@ builder.Services.AddScoped<QuestionDetectionService>();
 
 // HTTP client for AI services
 builder.Services.AddHttpClient();
-
-// Named HttpClient for the remote PDF rendering service (VM-based Playwright)
-builder.Services.AddHttpClient("PdfRenderService", (sp, client) =>
-{
-    var config = sp.GetRequiredService<IConfiguration>();
-    var baseUrl = config["PdfService:BaseUrl"];
-    if (!string.IsNullOrWhiteSpace(baseUrl))
-        client.BaseAddress = new Uri(baseUrl.TrimEnd('/') + "/");
-    client.Timeout = TimeSpan.FromMinutes(3);
-});
 
 // Register new modular services (extracted from AzureAgentChatService)
 builder.Services.AddScoped<EquipmentSearchService>();
@@ -161,32 +150,6 @@ builder.Services.AddSession(options =>
 builder.Services.AddAntiforgery(o => o.HeaderName = "RequestVerificationToken");
 
 var app = builder.Build();
-
-{
-    var lf = app.Services.GetRequiredService<Microsoft.Extensions.Logging.ILoggerFactory>();
-    var log = lf.CreateLogger("Startup");
-    var asm = typeof(HtmlQuoteGenerationService).Assembly;
-    var loc = asm.Location ?? "";
-    DateTime? mtimeUtc = null;
-    try
-    {
-        if (!string.IsNullOrEmpty(loc) && File.Exists(loc))
-            mtimeUtc = File.GetLastWriteTimeUtc(loc);
-    }
-    catch
-    {
-        /* ignore */
-    }
-
-    log.LogWarning(
-        "[QUOTE GEN] {Marker} host startup: assembly={Assembly} dllPath={DllPath} dllMtimeUtc={MtimeUtc}",
-        HtmlQuoteGenerationService.PdfQuotePipelineMarker,
-        asm.FullName,
-        loc,
-        mtimeUtc);
-
-    log.LogWarning("[Playwright] PDF runtime: {BrowserPaths}", PlaywrightBootstrap.GetStartupBrowserPathSummary());
-}
 
 if (!app.Environment.IsDevelopment())
 {

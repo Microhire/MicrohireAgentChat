@@ -209,52 +209,20 @@ public sealed partial class BookingPersistenceService
             string? custCode = null;
             string? orgName = null;
 
-            if (!string.IsNullOrWhiteSpace(contactName) &&
-                (!string.IsNullOrWhiteSpace(contactEmail) || !string.IsNullOrWhiteSpace(contactPhone)))
-            {
-                try
-                {
-                    var contactUpsert = await _contactService.UpsertContactAsync(
-                        contactName, contactEmail, contactPhone, null, ct);
-                    contactId = contactUpsert.Id;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "[QUOTE GEN] Failed to upsert contact for on-the-fly booking draft");
-                }
-            }
+            var res = await _contactResolution.ResolveAsync(
+                contactName,
+                contactEmail,
+                contactPhone,
+                contactPosition: null,
+                organisation,
+                organisationAddress,
+                ct,
+                leadAuthoritative: false);
 
-            if (!string.IsNullOrWhiteSpace(organisation))
-            {
-                try
-                {
-                    var existing = await _orgService.FindOrganisationAsync(organisation, ct);
-                    if (existing.HasValue)
-                    {
-                        orgId = existing.Value.Id;
-                        custCode = existing.Value.Code;
-                        orgName = existing.Value.Name;
-                    }
-                    else
-                    {
-                        var orgUpsert = await _orgService.UpsertOrganisationAsync(organisation, organisationAddress, contactId, ct);
-                        orgId = orgUpsert.Id;
-                        if (orgId.HasValue)
-                        {
-                            custCode = await _orgService.GetCustomerCodeByIdAsync(orgId.Value, ct);
-                            orgName = organisation;
-                        }
-                    }
-                    if (contactId.HasValue && !string.IsNullOrWhiteSpace(custCode))
-                    {
-                        await _orgService.LinkContactToOrganisationAsync(custCode, contactId.Value, ct);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "[QUOTE GEN] Failed to upsert organisation for on-the-fly booking draft");
-                }
-            }
+            contactId = res.contactId;
+            orgId = res.orgId;
+            custCode = res.customerCode;
+            orgName = organisation;
 
             if (!orgId.HasValue)
             {

@@ -12,8 +12,7 @@ public sealed class BookingOrchestrationService
 {
     private readonly BookingDbContext _db;
     private readonly ConversationExtractionService _extractor;
-    private readonly ContactPersistenceService _contactService;
-    private readonly OrganizationPersistenceService _orgService;
+    private readonly ContactResolutionService _contactResolution;
     private readonly BookingPersistenceService _bookingService;
     private readonly ItemPersistenceService _itemService;
     private readonly CrewPersistenceService _crewService;
@@ -22,8 +21,7 @@ public sealed class BookingOrchestrationService
     public BookingOrchestrationService(
         BookingDbContext db,
         ConversationExtractionService extractor,
-        ContactPersistenceService contactService,
-        OrganizationPersistenceService orgService,
+        ContactResolutionService contactResolution,
         BookingPersistenceService bookingService,
         ItemPersistenceService itemService,
         CrewPersistenceService crewService,
@@ -31,8 +29,7 @@ public sealed class BookingOrchestrationService
     {
         _db = db;
         _extractor = extractor;
-        _contactService = contactService;
-        _orgService = orgService;
+        _contactResolution = contactResolution;
         _bookingService = bookingService;
         _itemService = itemService;
         _crewService = crewService;
@@ -73,85 +70,19 @@ public sealed class BookingOrchestrationService
 
             _logger.LogInformation("Extracted contact: {Name}, org: {Org}", contactInfo.Name, orgName);
 
-            // 2. Upsert Contact
-            // PER GUIDE: Only save contact when we have email OR phone - NOT just name alone (prevents duplicates)
-            decimal? contactId = null;
-            var hasEmail = !string.IsNullOrWhiteSpace(contactInfo.Email);
-            var hasPhone = !string.IsNullOrWhiteSpace(contactInfo.PhoneE164);
-            if (!string.IsNullOrWhiteSpace(contactInfo.Name) && (hasEmail || hasPhone))
-            {
-                try
-                {
-                    var contactUpsert = await _contactService.UpsertContactAsync(
-                        contactInfo.Name,
-                        contactInfo.Email,
-                        contactInfo.PhoneE164,
-                        contactInfo.Position,
-                        ct);
-                    contactId = contactUpsert.Id;
+            // 2, 3, 4. Resolve Contact and Organization with Jenny's "no-update" rule
+            var (contactId, orgId, customerCode) = await ResolveContactAndOrganizationAsync(
+                contactInfo.Name,
+                contactInfo.Email,
+                contactInfo.PhoneE164,
+                contactInfo.Position,
+                orgName,
+                orgAddress,
+                ct);
 
-                    result.ContactId = contactId;
-                    _logger.LogInformation("Contact upserted: ID={ContactId} ({Action})", contactId, contactUpsert.Action);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to upsert contact: {Name}", contactInfo.Name);
-                    result.Errors.Add($"Contact creation failed: {ex.Message}");
-                }
-            }
-
-            // 3. Upsert Organization
-            decimal? orgId = null;
-            string? customerCode = null;
-
-            if (!string.IsNullOrWhiteSpace(orgName))
-            {
-                try
-                {
-                    // Check if exists first
-                    var existing = await _orgService.FindOrganisationAsync(orgName!, ct);
-                    if (existing.HasValue)
-                    {
-                        orgId = existing.Value.Id;
-                        customerCode = existing.Value.Code;
-                        _logger.LogInformation("Found existing org: {Org} (ID={OrgId})", orgName, orgId);
-                    }
-                    else
-                    {
-                        // Create new - IMPORTANT: pass contactId to link contact
-                        var orgUpsert = await _orgService.UpsertOrganisationAsync(orgName!, orgAddress, contactId, ct);
-                        orgId = orgUpsert.Id;
-                        if (orgId.HasValue)
-                        {
-                            customerCode = await _orgService.GetCustomerCodeByIdAsync(orgId.Value, ct);
-                            _logger.LogInformation("Created new org: {Org} (ID={OrgId}) ({Action})", orgName, orgId, orgUpsert.Action);
-                        }
-                    }
-
-                    result.OrganizationId = orgId;
-                    result.CustomerCode = customerCode;
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to upsert organization: {Org}", orgName);
-                    result.Errors.Add($"Organization creation failed: {ex.Message}");
-                }
-            }
-
-            // 4. Link Contact to Organization
-            if (contactId.HasValue && !string.IsNullOrWhiteSpace(customerCode))
-            {
-                try
-                {
-                    await _orgService.LinkContactToOrganisationAsync(customerCode!, contactId.Value, ct);
-                    _logger.LogInformation("Linked contact {ContactId} to org {CustomerCode}", contactId, customerCode);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Failed to link contact to org");
-                    result.Errors.Add($"Contact-Organization link failed: {ex.Message}");
-                }
-            }
+            result.ContactId = contactId;
+            result.OrganizationId = orgId;
+            result.CustomerCode = customerCode;
 
             // 5. Create/Update Booking
             try
@@ -255,49 +186,14 @@ public sealed class BookingOrchestrationService
             var contactInfo = _extractor.ExtractContactInfo(messages);
             var (orgName, orgAddress) = _extractor.ExtractOrganisationFromTranscript(messages);
 
-            decimal? contactId = null;
-            decimal? orgId = null;
-
-            // PER GUIDE: Only save contact when we have email OR phone - NOT just name alone
-            // This prevents duplicate records when user provides info in stages
-            var hasEmail = !string.IsNullOrWhiteSpace(contactInfo.Email);
-            var hasPhone = !string.IsNullOrWhiteSpace(contactInfo.PhoneE164);
-            
-            if (!string.IsNullOrWhiteSpace(contactInfo.Name) && (hasEmail || hasPhone))
-            {
-                var contactUpsert = await _contactService.UpsertContactAsync(
-                    contactInfo.Name,
-                    contactInfo.Email,
-                    contactInfo.PhoneE164,
-                    contactInfo.Position,
-                    ct);
-                contactId = contactUpsert.Id;
-            }
-
-            // Save organization
-            if (!string.IsNullOrWhiteSpace(orgName))
-            {
-                var existing = await _orgService.FindOrganisationAsync(orgName!, ct);
-                if (existing.HasValue)
-                {
-                    orgId = existing.Value.Id;
-                }
-                else
-                {
-                    var orgUpsert = await _orgService.UpsertOrganisationAsync(orgName!, orgAddress, contactId, ct);
-                    orgId = orgUpsert.Id;
-                }
-            }
-
-            // Link them
-            if (contactId.HasValue && orgId.HasValue)
-            {
-                var customerCode = await _orgService.GetCustomerCodeByIdAsync(orgId.Value, ct);
-                if (!string.IsNullOrWhiteSpace(customerCode))
-                {
-                    await _orgService.LinkContactToOrganisationAsync(customerCode!, contactId.Value, ct);
-                }
-            }
+            var (contactId, orgId, _) = await ResolveContactAndOrganizationAsync(
+                contactInfo.Name,
+                contactInfo.Email,
+                contactInfo.PhoneE164,
+                contactInfo.Position,
+                orgName,
+                orgAddress,
+                ct);
 
             await transaction.CommitAsync(ct);
             return (contactId, orgId);
@@ -307,6 +203,33 @@ public sealed class BookingOrchestrationService
             _logger.LogError(ex, "Failed to save contact and organization");
             return (null, null);
         }
+    }
+
+    /// <summary>
+    /// Shared logic to resolve contact and organization following Jenny's "no-update" rule.
+    /// Reuse existing contact only if already linked to the organization. Otherwise, create new.
+    /// Reuse existing organization without updating fields.
+    /// </summary>
+    private async Task<(decimal? contactId, decimal? orgId, string? customerCode)> ResolveContactAndOrganizationAsync(
+        string? contactName,
+        string? contactEmail,
+        string? contactPhone,
+        string? contactPosition,
+        string? orgName,
+        string? orgAddress,
+        CancellationToken ct)
+    {
+        var res = await _contactResolution.ResolveAsync(
+            contactName,
+            contactEmail,
+            contactPhone,
+            contactPosition,
+            orgName,
+            orgAddress,
+            ct,
+            leadAuthoritative: false);
+
+        return (res.contactId, res.orgId, res.customerCode);
     }
 }
 

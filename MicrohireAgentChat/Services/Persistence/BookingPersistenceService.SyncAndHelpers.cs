@@ -112,108 +112,59 @@ public sealed partial class BookingPersistenceService
         var contactPhone = session.GetString("Draft:ContactPhone");
         var organisation = session.GetString("Draft:Organisation");
 
-        var changed = false;
-        decimal? contactId = null;
+        var res = await _contactResolution.ResolveAsync(
+            contactName,
+            contactEmail,
+            contactPhone,
+            contactPosition: null,
+            organisation,
+            orgAddress: null,
+            ct,
+            leadAuthoritative: false);
 
-        // Upsert contact if we have name + (email or phone)
-        var hasEmail = !string.IsNullOrWhiteSpace(contactEmail);
-        var hasPhone = !string.IsNullOrWhiteSpace(contactPhone);
-        if (!string.IsNullOrWhiteSpace(contactName) && (hasEmail || hasPhone))
+        var changed = false;
+
+        if (res.contactId.HasValue)
         {
-            try
+            if (booking.ContactID != res.contactId)
             {
-                var contactUpsert = await _contactService.UpsertContactAsync(
-                    contactName, contactEmail, contactPhone, null, ct);
-                contactId = contactUpsert.Id;
-                if (contactId.HasValue)
-                {
-                    if (booking.ContactID != contactId)
-                    {
-                        booking.ContactID = contactId;
-                        changed = true;
-                    }
-                    var normalizedName = Trunc(contactName, 35);
-                    if (!string.Equals(booking.contact_nameV6, normalizedName, StringComparison.Ordinal))
-                    {
-                        booking.contact_nameV6 = normalizedName;
-                        changed = true;
-                    }
-                }
+                booking.ContactID = res.contactId;
+                changed = true;
             }
-            catch (Exception ex)
+            var normalizedName = Trunc(contactName, 35);
+            if (!string.Equals(booking.contact_nameV6, normalizedName, StringComparison.Ordinal))
             {
-                _logger.LogWarning(ex, "[QUOTE GEN] Failed to upsert contact for booking {BookingNo}; updating contact_nameV6 only", bookingNo);
-                var normalizedName = Trunc(contactName, 35);
-                if (!string.Equals(booking.contact_nameV6, normalizedName, StringComparison.Ordinal))
-                {
-                    booking.contact_nameV6 = normalizedName;
-                    changed = true;
-                }
+                booking.contact_nameV6 = normalizedName;
+                changed = true;
             }
         }
 
-        // Upsert organisation
-        if (!string.IsNullOrWhiteSpace(organisation))
+        if (res.orgId.HasValue)
         {
-            try
+            if (booking.CustID != res.orgId)
             {
-                var existing = await _orgService.FindOrganisationAsync(organisation, ct);
-                decimal? orgId;
-                string? orgCode;
-                if (existing.HasValue)
-                {
-                    orgId = existing.Value.Id;
-                    orgCode = existing.Value.Code;
-                }
-                else
-                {
-                    var orgUpsert = await _orgService.UpsertOrganisationAsync(organisation, null, contactId, ct);
-                    orgId = orgUpsert.Id;
-                    orgCode = orgId.HasValue ? await _orgService.GetCustomerCodeByIdAsync(orgId.Value, ct) : null;
-                }
-
-                if (orgId.HasValue)
-                {
-                    if (booking.CustID != orgId)
-                    {
-                        booking.CustID = orgId;
-                        changed = true;
-                    }
-                    var orgName = Trunc(organisation, 50);
-                    if (!string.Equals(booking.OrganizationV6, orgName, StringComparison.Ordinal))
-                    {
-                        booking.OrganizationV6 = orgName;
-                        changed = true;
-                    }
-                    var normalizedOrgCode = Trunc(orgCode, CustomerCodeMaxLength);
-                    if (!string.IsNullOrWhiteSpace(normalizedOrgCode) &&
-                        !string.Equals(booking.CustCode, normalizedOrgCode, StringComparison.Ordinal))
-                    {
-                        booking.CustCode = normalizedOrgCode;
-                        changed = true;
-                    }
-                    if (contactId.HasValue && !string.IsNullOrWhiteSpace(orgCode))
-                    {
-                        await _orgService.LinkContactToOrganisationAsync(orgCode, contactId.Value, ct);
-                    }
-                }
+                booking.CustID = res.orgId;
+                changed = true;
             }
-            catch (Exception ex)
+            var orgName = Trunc(organisation, 50);
+            if (!string.Equals(booking.OrganizationV6, orgName, StringComparison.Ordinal))
             {
-                _logger.LogWarning(ex, "[QUOTE GEN] Failed to upsert organisation for booking {BookingNo}; updating OrganizationV6 only", bookingNo);
-                var orgName = Trunc(organisation, 50);
-                if (!string.Equals(booking.OrganizationV6, orgName, StringComparison.Ordinal))
-                {
-                    booking.OrganizationV6 = orgName;
-                    changed = true;
-                }
+                booking.OrganizationV6 = orgName;
+                changed = true;
+            }
+            var normalizedOrgCode = Trunc(res.customerCode, CustomerCodeMaxLength);
+            if (!string.IsNullOrWhiteSpace(normalizedOrgCode) &&
+                !string.Equals(booking.CustCode, normalizedOrgCode, StringComparison.Ordinal))
+            {
+                booking.CustCode = normalizedOrgCode;
+                changed = true;
             }
         }
 
         if (changed)
         {
             await _db.SaveChangesAsync(ct);
-            _logger.LogInformation("[QUOTE GEN] Synced session contact/organisation to booking {BookingNo}", bookingNo);
+            _logger.LogInformation("[QUOTE GEN] Synced session contact/org (no-update policy) to booking {BookingNo}", bookingNo);
         }
         return changed;
     }

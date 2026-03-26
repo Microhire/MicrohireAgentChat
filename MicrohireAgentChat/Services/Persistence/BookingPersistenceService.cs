@@ -22,8 +22,7 @@ public sealed partial class BookingPersistenceService
     private readonly ChatExtractionService _chatExtraction;
     private readonly ItemPersistenceService _itemService;
     private readonly CrewPersistenceService _crewService;
-    private readonly ContactPersistenceService _contactService;
-    private readonly OrganizationPersistenceService _orgService;
+    private readonly ContactResolutionService _contactResolution;
     private readonly RentalPointDefaultsOptions _rpDefaults;
     private readonly ILogger<BookingPersistenceService> _logger;
 
@@ -32,8 +31,7 @@ public sealed partial class BookingPersistenceService
         ChatExtractionService chatExtraction,
         ItemPersistenceService itemService,
         CrewPersistenceService crewService,
-        ContactPersistenceService contactService,
-        OrganizationPersistenceService orgService,
+        ContactResolutionService contactResolution,
         IOptions<RentalPointDefaultsOptions> rpDefaults,
         ILogger<BookingPersistenceService> logger)
     {
@@ -41,8 +39,7 @@ public sealed partial class BookingPersistenceService
         _chatExtraction = chatExtraction;
         _itemService = itemService;
         _crewService = crewService;
-        _contactService = contactService;
-        _orgService = orgService;
+        _contactResolution = contactResolution;
         _rpDefaults = rpDefaults.Value;
         _logger = logger;
     }

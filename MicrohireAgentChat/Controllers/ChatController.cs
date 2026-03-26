@@ -8,7 +8,6 @@ using MicrohireAgentChat.Services;
 using MicrohireAgentChat.Services.Extraction;
 using MicrohireAgentChat.Services.Orchestration;
 using MicrohireAgentChat.Services.Persistence;
-using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -25,7 +24,6 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.Razor;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace MicrohireAgentChat.Controllers;
 
@@ -37,7 +35,7 @@ public sealed class ChatController : Controller
     private readonly BookingOrchestrationService _orchestration;
     private readonly HtmlQuoteGenerationService _htmlQuoteGen;
     private readonly ItemPersistenceService _itemPersistence;
-    private readonly ContactPersistenceService _contactPersistence;
+    private readonly ContactResolutionService _contactResolution;
     private readonly BookingPersistenceService _bookingPersistence;
     private readonly ConversationReplayService _replayService;
     private readonly AutoTestCustomerService _autoTestService;
@@ -48,8 +46,7 @@ public sealed class ChatController : Controller
     private readonly IRazorViewEngine _razorViewEngine;
     private readonly ILogger<ChatController> _logger;
     private readonly AgentToolHandlerService _toolHandler;
-    private readonly IHostApplicationLifetime _hostLifetime;
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ChatSessionPersistenceService _sessionPersistence;
 
     // Detect: "Choose time: 09:00–10:30" (supports hyphen or en dash)
     private static readonly Regex ChooseTimeRe =
@@ -110,7 +107,7 @@ public sealed class ChatController : Controller
         BookingOrchestrationService orchestration,
         HtmlQuoteGenerationService htmlQuoteGen,
         ItemPersistenceService itemPersistence,
-        ContactPersistenceService contactPersistence,
+        ContactResolutionService contactResolution,
         BookingPersistenceService bookingPersistence,
         ConversationReplayService replayService,
         AutoTestCustomerService autoTestService,
@@ -121,8 +118,7 @@ public sealed class ChatController : Controller
         IRazorViewEngine razorViewEngine,
         ILogger<ChatController> logger,
         AgentToolHandlerService toolHandler,
-        IHostApplicationLifetime hostLifetime,
-        IServiceScopeFactory scopeFactory)
+        ChatSessionPersistenceService sessionPersistence)
     {
         _chat = chat;
         _appDb = appDb;
@@ -130,7 +126,7 @@ public sealed class ChatController : Controller
         _orchestration = orchestration;
         _htmlQuoteGen = htmlQuoteGen;
         _itemPersistence = itemPersistence;
-        _contactPersistence = contactPersistence;
+        _contactResolution = contactResolution;
         _bookingPersistence = bookingPersistence;
         _replayService = replayService;
         _autoTestService = autoTestService;
@@ -141,8 +137,7 @@ public sealed class ChatController : Controller
         _razorViewEngine = razorViewEngine;
         _logger = logger;
         _toolHandler = toolHandler;
-        _hostLifetime = hostLifetime;
-        _scopeFactory = scopeFactory;
+        _sessionPersistence = sessionPersistence;
     }
 
     // Small helper to pick a stable user key for persistence.
@@ -160,6 +155,9 @@ public sealed class ChatController : Controller
         return sid!;
     }
 
+    #region agent log
+    private const string Debug105ef6LogPath = "/Users/nitwit-watson/INTENT/repos/Microhire-sales-portal/.cursor/debug-105ef6.log";
+
     private void Debug105ef6(string hypothesisId, string location, string message, Dictionary<string, object?> data)
     {
         try
@@ -173,7 +171,14 @@ public sealed class ChatController : Controller
                 ["data"] = data,
                 ["timestamp"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
             });
-            DevelopmentDebugLog.TryAppendLine("debug-105ef6.log", line);
+            try
+            {
+                System.IO.File.AppendAllText(Debug105ef6LogPath, line + "\n");
+            }
+            catch
+            {
+                /* Azure App Service: path not on server */
+            }
 
             _logger.LogWarning("AGENT_DEBUG_105ef6 {Payload}", line);
         }
@@ -182,6 +187,7 @@ public sealed class ChatController : Controller
             /* never throw from debug log */
         }
     }
+    #endregion
 
     // Check if user has completed quote
     private bool IsQuoteComplete()
@@ -457,6 +463,19 @@ public sealed class ChatController : Controller
             if (!startedFreshLeadChat)
             {
                 await _chat.EnsureThreadIdPersistedAsync(HttpContext.Session, userKey, ct);
+                
+                // Restore draft state from DB if session is missing critical keys
+                if (string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:EntrySource")))
+                {
+                    var email = HttpContext.Session.GetString("Draft:ContactEmail");
+                    if (!string.IsNullOrWhiteSpace(email))
+                    {
+                        var saved = await _sessionPersistence.FindByEmailAsync(email, ct);
+                        if (saved != null)
+                            _sessionPersistence.RestoreToSession(HttpContext.Session, saved);
+                    }
+                }
+                
                 await _chat.EnsureGreetingAsync(HttpContext.Session, GreetingText, ct);
             }
 
@@ -1318,6 +1337,31 @@ public sealed class ChatController : Controller
                 HttpContext.Session.SetString("Draft:EmailGateCompleted", "1");
                 HttpContext.Session.Remove("Draft:LeadVerifyEmail");
 
+                // Check for existing session to restore
+                var existingSession = await _sessionPersistence.FindByEmailAsync(emailNorm, ct);
+                if (existingSession != null && !string.IsNullOrWhiteSpace(existingSession.DraftStateJson))
+                {
+                    // Restore thread + all draft state from the database
+                    _sessionPersistence.RestoreToSession(HttpContext.Session, existingSession);
+                    
+                    // Update the DB row's UserKey to this session's key for future lookups
+                    existingSession.UserKey = GetUserKey();
+                    existingSession.LastSeenUtc = DateTime.UtcNow;
+                    await _appDb.SaveChangesAsync(ct);
+                    
+                    // Return the restored transcript immediately (skip booking lookup + AI agent call)
+                    var restoredThreadId = _chat.EnsureThreadId(HttpContext.Session);
+                    var (_, restoredMessages) = _chat.GetTranscript(restoredThreadId);
+                    var restoredList = restoredMessages.ToList();
+                    EnsureStructuredFormsInChat(restoredList);
+                    RedactPricesForUiInPlace(restoredList);
+                    ViewData["QuoteAccepted"] = HttpContext.Session.GetString("Draft:QuoteAccepted") ?? "0";
+                    SetScheduleTimesInViewData();
+                    ViewData["ProgressStep"] = DetermineProgressStep(restoredList);
+                    var restoredHtml = await RenderPartialViewToStringAsync("_Messages", restoredList);
+                    return Json(new { success = true, html = restoredHtml });
+                }
+
                 if (IsLeadEntry())
                 {
                     HttpContext.Session.Remove("Draft:NeedManualContact");
@@ -1696,7 +1740,7 @@ public sealed class ChatController : Controller
                     var fallbackSignedActionsHtml = "";
                     if (!string.IsNullOrWhiteSpace(fallbackQuoteUrl))
                     {
-                        confirmText += "\n\nYou can view your signed quote below. Use View to open the full document.";
+                        confirmText += "\n\nYou can view or download your signed quote using the buttons below.";
                         fallbackSignedActionsHtml = BuildSignedQuoteActionsHtml(fallbackQuoteUrl, bookingNo);
                     }
 
@@ -2107,6 +2151,25 @@ public sealed class ChatController : Controller
             SetScheduleTimesInViewData();
             ViewData["ProgressStep"] = DetermineProgressStep(msgList);
             
+            // Persist draft state to database if email is verified
+            var emailForSave = HttpContext.Session.GetString("Draft:ContactEmail");
+            if (!string.IsNullOrWhiteSpace(emailForSave))
+            {
+                var snapshot = _sessionPersistence.SnapshotDraftState(HttpContext.Session);
+                var currentUserKey = GetUserKey();
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _sessionPersistence.SaveAsync(currentUserKey, emailForSave, snapshot, CancellationToken.None);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to persist draft state for {Email}", emailForSave);
+                    }
+                });
+            }
+
             // Log final message count for debugging
             _logger.LogInformation("Returning {Count} messages to view. Last message role: {LastRole}", 
                 msgList.Count, 
@@ -2149,6 +2212,26 @@ public sealed class ChatController : Controller
                 
                 SetScheduleTimesInViewData();
                 ViewData["ProgressStep"] = DetermineProgressStep(msgList);
+
+                // Persist draft state even on error if email exists
+                var emailForErrorSave = HttpContext.Session.GetString("Draft:ContactEmail");
+                if (!string.IsNullOrWhiteSpace(emailForErrorSave))
+                {
+                    var snapshot = _sessionPersistence.SnapshotDraftState(HttpContext.Session);
+                    var currentUserKey = GetUserKey();
+                    _ = Task.Run(async () =>
+                    {
+                        try
+                        {
+                            await _sessionPersistence.SaveAsync(currentUserKey, emailForErrorSave, snapshot, CancellationToken.None);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to persist draft state for {Email} on error", emailForErrorSave);
+                        }
+                    });
+                }
+
                 return PartialView("_Messages", msgList);
             }
             catch
@@ -2547,15 +2630,6 @@ public sealed class ChatController : Controller
 
     private async Task GenerateQuoteForBookingAsync(string bookingNo, List<DisplayMessage> msgList, CancellationToken ct)
     {
-        var flowTrace = HttpContext.TraceIdentifier;
-        _logger.LogInformation(
-            "[QUOTE FLOW] trace={Trace} phase=enter GenerateQuoteForBookingAsync booking={BookingNo} msgCount={MsgCount} quoteCompleteSession={QuoteComplete} quoteUrlSet={HasUrl}",
-            flowTrace,
-            bookingNo,
-            msgList.Count,
-            HttpContext.Session.GetString("Draft:QuoteComplete") == "1",
-            !string.IsNullOrEmpty(HttpContext.Session.GetString("Draft:QuoteUrl")));
-
         try
         {
             var venueOrRoomChanged = await _bookingPersistence.SyncVenueAndRoomForBookingAsync(bookingNo, HttpContext.Session, ct);
@@ -2680,27 +2754,14 @@ public sealed class ChatController : Controller
         // ========== GENERATE QUOTE HTML ==========
         try
         {
-            _logger.LogInformation(
-                "[QUOTE FLOW] trace={Trace} phase=invoke_html_pdf booking={BookingNo} timeoutMin=5 linkedToRequestCt=true",
-                flowTrace,
-                bookingNo);
+            _logger.LogInformation("Starting HTML quote generation for booking {BookingNo}", bookingNo);
             // HTML + Playwright PDF can exceed 30s on cold start / remote DB; align with chat client timeout.
             using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
             try
             {
-                var (quoteSuccess, quoteUrl, quoteError) = await _htmlQuoteGen.GenerateHtmlQuoteForBookingAsync(
-                    bookingNo,
-                    linkedCts.Token,
-                    HttpContext.Session,
-                    flowTrace);
-                _logger.LogInformation(
-                    "[QUOTE FLOW] trace={Trace} phase=html_pdf_returned booking={BookingNo} success={Success} hasUrl={HasUrl} errorLen={ErrLen}",
-                    flowTrace,
-                    bookingNo,
-                    quoteSuccess,
-                    !string.IsNullOrWhiteSpace(quoteUrl),
-                    quoteError?.Length ?? 0);
+                var (quoteSuccess, quoteUrl, quoteError) = await _htmlQuoteGen.GenerateHtmlQuoteForBookingAsync(bookingNo, linkedCts.Token, HttpContext.Session);
+                _logger.LogInformation("HTML quote generation completed for booking {BookingNo}, success: {Success}", bookingNo, quoteSuccess);
 
                 if (quoteSuccess && !string.IsNullOrWhiteSpace(quoteUrl))
                 {
@@ -2787,22 +2848,19 @@ public sealed class ChatController : Controller
             }
             catch (OperationCanceledException) when (timeoutCts.IsCancellationRequested)
             {
-                _logger.LogWarning(
-                    "[QUOTE FLOW] trace={Trace} phase=timeout inner_5min booking={BookingNo}",
-                    flowTrace,
-                    bookingNo);
+                _logger.LogWarning("HTML quote generation timed out for booking {BookingNo}", bookingNo);
                 await RecoverQuoteFromDiskOrAnnounceWaitAsync(msgList, bookingNo, quotesDir, ct, "QuoteGenTimeout");
             }
             catch (OperationCanceledException oce)
             {
                 // Client/gateway disconnected or request aborted while HTML/PDF still running — not the in-app 5-minute timeout.
-                _logger.LogWarning(oce, "[QUOTE FLOW] trace={Trace} phase=cancelled_external booking={BookingNo}", flowTrace, bookingNo);
+                _logger.LogWarning(oce, "HTML quote generation cancelled (external) for booking {BookingNo}", bookingNo);
                 await RecoverQuoteFromDiskOrAnnounceWaitAsync(msgList, bookingNo, quotesDir, ct, "QuoteGenCancelled");
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[QUOTE FLOW] trace={Trace} phase=outer_exception booking={BookingNo}", flowTrace, bookingNo);
+            _logger.LogError(ex, "Exception during quote generation for booking {BookingNo}", bookingNo);
             try
             {
                 await RecoverQuoteFromDiskOrAnnounceWaitAsync(msgList, bookingNo, quotesDir, ct, "QuoteGenException");
@@ -2988,6 +3046,12 @@ public sealed class ChatController : Controller
                 HttpContext.Session.SetString(QuoteReviewPromptShownKey, "1");
                 HttpContext.Session.SetString(AwaitingQuoteReviewPromptKey, "0");
             }
+            else
+            {
+                // Optimization: if no new prompt was added, don't return the full HTML partial.
+                // This prevents the entire chat DOM from being replaced, avoiding UI flicker.
+                return Json(new { success = true, noChange = true });
+            }
 
             RedactPricesForUiInPlace(msgList);
             ViewData["ShowQuoteCta"] = WasLastAssistantASummaryAsk(msgList) ? "1" : "0";
@@ -3002,21 +3066,6 @@ public sealed class ChatController : Controller
             Response.StatusCode = 500;
             return Content("Unable to update quote review state.");
         }
-    }
-
-    /// <summary>
-    /// Returns a request token bound to the current antiforgery cookie. Use before sensitive AJAX POSTs when
-    /// the page may hold a stale hidden field (e.g. session/cookie rotated after another navigation in the same browser).
-    /// </summary>
-    [HttpGet]
-    public IActionResult AntiforgeryToken([FromServices] IAntiforgery antiforgery)
-    {
-        var tokens = antiforgery.GetAndStoreTokens(HttpContext);
-        if (string.IsNullOrEmpty(tokens.RequestToken))
-            return BadRequest();
-
-        Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
-        return Json(new { token = tokens.RequestToken, headerName = "RequestVerificationToken" });
     }
 
     [HttpPost]
@@ -3071,6 +3120,7 @@ public sealed class ChatController : Controller
 
             // ---- Overlay signature onto quote HTML ----
             string? amountFromHtml = null;
+            var signedPdfReady = false;
             if (quoteFilePath != null && System.IO.File.Exists(quoteFilePath))
             {
                 try
@@ -3113,48 +3163,22 @@ public sealed class ChatController : Controller
                     await System.IO.File.WriteAllTextAsync(quoteFilePath, html, ct);
                     _logger.LogInformation("[SIGNING] Quote HTML updated with signature data: {Path}", quoteFilePath);
 
-                    // PDF must not block acceptance: Playwright can take minutes on cold start and exceeds client/proxy timeouts.
                     var pdfPath = Path.ChangeExtension(quoteFilePath, ".pdf");
-                    var htmlForPdf = html;
-                    var traceId = HttpContext.TraceIdentifier;
-                    var bookingNoForBg = bookingNo;
-                    _ = Task.Run(
-                        async () =>
+                    var pdfOk = await _htmlQuoteGen.GeneratePdfFromHtmlAsync(html, pdfPath, _logger, ct);
+                    signedPdfReady = pdfOk && System.IO.File.Exists(pdfPath) && new FileInfo(pdfPath).Length > 0;
+                    if (!signedPdfReady)
+                    {
+                        _logger.LogWarning("[SIGNING] Signed PDF not available for booking {BookingNo}; removing stale PDF if present so HTML and file do not disagree", bookingNo);
+                        try
                         {
-                            await using var scope = _scopeFactory.CreateAsyncScope();
-                            var htmlGen = scope.ServiceProvider.GetRequiredService<HtmlQuoteGenerationService>();
-                            var bgLogger = scope.ServiceProvider.GetRequiredService<ILogger<ChatController>>();
-                            try
-                            {
-                                using var pdfTimeout = new CancellationTokenSource(HtmlQuoteGenerationService.PdfGenerationAbsoluteTimeout);
-                                using var pdfWork = CancellationTokenSource.CreateLinkedTokenSource(
-                                    _hostLifetime.ApplicationStopping,
-                                    pdfTimeout.Token);
-                                var pdfOk = await htmlGen.GeneratePdfFromHtmlAsync(htmlForPdf, pdfPath, bgLogger, pdfWork.Token, traceId);
-                                if (!pdfOk || !System.IO.File.Exists(pdfPath) || new FileInfo(pdfPath).Length == 0)
-                                {
-                                    bgLogger.LogWarning("[SIGNING] Background signed PDF failed for booking {BookingNo}", bookingNoForBg);
-                                    try
-                                    {
-                                        if (System.IO.File.Exists(pdfPath))
-                                            System.IO.File.Delete(pdfPath);
-                                    }
-                                    catch (Exception delEx)
-                                    {
-                                        bgLogger.LogWarning(delEx, "[SIGNING] Failed to remove stale PDF after background failure for booking {BookingNo}", bookingNoForBg);
-                                    }
-                                }
-                                else
-                                {
-                                    bgLogger.LogInformation("[SIGNING] Background signed PDF ready for booking {BookingNo}", bookingNoForBg);
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                bgLogger.LogWarning(ex, "[SIGNING] Background signed PDF exception for booking {BookingNo}", bookingNoForBg);
-                            }
-                        },
-                        CancellationToken.None);
+                            if (System.IO.File.Exists(pdfPath))
+                                System.IO.File.Delete(pdfPath);
+                        }
+                        catch (Exception delEx)
+                        {
+                            _logger.LogWarning(delEx, "[SIGNING] Failed to remove stale PDF after regeneration failure for booking {BookingNo}", bookingNo);
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -3215,10 +3239,15 @@ public sealed class ChatController : Controller
             if (!string.IsNullOrWhiteSpace(quoteUrl))
             {
                 var htmlStillPresent = quoteFilePath != null && System.IO.File.Exists(quoteFilePath);
-                if (htmlStillPresent)
+                if (signedPdfReady)
                 {
-                    confirmText += "\n\nYou can view your signed quote below. Use View to open the full document.";
-                    signedActionsHtml = BuildSignedQuoteActionsHtml(quoteUrl, bookingNo);
+                    confirmText += "\n\nYou can view or download your signed quote using the buttons below.";
+                    signedActionsHtml = BuildSignedQuoteActionsHtml(quoteUrl, bookingNo, includeDownload: true);
+                }
+                else if (htmlStillPresent)
+                {
+                    confirmText += "\n\nYou can view your signed quote below. We could not refresh the PDF download — use View, or contact Microhire if you need a file copy.";
+                    signedActionsHtml = BuildSignedQuoteActionsHtml(quoteUrl, bookingNo, includeDownload: false);
                 }
             }
 
@@ -3806,8 +3835,9 @@ public sealed class ChatController : Controller
     private static DisplayMessage BuildQuoteReadyMessage(string bookingNo, string quoteUrl)
     {
         const string confirmationPrompt = "\n\nWould you like to confirm this quote?";
-        var pendingDownload = QuoteDownloadHref.BuildPendingDownloadAnchor(quoteUrl, bookingNo);
-        var successPart = $"Great news! I have successfully generated your quote for booking {bookingNo}. You can view it <a href=\"{quoteUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">here</a> or {pendingDownload}.";
+        var downloadHref = QuoteDownloadHref.Build(quoteUrl, bookingNo);
+        var downloadName = System.Net.WebUtility.HtmlEncode(QuoteDownloadHref.GetPdfFileName(quoteUrl, bookingNo));
+        var successPart = $"Great news! I have successfully generated your quote for booking {bookingNo}. You can view it <a href=\"{quoteUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">here</a> or <a href=\"{downloadHref}\" rel=\"noopener noreferrer\" class=\"isla-quote-download\" data-quote-download=\"1\" data-download-name=\"{downloadName}\"><i class=\"ph ph-download\"></i> download it</a>.";
         return new DisplayMessage
         {
             Role = "assistant",
@@ -3818,15 +3848,24 @@ public sealed class ChatController : Controller
         };
     }
 
-    private static string BuildSignedQuoteActionsHtml(string quoteUrl, string bookingNo)
+    private static string BuildSignedQuoteActionsHtml(string quoteUrl, string bookingNo, bool includeDownload = true)
     {
+        var downloadName = System.Net.WebUtility.HtmlEncode(QuoteDownloadHref.GetPdfFileName(quoteUrl, bookingNo));
         var viewBtn =
             $"<a href=\"{quoteUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-download-btn isla-quote-open\" data-quote-open=\"1\">View Signed Quote</a>";
-        var downloadBtn = QuoteDownloadHref.BuildPendingSignedDownloadButton(quoteUrl, bookingNo);
+        if (!includeDownload)
+        {
+            return
+                "<div style=\"margin-top:1rem;display:flex;gap:.75rem;flex-wrap:wrap;justify-content:center\">" +
+                viewBtn +
+                "</div>";
+        }
+
+        var downloadHref = QuoteDownloadHref.Build(quoteUrl, bookingNo);
         return
             "<div style=\"margin-top:1rem;display:flex;gap:.75rem;flex-wrap:wrap;justify-content:center\">" +
             viewBtn +
-            downloadBtn +
+            $"<a href=\"{downloadHref}\" rel=\"noopener noreferrer\" class=\"isla-quote-download-btn isla-quote-download\" data-quote-download=\"1\" data-download-name=\"{downloadName}\">Download Signed Quote</a>" +
             "</div>";
     }
 
@@ -5266,6 +5305,10 @@ public sealed class ChatController : Controller
             var list = messages.ToList();
             if (list.Count == 0) return null;
 
+            // Check session first to avoid repeated creation in a single chat session
+            var sid = HttpContext.Session.GetString("Draft:ContactId");
+            if (decimal.TryParse(sid, out var savedId)) return savedId;
+
             // ---------- helpers ----------
             static bool IsUser(DisplayMessage m) =>
                 string.Equals(m.Role, "user", StringComparison.OrdinalIgnoreCase);
@@ -5380,14 +5423,29 @@ public sealed class ChatController : Controller
                 return null;
             }
 
-            // At this point we have at least one of: email / phone / position
-            var upsert = await _contactPersistence.UpsertContactByEmailAsync(
+            // Resolve using the "no-update" service. 
+            // Note: Since we don't have an Org context here, it will likely create a new contact 
+            // unless one was already linked to an org we somehow resolved.
+            // But ResolveAsync handles the "create new if not linked" logic safely.
+            var orgName = HttpContext.Session.GetString("Draft:Organisation");
+            
+            var res = await _contactResolution.ResolveAsync(
                 name,
                 email,
                 phone,
                 position,
-                ct);
-            return upsert.Id;
+                orgName,
+                null,
+                ct,
+                leadAuthoritative: false);
+
+            if (res.contactId.HasValue)
+            {
+                HttpContext.Session.SetString("Draft:ContactId", res.contactId.Value.ToString());
+                return res.contactId;
+            }
+
+            return null;
         }
         catch
         {
