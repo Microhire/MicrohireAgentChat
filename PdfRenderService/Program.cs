@@ -1,7 +1,29 @@
 using System.Diagnostics;
 using Microsoft.Playwright;
+using Microsoft.Extensions.Hosting.WindowsServices;
 
-var builder = WebApplication.CreateBuilder(args);
+// SCM starts services with system32 as cwd; content root must follow the published app + Playwright paths.
+var contentRoot = AppContext.BaseDirectory;
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+{
+    Args = args,
+    ContentRootPath = contentRoot,
+    ApplicationName = typeof(Program).Assembly.GetName().Name
+});
+
+builder.Host.UseWindowsService(options =>
+{
+    options.ServiceName = "MicrohirePdfRender";
+});
+
+// Windows Service runs as LocalSystem: user-profile Playwright paths won't apply — use bundled pw-browsers next to the app.
+var pwRel = builder.Configuration["Playwright:BrowsersPath"];
+if (!string.IsNullOrWhiteSpace(pwRel))
+{
+    var full = Path.GetFullPath(Path.Combine(contentRoot, pwRel));
+    if (Directory.Exists(full))
+        Environment.SetEnvironmentVariable("PLAYWRIGHT_BROWSERS_PATH", full);
+}
 
 builder.Services.AddSingleton<PdfRenderer>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<PdfRenderer>());
