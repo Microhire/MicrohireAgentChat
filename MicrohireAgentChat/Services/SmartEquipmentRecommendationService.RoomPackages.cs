@@ -438,11 +438,17 @@ public sealed partial class SmartEquipmentRecommendationService
             return new List<RecommendedEquipmentItem>();
         }
 
+        // Thrive Boardroom package key order for projector/screen/vision:
+        // - av -> vision (WSBTHAV before WSBTHPRO)
+        // - other rooms: vision -> av (unchanged)
+        var preferAvOverVision =
+            string.Equals(roomKey, "Thrive Boardroom", StringComparison.OrdinalIgnoreCase);
+
         List<string>? packageCodes = null;
         string[]? keysToTry = equipmentType.ToLowerInvariant() switch
         {
-            "vision" => new[] { "vision", "av" },
-            "projector" or "projectors" or "screen" or "screens" => new[] { "vision", "av" },
+            "vision" => preferAvOverVision ? new[] { "av", "vision" } : new[] { "vision", "av" },
+            "projector" or "projectors" or "screen" or "screens" => preferAvOverVision ? new[] { "av", "vision" } : new[] { "vision", "av" },
             "speaker" or "speakers" or "audio" => new[] { "audio", "av" },
             _ => null
         };

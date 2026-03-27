@@ -336,6 +336,94 @@ public sealed class EquipmentScalingRulesTests
         Assert.Contains(result.Items, i => string.Equals(i.ProductCode, "WSBALLAU", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public async Task ThriveBoardroom_ProjectorPrefersAvPackageWsbtavOverVisionPackage()
+    {
+        var webRoot = CreateDataRoot();
+        WriteThriveBoardroomVenuePackages(webRoot);
+        await using var db = CreateDb(nameof(ThriveBoardroom_ProjectorPrefersAvPackageWsbtavOverVisionPackage));
+        SeedProduct(db, "WSBTHAV", "WSB", "Thrive AV Package", dayRate: 900);
+        SeedProduct(db, "WSBTHPRO", "WSB", "Thrive Projection Package", dayRate: 100);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "meeting",
+            VenueName = "Westin Brisbane",
+            RoomName = "Thrive Boardroom",
+            ExpectedAttendees = 8,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "projector", Quantity = 1 }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        var pkg = result.Items.FirstOrDefault(i => string.Equals(i.ProductCode, "WSBTHAV", StringComparison.OrdinalIgnoreCase));
+        Assert.NotNull(pkg);
+        Assert.DoesNotContain(result.Items, i => string.Equals(i.ProductCode, "WSBTHPRO", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task ThriveBoardroom_ScreenRequestDoesNotAddStandaloneScreen_WhenAvPackagePriced()
+    {
+        var webRoot = CreateDataRoot();
+        WriteThriveBoardroomVenuePackages(webRoot);
+        await using var db = CreateDb(nameof(ThriveBoardroom_ScreenRequestDoesNotAddStandaloneScreen_WhenAvPackagePriced));
+        SeedProduct(db, "WSBTHAV", "WSB", "Thrive AV Package", dayRate: 900);
+        SeedProduct(db, "WSBTHPRO", "WSB", "Thrive Projection Package", dayRate: 100);
+        SeedProduct(db, "SCREEN16", "SCREEN", "16x9 Fastfold Screen", dayRate: 220);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "meeting",
+            VenueName = "Westin Brisbane",
+            RoomName = "Thrive Boardroom",
+            ExpectedAttendees = 8,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "screen", Quantity = 1 }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        // Room package is satisfied via AV-first lookup; no duplicate hire screen line.
+        Assert.DoesNotContain(result.Items, i => string.Equals(i.Category, "SCREEN", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task ThriveBoardroom_ScreenRequest_AvFirstAvoidsStandaloneScreen_WhenVisionPackageUnpriced()
+    {
+        var webRoot = CreateDataRoot();
+        WriteThriveBoardroomVenuePackages(webRoot);
+        await using var db = CreateDb(nameof(ThriveBoardroom_ScreenRequest_AvFirstAvoidsStandaloneScreen_WhenVisionPackageUnpriced));
+        SeedProduct(db, "WSBTHAV", "WSB", "Thrive AV Package", dayRate: 900);
+        SeedProduct(db, "SCREEN16", "SCREEN", "16x9 Fastfold Screen", dayRate: 220);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "meeting",
+            VenueName = "Westin Brisbane",
+            RoomName = "Thrive Boardroom",
+            ExpectedAttendees = 8,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "screen", Quantity = 1 }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        Assert.DoesNotContain(result.Items, i => string.Equals(i.Category, "SCREEN", StringComparison.OrdinalIgnoreCase));
+    }
+
     #region Test Helpers
 
     private static BookingDbContext CreateDb(string dbName)
@@ -432,6 +520,22 @@ public sealed class EquipmentScalingRulesTests
         }
 
         return webRoot;
+    }
+
+    private static void WriteThriveBoardroomVenuePackages(string webRoot)
+    {
+        var json = JsonSerializer.Serialize(new Dictionary<string, object>
+        {
+            ["Westin Brisbane"] = new Dictionary<string, object>
+            {
+                ["Thrive Boardroom"] = new Dictionary<string, object>
+                {
+                    ["vision"] = new[] { "WSBTHPRO" },
+                    ["av"] = new[] { "WSBTHAV" }
+                }
+            }
+        });
+        File.WriteAllText(Path.Combine(webRoot, "data", "venue-room-packages.json"), json);
     }
 
     private sealed class TestWestinRoomCatalog : IWestinRoomCatalog
