@@ -245,7 +245,7 @@ public sealed partial class AgentToolHandlerService
                                     (eventContext.VenueName ?? "").Trim().Contains("brisbane", StringComparison.OrdinalIgnoreCase);
         if (isWestinBrisbaneVenue &&
             IsAmbiguousWestinBallroomParentRoom(eventContext.RoomName) &&
-            !UserExplicitlyConfirmedFullWestinBallroom(conversationMessages))
+            !UserExplicitlyConfirmedFullWestinBallroom(session, conversationMessages))
         {
             _logger.LogWarning("Equipment recommendation blocked - Westin Ballroom split not clarified for thread {ThreadId}", threadId);
             return JsonSerializer.Serialize(new
@@ -1604,9 +1604,31 @@ public sealed partial class AgentToolHandlerService
         var result = new List<string>();
         if (string.IsNullOrWhiteSpace(raw)) return result;
 
-        var text = raw.Trim().ToUpperInvariant();
+        var text = raw.Trim().ToUpperInvariant().Replace(" ", "");
         if (text.Length == 1 && text[0] is >= 'A' and <= 'F')
             return new List<string> { text };
+
+        var plusMatch = Regex.Match(text, @"^([A-F])\+([A-F])$");
+        if (plusMatch.Success)
+        {
+            foreach (var g in new[] { plusMatch.Groups[1].Value, plusMatch.Groups[2].Value })
+            {
+                if (!result.Contains(g, StringComparer.OrdinalIgnoreCase))
+                    result.Add(g);
+            }
+
+            return result;
+        }
+
+        foreach (var segment in raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var seg = segment.Trim().ToUpperInvariant().Replace(" ", "");
+            if (seg.Length == 1 && seg[0] is >= 'A' and <= 'F' && !result.Contains(seg, StringComparer.OrdinalIgnoreCase))
+                result.Add(seg);
+        }
+
+        if (result.Count > 0)
+            return result;
 
         foreach (Match m in Regex.Matches(text, @"\b(?:PROJECTOR\s+AREA|AREA)?\s*[:\-]?\s*([A-F])\b", RegexOptions.IgnoreCase))
         {

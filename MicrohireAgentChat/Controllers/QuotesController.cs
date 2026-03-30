@@ -1,241 +1,96 @@
 using System.Diagnostics;
-using System.Net.Http.Json;
 using MicrohireAgentChat.Helpers;
-using MicrohireAgentChat.Services;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Hosting;
 
-namespace MicrohireAgentChat.Controllers
+namespace MicrohireAgentChat.Controllers;
+
+/// <summary>Quote file helpers and diagnostics. PDF generation has been removed; quotes are HTML only.</summary>
+public sealed class QuotesController : Controller
 {
-    public class QuotesController : Controller
+    private readonly IWebHostEnvironment _env;
+
+    public QuotesController(IWebHostEnvironment env) => _env = env;
+
+    /// <summary>Legacy PDF render URL: redirects to the HTML quote if <paramref name="src"/> resolves.</summary>
+    [HttpGet("/quotes/render")]
+    public IActionResult RenderPdf([FromQuery] string src)
     {
-        private readonly IWebHostEnvironment _env;
-        private readonly ILogger<QuotesController> _logger;
-        private readonly IHostApplicationLifetime _hostLifetime;
-        private readonly IPlaywrightQuotePdfRenderer _quotePdf;
-        private readonly IHttpClientFactory _httpClientFactory;
-        private readonly IConfiguration _config;
-
-        public QuotesController(
-            IWebHostEnvironment env,
-            ILogger<QuotesController> logger,
-            IHostApplicationLifetime hostLifetime,
-            IPlaywrightQuotePdfRenderer quotePdf,
-            IHttpClientFactory httpClientFactory,
-            IConfiguration config)
+        if (string.IsNullOrWhiteSpace(src))
+            return BadRequest("src is required");
+        if (QuoteFilesPaths.TryResolveExistingQuoteFile(_env, src, out var srcPath) && System.IO.File.Exists(srcPath))
         {
-            _env = env;
-            _logger = logger;
-            _hostLifetime = hostLifetime;
-            _quotePdf = quotePdf;
-            _httpClientFactory = httpClientFactory;
-            _config = config;
+            var rel = src.Trim();
+            if (!rel.StartsWith("/", StringComparison.Ordinal))
+                rel = "/" + rel.TrimStart('/');
+            return Redirect(rel);
+        }
+        return NotFound("HTML quote not found");
+    }
+
+    /// <summary>Legacy download URL: if a sibling HTML exists for a requested .pdf name, redirect to it.</summary>
+    [HttpGet("/quotes/download")]
+    public IActionResult Download([FromQuery] string file)
+    {
+        var safe = Path.GetFileName(file ?? "");
+        if (!QuoteFilesPaths.IsSafeQuoteFileName(safe))
+            return NotFound();
+        var dir = QuoteFilesPaths.GetPhysicalQuotesDirectory(_env);
+        if (safe.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+        {
+            var htmlName = Path.ChangeExtension(safe, ".html");
+            var htmlPath = Path.Combine(dir, htmlName);
+            if (System.IO.File.Exists(htmlPath))
+                return Redirect($"/files/quotes/{Uri.EscapeDataString(htmlName)}");
+        }
+        var path = Path.Combine(dir, safe);
+        if (!System.IO.File.Exists(path))
+            return NotFound();
+        var contentType = safe.EndsWith(".html", StringComparison.OrdinalIgnoreCase)
+            ? "text/html"
+            : "application/octet-stream";
+        return File(System.IO.File.OpenRead(path), contentType, fileDownloadName: safe);
+    }
+
+    [HttpGet("/quotes/test-pipeline")]
+    public async Task<IActionResult> TestPipeline()
+    {
+        var result = new Dictionary<string, object?>();
+        var quotesDir = QuoteFilesPaths.GetPhysicalQuotesDirectory(_env);
+        result["quotesDir"] = quotesDir;
+        result["isAzure"] = QuoteFilesPaths.IsAzureAppService;
+
+        var html = StaticQuoteHtml();
+        var testName = $"Quote-TEST-{DateTime.UtcNow:yyyyMMddHHmmss}";
+        var htmlFileName = testName + ".html";
+        var htmlPath = Path.Combine(quotesDir, htmlFileName);
+
+        var htmlSw = Stopwatch.StartNew();
+        try
+        {
+            await System.IO.File.WriteAllTextAsync(htmlPath, html);
+            htmlSw.Stop();
+            result["htmlOk"] = true;
+            result["htmlPath"] = $"/files/quotes/{htmlFileName}";
+            result["htmlBytes"] = new FileInfo(htmlPath).Length;
+            result["htmlMs"] = htmlSw.ElapsedMilliseconds;
+        }
+        catch (Exception ex)
+        {
+            htmlSw.Stop();
+            result["htmlOk"] = false;
+            result["htmlMs"] = htmlSw.ElapsedMilliseconds;
+            result["htmlError"] = ex.Message;
         }
 
-        [HttpGet("/quotes/render")]
-        public async Task<IActionResult> RenderPdf([FromQuery] string src, [FromQuery] string outFile)
-        {
-            if (string.IsNullOrWhiteSpace(src)) return BadRequest("src is required");
-            if (string.IsNullOrWhiteSpace(outFile)) outFile = $"quote-{DateTime.UtcNow:yyyyMMddHHmmss}.pdf";
-            outFile = Path.GetFileName(outFile);
-            if (!outFile.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
-                outFile += ".pdf";
+        result["pdfOk"] = false;
+        result["pdfNote"] = "PDF pipeline removed; HTML quotes only.";
 
-            if (!QuoteFilesPaths.TryResolveExistingQuoteFile(_env, src, out var srcPath) || !System.IO.File.Exists(srcPath))
-                return NotFound("HTML source not found");
+        return Json(result);
+    }
 
-            // 1. Serve pre-generated PDF if it exists alongside the HTML
-            var preGenPdfPath = Path.ChangeExtension(srcPath, ".pdf");
-            if (System.IO.File.Exists(preGenPdfPath))
-            {
-                _logger.LogInformation("Serving pre-generated PDF for src {Source}", src);
-                var pdfStream = System.IO.File.OpenRead(preGenPdfPath);
-                return File(pdfStream, "application/pdf", fileDownloadName: outFile);
-            }
-
-            // 2. Generate on-the-fly with Playwright (SetContentAsync for reliable font loading)
-            var outDir = QuoteFilesPaths.GetPhysicalQuotesDirectory(_env);
-            var outPath = Path.Combine(outDir, outFile);
-
-            var html = await System.IO.File.ReadAllTextAsync(srcPath);
-            using var pdfTimeout = new CancellationTokenSource(HtmlQuoteGenerationService.PdfGenerationAbsoluteTimeout);
-            using var pdfWork = CancellationTokenSource.CreateLinkedTokenSource(
-                _hostLifetime.ApplicationStopping,
-                pdfTimeout.Token);
-            var generated = await _quotePdf.GeneratePdfFromHtmlAsync(html, outPath, _logger, pdfWork.Token, HttpContext.TraceIdentifier);
-
-            if (!generated || !System.IO.File.Exists(outPath))
-                return StatusCode(500, "PDF generation failed");
-
-            _logger.LogInformation("Serving on-the-fly Playwright PDF for src {Source}", src);
-            var stream = System.IO.File.OpenRead(outPath);
-            return File(stream, "application/pdf", fileDownloadName: outFile);
-        }
-
-        [HttpGet("/quotes/render-static")]
-        public async Task<IActionResult> RenderStatic([FromQuery] string? outFile)
-        {
-            var html = StaticQuoteHtml(); // your existing method that returns the full HTML string
-            if (string.IsNullOrWhiteSpace(outFile)) outFile = $"quote-{DateTime.UtcNow:yyyyMMddHHmmss}.pdf";
-
-            var outDir = QuoteFilesPaths.GetPhysicalQuotesDirectory(_env);
-            var outPath = Path.Combine(outDir, outFile);
-
-            using var pdfTimeout2 = new CancellationTokenSource(HtmlQuoteGenerationService.PdfGenerationAbsoluteTimeout);
-            using var pdfWork2 = CancellationTokenSource.CreateLinkedTokenSource(
-                _hostLifetime.ApplicationStopping,
-                pdfTimeout2.Token);
-            var generated = await _quotePdf.GeneratePdfFromHtmlAsync(html, outPath, _logger, pdfWork2.Token, HttpContext.TraceIdentifier);
-            if (!generated || !System.IO.File.Exists(outPath))
-                return StatusCode(500, "PDF generation failed");
-
-            var stream = System.IO.File.OpenRead(outPath);
-            return File(stream, "application/pdf", fileDownloadName: outFile); // forces download
-        }
-
-        [HttpGet("/quotes/test-pipeline")]
-        public async Task<IActionResult> TestPipeline()
-        {
-            var result = new Dictionary<string, object?>();
-            var quotesDir = QuoteFilesPaths.GetPhysicalQuotesDirectory(_env);
-            result["quotesDir"] = quotesDir;
-            result["isAzure"] = QuoteFilesPaths.IsAzureAppService;
-            result["playwrightBootstrap"] = PlaywrightBootstrap.GetStartupBrowserPathSummary();
-
-            var html = StaticQuoteHtml();
-            var testName = $"Quote-TEST-{DateTime.UtcNow:yyyyMMddHHmmss}";
-            var htmlFileName = testName + ".html";
-            var pdfFileName = testName + ".pdf";
-            var htmlPath = Path.Combine(quotesDir, htmlFileName);
-            var pdfPath = Path.Combine(quotesDir, pdfFileName);
-
-            // 1. HTML generation
-            var htmlSw = Stopwatch.StartNew();
-            try
-            {
-                await System.IO.File.WriteAllTextAsync(htmlPath, html);
-                htmlSw.Stop();
-                result["htmlOk"] = true;
-                result["htmlPath"] = $"/files/quotes/{htmlFileName}";
-                result["htmlBytes"] = new FileInfo(htmlPath).Length;
-                result["htmlMs"] = htmlSw.ElapsedMilliseconds;
-            }
-            catch (Exception ex)
-            {
-                htmlSw.Stop();
-                result["htmlOk"] = false;
-                result["htmlMs"] = htmlSw.ElapsedMilliseconds;
-                result["htmlError"] = ex.Message;
-            }
-
-            // 2. Remote PDF service
-            var pdfServiceUrl = _config["PdfService:BaseUrl"];
-            result["pdfServiceUrl"] = pdfServiceUrl ?? "(not configured)";
-
-            if (!string.IsNullOrWhiteSpace(pdfServiceUrl))
-            {
-                // 2a. Health check
-                try
-                {
-                    var client = _httpClientFactory.CreateClient("PdfRenderService");
-                    var healthSw = Stopwatch.StartNew();
-                    var healthResp = await client.GetAsync("health");
-                    healthSw.Stop();
-                    if (healthResp.IsSuccessStatusCode)
-                    {
-                        var healthBody = await healthResp.Content.ReadAsStringAsync();
-                        result["pdfServiceHealthy"] = true;
-                        result["pdfServiceHealthMs"] = healthSw.ElapsedMilliseconds;
-                        result["pdfServiceHealth"] = healthBody;
-                    }
-                    else
-                    {
-                        result["pdfServiceHealthy"] = false;
-                        result["pdfServiceHealthMs"] = healthSw.ElapsedMilliseconds;
-                        result["pdfServiceHealthStatus"] = (int)healthResp.StatusCode;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    result["pdfServiceHealthy"] = false;
-                    result["pdfServiceHealthError"] = ex.Message;
-                }
-
-                // 2b. PDF generation via remote service
-                var pdfSw = Stopwatch.StartNew();
-                try
-                {
-                    var client = _httpClientFactory.CreateClient("PdfRenderService");
-                    var resp = await client.PostAsJsonAsync("pdf/from-html", new { html });
-                    pdfSw.Stop();
-
-                    if (resp.IsSuccessStatusCode)
-                    {
-                        var pdfBytes = await resp.Content.ReadAsByteArrayAsync();
-                        if (pdfBytes.Length > 0)
-                        {
-                            await System.IO.File.WriteAllBytesAsync(pdfPath, pdfBytes);
-                            result["pdfOk"] = true;
-                            result["pdfPath"] = $"/files/quotes/{pdfFileName}";
-                            result["pdfBytes"] = pdfBytes.Length;
-                            result["pdfMs"] = pdfSw.ElapsedMilliseconds;
-                            result["pdfSource"] = "remote";
-                        }
-                        else
-                        {
-                            result["pdfOk"] = false;
-                            result["pdfError"] = "Remote service returned empty PDF";
-                            result["pdfMs"] = pdfSw.ElapsedMilliseconds;
-                        }
-                    }
-                    else
-                    {
-                        var body = await resp.Content.ReadAsStringAsync();
-                        result["pdfOk"] = false;
-                        result["pdfError"] = $"HTTP {(int)resp.StatusCode}: {(body.Length > 300 ? body[..300] : body)}";
-                        result["pdfMs"] = pdfSw.ElapsedMilliseconds;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    pdfSw.Stop();
-                    result["pdfOk"] = false;
-                    result["pdfError"] = ex.Message;
-                    result["pdfMs"] = pdfSw.ElapsedMilliseconds;
-                }
-            }
-            else
-            {
-                // 2c. Fallback: local Playwright
-                var pdfSw = Stopwatch.StartNew();
-                try
-                {
-                    using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(45));
-                    var ok = await _quotePdf.GeneratePdfFromHtmlAsync(html, pdfPath, _logger, cts.Token, "test-pipeline");
-                    pdfSw.Stop();
-                    result["pdfOk"] = ok && System.IO.File.Exists(pdfPath) && new FileInfo(pdfPath).Length > 0;
-                    result["pdfPath"] = ok ? $"/files/quotes/{pdfFileName}" : null;
-                    result["pdfBytes"] = System.IO.File.Exists(pdfPath) ? new FileInfo(pdfPath).Length : 0;
-                    result["pdfMs"] = pdfSw.ElapsedMilliseconds;
-                    result["pdfSource"] = "local-playwright";
-                }
-                catch (Exception ex)
-                {
-                    pdfSw.Stop();
-                    result["pdfOk"] = false;
-                    result["pdfError"] = ex.Message;
-                    result["pdfMs"] = pdfSw.ElapsedMilliseconds;
-                    result["pdfSource"] = "local-playwright";
-                }
-            }
-
-            return Json(result);
-        }
-
-        private static string StaticQuoteHtml()
-        {
-            var css = """
+    private static string StaticQuoteHtml()
+    {
+        var css = """
     <style>
       body { font-family: Arial, Helvetica, sans-serif; color:#111; margin:24px; }
       h1,h2,h3 { margin: 0 0 12px; }
@@ -257,7 +112,7 @@ namespace MicrohireAgentChat.Controllers
     </style>
     """;
 
-            return $"""
+        return $"""
     <!doctype html><html><head><meta charset="utf-8"><title>Microhire | ARCSOPT Meeting</title>{css}</head><body>
       <h1>ARCSOPT MEETING — Proposal</h1>
       <div class="grid">
@@ -267,69 +122,8 @@ namespace MicrohireAgentChat.Controllers
         <div>Account Manager</div><div>Nishal Kumar · +61 04 84814633 · nishal.kumar@microhire.com.au</div>
         <div>Reference</div><div>C1374000002 - 001</div>
       </div>
-
-      <div class="card">
-        <p>Dear Megan,</p>
-        <p class="muted small">
-          Thank you for the opportunity to present our audio-visual production services for your upcoming event at The Westin Brisbane.
-          Based on the information received, we recommend the following for a smooth event.
-        </p>
-      </div>
-
-      <h2>Equipment & Services</h2>
-
-      <h3>Vision</h3>
-      <table>
-        <thead><tr><th>Description</th><th class="right">Qty</th><th class="right">Line Total</th></tr></thead>
-        <tbody>
-          <tr><td>Westin Ballroom Single Projector Package<br><span class="small muted">Full HD Digital Projector, 120" motorised 16:9 screen, HDMI, client laptop at lectern, wireless presenter</span></td><td class="right">1</td><td class="right">$619.10</td></tr>
-        </tbody>
-        <tfoot><tr><td colspan="2" class="right">Vision Total</td><td class="right">$619.10</td></tr></tfoot>
-      </table>
-
-      <h3>Audio</h3>
-      <table>
-        <thead><tr><th>Description</th><th class="right">Qty</th><th class="right">Line Total</th></tr></thead>
-        <tbody>
-          <tr><td>Ceiling Speaker System</td><td class="right">1</td><td class="right">$0.00</td></tr>
-          <tr><td>6 Channel Audio Mixer</td><td class="right">1</td><td class="right">$0.00</td></tr>
-          <tr><td>2× Wireless Handheld (Shure QLXD4 K52)</td><td class="right">2</td><td class="right">$584.42</td></tr>
-        </tbody>
-        <tfoot><tr><td colspan="2" class="right">Audio Total</td><td class="right">$584.42</td></tr></tfoot>
-      </table>
-
-      <h2>Technical Services</h2>
-      <table>
-        <thead><tr><th>Task</th><th>Start</th><th>Finish</th><th class="right">Hrs</th><th class="right">Total ($)</th></tr></thead>
-        <tbody>
-          <tr><td>AV Technician Setup</td><td>17/10/25 07:30</td><td>17/10/25 09:00</td><td class="right">1.5</td><td class="right">$165.00</td></tr>
-          <tr><td>AV Technician Test & Connect</td><td>17/10/25 08:30</td><td>17/10/25 09:30</td><td class="right">1.0</td><td class="right">$110.00</td></tr>
-          <tr><td>AV Technician Pack Down</td><td>17/10/25 18:00</td><td>17/10/25 19:00</td><td class="right">1.0</td><td class="right">$110.00</td></tr>
-        </tbody>
-        <tfoot><tr><td colspan="4" class="right">Labour Total</td><td class="right">$385.00</td></tr></tfoot>
-      </table>
-
-      <h2>Budget Summary</h2>
-      <table class="totals">
-        <tbody>
-          <tr><td class="right" style="width:80%;">Rental Equipment</td><td class="right">$1,203.52</td></tr>
-          <tr><td class="right">Labour</td><td class="right">$385.00</td></tr>
-          <tr class="line"><td class="right">Service Charge</td><td class="right">$120.35</td></tr>
-          <tr><td class="right">Sub Total (ex GST)</td><td class="right">$1,708.87</td></tr>
-          <tr class="line"><td class="right">GST</td><td class="right">$170.89</td></tr>
-          <tr><td class="right"><strong>Total</strong></td><td class="right"><strong>$1,879.76</strong></td></tr>
-        </tbody>
-      </table>
-      <p class="small muted">Pricing valid until Wed 7 May 2025. Resources subject to availability at booking.</p>
-
-      <h2>Confirmation of Services</h2>
-      <div class="card small">
-        <p>On behalf of ARCSOPT, I accept this proposal and wish to proceed. We understand equipment and personnel are not allocated until this is signed and returned. This proposal is subject to Microhire’s terms & conditions.</p>
-        <p><a href="https://www.microhire.com.au/terms-conditions/">microhire.com.au/terms-conditions/</a></p>
-        <p><strong>Total Quotation Amount:</strong> $1,879.76 inc GST · <strong>Reference:</strong> C1374000002 - 001</p>
-      </div>
+      <p class="muted small">Pipeline test page (HTML only).</p>
     </body></html>
     """;
-        }
     }
 }

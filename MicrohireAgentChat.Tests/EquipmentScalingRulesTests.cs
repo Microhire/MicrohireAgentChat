@@ -227,7 +227,7 @@ public sealed class EquipmentScalingRulesTests
     {
         var webRoot = CreateDataRoot(includeVenuePackages: true, includeWestinLaborRules: true);
         await using var db = CreateDb(nameof(WestinPackage_DoesNotInflateMicCount_ForMixerLogic));
-        SeedProduct(db, "WSBALLAU", "WSB", "Westin Single Ballroom Ceiling Speaker System", dayRate: 300);
+        SeedProduct(db, "WBSBCSS", "WSB", "Westin Single Ballroom Ceiling Speaker System", dayRate: 300);
         SeedProduct(db, "MIC-HH-01", "W/MIC", "Wireless Handheld Microphone", dayRate: 80);
         SeedProduct(db, "MIXER06", "MIXER", "6 Channel Audio Mixer", dayRate: 120);
         await db.SaveChangesAsync();
@@ -259,7 +259,7 @@ public sealed class EquipmentScalingRulesTests
     {
         var webRoot = CreateDataRoot(includeVenuePackages: true);
         await using var db = CreateDb(nameof(Screen_Request_DoesNotAddStandaloneScreen_WhenRoomVisionPackageExists));
-        SeedProduct(db, "WSBBSPRO", "WSB", "Westin Single Ballroom Projector Package", dayRate: 500);
+        SeedProduct(db, "WBSPROJ", "WSB", "Westin Single Ballroom Projector Package", dayRate: 500);
         SeedProduct(db, "SCREEN16", "SCREEN", "16x9 Fastfold Screen", dayRate: 220);
         await db.SaveChangesAsync();
 
@@ -286,7 +286,7 @@ public sealed class EquipmentScalingRulesTests
     {
         var webRoot = CreateDataRoot(includeVenuePackages: true);
         await using var db = CreateDb(nameof(Speaker_Request_ExternalStyle_PrefersPortableSpeakerOverRoomInbuiltPackage));
-        SeedProduct(db, "WSBALLAU", "WSB", "Westin Single Ballroom Ceiling Speaker System", dayRate: 300);
+        SeedProduct(db, "WBSBCSS", "WSB", "Westin Single Ballroom Ceiling Speaker System", dayRate: 300);
         SeedProduct(db, "PA-PORT-01", "SPEAKER", "Portable PA Speaker System", dayRate: 180);
         await db.SaveChangesAsync();
 
@@ -306,7 +306,7 @@ public sealed class EquipmentScalingRulesTests
         var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
 
         Assert.Contains(result.Items, i => string.Equals(i.Category, "SPEAKER", StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(result.Items, i => string.Equals(i.ProductCode, "WSBALLAU", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(result.Items, i => string.Equals(i.ProductCode, "WBSBCSS", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -314,7 +314,7 @@ public sealed class EquipmentScalingRulesTests
     {
         var webRoot = CreateDataRoot(includeVenuePackages: true);
         await using var db = CreateDb(nameof(Speaker_Request_InbuiltStyle_PrefersRoomPackage));
-        SeedProduct(db, "WSBALLAU", "WSB", "Westin Single Ballroom Ceiling Speaker System", dayRate: 300);
+        SeedProduct(db, "WBSBCSS", "WSB", "Westin Single Ballroom Ceiling Speaker System", dayRate: 300);
         SeedProduct(db, "PA-PORT-01", "SPEAKER", "Portable PA Speaker System", dayRate: 180);
         await db.SaveChangesAsync();
 
@@ -333,7 +333,240 @@ public sealed class EquipmentScalingRulesTests
 
         var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
 
-        Assert.Contains(result.Items, i => string.Equals(i.ProductCode, "WSBALLAU", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(result.Items, i => string.Equals(i.ProductCode, "WBSBCSS", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task Av_WestinBallroom2_SelectsWBSAVP()
+    {
+        var webRoot = CreateDataRoot(includeVenuePackages: true);
+        await using var db = CreateDb(nameof(Av_WestinBallroom2_SelectsWBSAVP));
+        SeedProduct(db, "WBAVP", "WSB", "Westin Ballroom Full AV Package", dayRate: 900);
+        SeedProduct(db, "WBSAVP", "WSB", "Westin Single Ballroom AV Package", dayRate: 500);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "conference",
+            VenueName = "Westin Brisbane",
+            RoomName = "Westin Ballroom 2",
+            ExpectedAttendees = 120,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "av", Quantity = 1 }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        var av = result.Items.FirstOrDefault(i =>
+            string.Equals(i.ProductCode, "WBSAVP", StringComparison.OrdinalIgnoreCase));
+        Assert.NotNull(av);
+        Assert.DoesNotContain(result.Items, i =>
+            string.Equals(i.ProductCode, "WBAVP", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task Av_WestinBallroomFull_SelectsWBAVP()
+    {
+        var webRoot = CreateDataRoot(includeVenuePackages: true);
+        await using var db = CreateDb(nameof(Av_WestinBallroomFull_SelectsWBAVP));
+        SeedProduct(db, "WBAVP", "WSB", "Westin Ballroom Full AV Package", dayRate: 900);
+        SeedProduct(db, "WBSAVP", "WSB", "Westin Single Ballroom AV Package", dayRate: 500);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "conference",
+            VenueName = "Westin Brisbane",
+            RoomName = "Westin Ballroom",
+            ExpectedAttendees = 200,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "av", Quantity = 1 }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        Assert.Contains(result.Items, i =>
+            string.Equals(i.ProductCode, "WBAVP", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(result.Items, i =>
+            string.Equals(i.ProductCode, "WBSAVP", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task Av_ElevateFull_SelectsELEVAVP()
+    {
+        var webRoot = CreateDataRoot(includeVenuePackages: true);
+        await using var db = CreateDb(nameof(Av_ElevateFull_SelectsELEVAVP));
+        SeedProduct(db, "ELEVAVP", "WSBELEV", "Elevate Full AV Package", dayRate: 800);
+        SeedProduct(db, "ELEVSAVP", "WSBELEV", "Elevate Single AV Package", dayRate: 400);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "conference",
+            VenueName = "Westin Brisbane",
+            RoomName = "Elevate",
+            ExpectedAttendees = 80,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "av", Quantity = 1 }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        Assert.Contains(result.Items, i =>
+            string.Equals(i.ProductCode, "ELEVAVP", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(result.Items, i =>
+            string.Equals(i.ProductCode, "ELEVSAVP", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Theory]
+    [InlineData("Elevate 1")]
+    [InlineData("Elevate 2")]
+    public async Task Av_ElevateHalf_SelectsELEVSAVP(string roomName)
+    {
+        var webRoot = CreateDataRoot(includeVenuePackages: true);
+        await using var db = CreateDb($"{nameof(Av_ElevateHalf_SelectsELEVSAVP)}_{roomName.Replace(' ', '_')}");
+        SeedProduct(db, "ELEVAVP", "WSBELEV", "Elevate Full AV Package", dayRate: 800);
+        SeedProduct(db, "ELEVSAVP", "WSBELEV", "Elevate Single AV Package", dayRate: 400);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "conference",
+            VenueName = "Westin Brisbane",
+            RoomName = roomName,
+            ExpectedAttendees = 40,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "av", Quantity = 1 }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        Assert.Contains(result.Items, i =>
+            string.Equals(i.ProductCode, "ELEVSAVP", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(result.Items, i =>
+            string.Equals(i.ProductCode, "ELEVAVP", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task Speaker_ElevateFull_SelectsELEVCSS()
+    {
+        var webRoot = CreateDataRoot(includeVenuePackages: true);
+        await using var db = CreateDb(nameof(Speaker_ElevateFull_SelectsELEVCSS));
+        SeedProduct(db, "ELEVCSS", "WSBELEV", "Elevate Combined Ceiling Speaker System", dayRate: 350);
+        SeedProduct(db, "ELEVSCSS", "WSBELEV", "Elevate Single Ceiling Speaker System", dayRate: 200);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "conference",
+            VenueName = "Westin Brisbane",
+            RoomName = "Elevate",
+            ExpectedAttendees = 60,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "speaker", Quantity = 1, SpeakerStyle = "inbuilt" }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        Assert.Contains(result.Items, i =>
+            string.Equals(i.ProductCode, "ELEVCSS", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task Speaker_Elevate1_SelectsELEVSCSS()
+    {
+        var webRoot = CreateDataRoot(includeVenuePackages: true);
+        await using var db = CreateDb(nameof(Speaker_Elevate1_SelectsELEVSCSS));
+        SeedProduct(db, "ELEVCSS", "WSBELEV", "Elevate Combined Ceiling Speaker System", dayRate: 350);
+        SeedProduct(db, "ELEVSCSS", "WSBELEV", "Elevate Single Ceiling Speaker System", dayRate: 200);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "conference",
+            VenueName = "Westin Brisbane",
+            RoomName = "Elevate 1",
+            ExpectedAttendees = 30,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "speaker", Quantity = 1, SpeakerStyle = "inbuilt" }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        Assert.Contains(result.Items, i =>
+            string.Equals(i.ProductCode, "ELEVSCSS", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task Av_Thrive_SelectsTHRVAVP()
+    {
+        var webRoot = CreateDataRoot(includeVenuePackages: true);
+        await using var db = CreateDb(nameof(Av_Thrive_SelectsTHRVAVP));
+        SeedProduct(db, "THRVAVP", "WSBTHRV", "Thrive Boardroom AV Package", dayRate: 450);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "board meeting",
+            VenueName = "Westin Brisbane",
+            RoomName = "Thrive Boardroom",
+            ExpectedAttendees = 12,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "av", Quantity = 1 }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        Assert.Contains(result.Items, i =>
+            string.Equals(i.ProductCode, "THRVAVP", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task Speaker_Thrive_SelectsTHRVCSS()
+    {
+        var webRoot = CreateDataRoot(includeVenuePackages: true);
+        await using var db = CreateDb(nameof(Speaker_Thrive_SelectsTHRVCSS));
+        SeedProduct(db, "THRVCSS", "WSBTHRV", "Thrive Boardroom Ceiling Speaker System", dayRate: 280);
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "board meeting",
+            VenueName = "Westin Brisbane",
+            RoomName = "Thrive Boardroom",
+            ExpectedAttendees = 12,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "speaker", Quantity = 1, SpeakerStyle = "inbuilt" }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        Assert.Contains(result.Items, i =>
+            string.Equals(i.ProductCode, "THRVCSS", StringComparison.OrdinalIgnoreCase));
     }
 
     #region Test Helpers
@@ -390,15 +623,36 @@ public sealed class EquipmentScalingRulesTests
 
         if (includeVenuePackages)
         {
+            var ballroomPkgs = new Dictionary<string, object>
+            {
+                ["aiFolder"] = "WSBBALL",
+                ["audio"] = new[] { "WBFBCSS", "WBSBCSS" },
+                ["vision"] = new[] { "WBSPROJ", "WBDPROJ", "WBSNPROJ", "WBSSPROJ" },
+                ["av"] = new[] { "WBAVP", "WBSAVP" }
+            };
+            var elevatePkgs = new Dictionary<string, object>
+            {
+                ["aiFolder"] = "WSBELEV",
+                ["audio"] = new[] { "ELEVCSS", "ELEVSCSS" },
+                ["vision"] = new[] { "ELEVPROJ" },
+                ["av"] = new[] { "ELEVAVP", "ELEVSAVP" }
+            };
+            var thrivePkgs = new Dictionary<string, object>
+            {
+                ["aiFolder"] = "WSBTHRV",
+                ["audio"] = new[] { "THRVCSS" },
+                ["vision"] = new[] { "THRVPROJ" },
+                ["av"] = new[] { "THRVAVP" }
+            };
             var venueJson = JsonSerializer.Serialize(new Dictionary<string, object>
             {
                 ["Westin Brisbane"] = new Dictionary<string, object>
                 {
-                    ["Westin Ballroom"] = new Dictionary<string, object>
-                    {
-                        ["audio"] = new[] { "WSBALLAU" },
-                        ["vision"] = new[] { "WSBBSPRO" }
-                    }
+                    ["Westin Ballroom"] = ballroomPkgs,
+                    ["Westin Ballroom 1"] = ballroomPkgs,
+                    ["Westin Ballroom 2"] = ballroomPkgs,
+                    ["Elevate"] = elevatePkgs,
+                    ["Thrive Boardroom"] = thrivePkgs
                 }
             });
             File.WriteAllText(Path.Combine(dataDir, "venue-room-packages.json"), venueJson);
@@ -412,7 +666,7 @@ public sealed class EquipmentScalingRulesTests
                 {
                   "roomKey": "ballroom",
                   "roomContains": ["ballroom"],
-                  "packageCodes": ["WSBBDPRO", "WSBBSPRO", "WSBALLAU"],
+                  "packageCodes": ["WBDPROJ", "WBSPROJ", "WBSBCSS"],
                   "baselineLaborCode": "AVTECH",
                   "visionSpecialistCode": "VXTECH",
                   "audioSpecialistCode": "AXTECH",
@@ -438,6 +692,9 @@ public sealed class EquipmentScalingRulesTests
     {
         public Task<List<WestinRoom>> GetRoomsAsync(CancellationToken ct = default)
             => Task.FromResult(new List<WestinRoom>());
+
+        public IReadOnlyList<(string Slug, string Name)> GetVenueConfirmRoomOptions() =>
+            Array.Empty<(string, string)>();
     }
 
     private sealed class TestWebHostEnvironment : IWebHostEnvironment

@@ -183,9 +183,16 @@ public sealed partial class SmartEquipmentRecommendationService
                 items.AddRange(await RecommendProductByCodeAsync("LOG4kCAM", quantity, "Video conference unit for Teams/Zoom", context, ct));
                 break;
 
-            default:
-                _logger.LogWarning("Unknown equipment type: {Type}. Supported types: laptop, projector, screen, display, monitor, microphone, speaker, camera, clicker, hdmi_adaptor, switcher, laptop_at_stage, flipchart, lectern, foldback_monitor, video_conference_unit", normalizedType);
+            case "av":
+            case "base av":
+            case "base_av":
+                items.AddRange(await RecommendAvPackagesAsync(quantity, context, ct));
                 break;
+ 
+            default:
+                _logger.LogWarning("Unknown equipment type: {Type}. Supported types: laptop, projector, screen, display, monitor, microphone, speaker, camera, clicker, hdmi_adaptor, switcher, laptop_at_stage, flipchart, lectern, foldback_monitor, video_conference_unit, av, base av", normalizedType);
+                break;
+
         }
 
         if (items.Count == 0)
@@ -382,6 +389,43 @@ public sealed partial class SmartEquipmentRecommendationService
 
     #endregion
 
+    #region AV / Base AV Package Recommendations
+
+    /// <summary>
+    /// Recommends integrated AV packages (Projector + Screen + Audio).
+    /// Used by the "Base AV" form and general AV requests. 
+    /// </summary>
+    private async Task<List<RecommendedEquipmentItem>> RecommendAvPackagesAsync(
+        int quantity,
+        EventContext context,
+        CancellationToken ct)
+    {
+        var items = new List<RecommendedEquipmentItem>();
+
+        // Room-aware: try venue-installed WSB AV packages first
+        var roomAvPackages = await TryGetRoomSpecificPackagesAsync(
+            context.VenueName, context.RoomName, "av", quantity, context, ct);
+            
+        if (roomAvPackages.Count > 0)
+        {
+            _logger.LogInformation("Using room-specific AV packages: {Count} items", roomAvPackages.Count);
+            return roomAvPackages;
+        }
+
+        // Fallback: If no integrated package, recommend projector + speaker packages separately
+        _logger.LogInformation("No integrated AV package found; recommending standard projector and speaker packages.");
+        
+        var projectorItems = await RecommendProjectorPackagesAsync(quantity, context, ct);
+        var speakerItems = await RecommendSpeakerPackagesAsync(1, context, null, ct);
+        
+        items.AddRange(projectorItems);
+        items.AddRange(speakerItems);
+
+        return items;
+    }
+
+    #endregion
+
     #region Projector Package Recommendations
 
     private async Task<List<RecommendedEquipmentItem>> RecommendProjectorPackagesAsync(
@@ -391,7 +435,7 @@ public sealed partial class SmartEquipmentRecommendationService
     {
         var items = new List<RecommendedEquipmentItem>();
 
-        // Thrive must use its dedicated room package (WSBTHAV) when projection/display is needed.
+        // Thrive must use its dedicated room package (THRVAVP) when projection/display is needed.
         var isThriveBoardroom = (context.RoomName ?? "").Contains("thrive", StringComparison.OrdinalIgnoreCase);
         // Other very small rooms can still fall back to attendee-based standalone projector logic.
         bool skipRoomPackages = !isThriveBoardroom && await IsSmallRoomAsync(context.VenueName, context.RoomName, ct);
@@ -553,21 +597,41 @@ public sealed partial class SmartEquipmentRecommendationService
         if (normalized.Count == 0) return null;
 
         var room = (roomName ?? "").Trim().ToLowerInvariant();
-        var isFullBallroom = room is "westin ballroom" or "ballroom" or "full westin ballroom" or "westin ballroom full" or "full ballroom";
+        var isBallroomOne = room.Contains("ballroom 1") || room.Contains("ballroom-1");
+        var isBallroomTwo = room.Contains("ballroom 2") || room.Contains("ballroom-2");
+        var isFullBallroom = (room is "westin ballroom" or "ballroom" or "full westin ballroom" or "westin ballroom full" or "full ballroom")
+            || (room.Contains("ballroom") && !isBallroomOne && !isBallroomTwo);
 
-        // Dual projector (WSBBDPRO) only available for full Westin Ballroom, and only valid pairs B+C or E+F.
-        if (normalized.Count >= 2 && isFullBallroom)
+        // Dual projector (WBDPROJ): full ballroom B+C or E+F; Ballroom 1 E+D or D+C; Ballroom 2 A+F, A+B, or B+F.
+        if (normalized.Count >= 2)
         {
-            var hasBC = normalized.Contains("B") && normalized.Contains("C");
-            var hasEF = normalized.Contains("E") && normalized.Contains("F");
-            if (hasBC || hasEF) return "WSBBDPRO";
+            if (isFullBallroom)
+            {
+                var hasBC = normalized.Contains("B") && normalized.Contains("C");
+                var hasEF = normalized.Contains("E") && normalized.Contains("F");
+                if (hasBC || hasEF) return "WBDPROJ";
+            }
+
+            if (isBallroomOne)
+            {
+                var hasED = normalized.Contains("E") && normalized.Contains("D");
+                var hasDC = normalized.Contains("D") && normalized.Contains("C");
+                if (hasED || hasDC) return "WBDPROJ";
+            }
+
+            if (isBallroomTwo)
+            {
+                var hasAF = normalized.Contains("A") && normalized.Contains("F");
+                var hasAB = normalized.Contains("A") && normalized.Contains("B");
+                var hasBF = normalized.Contains("B") && normalized.Contains("F");
+                if (hasAF || hasAB || hasBF) return "WBDPROJ";
+            }
         }
 
-        // Single area or non-full ballroom: return single package.
         var first = normalized.First();
-        if (first == "A") return "WSBSSPRO";
-        if (first == "D") return "WSBNSPRO";
-        return "WSBBSPRO";
+        if (first == "A") return "WBSSPROJ";
+        if (first == "D") return "WBSNPROJ";
+        return "WBSPROJ";
     }
 
     private static int ExtractLumens(string description)
@@ -1226,7 +1290,73 @@ public sealed partial class SmartEquipmentRecommendationService
         var codeTrim = productCode.Trim();
         if (string.IsNullOrEmpty(codeTrim)) return items;
 
-        // EF Core cannot translate string.Equals with StringComparison to SQL - use ToLower() for case-insensitive match
+        // Batched path: one IN query per wave of distinct codes per recommendation request.
+        if (_recommendationInvBatch != null && _recommendationRateBatch != null)
+        {
+            await EnsureRecommendationProductsLoadedAsync(new[] { codeTrim }, ct);
+
+            ProductInvSnap? invOpt = _recommendationInvBatch.TryGetValue(codeTrim, out var invEntry) ? invEntry : null;
+
+            if (invOpt == null && codeTrim.Equals("LCD40", StringComparison.OrdinalIgnoreCase))
+            {
+                var aiCatalogForLcd = await GetAiCatalogCodesAsync(ct);
+                var lcdRow = await _db.TblInvmas
+                    .AsNoTracking()
+                    .Where(p => aiCatalogForLcd.Count == 0 || aiCatalogForLcd.Contains((p.product_code ?? "").Trim()))
+                    .Where(p =>
+                        (p.descriptionv6 ?? "").ToLower().Contains("foldback") ||
+                        (p.descriptionv6 ?? "").ToLower().Contains("confidence monitor") ||
+                        ((p.descriptionv6 ?? "").ToLower().Contains("40") && (p.descriptionv6 ?? "").ToLower().Contains("monitor")))
+                    .Select(p => new ProductInvSnap(
+                        (p.product_code ?? "").Trim(),
+                        p.descriptionv6,
+                        p.PrintedDesc,
+                        p.category,
+                        p.PictureFileName))
+                    .FirstOrDefaultAsync(ct);
+
+                if (!string.IsNullOrEmpty(lcdRow.ProductCode))
+                {
+                    _recommendationInvBatch[lcdRow.ProductCode] = lcdRow;
+                    _recommendationInvBatch[codeTrim] = lcdRow;
+                    await EnsureRecommendationProductsLoadedAsync(new[] { lcdRow.ProductCode }, ct);
+                    invOpt = lcdRow;
+                }
+            }
+
+            if (invOpt is { } bySnap)
+            {
+                var resolvedCode = bySnap.ProductCode;
+                _recommendationRateBatch.TryGetValue(resolvedCode, out var rateOpt);
+                var rate = rateOpt?.Rate1stDay ?? 0;
+                if (rate <= 0)
+                {
+                    _logger.LogWarning("Product {Code} has no pricing", productCode);
+                    return items;
+                }
+
+                var components = await GetPackageComponentsAsync(resolvedCode, ct);
+                items.Add(new RecommendedEquipmentItem
+                {
+                    ProductCode = resolvedCode,
+                    Description = (bySnap.Descriptionv6 ?? bySnap.PrintedDesc ?? "").Trim(),
+                    Category = bySnap.Category,
+                    Quantity = quantity,
+                    UnitPrice = rate,
+                    ExtraDayRate = rateOpt?.RateExtraDays ?? 0,
+                    PictureFileName = bySnap.PictureFileName,
+                    IsPackage = components.Count > 0,
+                    Components = components,
+                    RecommendationReason = reason
+                });
+                return items;
+            }
+
+            _logger.LogWarning("Product code {Code} not found in inventory", productCode);
+            return items;
+        }
+
+        // Legacy path (no request batch — callers outside GetRecommendationsAsync).
         var codeLower = codeTrim.ToLowerInvariant();
         var aiCodes = await GetAiCatalogCodesAsync(ct);
         var byCode = await _db.TblInvmas
@@ -1262,25 +1392,25 @@ public sealed partial class SmartEquipmentRecommendationService
             .Select(r => new { Code = (r.product_code ?? "").Trim(), r.rate_1st_day, r.rate_extra_days })
             .FirstOrDefaultAsync(ct);
 
-        var rate = pricing?.rate_1st_day ?? 0;
-        if (rate <= 0)
+        var rateLegacy = pricing?.rate_1st_day ?? 0;
+        if (rateLegacy <= 0)
         {
             _logger.LogWarning("Product {Code} has no pricing", productCode);
             return items;
         }
 
-        var components = await GetPackageComponentsAsync(byCode.product_code!.Trim(), ct);
+        var componentsLegacy = await GetPackageComponentsAsync(byCode.product_code!.Trim(), ct);
         items.Add(new RecommendedEquipmentItem
         {
             ProductCode = byCode.product_code.Trim(),
             Description = (byCode.descriptionv6 ?? byCode.PrintedDesc ?? "").Trim(),
             Category = byCode.category,
             Quantity = quantity,
-            UnitPrice = rate,
+            UnitPrice = rateLegacy,
             ExtraDayRate = pricing?.rate_extra_days ?? 0,
             PictureFileName = byCode.PictureFileName,
-            IsPackage = components.Count > 0,
-            Components = components,
+            IsPackage = componentsLegacy.Count > 0,
+            Components = componentsLegacy,
             RecommendationReason = reason
         });
         return items;

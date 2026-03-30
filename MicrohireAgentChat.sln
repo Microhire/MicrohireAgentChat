@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.14.36414.22 d17.14
@@ -6,8 +6,6 @@ MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicrohireAgentChat", "MicrohireAgentChat\MicrohireAgentChat.csproj", "{214FB938-04CC-4DE0-A064-665E2C31E01A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MicrohireAgentChat.Tests", "MicrohireAgentChat.Tests\MicrohireAgentChat.Tests.csproj", "{28312702-0F4C-4A70-9532-DA43FA00A749}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PdfRenderService", "PdfRenderService\PdfRenderService.csproj", "{FD9E38FA-0AF0-43AE-9296-A715C3006ED7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,10 +21,6 @@ Global
 		{28312702-0F4C-4A70-9532-DA43FA00A749}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{28312702-0F4C-4A70-9532-DA43FA00A749}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{28312702-0F4C-4A70-9532-DA43FA00A749}.Release|Any CPU.Build.0 = Release|Any CPU
-		{FD9E38FA-0AF0-43AE-9296-A715C3006ED7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FD9E38FA-0AF0-43AE-9296-A715C3006ED7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FD9E38FA-0AF0-43AE-9296-A715C3006ED7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FD9E38FA-0AF0-43AE-9296-A715C3006ED7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

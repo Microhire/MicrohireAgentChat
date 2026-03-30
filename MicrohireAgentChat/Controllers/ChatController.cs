@@ -50,6 +50,8 @@ public sealed class ChatController : Controller
     private readonly AgentToolHandlerService _toolHandler;
     private readonly ChatSessionPersistenceService _sessionPersistence;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IWestinRoomCatalog _westinRoomCatalog;
+    private readonly IHostApplicationLifetime _hostLifetime;
 
     // Detect: "Choose time: 09:00–10:30" (supports hyphen or en dash)
     private static readonly Regex ChooseTimeRe =
@@ -122,7 +124,9 @@ public sealed class ChatController : Controller
         ILogger<ChatController> logger,
         AgentToolHandlerService toolHandler,
         ChatSessionPersistenceService sessionPersistence,
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        IWestinRoomCatalog westinRoomCatalog,
+        IHostApplicationLifetime hostLifetime)
     {
         _chat = chat;
         _appDb = appDb;
@@ -143,6 +147,8 @@ public sealed class ChatController : Controller
         _toolHandler = toolHandler;
         _sessionPersistence = sessionPersistence;
         _scopeFactory = scopeFactory;
+        _westinRoomCatalog = westinRoomCatalog;
+        _hostLifetime = hostLifetime;
     }
 
     // Small helper to pick a stable user key for persistence.
@@ -282,6 +288,7 @@ public sealed class ChatController : Controller
         HttpContext.Session.Remove("Draft:BookingLookupApplied");
         HttpContext.Session.Remove("Draft:VenueConfirmSubmitted");
         HttpContext.Session.Remove("Draft:BaseAvSubmitted");
+        HttpContext.Session.Remove("Draft:BaseAvSubmittedForThread");
         HttpContext.Session.Remove("Draft:FollowUpAvSubmitted");
         HttpContext.Session.Remove("Draft:EventEndDate");
         HttpContext.Session.Remove("Draft:WantsOperator");
@@ -325,6 +332,34 @@ public sealed class ChatController : Controller
         "Draft:EventDate",
         "Draft:EventEndDate",
         "Draft:ExpectedAttendees",
+        // Wizard progress + submissions (survive thread reset when AgentThreads draft row is missing)
+        "Draft:VenueConfirmSubmitted",
+        "Draft:EventFormSubmitted",
+        "Draft:EventType",
+        "Draft:SetupStyle",
+        "Draft:WantsOperator",
+        "Draft:SetupTime",
+        "Draft:RehearsalTime",
+        "Draft:StartTime",
+        "Draft:EndTime",
+        "Draft:PackupTime",
+        "Draft:PresenterCount",
+        "Draft:BuiltInProjector",
+        "Draft:BuiltInScreen",
+        "Draft:BuiltInSpeakers",
+        "Draft:ProjectorPlacementChoice",
+        "Draft:Flipchart",
+        "Draft:LaptopMode",
+        "Draft:LaptopQty",
+        "Draft:AdapterOwnLaptops",
+        "Draft:MicType",
+        "Draft:MicQty",
+        "Draft:Lectern",
+        "Draft:FoldbackMonitor",
+        "Draft:WirelessPresenter",
+        "Draft:LaptopSwitcher",
+        "Draft:StageLaptop",
+        "Draft:VideoConference",
     };
 
     private Dictionary<string, string> SnapshotPreservedChatIdentityKeys()
@@ -359,10 +394,8 @@ public sealed class ChatController : Controller
         var session = HttpContext.Session;
         session.Remove("AgentThreadId");
         session.Remove("IslaGreeted");
-        session.Remove("Draft:EventFormSubmitted");
         session.Remove("Draft:ContactFormSubmitted");
         session.Remove("Draft:ShowContactSummary");
-        session.Remove("Draft:PresenterCount");
         session.Remove("Draft:SpeakerCount");
         session.Remove("Draft:NeedsClicker");
         session.Remove("Draft:NeedsRecording");
@@ -371,18 +404,11 @@ public sealed class ChatController : Controller
         session.Remove("Draft:TechWholeEvent");
         session.Remove("Draft:AvExtrasSubmitted");
         session.Remove("Draft:TechnicianCoverage");
-        session.Remove("Draft:SetupTime");
-        session.Remove("Draft:RehearsalTime");
-        session.Remove("Draft:StartTime");
-        session.Remove("Draft:EndTime");
-        session.Remove("Draft:PackupTime");
         session.Remove("Draft:SummaryEquipmentRequests");
         session.Remove("Draft:QuoteTimestamp");
         session.Remove("Draft:IsContentHeavy");
         session.Remove("Draft:IsContentLight");
         session.Remove("Draft:NeedsSdiCross");
-        session.Remove("Draft:EventType");
-        session.Remove("Draft:SetupStyle");
         session.Remove(GenerateQuoteFlag);
         session.Remove("Draft:ContactId");
         session.Remove("Draft:CustomerCode");
@@ -517,6 +543,9 @@ public sealed class ChatController : Controller
                 Request.Path);
 
             var userKey = GetUserKey();
+            // SQL for hydration must not use Request.Aborted (navigate-away cancels and used to blank the UI).
+            using var sqlPageLoadCts = CancellationTokenSource.CreateLinkedTokenSource(_hostLifetime.ApplicationStopping);
+            var sqlCt = sqlPageLoadCts.Token;
             var startedFreshLeadChat = false;
             var leadDatabaseHit = false;
 
@@ -535,10 +564,21 @@ public sealed class ChatController : Controller
             if (!string.IsNullOrWhiteSpace(leadIdStr) && Guid.TryParse(leadIdStr, out var leadToken))
             {
                 var lead = await _appDb.WestinLeads.AsNoTracking()
-                    .FirstOrDefaultAsync(l => l.Token == leadToken, ct);
+                    .FirstOrDefaultAsync(l => l.Token == leadToken, sqlCt);
                 leadDatabaseHit = lead != null;
                 if (lead != null)
                 {
+                    var activeLeadToken = HttpContext.Session.GetString("Draft:ActiveLeadToken");
+                    var hasPersistedThread = !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("AgentThreadId"));
+                    if (string.Equals(activeLeadToken, leadToken.ToString("D"), StringComparison.OrdinalIgnoreCase)
+                        && hasPersistedThread)
+                    {
+                        // Refresh with the same lead link: keep chat thread and draft (do not restart from email gate).
+                        _logger.LogInformation("Lead token {Token} already active for this session; skipping thread reset.", leadToken);
+                    }
+                    else
+                    {
+                    HttpContext.Session.SetString("Draft:ActiveLeadToken", leadToken.ToString("D"));
                     ClearBookingAndQuoteDraftState();
                     HttpContext.Session.Remove("Draft:ContactFormSubmitted");
                     HttpContext.Session.Remove("Draft:EventFormSubmitted");
@@ -597,9 +637,10 @@ public sealed class ChatController : Controller
                     HttpContext.Session.SetString("ContactSaveCompleted", "1");
 
                     var newThreadId = _chat.EnsureThreadId(HttpContext.Session);
-                    await _chat.ReplacePersistedThreadAsync(userKey, newThreadId, ct);
+                    await _chat.ReplacePersistedThreadAsync(userKey, newThreadId, sqlCt);
                     await _chat.EnsureGreetingAsync(HttpContext.Session, GreetingText, ct);
                     startedFreshLeadChat = true;
+                    }
                 }
 
                 // #region agent log
@@ -637,9 +678,9 @@ public sealed class ChatController : Controller
 
             if (!startedFreshLeadChat)
             {
-                await MaybeResetOrphanSessionAfterDbWipeAsync(userKey, ct);
+                await MaybeResetOrphanSessionAfterDbWipeAsync(userKey, sqlCt);
 
-                await _chat.EnsureThreadIdPersistedAsync(HttpContext.Session, userKey, ct);
+                await _chat.EnsureThreadIdPersistedAsync(HttpContext.Session, userKey, sqlCt);
 
                 // Restore draft state from DB when the session has no EntrySource (cold load edge case).
                 var emailForRestore = HttpContext.Session.GetString("Draft:ContactEmail");
@@ -648,7 +689,7 @@ public sealed class ChatController : Controller
                 {
                     try
                     {
-                        var saved = await _sessionPersistence.FindByEmailAsync(emailForRestore, ct);
+                        var saved = await _sessionPersistence.FindByEmailAsync(emailForRestore, sqlCt);
                         if (saved != null && !string.IsNullOrWhiteSpace(saved.DraftStateJson))
                             _sessionPersistence.RestoreToSession(HttpContext.Session, saved);
                     }
@@ -696,15 +737,51 @@ public sealed class ChatController : Controller
             // Do not rethrow — cancellation would surface as a generic 500 via UseExceptionHandler.
             _logger.LogInformation(
                 ex,
-                "Chat Index canceled (requestAborted={RequestAborted}); returning empty transcript.",
+                "Chat Index canceled (requestAborted={RequestAborted}); attempting session/Azure transcript fallback.",
                 HttpContext.RequestAborted.IsCancellationRequested);
-            SetScheduleTimesInViewData();
-            ViewData["ProgressStep"] = "";
-            ViewData["QuoteAccepted"] = HttpContext.Session.GetString("Draft:QuoteAccepted") ?? "0";
-            ViewData["QuoteComplete"] = false;
+
+            var userKey = GetUserKey();
+            try
+            {
+                using var sqlRetryCts = CancellationTokenSource.CreateLinkedTokenSource(_hostLifetime.ApplicationStopping);
+                var sqlCt = sqlRetryCts.Token;
+                await MaybeResetOrphanSessionAfterDbWipeAsync(userKey, sqlCt);
+                await _chat.EnsureThreadIdPersistedAsync(HttpContext.Session, userKey, sqlCt);
+            }
+            catch (Exception retryEx)
+            {
+                _logger.LogWarning(retryEx, "Chat Index cancel fallback: SQL hydrate failed; using session thread only.");
+            }
+
+            var threadId = _chat.EnsureThreadId(HttpContext.Session);
+            List<DisplayMessage> msgList;
+            try
+            {
+                var (_, messages) = _chat.GetTranscript(threadId);
+                msgList = messages.ToList();
+            }
+            catch (Exception transcriptEx)
+            {
+                _logger.LogWarning(transcriptEx, "Chat Index cancel fallback: transcript unavailable for thread suffix {Suffix}",
+                    threadId.Length > 8 ? threadId[^8..] : threadId);
+                SetScheduleTimesInViewData();
+                ViewData["ProgressStep"] = "";
+                ViewData["QuoteAccepted"] = HttpContext.Session.GetString("Draft:QuoteAccepted") ?? "0";
+                ViewData["QuoteComplete"] = false;
+                ViewData["DevModeEnabled"] = _devOptions.Enabled;
+                ViewData["IsDevelopment"] = _env.IsDevelopment();
+                return View(Enumerable.Empty<DisplayMessage>());
+            }
+
+            EnsureStructuredFormsInChat(msgList);
+            RedactPricesForUiInPlace(msgList);
             ViewData["DevModeEnabled"] = _devOptions.Enabled;
             ViewData["IsDevelopment"] = _env.IsDevelopment();
-            return View(Enumerable.Empty<DisplayMessage>());
+            ViewData["QuoteComplete"] = false;
+            ViewData["QuoteAccepted"] = HttpContext.Session.GetString("Draft:QuoteAccepted") ?? "0";
+            SetScheduleTimesInViewData();
+            ViewData["ProgressStep"] = DetermineProgressStep(msgList);
+            return View(msgList);
         }
         catch (Exception ex)
         {
@@ -790,8 +867,6 @@ public sealed class ChatController : Controller
                 {
                     summaryParts.Add($"End {Pretty12(showEnd)}");
                 }
-
-                summaryParts.Add($"Pack Up {Pretty12(pack)}");
 
                 _logger.LogInformation("FORMATTED TIMES: Setup={Setup}, Rehearsal={Rehearsal}, Start={Start}, End={End}, PackUp={PackUp}",
                     Pretty12(set), Pretty12(reh), showStart.HasValue ? Pretty12(showStart) : "null",
@@ -1318,7 +1393,6 @@ public sealed class ChatController : Controller
                 var summaryParts = new List<string> { $"Setup {Pretty12(set)}", $"Rehearsal {Pretty12(reh)}" };
                 if (showStart.HasValue) summaryParts.Add($"Start {Pretty12(showStart)}");
                 if (showEnd.HasValue) summaryParts.Add($"End {Pretty12(showEnd)}");
-                summaryParts.Add($"Pack Up {Pretty12(pack)}");
                 text = $"Schedule selected: {string.Join("; ", summaryParts)}.";
                 gotSchedule = true;
             }
@@ -1450,7 +1524,7 @@ public sealed class ChatController : Controller
     private static string GenerateAutoTestScheduleFallback(AutoTestPersona persona)
     {
         var dateIso = persona.EventDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-        return $"Choose schedule: date={dateIso}; setup=08:00; rehearsal=08:30; start=09:00; end=17:00; packup=19:00";
+        return $"Choose schedule: date={dateIso}; setup=08:00; rehearsal=08:30; start=09:00; end=17:00";
     }
 
     [HttpPost]
@@ -1657,23 +1731,27 @@ public sealed class ChatController : Controller
             }
 
             var venueConfirmThisRequest = false;
-            if (TryCaptureVenueConfirmFormSubmission(text, out var venueConfirm))
+            if (TryCaptureVenueConfirmFormSubmission(text, out var venueConfirm, out _))
             {
                 SaveVenueConfirmToSession(venueConfirm);
+                // Always use synthetic line so IsHiddenUserSyntheticMessage hides it; raw "yes" leaked as a bubble below later wizard forms.
                 text = BuildVenueConfirmSyntheticMessage(venueConfirm);
                 venueConfirmThisRequest = true;
             }
 
-            var baseAvThisRequest = false;
+            var eventDetailsThisRequest = false;
             if (TryCaptureEventDetailsFormSubmission(text, out var eventDetails))
             {
                 SaveEventDetailsToSession(eventDetails);
                 text = BuildEventDetailsSyntheticMessage(eventDetails);
+                eventDetailsThisRequest = true;
             }
 
-            if (TryCaptureBaseAvFormSubmission(text, out var baseAv))
+            var baseAvThisRequest = false;
+            if (TryCaptureBaseAvFormSubmission(text, out var baseAv, out _))
             {
                 SaveBaseAvToSession(baseAv);
+                // Always use synthetic line so IsHiddenUserSyntheticMessage hides it; raw userMessage leaked as a bubble below later wizard forms.
                 text = BuildBaseAvSyntheticMessage(baseAv);
                 TryPersistProjectorPlacementFromBaseAv(threadId, baseAv);
                 baseAvThisRequest = true;
@@ -1703,7 +1781,7 @@ public sealed class ChatController : Controller
                     $"Event details provided: venue {eventForm.Venue}; event type {eventForm.EventType}; " +
                     $"setup style {eventForm.SetupStyle}; attendees {eventForm.Attendees}; date {eventForm.Date}; " +
                     $"schedule setup {eventForm.SetupTime}, rehearsal {eventForm.RehearsalTime}, " +
-                    $"start {eventForm.StartTime}, end {eventForm.EndTime}, pack up {eventForm.PackupTime}.";
+                    $"start {eventForm.StartTime}, end {eventForm.EndTime}.";
             }
 
             if (TryCaptureAvExtrasFormSubmission(text, out var avExtras))
@@ -1790,8 +1868,6 @@ public sealed class ChatController : Controller
                     summaryParts.Add($"End {Pretty12(showEnd)}");
                 }
 
-                summaryParts.Add($"Pack Up {Pretty12(pack)}");
-
                 _logger.LogInformation("FORMATTED TIMES: Setup={Setup}, Rehearsal={Rehearsal}, Start={Start}, End={End}, PackUp={PackUp}",
                     Pretty12(set), Pretty12(reh), showStart.HasValue ? Pretty12(showStart) : "null",
                     showEnd.HasValue ? Pretty12(showEnd) : "null", Pretty12(pack));
@@ -1846,12 +1922,15 @@ public sealed class ChatController : Controller
                         _logger.LogInformation("[CHAT_FLOW] SendAsync completed in {Duration}s", (DateTime.UtcNow - sendStart).TotalSeconds);
                     }
                 }
-                else if (emailFormThisRequest || venueConfirmThisRequest || baseAvThisRequest)
+                else if (emailFormThisRequest || venueConfirmThisRequest || eventDetailsThisRequest || baseAvThisRequest)
                 {
                     // Structured wizard: persist user line to Azure for transcript continuity but skip the agent run.
                     // SendAsync post-processing (contact/booking DB, time picker, etc.) routinely exceeds client fetch
                     // timeouts for this step; EnsureStructuredFormsInChat supplies the next UI immediately.
-                    var structuredStep = emailFormThisRequest ? "email gate" : venueConfirmThisRequest ? "venue confirm" : "base AV";
+                    var structuredStep = emailFormThisRequest ? "email gate"
+                        : venueConfirmThisRequest ? "venue confirm"
+                        : eventDetailsThisRequest ? "event details"
+                        : "base AV";
                     _logger.LogInformation(
                         "[CHAT_FLOW] Skipping SendAsync for structured {Step}; AppendUserMessageAsync only ({Duration}s since send start)",
                         structuredStep,
@@ -1901,10 +1980,11 @@ public sealed class ChatController : Controller
             var msgList = sendResult.Messages is List<DisplayMessage> ml ? ml : sendResult.Messages.ToList();
             SyncProjectorPromptMarkers(msgList, threadId);
             EnsureStructuredFormsInChat(msgList);
-            // Email/venue structured steps skip SendAsync (user line only); no new assistant turn is expected.
+            // Email/venue/event-details/base-AV structured steps skip SendAsync (user line only); no new assistant turn is expected.
             if (!HasAssistantDelta(assistantCountBeforeTurn, msgList)
                 && !emailFormThisRequest
                 && !venueConfirmThisRequest
+                && !eventDetailsThisRequest
                 && !baseAvThisRequest)
             {
                 _logger.LogWarning("[CHAT_FLOW] SendPartial produced no assistant delta for thread {ThreadId} (sendFailed={SendFailed}). Appending fallback reply.", threadId, sendFailed);
@@ -1984,25 +2064,13 @@ public sealed class ChatController : Controller
                     var bookingDate = booking?.dDate ?? booking?.SDate;
                     var bookingDateStr = bookingDate?.ToString("dd MMMM yyyy") ?? "the scheduled date";
 
-                    string fallbackAmountStr;
-                    if (booking?.price_quoted.HasValue == true && booking.price_quoted.Value > 0)
-                    {
-                        fallbackAmountStr = booking.price_quoted.Value.ToString("C2", CultureInfo.GetCultureInfo("en-AU")) + " inc GST";
-                    }
-                    else
-                    {
-                        fallbackAmountStr = TryExtractAmountFromQuoteHtml(bookingNo) ?? "the quoted amount";
-                    }
-
                     var confirmText = $"Your quote {bookingNo}, for a booking on {bookingDateStr} is confirmed. " +
-                                      $"Kindly attend to the booking payment of {fallbackAmountStr}, payment details are noted on the Quote document. " +
                                       "One of our team members will be in contact with you shortly.";
 
                     var fallbackQuoteUrl = HttpContext.Session.GetString("Draft:QuoteUrl");
                     var fallbackSignedActionsHtml = "";
                     if (!string.IsNullOrWhiteSpace(fallbackQuoteUrl))
                     {
-                        confirmText += "\n\nYou can view or download your signed quote using the buttons below.";
                         fallbackSignedActionsHtml = BuildSignedQuoteActionsHtml(fallbackQuoteUrl, bookingNo);
                     }
 
@@ -2021,7 +2089,7 @@ public sealed class ChatController : Controller
                         Timestamp = DateTimeOffset.UtcNow,
                         Parts = fallbackParts,
                         FullText = confirmText,
-                        Html = $"<p>{System.Net.WebUtility.HtmlEncode(confirmText.Split("\n\n")[0])}</p>{fallbackSignedActionsHtml}"
+                        Html = $"<p>{System.Net.WebUtility.HtmlEncode(confirmText)}</p>{fallbackSignedActionsHtml}"
                     };
                     await AddAssistantMessageAndPersistAsync(msgList, confirmationMessage, ct);
                     HttpContext.Session.SetString("Draft:QuoteAccepted", "1");
@@ -2582,6 +2650,9 @@ public sealed class ChatController : Controller
     /// <returns>Non-null to short-circuit SendPartial; null when processing completed (caller refreshes transcript).</returns>
     private async Task<IActionResult?> TryFollowUpAvQuotePipelineAsync(List<DisplayMessage> msgList, string threadId, CancellationToken ct)
     {
+        // Ensure forms are in chat BEFORE adding the quote so the quote stays at the bottom.
+        EnsureStructuredFormsInChat(msgList);
+
         var summaryKey = ComputeSummaryKey(msgList);
         var lastPersistedKey = HttpContext.Session.GetString("Draft:PersistedSummaryKey");
         var quoteCompleteNow = HttpContext.Session.GetString("Draft:QuoteComplete") == "1";
@@ -2997,7 +3068,7 @@ public sealed class ChatController : Controller
         try
         {
             _logger.LogInformation("Starting HTML quote generation for booking {BookingNo}", bookingNo);
-            // HTML + Playwright PDF can exceed 30s on cold start / remote DB; align with chat client timeout.
+            // HTML quote generation can exceed 30s on cold start / remote DB; align with chat client timeout.
             using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(ct, timeoutCts.Token);
             try
@@ -3361,18 +3432,11 @@ public sealed class ChatController : Controller
                 quoteFilePath = resolvedQuotePath;
 
             // ---- Overlay signature onto quote HTML ----
-            string? amountFromHtml = null;
-            var signedPdfReady = false;
             if (quoteFilePath != null && System.IO.File.Exists(quoteFilePath))
             {
                 try
                 {
                     var html = await System.IO.File.ReadAllTextAsync(quoteFilePath, ct);
-
-                    // Extract amount from the quote HTML as a fallback
-                    var amountMatch = Regex.Match(html, @"Total Quotation</div>\s*<div class=""confirmation-value"">(.*?)</div>", RegexOptions.Singleline);
-                    if (amountMatch.Success)
-                        amountFromHtml = System.Net.WebUtility.HtmlDecode(amountMatch.Groups[1].Value).Trim();
 
                     var safeName = System.Net.WebUtility.HtmlEncode(fullName ?? "");
                     var safeDate = System.Net.WebUtility.HtmlEncode(signDate ?? "");
@@ -3404,23 +3468,6 @@ public sealed class ChatController : Controller
 
                     await System.IO.File.WriteAllTextAsync(quoteFilePath, html, ct);
                     _logger.LogInformation("[SIGNING] Quote HTML updated with signature data: {Path}", quoteFilePath);
-
-                    var pdfPath = Path.ChangeExtension(quoteFilePath, ".pdf");
-                    var pdfOk = await _htmlQuoteGen.GeneratePdfFromHtmlAsync(html, pdfPath, _logger, ct);
-                    signedPdfReady = pdfOk && System.IO.File.Exists(pdfPath) && new FileInfo(pdfPath).Length > 0;
-                    if (!signedPdfReady)
-                    {
-                        _logger.LogWarning("[SIGNING] Signed PDF not available for booking {BookingNo}; removing stale PDF if present so HTML and file do not disagree", bookingNo);
-                        try
-                        {
-                            if (System.IO.File.Exists(pdfPath))
-                                System.IO.File.Delete(pdfPath);
-                        }
-                        catch (Exception delEx)
-                        {
-                            _logger.LogWarning(delEx, "[SIGNING] Failed to remove stale PDF after regeneration failure for booking {BookingNo}", bookingNo);
-                        }
-                    }
                 }
                 catch (Exception ex)
                 {
@@ -3465,33 +3512,16 @@ public sealed class ChatController : Controller
             var bookingDate = booking.dDate ?? booking.SDate;
             var bookingDateStr = bookingDate?.ToString("dd MMMM yyyy") ?? "the scheduled date";
 
-            string amountStr;
-            if (booking.price_quoted.HasValue && booking.price_quoted.Value > 0)
-                amountStr = booking.price_quoted.Value.ToString("C2", CultureInfo.GetCultureInfo("en-AU")) + " inc GST";
-            else if (!string.IsNullOrWhiteSpace(amountFromHtml))
-                amountStr = amountFromHtml;
-            else
-                amountStr = "the quoted amount";
-
             var confirmText = $"Your quote {bookingNo}, for a booking on {bookingDateStr} is confirmed. " +
-                              $"Kindly attend to the booking payment of {amountStr}, payment details are noted on the Quote document. " +
                               "One of our team members will be in contact with you shortly.";
 
             var signedActionsHtml = "";
             if (!string.IsNullOrWhiteSpace(quoteUrl))
             {
-                var htmlStillPresent = quoteFilePath != null && System.IO.File.Exists(quoteFilePath);
-                if (signedPdfReady)
-                {
-                    confirmText += "\n\nYou can view or download your signed quote using the buttons below.";
-                    signedActionsHtml = BuildSignedQuoteActionsHtml(quoteUrl, bookingNo, includeDownload: true);
-                }
-                else if (htmlStillPresent)
-                {
-                    confirmText += "\n\nYou can view your signed quote below. We could not refresh the PDF download — use View, or contact Microhire if you need a file copy.";
-                    signedActionsHtml = BuildSignedQuoteActionsHtml(quoteUrl, bookingNo, includeDownload: false);
-                }
+                signedActionsHtml = BuildSignedQuoteActionsHtml(quoteUrl, bookingNo);
             }
+
+            EnsureStructuredFormsInChat(msgList);
 
             // Redact BEFORE adding the confirmation so the amount isn't stripped
             RedactPricesForUiInPlace(msgList);
@@ -3508,7 +3538,7 @@ public sealed class ChatController : Controller
                 Timestamp = DateTimeOffset.UtcNow,
                 Parts = confirmationParts,
                 FullText = confirmText,
-                Html = $"<p>{System.Net.WebUtility.HtmlEncode($"Your quote {bookingNo}, for a booking on {bookingDateStr} is confirmed. Kindly attend to the booking payment of {amountStr}, payment details are noted on the Quote document. One of our team members will be in contact with you shortly.")}</p>{signedActionsHtml}"
+                Html = $"<p>{System.Net.WebUtility.HtmlEncode(confirmText)}</p>{signedActionsHtml}"
             };
             await AddAssistantMessageAndPersistAsync(msgList, confirmationMessage, ct);
 
@@ -3559,6 +3589,7 @@ public sealed class ChatController : Controller
                 await AddAssistantMessageAndPersistAsync(msgList, fallbackMessage, ct);
             }
 
+            EnsureStructuredFormsInChat(msgList);
             RedactPricesForUiInPlace(msgList);
             ViewData["QuoteAccepted"] = HttpContext.Session.GetString("Draft:QuoteAccepted") ?? "0";
             ViewData["ShowQuoteCta"] = "0";
@@ -3855,8 +3886,10 @@ public sealed class ChatController : Controller
     private static List<string> GetAllowedProjectorAreasForRoom(string? roomName)
     {
         var room = (roomName ?? "").Trim().ToLowerInvariant();
-        if (room is "westin ballroom 1" or "ballroom 1") return new List<string> { "E", "D", "C" };
-        if (room is "westin ballroom 2" or "ballroom 2") return new List<string> { "A", "F", "B" };
+        if (room.Contains("ballroom 1", StringComparison.Ordinal) || room.Contains("ballroom-1", StringComparison.Ordinal))
+            return new List<string> { "E", "D", "C" };
+        if (room.Contains("ballroom 2", StringComparison.Ordinal) || room.Contains("ballroom-2", StringComparison.Ordinal))
+            return new List<string> { "A", "F", "B" };
         return new List<string> { "A", "B", "C", "D", "E", "F" };
     }
 
@@ -3884,17 +3917,14 @@ public sealed class ChatController : Controller
 
     private void TryPersistProjectorPlacementFromBaseAv(string threadId, BaseAvFormSubmission baseAv)
     {
-        var p = (baseAv.ProjectorPlacement ?? "").Trim().ToUpperInvariant();
-        if (p.Length != 1 || p[0] < 'A' || p[0] > 'F') return;
-
         var venue = HttpContext.Session.GetString("Draft:VenueName");
         var room = HttpContext.Session.GetString("Draft:RoomName");
         if (!IsDraftWestinBallroomFamily(venue, room)) return;
 
-        var allowed = GetAllowedProjectorAreasForRoom(room);
-        if (!allowed.Contains(p, StringComparer.OrdinalIgnoreCase)) return;
+        var areas = ParseProjectorPlacementToAllowedAreas(baseAv.ProjectorPlacement, room);
+        if (areas.Count == 0) return;
 
-        PersistProjectorAreaSelection(threadId, new List<string> { p });
+        PersistProjectorAreaSelection(threadId, areas);
     }
 
     private async Task AddAssistantMessageAndPersistAsync(List<DisplayMessage> msgList, DisplayMessage message, CancellationToken ct)
@@ -4076,37 +4106,57 @@ public sealed class ChatController : Controller
 
     private static DisplayMessage BuildQuoteReadyMessage(string bookingNo, string quoteUrl)
     {
-        const string confirmationPrompt = "\n\nWould you like to confirm this quote?";
-        var downloadAnchor = QuoteDownloadHref.BuildPendingDownloadAnchor(quoteUrl, bookingNo);
-        var successPart = $"Great news! I have successfully generated your quote for booking {bookingNo}. You can view it <a href=\"{quoteUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">here</a> or {downloadAnchor}.";
+        var text = $"Great news! I have successfully generated your quote for booking {bookingNo}. " +
+                   "Use **View quote** below to review the details. " +
+                   "Would you like to proceed and accept this quote?";
+        var uiJson = JsonSerializer.Serialize(new
+        {
+            ui = new { quoteUrl, bookingNo, isHtml = true }
+        });
+        var combined = text + "\n\n" + uiJson;
         return new DisplayMessage
         {
             Role = "assistant",
             Timestamp = DateTimeOffset.UtcNow,
-            Parts = new List<string> { successPart + confirmationPrompt },
-            FullText = $"Great news! I have successfully generated your quote for booking {bookingNo}. You can view it here: {quoteUrl}{confirmationPrompt}",
-            Html = successPart
+            Parts = new List<string> { combined },
+            FullText = text,
+            Html = text
         };
     }
 
-    private static string BuildSignedQuoteActionsHtml(string quoteUrl, string bookingNo, bool includeDownload = true)
+    private static string BuildSignedQuoteActionsHtml(string quoteUrl, string bookingNo)
     {
-        var viewBtn =
-            $"<a href=\"{quoteUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-download-btn isla-quote-open\" data-quote-open=\"1\">View Signed Quote</a>";
-        if (!includeDownload)
-        {
-            return
-                "<div style=\"margin-top:1rem;display:flex;gap:.75rem;flex-wrap:wrap;justify-content:center\">" +
-                viewBtn +
-                "</div>";
-        }
+        var safeUrl = System.Net.WebUtility.HtmlEncode(quoteUrl ?? "");
+        var safeRef = System.Net.WebUtility.HtmlEncode(bookingNo ?? "");
+        var refHtml = string.IsNullOrWhiteSpace(bookingNo)
+            ? ""
+            : $"<p class=\"isla-quote-ref\">Reference: {safeRef}</p>";
 
-        var downloadBtn = QuoteDownloadHref.BuildPendingSignedDownloadButton(quoteUrl, bookingNo);
-        return
-            "<div style=\"margin-top:1rem;display:flex;gap:.75rem;flex-wrap:wrap;justify-content:center\">" +
-            viewBtn +
-            downloadBtn +
-            "</div>";
+        // Matches the Quote Ready card in _Messages.cshtml (isla-quote-ready + icon + CTA with external-link SVG).
+        return $"""
+<div class="isla-quote-ready">
+<div class="isla-quote-icon">
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+<polyline points="14 2 14 8 20 8"></polyline>
+<line x1="16" y1="13" x2="8" y2="13"></line>
+<line x1="16" y1="17" x2="8" y2="17"></line>
+<polyline points="10 9 9 9 8 9"></polyline>
+</svg>
+</div>
+<div class="isla-quote-title">Signed Quote Ready!</div>
+<p class="isla-quote-message">Your signed quote is ready to view.</p>
+{refHtml}
+<a href="{safeUrl}" target="_blank" rel="noopener noreferrer" class="isla-quote-download-btn isla-quote-open" data-quote-open="1">
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+<polyline points="15 3 21 3 21 9"></polyline>
+<line x1="10" y1="14" x2="21" y2="3"></line>
+</svg>
+View Signed Quote
+</a>
+</div>
+""";
     }
 
     private sealed class ContactFormSubmission
@@ -4147,6 +4197,8 @@ public sealed class ChatController : Controller
     private sealed class VenueConfirmFormSubmission
     {
         public string VenueField { get; set; } = "";
+        /// <summary>Westin room slug from the venue-confirm dropdown (client sends <c>room=</c> in the payload).</summary>
+        public string RoomSlug { get; set; } = "";
         public string StartDate { get; set; } = "";
         public string EndDate { get; set; } = "";
         public int Attendees { get; set; }
@@ -4199,15 +4251,18 @@ public sealed class ChatController : Controller
         return TryValidateEmailFormat(raw, out normalizedEmail);
     }
 
-    private static bool TryCaptureVenueConfirmFormSubmission(string text, out VenueConfirmFormSubmission submission)
+    private static bool TryCaptureVenueConfirmFormSubmission(string text, out VenueConfirmFormSubmission submission, out string userMessage)
     {
         submission = new VenueConfirmFormSubmission();
+        userMessage = "";
         var m = VenueConfirmFormRe.Match(text ?? "");
         if (!m.Success) return false;
         var data = ParseKeyValueBlob(m.Groups[1].Value);
         submission.VenueField = GetDecodedValue(data, "venue");
+        submission.RoomSlug = GetDecodedValue(data, "room");
         submission.StartDate = GetDecodedValue(data, "startDate");
         submission.EndDate = GetDecodedValue(data, "endDate");
+        userMessage = GetDecodedValue(data, "userMessage");
         if (!int.TryParse(GetDecodedValue(data, "attendees"), out var att) || att < 1)
             return false;
         submission.Attendees = att;
@@ -4228,21 +4283,24 @@ public sealed class ChatController : Controller
         submission.StartTime = GetDecodedValue(data, "start");
         submission.EndTime = GetDecodedValue(data, "end");
         submission.PackupTime = GetDecodedValue(data, "packup");
+        if (string.IsNullOrWhiteSpace(submission.PackupTime))
+            submission.PackupTime = submission.EndTime;
         submission.WantsOperator = GetDecodedValue(data, "wantsOperator");
         return !string.IsNullOrWhiteSpace(submission.EventType)
                && !string.IsNullOrWhiteSpace(submission.SetupTime)
                && !string.IsNullOrWhiteSpace(submission.RehearsalTime)
                && !string.IsNullOrWhiteSpace(submission.StartTime)
-               && !string.IsNullOrWhiteSpace(submission.EndTime)
-               && !string.IsNullOrWhiteSpace(submission.PackupTime);
+               && !string.IsNullOrWhiteSpace(submission.EndTime);
     }
 
-    private static bool TryCaptureBaseAvFormSubmission(string text, out BaseAvFormSubmission submission)
+    private static bool TryCaptureBaseAvFormSubmission(string text, out BaseAvFormSubmission submission, out string userMessage)
     {
         submission = new BaseAvFormSubmission();
+        userMessage = "";
         var m = BaseAvFormRe.Match(text ?? "");
         if (!m.Success) return false;
         var data = ParseKeyValueBlob(m.Groups[1].Value);
+        userMessage = GetDecodedValue(data, "userMessage");
         submission.BuiltInProjector = string.Equals(GetDecodedValue(data, "builtInProjector"), "yes", StringComparison.OrdinalIgnoreCase);
         submission.BuiltInScreen = string.Equals(GetDecodedValue(data, "builtInScreen"), "yes", StringComparison.OrdinalIgnoreCase);
         submission.BuiltInSpeakers = string.Equals(GetDecodedValue(data, "builtInSpeakers"), "yes", StringComparison.OrdinalIgnoreCase);
@@ -4312,6 +4370,8 @@ public sealed class ChatController : Controller
         submission.StartTime = GetDecodedValue(data, "start");
         submission.EndTime = GetDecodedValue(data, "end");
         submission.PackupTime = GetDecodedValue(data, "packup");
+        if (string.IsNullOrWhiteSpace(submission.PackupTime))
+            submission.PackupTime = submission.EndTime;
         var attendeesText = GetDecodedValue(data, "attendees");
         if (!int.TryParse(attendeesText, out var attendees))
         {
@@ -4381,10 +4441,11 @@ public sealed class ChatController : Controller
         if (DateTime.TryParse(submission.Date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var eventDate)
             && TimeSpan.TryParse(submission.SetupTime, CultureInfo.InvariantCulture, out var setup)
             && TimeSpan.TryParse(submission.RehearsalTime, CultureInfo.InvariantCulture, out var rehearsal)
-            && TimeSpan.TryParse(submission.PackupTime, CultureInfo.InvariantCulture, out var packup))
+            && TimeSpan.TryParse(submission.EndTime, CultureInfo.InvariantCulture, out var endForPackup))
         {
             TimeSpan? start = TimeSpan.TryParse(submission.StartTime, CultureInfo.InvariantCulture, out var startTs) ? startTs : null;
             TimeSpan? end = TimeSpan.TryParse(submission.EndTime, CultureInfo.InvariantCulture, out var endTs) ? endTs : null;
+            var packup = endForPackup;
             SaveScheduleToSession(setup, rehearsal, start, end, packup, eventDate);
         }
     }
@@ -4406,8 +4467,16 @@ public sealed class ChatController : Controller
         var (venueName, roomName) = ResolveVenueAndRoom(submission.VenueField);
         if (!string.IsNullOrWhiteSpace(venueName))
             HttpContext.Session.SetString("Draft:VenueName", venueName);
-        if (!string.IsNullOrWhiteSpace(roomName))
+
+        var roomOptions = _westinRoomCatalog.GetVenueConfirmRoomOptions();
+        var roomFromSlug = ResolveRoomDisplayNameFromVenueConfirmRoomToken(submission.RoomSlug, roomOptions);
+        if (!string.IsNullOrWhiteSpace(roomFromSlug))
+            HttpContext.Session.SetString("Draft:RoomName", roomFromSlug);
+        else if (!string.IsNullOrWhiteSpace(roomName))
             HttpContext.Session.SetString("Draft:RoomName", roomName);
+        else
+            HttpContext.Session.Remove("Draft:RoomName");
+
         HttpContext.Session.SetString("Draft:EventDate", submission.StartDate);
         HttpContext.Session.SetString("Draft:EventEndDate",
             string.IsNullOrWhiteSpace(submission.EndDate) ? submission.StartDate : submission.EndDate);
@@ -4479,10 +4548,11 @@ public sealed class ChatController : Controller
         if (DateTime.TryParse(dateStr, CultureInfo.InvariantCulture, DateTimeStyles.None, out var eventDate)
             && TimeSpan.TryParse(submission.SetupTime, CultureInfo.InvariantCulture, out var setup)
             && TimeSpan.TryParse(submission.RehearsalTime, CultureInfo.InvariantCulture, out var rehearsal)
-            && TimeSpan.TryParse(submission.PackupTime, CultureInfo.InvariantCulture, out var packup))
+            && TimeSpan.TryParse(submission.EndTime, CultureInfo.InvariantCulture, out var endForPackup))
         {
             TimeSpan? start = TimeSpan.TryParse(submission.StartTime, CultureInfo.InvariantCulture, out var startTs) ? startTs : null;
             TimeSpan? end = TimeSpan.TryParse(submission.EndTime, CultureInfo.InvariantCulture, out var endTs) ? endTs : null;
+            var packup = endForPackup;
             SaveScheduleToSession(setup, rehearsal, start, end, packup, eventDate);
         }
 
@@ -4509,9 +4579,19 @@ public sealed class ChatController : Controller
         HttpContext.Session.SetString("Draft:TechEndTime", te);
         HttpContext.Session.SetString("Draft:TechWholeEvent", "yes");
         HttpContext.Session.SetString("Draft:BaseAvSubmitted", "1");
+        HttpContext.Session.SetString("Draft:BaseAvSubmittedForThread", HttpContext.Session.GetString("AgentThreadId") ?? "");
 
-        if (!string.IsNullOrWhiteSpace(s.ProjectorPlacement))
-            HttpContext.Session.SetString("Draft:ProjectorArea", s.ProjectorPlacement);
+        var roomForPlacement = HttpContext.Session.GetString("Draft:RoomName");
+        var placementAreas = ParseProjectorPlacementToAllowedAreas(s.ProjectorPlacement, roomForPlacement);
+        if (placementAreas.Count > 0)
+        {
+            HttpContext.Session.SetString("Draft:ProjectorAreas", string.Join(",", placementAreas));
+            HttpContext.Session.SetString("Draft:ProjectorArea", placementAreas[0]);
+        }
+        else if (!string.IsNullOrWhiteSpace(s.ProjectorPlacement))
+        {
+            HttpContext.Session.SetString("Draft:ProjectorArea", s.ProjectorPlacement.Trim());
+        }
 
         var mode = (s.LaptopMode ?? "").ToLowerInvariant();
         if (mode is "windows" or "mac")
@@ -4623,7 +4703,60 @@ public sealed class ChatController : Controller
         if (lower.Contains("thrive", StringComparison.Ordinal))
             return ("The Westin Brisbane", "Thrive Boardroom");
 
+        // Venue dropdown label only (no specific room) — do not store the venue name as Draft:RoomName.
+        if (string.Equals(value, "Westin Brisbane", StringComparison.OrdinalIgnoreCase)
+            || string.Equals(value, "The Westin Brisbane", StringComparison.OrdinalIgnoreCase))
+            return ("The Westin Brisbane", "");
+
         return ("The Westin Brisbane", value);
+    }
+
+    /// <summary>
+    /// Maps the client venue-confirm <c>room=</c> token (slug or display name) to the canonical room name used in session.
+    /// </summary>
+    private static string? ResolveRoomDisplayNameFromVenueConfirmRoomToken(
+        string? roomToken,
+        IReadOnlyList<(string Slug, string Name)> options)
+    {
+        var t = (roomToken ?? "").Trim();
+        if (string.IsNullOrEmpty(t))
+            return null;
+
+        foreach (var (slug, name) in options)
+        {
+            if (string.Equals(slug, t, StringComparison.OrdinalIgnoreCase))
+                return name;
+        }
+
+        foreach (var (slug, name) in options)
+        {
+            if (string.Equals(name, t, StringComparison.OrdinalIgnoreCase))
+                return name;
+        }
+
+        var matchedSlug = WestinRoomCatalog.MatchDraftRoomNameToSlug(t, options);
+        if (matchedSlug == null)
+            return null;
+
+        foreach (var (slug, name) in options)
+        {
+            if (string.Equals(slug, matchedSlug, StringComparison.OrdinalIgnoreCase))
+                return name;
+        }
+
+        return null;
+    }
+
+    /// <summary>
+    /// True when session <c>Draft:RoomName</c> matches a quotable Westin venue-confirm room (not the venue label alone).
+    /// </summary>
+    private bool HasQuotableWestinRoomInDraft()
+    {
+        var room = (HttpContext.Session.GetString("Draft:RoomName") ?? "").Trim();
+        if (string.IsNullOrWhiteSpace(room))
+            return false;
+        var options = _westinRoomCatalog.GetVenueConfirmRoomOptions();
+        return WestinRoomCatalog.MatchDraftRoomNameToSlug(room, options) != null;
     }
 
     private static string NormalizeToIsoDateOrEmpty(string raw)
@@ -4726,7 +4859,7 @@ public sealed class ChatController : Controller
     private static string BuildEventDetailsSyntheticMessage(EventDetailsFormSubmission s) =>
         $"Event details provided: event type {s.EventType}; setup style {s.SetupStyle}; " +
         $"operator {s.WantsOperator}; schedule setup {s.SetupTime}, rehearsal {s.RehearsalTime}, " +
-        $"start {s.StartTime}, end {s.EndTime}, pack up {s.PackupTime}.";
+        $"start {s.StartTime}, end {s.EndTime}.";
 
     private static string BuildBaseAvSyntheticMessage(BaseAvFormSubmission s) =>
         $"Base AV provided: built-in projector {s.BuiltInProjector}; screen {s.BuiltInScreen}; speakers {s.BuiltInSpeakers}; " +
@@ -4745,34 +4878,26 @@ public sealed class ChatController : Controller
             $"video conference {s.VideoConference}.";
     }
 
+    /// <summary>Matches Azure SDK "Agent" and OpenAI-style "assistant" (see <see cref="AzureAgentChatService"/> transcript normalization).</summary>
+    private static bool IsAssistantMessageRole(string? role) =>
+        string.Equals(role, "assistant", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(role, "agent", StringComparison.OrdinalIgnoreCase);
+
     private void EnsureStructuredFormsInChat(List<DisplayMessage> messages)
     {
-        if (messages == null)
-            return;
-
-        // Do not bail on empty transcript: EnsureGreetingAsync may not have persisted yet, or
-        // Azure thread fetch can be empty briefly — lead links still need email gate / forms on first paint.
-
-        // If QuoteComplete is set but we have no rows yet (empty thread + stale session), still run the wizard
-        // below so the user never sees a blank chat.
-        if (HttpContext.Session.GetString("Draft:QuoteComplete") == "1" && messages.Count > 0)
-            return;
+        if (messages == null) return;
+        var index = (messages.Count > 0 &&
+                     IsAssistantMessageRole(messages[0].Role) &&
+                     (messages[0].FullText ?? "").Contains("Hello, my name is Isla from Microhire", StringComparison.OrdinalIgnoreCase))
+                     ? 1 : 0;
 
         var followUpAvSubmitted = HttpContext.Session.GetString("Draft:FollowUpAvSubmitted") == "1";
-
-        // Skip re-injecting wizard UI when assistant is steering to quote *and* follow-up AV is already done.
-        // Do not bail while follow-up is still pending — otherwise a premature "generate the quote now?" model line
-        // blocks injection of the follow-up form (section 7).
-        var assistantAskedQuoteGeneration = messages.Any(m => QuoteSummaryAskHelpers.AssistantMessageContainsQuoteGenerationPrompt(m));
-        if (assistantAskedQuoteGeneration && followUpAvSubmitted)
-            return;
 
         var entrySource = HttpContext.Session.GetString("Draft:EntrySource") ?? "general";
         var emailGateComplete = HttpContext.Session.GetString("Draft:EmailGateCompleted") == "1";
         var needManualContact = HttpContext.Session.GetString("Draft:NeedManualContact") == "1";
         var contactFormSubmitted = HttpContext.Session.GetString("Draft:ContactFormSubmitted") == "1";
         var venueConfirmSubmitted = HttpContext.Session.GetString("Draft:VenueConfirmSubmitted") == "1";
-        var eventFormSubmitted = HttpContext.Session.GetString("Draft:EventFormSubmitted") == "1";
         var baseAvSubmitted = HttpContext.Session.GetString("Draft:BaseAvSubmitted") == "1";
 
         // Lead links: after email verification, show venue wizard even if org/name are missing on the lead row.
@@ -4790,7 +4915,7 @@ public sealed class ChatController : Controller
         _ = int.TryParse(attendeesRaw, out var attendees);
         var hasEventCoreDraft =
             !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:VenueName")) &&
-            !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:RoomName")) &&
+            HasQuotableWestinRoomInDraft() &&
             !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:EventType")) &&
             attendees > 0 &&
             !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:EventDate")) &&
@@ -4808,7 +4933,7 @@ public sealed class ChatController : Controller
                 var emailIntro = string.Equals(entrySource, "lead", StringComparison.OrdinalIgnoreCase)
                     ? "Please confirm the email address you used for your enquiry so we can verify it’s you."
                     : "Please enter your email address so I can verify your booking request.";
-                messages.Add(BuildUiAssistantMessage(emailIntro, BuildEmailFormUiJson()));
+                messages.Insert(index++, BuildUiAssistantMessage(emailIntro, BuildEmailFormUiJson()));
             }
             return;
         }
@@ -4819,7 +4944,7 @@ public sealed class ChatController : Controller
             messages.RemoveAll(IsLegacyContactPromptMessage);
             if (!messages.Any(m => MessageContainsUiType(m, "contactForm")))
             {
-                messages.Add(BuildUiAssistantMessage("Please complete this quick contact form:", BuildContactFormUiJson()));
+                messages.Insert(index++, BuildUiAssistantMessage("Please complete this quick contact form:", BuildContactFormUiJson()));
             }
             return;
         }
@@ -4830,7 +4955,7 @@ public sealed class ChatController : Controller
             messages.RemoveAll(IsLegacyContactPromptMessage);
             if (!messages.Any(m => MessageContainsUiType(m, "contactForm")))
             {
-                messages.Add(BuildUiAssistantMessage("Please complete this quick contact form:", BuildContactFormUiJson()));
+                messages.Insert(index++, BuildUiAssistantMessage("Please complete this quick contact form:", BuildContactFormUiJson()));
             }
             return;
         }
@@ -4839,83 +4964,83 @@ public sealed class ChatController : Controller
             messages.RemoveAll(m => MessageContainsUiType(m, "contactForm"));
             if (!messages.Any(m => MessageContainsUiType(m, "submittedForm") && (m.FullText ?? "").Contains("Contact details submitted")))
             {
-                messages.Add(BuildUiAssistantMessage("Contact details submitted:", BuildSubmittedContactFormViewJson()));
+                messages.Insert(index++, BuildUiAssistantMessage("Contact details submitted:", BuildSubmittedContactFormViewJson()));
             }
+            else index++;
         }
 
-        // 4) Venue + dates + attendees
-        if (!venueConfirmSubmitted)
-        {
-            // While two-phase contact save is in flight ("One moment, please!"), do not inject the venue form —
-            // it appeared above the follow-up "saved successfully" message and confused users.
-            if (string.Equals(HttpContext.Session.GetString("ContactSavePending"), "1", StringComparison.Ordinal))
-            {
-                messages.RemoveAll(m => MessageContainsUiType(m, "venueConfirmForm"));
-                return;
-            }
-
-            if (!messages.Any(m => MessageContainsUiType(m, "venueConfirmForm")))
-            {
-                var intro = HttpContext.Session.GetString("Draft:BookingLookupApplied") == "1"
-                    ? "I've found your booking details. Please review and confirm."
-                    : "Please confirm your venue, room, and event dates.";
-                messages.Add(BuildUiAssistantMessage(intro, BuildVenueConfirmFormUiJson()));
-            }
-            return;
-        }
-        else
+        // 4) Venue + dates + attendees — always inject so submitted forms stay visible (view shows Confirmed + disabled).
+        // While two-phase contact save is in flight ("One moment, please!"), do not inject the venue form —
+        // it appeared above the follow-up "saved successfully" message and confused users.
+        if (string.Equals(HttpContext.Session.GetString("ContactSavePending"), "1", StringComparison.Ordinal))
         {
             messages.RemoveAll(m => MessageContainsUiType(m, "venueConfirmForm"));
+            return;
         }
 
-        // 5) Event type + schedule + operator
+        if (!messages.Any(m => MessageContainsUiType(m, "venueConfirmForm")))
+        {
+            var intro = HttpContext.Session.GetString("Draft:BookingLookupApplied") == "1"
+                ? "I've found your booking details. Please review and confirm."
+                : "Please confirm your venue, room, and event dates.";
+            messages.Insert(index++, BuildUiAssistantMessage(intro, BuildVenueConfirmFormUiJson()));
+        }
+        else index++;
+
+        if (!venueConfirmSubmitted)
+            return;
+
+        // 5) Event type + schedule + operator — always (re-)inject when missing from transcript so session
+        // values stay visible after thread resets; ViewData EventFormSubmitted drives Confirmed + disabled UI.
+        if (!messages.Any(m => MessageContainsUiType(m, "eventDetailsForm")))
+        {
+            messages.Insert(index++, BuildUiAssistantMessage("Please tell me more about your event.", BuildEventDetailsFormUiJson()));
+        }
+        else index++;
+
         if (!hasEventCoreDraft)
-        {
-            if (!messages.Any(m => MessageContainsUiType(m, "eventDetailsForm")))
-            {
-                messages.Add(BuildUiAssistantMessage("Please tell me more about your event.", BuildEventDetailsFormUiJson()));
-            }
             return;
-        }
-        else if (eventFormSubmitted)
-        {
-            messages.RemoveAll(m => MessageContainsUiType(m, "eventDetailsForm"));
-        }
 
-        // 6) Base AV package
-        if (!baseAvSubmitted)
+        // 6) Base AV package — always inject when missing from thread, embedding per-form submitted state
+        // directly in the JSON so the Razor template is independent of the global session flag.
+        // "Actually submitted" means the session flag is set AND the submission came from this same
+        // Azure thread (matched via Draft:BaseAvSubmittedForThread), OR — legacy fallback — the thread
+        // already contains a "Base AV provided:" user message.
+        var currentThreadId = HttpContext.Session.GetString("AgentThreadId") ?? "";
+        var baseAvForThread = HttpContext.Session.GetString("Draft:BaseAvSubmittedForThread") ?? "";
+        var baseAvActuallySubmitted = baseAvSubmitted && (
+            (!string.IsNullOrEmpty(baseAvForThread)
+                && string.Equals(baseAvForThread, currentThreadId, StringComparison.Ordinal))
+            || messages.Any(m =>
+                string.Equals(m.Role, "user", StringComparison.OrdinalIgnoreCase) &&
+                (m.FullText ?? string.Join(" ", m.Parts ?? Enumerable.Empty<string>()))
+                    .StartsWith("Base AV provided:", StringComparison.OrdinalIgnoreCase)));
+
+        if (!messages.Any(m => MessageContainsUiType(m, "baseAvForm")))
         {
-            if (!messages.Any(m => MessageContainsUiType(m, "baseAvForm")))
-            {
-                messages.Add(BuildUiAssistantMessage(
-                    $"The base AV package for {HttpContext.Session.GetString("Draft:RoomName") ?? "your room"} is:",
-                    BuildBaseAvFormUiJson()));
-            }
+            messages.Insert(index++, BuildUiAssistantMessage(
+                $"The base AV package for {HttpContext.Session.GetString("Draft:RoomName") ?? "your room"} is:",
+                BuildBaseAvFormUiJson(baseAvActuallySubmitted)));
+        }
+        else index++;
+
+        if (!baseAvActuallySubmitted)
             return;
-        }
-        else
-        {
-            messages.RemoveAll(m => MessageContainsUiType(m, "baseAvForm"));
-        }
 
         // 7) Follow-up AV questions
         // Strip legacy tool-built avExtrasForm messages — they duplicate the server-injected followUpAvForm.
         messages.RemoveAll(IsAvExtrasFormMessage);
 
+        if (!messages.Any(m => MessageContainsUiType(m, "followUpAvForm")))
+        {
+            messages.Insert(index++, BuildUiAssistantMessage(
+                "Thanks for confirming the base AV package. I have a few follow-up questions.",
+                BuildFollowUpAvFormUiJson()));
+        }
+        else index++;
+
         if (!followUpAvSubmitted)
-        {
-            if (!messages.Any(m => MessageContainsUiType(m, "followUpAvForm")))
-            {
-                messages.Add(BuildUiAssistantMessage(
-                    "Thanks for confirming the base AV package. I have a few follow-up questions.",
-                    BuildFollowUpAvFormUiJson()));
-            }
             return;
-        }
-        else if (HttpContext.Session.GetString("Draft:AvExtrasSubmitted") == "1")
-        {
-            messages.RemoveAll(IsFollowUpAvFormMessage);
-        }
     }
 
     private static bool IsLegacyContactPromptMessage(DisplayMessage message)
@@ -5016,6 +5141,10 @@ public sealed class ChatController : Controller
         var todayIso = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
         var start = HttpContext.Session.GetString("Draft:EventDate") ?? todayIso;
         var end = HttpContext.Session.GetString("Draft:EventEndDate") ?? start;
+        var rooms = _westinRoomCatalog.GetVenueConfirmRoomOptions();
+        var draftRoom = HttpContext.Session.GetString("Draft:RoomName")?.Trim() ?? "";
+        var selectedSlug = WestinRoomCatalog.MatchDraftRoomNameToSlug(draftRoom, rooms);
+        var roomOptions = rooms.Select(r => new { id = r.Slug, label = r.Name }).ToArray();
         var payload = new
         {
             ui = new
@@ -5027,12 +5156,9 @@ public sealed class ChatController : Controller
                 startDate = start,
                 endDate = end,
                 minDate = todayIso,
-                venueOptions = new object[]
-                {
-                    new { id = "westin-ballroom", label = "Westin Ballroom", splits = new[] { new { id = "full", label = "Full" }, new { id = "1", label = "Ballroom 1" }, new { id = "2", label = "Ballroom 2" } } },
-                    new { id = "elevate", label = "Elevate", splits = new[] { new { id = "full", label = "Full" }, new { id = "1", label = "Elevate 1" }, new { id = "2", label = "Elevate 2" } } },
-                    new { id = "thrive-boardroom", label = "Thrive Boardroom", splits = Array.Empty<object>() }
-                }
+                venueLabel = WestinRoomCatalog.VenueName,
+                roomOptions,
+                selectedRoomSlug = selectedSlug
             }
         };
         return JsonSerializer.Serialize(payload);
@@ -5065,23 +5191,61 @@ public sealed class ChatController : Controller
         return JsonSerializer.Serialize(payload);
     }
 
-    private string BuildBaseAvFormUiJson()
+    private string BuildBaseAvFormUiJson(bool submitted = false)
     {
         var room = HttpContext.Session.GetString("Draft:RoomName") ?? "";
         var showPlacement = RoomSupportsProjectorPlacement(room);
         var floorPlanUrl = showPlacement ? "/images/westin/westin-ballroom/floor-plan.png" : "";
+        var venueForPackages = HttpContext.Session.GetString("Draft:VenueName")?.Trim();
+        if (string.IsNullOrWhiteSpace(venueForPackages))
+            venueForPackages = WestinRoomCatalog.VenueName;
+        var roomTrim = room.Trim();
+        var roomOptionsForTitle = _westinRoomCatalog.GetVenueConfirmRoomOptions();
+        var roomTitle = roomTrim;
+        if (WestinRoomCatalog.MatchDraftRoomNameToSlug(roomTrim, roomOptionsForTitle) is { } titleSlug)
+        {
+            foreach (var (s, name) in roomOptionsForTitle)
+            {
+                if (string.Equals(s, titleSlug, StringComparison.OrdinalIgnoreCase))
+                {
+                    roomTitle = name;
+                    break;
+                }
+            }
+        }
+        else if (string.IsNullOrWhiteSpace(roomTrim))
+            roomTitle = "your room";
+
+        var placementFromJson = VenueRoomPackagesCache.TryGetProjectorPlacementOptions(_env, venueForPackages, roomTrim);
+        if (placementFromJson == null)
+        {
+            var packageRoomKey = ResolveWestinPackageRoomKeyForPlacement(roomTrim);
+            if (!string.IsNullOrWhiteSpace(packageRoomKey)
+                && !string.Equals(packageRoomKey, roomTrim, StringComparison.OrdinalIgnoreCase))
+            {
+                placementFromJson = VenueRoomPackagesCache.TryGetProjectorPlacementOptions(_env, venueForPackages, packageRoomKey);
+            }
+        }
+
+        var baseEquipmentLabels = VenueRoomPackagesCache.TryGetBaseEquipmentLabels(_env, venueForPackages, roomTrim);
+        var baseEquipment = baseEquipmentLabels.Count > 0
+            ? baseEquipmentLabels.ToArray()
+            : new[] { "Inbuilt projector", "Inbuilt screen", "Inbuilt speakers" };
+
         var payload = new
         {
             ui = new
             {
                 type = "baseAvForm",
-                title = $"Base AV package for {room}",
+                submitted,
+                title = $"Base AV package for {roomTitle}",
                 submitLabel = "Next",
                 roomName = room,
+                baseEquipment,
                 showProjectorPlacement = showPlacement,
                 floorPlanUrl,
                 projectorPlacement = HttpContext.Session.GetString("Draft:ProjectorPlacementChoice") ?? "",
-                placementOptions = GetProjectorPlacementOptionsForRoom(room),
+                placementOptions = placementFromJson ?? GetProjectorPlacementOptionsFallback(room),
                 presenters = HttpContext.Session.GetString("Draft:PresenterCount") ?? "0",
                 flipchart = HttpContext.Session.GetString("Draft:Flipchart") ?? "no",
                 laptopMode = HttpContext.Session.GetString("Draft:LaptopMode") ?? "none",
@@ -5123,12 +5287,37 @@ public sealed class ChatController : Controller
     private static bool RoomSupportsProjectorPlacement(string? roomName)
     {
         var r = (roomName ?? "").ToLowerInvariant();
-        return r.Contains("westin ballroom 1", StringComparison.Ordinal)
-            || r.Contains("westin ballroom 2", StringComparison.Ordinal)
-            || r.Contains("westin ballroom", StringComparison.Ordinal) && !r.Contains("elevate");
+        if (r.Contains("elevate", StringComparison.Ordinal))
+            return false;
+        // Only enable projector placement for the three specific Westin ballroom configurations
+        var isBallroom1 = r.Contains("ballroom 1", StringComparison.Ordinal) || r.Contains("ballroom-1", StringComparison.Ordinal);
+        var isBallroom2 = r.Contains("ballroom 2", StringComparison.Ordinal) || r.Contains("ballroom-2", StringComparison.Ordinal);
+        // Full ballroom (but not the split rooms) - must contain "ballroom" but NOT "1" or "2"
+        var isFullBallroom = r.Contains("ballroom", StringComparison.Ordinal)
+            && !r.Contains("ballroom 1", StringComparison.Ordinal)
+            && !r.Contains("ballroom-1", StringComparison.Ordinal)
+            && !r.Contains("ballroom 2", StringComparison.Ordinal)
+            && !r.Contains("ballroom-2", StringComparison.Ordinal);
+        return isBallroom1 || isBallroom2 || isFullBallroom;
     }
 
-    private static object[] GetProjectorPlacementOptionsForRoom(string? roomName)
+    /// <summary>Maps draft/slug room labels to <c>venue-room-packages.json</c> keys for Westin ballroom variants.</summary>
+    private static string? ResolveWestinPackageRoomKeyForPlacement(string? roomName)
+    {
+        var roomNorm = (roomName ?? "").Trim().ToLowerInvariant();
+        if (string.IsNullOrEmpty(roomNorm))
+            return null;
+        if (roomNorm.Contains("ballroom 1") || roomNorm.Contains("ballroom-1"))
+            return "Westin Ballroom 1";
+        if (roomNorm.Contains("ballroom 2") || roomNorm.Contains("ballroom-2"))
+            return "Westin Ballroom 2";
+        if (roomNorm.Contains("ballroom"))
+            return "Westin Ballroom";
+        return null;
+    }
+
+    /// <summary>Legacy placement list when <c>venue-room-packages.json</c> has no <c>projectorPlacementOptions</c> for the room.</summary>
+    private static object[] GetProjectorPlacementOptionsFallback(string? roomName)
     {
         var allowed = GetAllowedProjectorAreasForRoom(roomName);
         var list = new List<object>();
@@ -5146,6 +5335,33 @@ public sealed class ChatController : Controller
         return list.ToArray();
     }
 
+    /// <summary>Parses projector placement (single area or A+B dual) against areas allowed for the Westin ballroom variant.</summary>
+    private static List<string> ParseProjectorPlacementToAllowedAreas(string? placement, string? roomName)
+    {
+        var allowed = GetAllowedProjectorAreasForRoom(roomName);
+        var allowedSet = new HashSet<string>(allowed, StringComparer.OrdinalIgnoreCase);
+        var result = new List<string>();
+        var p = (placement ?? "").Trim().ToUpperInvariant().Replace(" ", "");
+        if (string.IsNullOrEmpty(p))
+            return result;
+
+        var m = Regex.Match(p, @"^([A-F])\+([A-F])$");
+        if (m.Success)
+        {
+            foreach (var g in new[] { m.Groups[1].Value, m.Groups[2].Value })
+            {
+                if (allowedSet.Contains(g) && !result.Exists(x => string.Equals(x, g, StringComparison.OrdinalIgnoreCase)))
+                    result.Add(g);
+            }
+
+            return result;
+        }
+
+        if (p.Length == 1 && p[0] is >= 'A' and <= 'F' && allowedSet.Contains(p))
+            result.Add(p);
+        return result;
+    }
+
     private string BuildSubmittedFollowUpAvViewJson()
     {
         var items = new List<(string label, string value)>();
@@ -5161,6 +5377,10 @@ public sealed class ChatController : Controller
     private string BuildEventFormUiJson()
     {
         var todayIso = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd");
+        var rooms = _westinRoomCatalog.GetVenueConfirmRoomOptions();
+        var draftRoom = HttpContext.Session.GetString("Draft:RoomName")?.Trim() ?? "";
+        var selectedSlug = WestinRoomCatalog.MatchDraftRoomNameToSlug(draftRoom, rooms);
+        var roomOptions = rooms.Select(r => new { id = r.Slug, label = r.Name }).ToArray();
         var payload = new
         {
             ui = new
@@ -5173,12 +5393,9 @@ public sealed class ChatController : Controller
                 eventDate = HttpContext.Session.GetString("Draft:EventDate") ?? todayIso,
                 minDate = todayIso,
                 setupStyle = HttpContext.Session.GetString("Draft:SetupStyle") ?? "",
-                venueOptions = new object[]
-                {
-                    new { id = "westin-ballroom", label = "Westin Ballroom", splits = new[] { new { id = "full", label = "Full" }, new { id = "1", label = "Ballroom 1" }, new { id = "2", label = "Ballroom 2" } } },
-                    new { id = "elevate", label = "Elevate", splits = new[] { new { id = "full", label = "Full" }, new { id = "1", label = "Elevate 1" }, new { id = "2", label = "Elevate 2" } } },
-                    new { id = "thrive-boardroom", label = "Thrive Boardroom", splits = Array.Empty<object>() }
-                },
+                venueLabel = WestinRoomCatalog.VenueName,
+                roomOptions,
+                selectedRoomSlug = selectedSlug,
                 setupOptions = new[] { "Theatre", "Classroom", "Banquet", "Cocktail", "U-Shape", "Boardroom" },
                 schedule = new
                 {
@@ -5307,7 +5524,7 @@ public sealed class ChatController : Controller
         var kvs = blob.Split(';', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
         TimeSpan ts;
-        bool gotSetup = false, gotReh = false, gotPack = false;
+        bool gotSetup = false, gotReh = false;
 
         foreach (var kv in kvs)
         {
@@ -5375,28 +5592,37 @@ public sealed class ChatController : Controller
                 case "packup":
                 case "pack_down":
                 case "packdown":
-                    packup = ts; gotPack = true; break;
+                    packup = ts; break;
             }
         }
 
+        if (packup == default)
+        {
+            if (showEnd.HasValue)
+                packup = showEnd.Value;
+            else if (showStart.HasValue)
+                packup = showStart.Value;
+            else
+                packup = rehearsal;
+        }
+
         // Validate chronological order before returning
-        if (!ValidateScheduleOrder(setup, rehearsal, showStart, showEnd, packup))
+        if (!ValidateScheduleOrder(setup, rehearsal, showStart, showEnd))
         {
             return false;
         }
 
-        return gotSetup && gotReh && gotPack;
+        return gotSetup && gotReh;
     }
 
     /// <summary>
-    /// Validates that schedule times are in chronological order: Setup < Rehearsal < Start < End < Pack Up
+    /// Validates that schedule times are in chronological order: Setup < Rehearsal < Start < End
     /// </summary>
     private static bool ValidateScheduleOrder(
         TimeSpan setup,
         TimeSpan rehearsal,
         TimeSpan? showStart,
-        TimeSpan? showEnd,
-        TimeSpan packup)
+        TimeSpan? showEnd)
     {
         // Validate: setup < rehearsal
         if (rehearsal <= setup)
@@ -5408,17 +5634,6 @@ public sealed class ChatController : Controller
 
         // Validate: start < end
         if (showStart.HasValue && showEnd.HasValue && showEnd.Value <= showStart.Value)
-            return false;
-
-        // Validate: end < packup
-        if (showEnd.HasValue && packup <= showEnd.Value)
-            return false;
-
-        // Validate: setup < start (if rehearsal not provided, but this shouldn't happen per business logic)
-        // Note: This case is handled by the rehearsal check above since rehearsal is required
-
-        // Validate: rehearsal < packup (if end not provided)
-        if (!showEnd.HasValue && packup <= rehearsal)
             return false;
 
         return true;
@@ -5473,6 +5688,11 @@ public sealed class ChatController : Controller
         ViewData["ScheduleStartTime"] = scheduleTimes["start"];
         ViewData["ScheduleEndTime"] = scheduleTimes["end"];
         ViewData["SchedulePackupTime"] = scheduleTimes["packup"];
+        ViewData["VenueConfirmSubmitted"] = HttpContext.Session.GetString("Draft:VenueConfirmSubmitted") ?? "0";
+        ViewData["EventFormSubmitted"] = HttpContext.Session.GetString("Draft:EventFormSubmitted") ?? "0";
+        ViewData["BaseAvSubmitted"] = HttpContext.Session.GetString("Draft:BaseAvSubmitted") ?? "0";
+        ViewData["FollowUpAvSubmitted"] = HttpContext.Session.GetString("Draft:FollowUpAvSubmitted") ?? "0";
+        ViewData["QuoteUrl"] = HttpContext.Session.GetString("Draft:QuoteUrl") ?? "";
     }
 
     private string DetermineProgressStep(IEnumerable<DisplayMessage>? messages)

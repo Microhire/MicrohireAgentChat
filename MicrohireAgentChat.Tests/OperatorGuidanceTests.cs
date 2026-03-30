@@ -225,7 +225,7 @@ public sealed class OperatorGuidanceTests
             {
                 new EquipmentItemForLabor
                 {
-                    ProductCode = "WSBBDPRO",
+                    ProductCode = "WBDPROJ",
                     Description = "Westin Ballroom Dual Projector Package",
                     Quantity = 1
                 },
@@ -286,7 +286,7 @@ public sealed class OperatorGuidanceTests
                 {
                   "roomKey": "ballroom",
                   "roomContains": ["ballroom"],
-                  "packageCodes": ["WSBBDPRO"],
+                  "packageCodes": ["WBDPROJ"],
                   "baselineLaborCode": "AVTECH",
                   "visionSpecialistCode": "VXTECH",
                   "audioSpecialistCode": "AXTECH",
@@ -311,6 +311,9 @@ public sealed class OperatorGuidanceTests
     private sealed class TestWestinRoomCatalog : IWestinRoomCatalog
     {
         public Task<List<WestinRoom>> GetRoomsAsync(CancellationToken ct = default) => Task.FromResult(new List<WestinRoom>());
+
+        public IReadOnlyList<(string Slug, string Name)> GetVenueConfirmRoomOptions() =>
+            Array.Empty<(string, string)>();
     }
 
     private sealed class TestWebHostEnvironment : IWebHostEnvironment

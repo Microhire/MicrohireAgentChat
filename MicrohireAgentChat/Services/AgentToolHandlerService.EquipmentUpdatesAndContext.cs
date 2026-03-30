@@ -313,9 +313,60 @@ public sealed partial class AgentToolHandlerService
             }
         }
 
-        var outputToUser = addCouldNotFind.Count > 0
-            ? $"Equipment updated. Some items were not found: {string.Join(", ", addCouldNotFind)}. When the user is ready, call **generate_quote** (do not show a quote summary card)."
-            : "Equipment updated and saved. When the user is ready, call **generate_quote** (do not show a quote summary card).";
+        var projectorAreasForSummary = GetNormalizedProjectorAreas(session.GetString("Draft:ProjectorAreas"));
+        if (projectorAreasForSummary.Count == 0)
+            projectorAreasForSummary = GetNormalizedProjectorAreas(session.GetString("Draft:ProjectorArea"));
+        var showProjectorPlacement = SelectedEquipmentSuggestsProjectorPlacementForSummary(currentItems)
+            && projectorAreasForSummary.Count > 0;
+
+        var scheduleInfo = new TechnicianScheduleInfo(
+            session.GetString("Draft:SetupTime"),
+            session.GetString("Draft:RehearsalTime"),
+            session.GetString("Draft:StartTime"),
+            session.GetString("Draft:EndTime"),
+            session.GetString("Draft:PackupTime"));
+
+        var summaryLines = new List<string>
+        {
+            "## 📋 Quote Summary\n",
+            "### Event Details"
+        };
+        if (!string.IsNullOrWhiteSpace(venueName)) summaryLines.Add($"**Venue:** {venueName}");
+        if (!string.IsNullOrWhiteSpace(roomName)) summaryLines.Add($"**Room:** {roomName}");
+        if (showProjectorPlacement)
+        {
+            if (projectorAreasForSummary.Count == 1)
+                summaryLines.Add($"**Projector Placement Area:** {projectorAreasForSummary[0]}");
+            else
+                summaryLines.Add($"**Projector Placement Areas:** {string.Join(", ", projectorAreasForSummary)}");
+        }
+
+        summaryLines.Add($"**Event Type:** {eventType}");
+        summaryLines.Add($"**Attendees:** {expectedAttendees}");
+        summaryLines.Add("");
+        summaryLines.Add("### Requirement Summary\n");
+        foreach (var line in BuildRequirementSummaryLines(summaryRequests))
+            summaryLines.Add($"- {line}");
+        summaryLines.Add("");
+
+        if (addCouldNotFind.Count > 0)
+        {
+            summaryLines.Add($"*Note: Could not find {string.Join(", ", addCouldNotFind)} to add; please ask for alternatives if needed.*");
+            summaryLines.Add("");
+        }
+
+        if (laborItems.Count > 0)
+        {
+            summaryLines.Add("### Technician Support\n");
+            foreach (var labor in laborItems)
+                summaryLines.Add($"- **{FormatLaborSummaryLine(labor, scheduleInfo)}**");
+            summaryLines.Add("");
+        }
+
+        summaryLines.Add("");
+        summaryLines.Add("Would you like me to create the quote now?");
+
+        var outputToUser = string.Join("\n", summaryLines);
 
         session.SetString("Draft:SelectedEquipment", JsonSerializer.Serialize(currentItems));
         session.SetString("Draft:SummaryEquipmentRequests", JsonSerializer.Serialize(summaryRequests));
@@ -342,8 +393,25 @@ public sealed partial class AgentToolHandlerService
             success = true,
             total_day_rate = totalDayRate,
             outputToUser = outputToUser,
-            instruction = "OUTPUT 'outputToUser' EXACTLY AS-IS (brief). Do NOT show a quote summary or ask 'Would you like me to create the quote now?'. Call **generate_quote** in this turn if contact and schedule are satisfied and the user wants the quote; otherwise ask only for missing details."
+            instruction = "MANDATORY: OUTPUT the 'outputToUser' value EXACTLY AS-IS. This is the updated quote summary. Do NOT call generate_quote in this response; wait for the user to confirm (e.g. 'yes create quote', 'looks good')."
         });
+    }
+
+    /// <summary>True when selected line items include projection/vision so Westin ballroom placement lines belong in the summary.</summary>
+    private static bool SelectedEquipmentSuggestsProjectorPlacementForSummary(IReadOnlyList<SelectedEquipmentItem> items)
+    {
+        foreach (var i in items)
+        {
+            var d = (i.Description ?? "").ToLowerInvariant();
+            if (d.Contains("projector") || d.Contains("projection"))
+                return true;
+            if (d.Contains("foldback"))
+                continue;
+            if (d.Contains("screen") || d.Contains("vision") || d.Contains("display"))
+                return true;
+        }
+
+        return false;
     }
 
     /// <summary>

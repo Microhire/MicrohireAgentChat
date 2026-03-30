@@ -324,7 +324,7 @@
                         <span class="scenario-icon">📽️</span>
                         <span class="scenario-info">
                             <strong>Thrive Presentations Full AV</strong>
-                            <small>2 presenters, slides, Mac laptops, clicker, flipchart; WSBTHAV included, no duplicates</small>
+                            <small>2 presenters, slides, Mac laptops, clicker, flipchart; THRVAVP included, no duplicates</small>
                         </span>
                     </button>
                     <button class="scenario-btn" data-scenario="thrive_video_conference">
@@ -792,27 +792,17 @@
                   wrap.className = 'isla-form-card isla-event-form';
                   wrap.setAttribute('data-event-form', '');
 
-                  const venues = item.venueOptions || [];
+                  const roomOptions = item.roomOptions || [];
+                  const venueLabel = item.venueLabel || 'Westin Brisbane';
+                  const selectedSlug = item.selectedRoomSlug || '';
                   const setupOptions = item.setupOptions || [];
                   const schedule = item.schedule || {};
 
-                  const venuesHtml = venues.map((venue, idx) => {
-                    const splits = venue.splits || [];
-                    const splitsHtml = splits.length ? `
-                      <div class="isla-venue-split" data-event-split-wrap style="display:none">
-                        <select data-event-venue-split>
-                          ${splits.map(sp => `<option value="${sp.id || ''}">${sp.label || sp.id || ''}</option>`).join('')}
-                        </select>
-                      </div>` : '';
-                    return `
-                      <div class="isla-venue-option">
-                        <label class="isla-venue-option-header">
-                          <input type="radio" name="event-venue-radio" value="${venue.id || ''}" data-event-venue-radio ${idx === 0 ? 'checked' : ''} />
-                          <span>${venue.label || venue.id || ''}</span>
-                        </label>
-                        ${splitsHtml}
-                      </div>`;
-                  }).join('');
+                  const roomOptsHtml = (!selectedSlug ? '<option value="" selected disabled>Select room</option>' : '') +
+                    roomOptions.map(ro => {
+                      const sel = selectedSlug && String(ro.id) === String(selectedSlug) ? 'selected' : '';
+                      return `<option value="${ro.id || ''}" ${sel}>${ro.label || ro.id || ''}</option>`;
+                    }).join('');
 
                   const setupHtml = setupOptions.map(opt => {
                     const selected = (item.setupStyle || '').toLowerCase() === String(opt || '').toLowerCase() ? 'selected' : '';
@@ -821,9 +811,9 @@
 
                   wrap.innerHTML = `
                     <div class="isla-form-title">${item.title || 'Please share your event details'}</div>
-                    <div class="isla-form-field">
-                      <label>Venue</label>
-                      <div class="isla-venue-options" data-event-venues>${venuesHtml}</div>
+                    <div class="isla-form-grid two-col">
+                      <div class="isla-form-field"><label>Venue</label><select disabled aria-readonly="true" title="Venue"><option selected>${venueLabel}</option></select></div>
+                      <div class="isla-form-field"><label>Room</label><select data-event-room-select>${roomOptsHtml}</select></div>
                     </div>
                     <div class="isla-form-grid two-col">
                       <div class="isla-form-field"><label>Event type</label><input type="text" value="${item.eventType || ''}" data-event-type /></div>
@@ -837,13 +827,13 @@
                       <div class="isla-form-field"><label>Rehearsal</label><input type="time" value="${schedule.rehearsal || '09:30'}" step="1800" data-event-rehearsal-time /></div>
                       <div class="isla-form-field"><label>Start</label><input type="time" value="${schedule.start || '10:00'}" step="1800" data-event-start-time /></div>
                       <div class="isla-form-field"><label>End</label><input type="time" value="${schedule.end || '16:00'}" step="1800" data-event-end-time /></div>
-                      <div class="isla-form-field"><label>Pack up</label><input type="time" value="${schedule.packup || '18:00'}" step="1800" data-event-packup-time /></div>
                     </div>
                     <div class="isla-form-actions">
                       <button type="button" class="isla-form-submit" data-event-submit>${item.submitLabel || 'Send event details'}</button>
                     </div>
                     <div class="isla-form-error" data-event-error style="display:none"></div>`;
                   holder.appendChild(wrap);
+                  if (typeof window.initWizardForms === 'function') window.initWizardForms(wrap);
                 }
 
                 if (item.type === 'avExtrasForm') {
@@ -1075,25 +1065,79 @@
           updateProgressBar();
           scrollToBottom();
 
+          function isActiveForm(formEl) {
+            if (!formEl) return false;
+            if (formEl.getAttribute('data-form-submitted') === '1') return false;
+            return formEl.offsetParent !== null;
+          }
+
+          /** Base AV stays on screen after confirm; user can edit and re-send. */
+          function isBaseAvFormVisible(formEl) {
+            return isActiveForm(formEl);
+          }
+
+          /** Venue confirm card stays editable after Confirmed; merge into send like Base AV. */
+          function isVenueConfirmFormVisible(formEl) {
+            return isActiveForm(formEl);
+          }
+
+          function buildVenueConfirmPayload(userText) {
+            const form = messagesWrap.querySelector('[data-venue-confirm-form]');
+            if (!isVenueConfirmFormVisible(form)) return '';
+            const venue = (form.querySelector('[data-vc-venue-select] option:checked')?.textContent || '').trim();
+            const room = (form.querySelector('[data-vc-room-select]')?.value || '').trim();
+            const start = (form.querySelector('[data-vc-start-date]')?.value || '').trim();
+            const end = (form.querySelector('[data-vc-end-date]')?.value || start).trim();
+            const attendees = (form.querySelector('[data-vc-attendees]')?.value || '').trim();
+            if (!venue || !room || !start || !attendees) return '';
+            const enc = (v) => encodeURIComponent(v || '');
+            return `VenueConfirm: venue=${enc(venue)}; room=${enc(room)}; startDate=${enc(start)}; endDate=${enc(end)}; attendees=${enc(attendees)}; userMessage=${enc(userText)}`;
+          }
+
+          function buildBaseAvPayload(userText) {
+            const forms = Array.from(messagesWrap.querySelectorAll('[data-base-av-form]')).filter(isBaseAvFormVisible);
+            const form = forms.length ? forms[forms.length - 1] : null;
+            if (!form) return '';
+            const bp = form.querySelector('[data-ba-proj]')?.checked ? 'yes' : 'no';
+            const bs = form.querySelector('[data-ba-screen]')?.checked ? 'yes' : 'no';
+            const bsp = form.querySelector('[data-ba-spk]')?.checked ? 'yes' : 'no';
+            const pl = (form.querySelector('[data-ba-placement]')?.value || '').trim();
+            const pr = (form.querySelector('[data-ba-presenters]')?.value || '0').trim();
+            const fc = form.querySelector('[data-ba-flip]:checked')?.value || 'no';
+            const lapChecked = form.querySelector('[data-ba-laptop-mode]:checked');
+            const lm = lapChecked ? lapChecked.value : 'none';
+            const lq = (form.querySelector('[data-ba-laptop-qty]')?.value || '0').trim();
+            const ad = form.querySelector('[data-ba-adapter]:checked')?.value || 'no';
+            const enc = (v) => encodeURIComponent(v || '');
+            return `BaseAv: builtInProjector=${bp}; builtInScreen=${bs}; builtInSpeakers=${bsp}; projectorPlacement=${enc(pl)}; presenters=${enc(pr)}; flipchart=${enc(fc)}; laptopMode=${enc(lm)}; laptopQty=${enc(lq)}; adapterOwnLaptops=${enc(ad)}; userMessage=${enc(userText)}`;
+          }
+
+          function buildStructuredSendText(userText) {
+            return buildVenueConfirmPayload(userText)
+              || buildBaseAvPayload(userText)
+              || userText;
+          }
+
           // ----- SEND -----
           sendForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const text = (input.value || '').trim();
-            if (!text) return;
+            const userText = (input.value || '').trim();
+            if (!userText) return;
+            const payloadText = buildStructuredSendText(userText);
 
             const userMessageDiv = document.createElement('div');
             userMessageDiv.className = 'chat-message message-sent';
             userMessageDiv.innerHTML = `
               <div class="chat-message-box">
                 <div class="chat-message-body">
-                  <div class="chat-text">${escapeHtml(text)}</div>
+                  <div class="chat-text">${escapeHtml(userText)}</div>
                 </div>
               </div>`;
             messagesWrap.appendChild(userMessageDiv);
             input.value = '';
             scrollToBottom();
 
-            await window.runChatSend(text, { useTypingBubble: true });
+            await window.runChatSend(payloadText, { useTypingBubble: true });
           });
 
           // ----- RESET (New Thread) -----

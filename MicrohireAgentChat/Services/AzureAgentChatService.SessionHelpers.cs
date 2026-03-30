@@ -11,6 +11,7 @@ using MicrohireAgentChat.Services.Extraction;
 using MicrohireAgentChat.Services.Orchestration;
 using MicrohireAgentChat.Services.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Concurrent;
@@ -64,7 +65,7 @@ namespace MicrohireAgentChat.Services
             if (!string.IsNullOrWhiteSpace(saved))
             {
                 session.SetString(SessionKeyThreadId, saved);
-                await TouchLastSeenAsync(userKey, ct);
+                QueueTouchLastSeenBackground(userKey);
                 return saved;
             }
 
@@ -97,18 +98,31 @@ namespace MicrohireAgentChat.Services
             return threadId;
         }
 
-        private async Task TouchLastSeenAsync(string userKey, CancellationToken ct)
+        /// <summary>
+        /// Updates <see cref="AgentThread.LastSeenUtc"/> without blocking the chat Index hot path (second SQL round-trip).
+        /// </summary>
+        private void QueueTouchLastSeenBackground(string userKey)
         {
-            var row = await _appDb.AgentThreads
-                .Where(t => t.UserKey == userKey)
-                .FirstOrDefaultAsync(ct);
-
-            if (row is not null)
+            if (string.IsNullOrWhiteSpace(userKey)) return;
+            var key = userKey;
+            _ = Task.Run(async () =>
             {
-                row.LastSeenUtc = DateTime.UtcNow;
-                _appDb.AgentThreads.Update(row);
-                await _appDb.SaveChangesAsync(ct);
-            }
+                try
+                {
+                    await using var scope = _scopeFactory.CreateAsyncScope();
+                    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                    var row = await db.AgentThreads
+                        .Where(t => t.UserKey == key)
+                        .FirstOrDefaultAsync(CancellationToken.None);
+                    if (row is null) return;
+                    row.LastSeenUtc = DateTime.UtcNow;
+                    await db.SaveChangesAsync(CancellationToken.None);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Background TouchLastSeen failed for userKey hash={Hash}", key.GetHashCode());
+                }
+            });
         }
 
         public async Task<string?> GetSavedThreadIdAsync(string userKey, CancellationToken ct)
@@ -120,7 +134,7 @@ namespace MicrohireAgentChat.Services
                 .FirstOrDefaultAsync(ct);
 
             if (!string.IsNullOrWhiteSpace(t))
-                await TouchLastSeenAsync(userKey, ct);
+                QueueTouchLastSeenBackground(userKey);
 
             return t;
         }

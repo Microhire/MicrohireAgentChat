@@ -1,3 +1,5 @@
+using System.Linq;
+using System.Text.Json;
 using MicrohireAgentChat.Data;
 using MicrohireAgentChat.Models;
 using MicrohireAgentChat.Services;
@@ -1347,6 +1349,168 @@ public sealed class AgentToolHandlerServiceTests
 
     #endregion
 
+    #region FormToolsAndWorkflow
+
+    [Fact]
+    public async Task BuildTimePicker_MultitimeIncludesSubmitLabelAndSessionPrefill()
+    {
+        var service = CreateServiceWithSession(new Dictionary<string, string>
+        {
+            ["Draft:SetupTime"] = "06:00",
+            ["Draft:RehearsalTime"] = "08:00",
+            ["Draft:StartTime"] = "11:30",
+            ["Draft:EndTime"] = "15:45",
+            ["Draft:PackupTime"] = "17:00"
+        });
+
+        var result = await service.HandleToolCallAsync(
+            "build_time_picker",
+            """{"date":"2030-06-15","stepMinutes":30}""",
+            "thread-forms",
+            CancellationToken.None);
+
+        Assert.NotNull(result);
+        using var outer = JsonDocument.Parse(result!);
+        var outputToUser = outer.RootElement.GetProperty("outputToUser").GetString();
+        Assert.NotNull(outputToUser);
+        Assert.Contains("Please confirm your schedule", outputToUser, StringComparison.OrdinalIgnoreCase);
+
+        var jsonStart = outputToUser!.IndexOf('{');
+        Assert.True(jsonStart >= 0);
+        using var uiDoc = JsonDocument.Parse(outputToUser.Substring(jsonStart));
+        var ui = uiDoc.RootElement.GetProperty("ui");
+        Assert.Equal("multitime", ui.GetProperty("type").GetString());
+        Assert.Equal("Submit", ui.GetProperty("submitLabel").GetString());
+
+        var pickers = ui.GetProperty("pickers").EnumerateArray().ToList();
+        Assert.Equal(5, pickers.Count);
+        Assert.Equal("06:00", pickers.Single(p => p.GetProperty("name").GetString() == "setup").GetProperty("default").GetString());
+        Assert.Equal("11:30", pickers.Single(p => p.GetProperty("name").GetString() == "start").GetProperty("default").GetString());
+        Assert.Equal("15:45", pickers.Single(p => p.GetProperty("name").GetString() == "end").GetProperty("default").GetString());
+    }
+
+    [Fact]
+    public async Task BuildContactForm_ReturnsContactFormUiWithSubmitButtonLabel()
+    {
+        var service = CreateServiceWithSession(new Dictionary<string, string>());
+
+        var result = await service.HandleToolCallAsync(
+            "build_contact_form",
+            "{}",
+            "thread-forms",
+            CancellationToken.None);
+
+        Assert.NotNull(result);
+        using var outer = JsonDocument.Parse(result!);
+        var outputToUser = outer.RootElement.GetProperty("outputToUser").GetString();
+        Assert.NotNull(outputToUser);
+        Assert.Contains("contact form", outputToUser, StringComparison.OrdinalIgnoreCase);
+
+        var jsonStart = outputToUser!.IndexOf('{');
+        using var uiDoc = JsonDocument.Parse(outputToUser.Substring(jsonStart));
+        var ui = uiDoc.RootElement.GetProperty("ui");
+        Assert.Equal("contactForm", ui.GetProperty("type").GetString());
+        Assert.Equal("Send details", ui.GetProperty("submitLabel").GetString());
+    }
+
+    [Fact]
+    public async Task BuildContactForm_CustomSubmitLabel_IsHonored()
+    {
+        var service = CreateServiceWithSession(new Dictionary<string, string>());
+
+        var result = await service.HandleToolCallAsync(
+            "build_contact_form",
+            """{"title":"Your details","submitLabel":"Confirm and continue"}""",
+            "thread-forms",
+            CancellationToken.None);
+
+        Assert.NotNull(result);
+        using var outer = JsonDocument.Parse(result!);
+        var outputToUser = outer.RootElement.GetProperty("outputToUser").GetString();
+        var jsonStart = outputToUser!.IndexOf('{');
+        using var uiDoc = JsonDocument.Parse(outputToUser.Substring(jsonStart));
+        var ui = uiDoc.RootElement.GetProperty("ui");
+        Assert.Equal("Confirm and continue", ui.GetProperty("submitLabel").GetString());
+    }
+
+    [Fact]
+    public async Task BuildEventForm_PrefillsFromSessionAndIncludesSubmitLabel()
+    {
+        var venueRooms = new[] { ("thrive-boardroom", "Thrive Boardroom"), ("elevate", "Elevate") };
+        var service = CreateServiceHarness(
+            new Dictionary<string, string>
+            {
+                ["Draft:EventType"] = "product launch",
+                ["Draft:ExpectedAttendees"] = "120",
+                ["Draft:SetupStyle"] = "Theatre",
+                ["Draft:EventDate"] = "2030-08-20",
+                ["Draft:RoomName"] = "Thrive Boardroom",
+                ["Draft:StartTime"] = "09:15",
+                ["Draft:EndTime"] = "16:30"
+            },
+            venueConfirmRooms: venueRooms).Service;
+
+        var result = await service.HandleToolCallAsync(
+            "build_event_form",
+            """{"submitLabel":"Confirm event details"}""",
+            "thread-forms",
+            CancellationToken.None);
+
+        Assert.NotNull(result);
+        using var outer = JsonDocument.Parse(result!);
+        var outputToUser = outer.RootElement.GetProperty("outputToUser").GetString();
+        Assert.NotNull(outputToUser);
+
+        var jsonStart = outputToUser!.IndexOf('{');
+        using var uiDoc = JsonDocument.Parse(outputToUser.Substring(jsonStart));
+        var ui = uiDoc.RootElement.GetProperty("ui");
+        Assert.Equal("eventForm", ui.GetProperty("type").GetString());
+        Assert.Equal("Confirm event details", ui.GetProperty("submitLabel").GetString());
+        Assert.Equal("product launch", ui.GetProperty("eventType").GetString());
+        Assert.Equal("120", ui.GetProperty("attendees").GetString());
+        Assert.Equal("Theatre", ui.GetProperty("setupStyle").GetString());
+        Assert.Equal("2030-08-20", ui.GetProperty("eventDate").GetString());
+        Assert.Equal("thrive-boardroom", ui.GetProperty("selectedRoomSlug").GetString());
+        Assert.Equal("09:15", ui.GetProperty("schedule").GetProperty("start").GetString());
+        Assert.Equal("16:30", ui.GetProperty("schedule").GetProperty("end").GetString());
+    }
+
+    [Fact]
+    public async Task RecommendEquipmentForEvent_BlocksWhenCustomerContactMissing()
+    {
+        var service = CreateServiceWithSession(new Dictionary<string, string>
+        {
+            ["Draft:EventType"] = "presentation",
+            ["Draft:ExpectedAttendees"] = "40",
+            ["Draft:SetupStyle"] = "theatre",
+            ["Draft:StartTime"] = "10:00",
+            ["Draft:EndTime"] = "16:00",
+            ["Draft:EventDate"] = "2030-01-10",
+            ["Draft:DateConfirmed"] = "1"
+        });
+
+        var result = await service.HandleToolCallAsync(
+            "recommend_equipment_for_event",
+            """{"equipment_requests":[{"equipment_type":"projector","quantity":1}]}""",
+            "thread-forms",
+            CancellationToken.None);
+
+        Assert.NotNull(result);
+        using var doc = JsonDocument.Parse(result!);
+        Assert.True(doc.RootElement.TryGetProperty("error", out var err));
+        Assert.Contains("Cannot show quote summary", err.GetString(), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("customer information", err.GetString(), StringComparison.OrdinalIgnoreCase);
+        Assert.True(doc.RootElement.TryGetProperty("missingFields", out var mf));
+        var fields = mf.EnumerateArray().Select(e => e.GetString()).ToList();
+        Assert.Contains("customer name", fields!);
+        Assert.Contains("contact email or phone number", fields!);
+        Assert.Contains("organisation name", fields!);
+        var instruction = doc.RootElement.GetProperty("instruction").GetString();
+        Assert.Contains("collect", instruction, StringComparison.OrdinalIgnoreCase);
+    }
+
+    #endregion
+
     private static AgentToolHandlerService CreateServiceWithSession(
         Dictionary<string, string> sessionValues,
         List<WestinRoom>? rooms = null)
@@ -1354,7 +1518,8 @@ public sealed class AgentToolHandlerServiceTests
 
     private static (AgentToolHandlerService Service, InMemorySession Session) CreateServiceHarness(
         Dictionary<string, string> sessionValues,
-        List<WestinRoom>? rooms = null)
+        List<WestinRoom>? rooms = null,
+        IReadOnlyList<(string Slug, string Name)>? venueConfirmRooms = null)
     {
         var options = new DbContextOptionsBuilder<BookingDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString("N"))
@@ -1373,7 +1538,7 @@ public sealed class AgentToolHandlerServiceTests
 
         var httpAccessor = new HttpContextAccessor { HttpContext = httpContext };
         var env = new TestWebHostEnvironment();
-        var roomCatalog = new StubWestinRoomCatalog(rooms);
+        var roomCatalog = new StubWestinRoomCatalog(rooms, venueConfirmRooms);
         var extraction = new ConversationExtractionService(NullLogger<ConversationExtractionService>.Instance);
 
         var equipmentSearch = new EquipmentSearchService(db, NullLogger<EquipmentSearchService>.Instance);
@@ -1400,14 +1565,20 @@ public sealed class AgentToolHandlerServiceTests
     private sealed class StubWestinRoomCatalog : IWestinRoomCatalog
     {
         private readonly List<WestinRoom> _rooms;
+        private readonly IReadOnlyList<(string Slug, string Name)> _venueConfirmRooms;
 
-        public StubWestinRoomCatalog(List<WestinRoom>? rooms = null)
+        public StubWestinRoomCatalog(
+            List<WestinRoom>? rooms = null,
+            IReadOnlyList<(string Slug, string Name)>? venueConfirmRooms = null)
         {
             _rooms = rooms ?? new List<WestinRoom>();
+            _venueConfirmRooms = venueConfirmRooms ?? Array.Empty<(string, string)>();
         }
 
         public Task<List<WestinRoom>> GetRoomsAsync(CancellationToken ct = default) =>
             Task.FromResult(_rooms);
+
+        public IReadOnlyList<(string Slug, string Name)> GetVenueConfirmRoomOptions() => _venueConfirmRooms;
     }
 
     private sealed class TestWebHostEnvironment : IWebHostEnvironment

@@ -140,7 +140,7 @@
     "roomContains": [ "westin", "ballroom", "single" ],
     "bundleItems": [
       {
-        "product_code": "WSBBSPRO",
+        "product_code": "WBSPROJ",
         "comment": "Westin Ballroom Single Projector Package",
         "qtyFrom": "literal",
         "literalQty": 1
@@ -165,7 +165,7 @@
     "roomContains": [ "westin", "ballroom", "single" ],
     "bundleItems": [
       {
-        "product_code": "WSBALLAU",
+        "product_code": "WBSBCSS",
         "comment": "Westin Single Ballroom Ceiling Speaker System",
         "qtyFrom": "literal",
         "literalQty": 1
@@ -184,7 +184,7 @@
     "roomContains": [ "westin", "ballroom", "full" ],
     "bundleItems": [
       {
-        "product_code": "WSBFBALL",
+        "product_code": "WBFBCSS",
         "comment": "Westin Full Ballroom Ceiling Speaker System",
         "qtyFrom": "literal",
         "literalQty": 1
@@ -204,7 +204,7 @@
     "requirePresentation": true,
     "bundleItems": [
       {
-        "product_code": "WSBBDPRO",
+        "product_code": "WBDPROJ",
         "comment": "Westin Ballroom Dual Projector Package",
         "qtyFrom": "literal",
         "literalQty": 1
@@ -229,7 +229,7 @@
     "roomContains": [ "elevate" ],
     "bundleItems": [
       {
-        "product_code": "WSBELAUD",
+        "product_code": "ELEVCSS",
         "comment": "Elevate Ceiling Speaker System",
         "qtyFrom": "literal",
         "literalQty": 1
@@ -248,7 +248,7 @@
     "roomContains": [ "elevate", "single" ],
     "bundleItems": [
       {
-        "product_code": "WSBELSAD",
+        "product_code": "ELEVSCSS",
         "comment": "Elevate Single Ceiling Speaker System",
         "qtyFrom": "literal",
         "literalQty": 1
@@ -267,7 +267,7 @@
     "roomContains": [ "thrive" ],
     "bundleItems": [
       {
-        "product_code": "WSBTHAUD",
+        "product_code": "THRVCSS",
         "comment": "Thrive Ceiling Speaker System",
         "qtyFrom": "literal",
         "literalQty": 1
@@ -287,7 +287,7 @@
     "requirePresentation": true,
     "bundleItems": [
       {
-        "product_code": "WSBTHAV",
+        "product_code": "THRVAVP",
         "comment": "Thrive AV Package",
         "qtyFrom": "literal",
         "literalQty": 1

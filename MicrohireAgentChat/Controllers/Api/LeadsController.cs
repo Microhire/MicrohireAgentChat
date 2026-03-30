@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -123,7 +124,11 @@ public sealed class LeadsController : ControllerBase
         else if (!IsValidEmail(r.Email)) errors.Add("Invalid email format.");
         if (string.IsNullOrWhiteSpace(r.PhoneNumber)) errors.Add("Phone number is required.");
         if (string.IsNullOrWhiteSpace(r.EventStartDate)) errors.Add("Event start date is required.");
+        else if (!DateOnly.TryParseExact(r.EventStartDate.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+            errors.Add("Event start date must be YYYY-MM-DD.");
         if (string.IsNullOrWhiteSpace(r.EventEndDate)) errors.Add("Event end date is required.");
+        else if (!DateOnly.TryParseExact(r.EventEndDate.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+            errors.Add("Event end date must be YYYY-MM-DD.");
         if (string.IsNullOrWhiteSpace(r.Venue)) errors.Add("Venue is required.");
         if (string.IsNullOrWhiteSpace(r.Room)) errors.Add("Room is required.");
         if (string.IsNullOrWhiteSpace(r.Attendees)) errors.Add("Attendees is required.");

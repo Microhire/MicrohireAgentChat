@@ -23,28 +23,30 @@ public sealed class CrewPersistenceServiceTests
         await using var db = CreateDb(nameof(InsertCrewRowsAsync_UsesStructuredSelectedLabor_WithMixedCodesAndTaskDurations));
         var service = new CrewPersistenceService(db, NullLogger<CrewPersistenceService>.Instance);
 
-        var selectedLabor = new List<SelectedLaborItem>
-        {
-            new()
-            {
-                ProductCode = "AXTECH",
-                Description = "Audio Technician",
-                Task = "Rehearsal",
-                Quantity = 1,
-                Minutes = 30
-            },
-            new()
-            {
-                ProductCode = "VXTECH",
-                Description = "Vision Technician",
-                Task = "Operate",
-                Quantity = 1
-            }
-        };
+        const string selectedLaborJson = """
+        [
+          {
+            "productCode": "AXTECH",
+            "description": "Audio Technician",
+            "task": "Rehearsal",
+            "quantity": 1,
+            "hours": 0,
+            "minutes": 30
+          },
+          {
+            "productCode": "VXTECH",
+            "description": "Vision Technician",
+            "task": "Operate",
+            "quantity": 1,
+            "hours": 0,
+            "minutes": 0
+          }
+        ]
+        """;
 
         var facts = new Dictionary<string, string>
         {
-            ["selected_labor"] = JsonSerializer.Serialize(selectedLabor),
+            ["selected_labor"] = selectedLaborJson,
             ["setup_time"] = "0830",
             ["show_start_time"] = "0900",
             ["show_end_time"] = "1100"
@@ -64,8 +66,9 @@ public sealed class CrewPersistenceServiceTests
         Assert.Equal((byte)30, audio.Minutes);
         Assert.Equal((byte)8, audio.DelTimeHour);
         Assert.Equal((byte)30, audio.DelTimeMin);
-        Assert.Equal((byte)9, audio.ReturnTimeHour); // setup +1h rule for non-operate
-        Assert.Equal((byte)30, audio.ReturnTimeMin);
+        // 30-minute rehearsal from setup 08:30 ends 09:00 (not +1h)
+        Assert.Equal((byte)9, audio.ReturnTimeHour);
+        Assert.Equal((byte)0, audio.ReturnTimeMin);
 
         var vision = Assert.Single(rows, r => r.ProductCodeV42 == "VXTECH");
         Assert.Equal((byte)3, vision.Task); // operate
@@ -137,7 +140,7 @@ public sealed class CrewPersistenceServiceTests
 
         var row = Assert.Single(db.TblCrews.Where(r => r.BookingNoV32 == "B-300"));
         Assert.Equal("AXTECH", row.ProductCodeV42);
-        Assert.Equal((byte)6, row.Task); // setup
+        Assert.Equal((byte)2, row.Task); // setup (TryParseTask: "setup" -> 2)
     }
 
     [Fact]

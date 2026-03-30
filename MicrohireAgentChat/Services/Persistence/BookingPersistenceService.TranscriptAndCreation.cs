@@ -144,7 +144,9 @@ public sealed partial class BookingPersistenceService
 
     public async Task<string> GenerateNextBookingNoAsync(string customerCode, CancellationToken ct)
     {
-        var prefix = string.IsNullOrWhiteSpace(customerCode) ? "C04518" : customerCode.Trim();
+        var prefix = (customerCode ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(prefix))
+            throw new InvalidOperationException("Customer code is required to generate booking numbers.");
         const int suffixWidth = 5;
 
         var existing = await _db.TblBookings
@@ -224,17 +226,38 @@ public sealed partial class BookingPersistenceService
             custCode = res.customerCode;
             orgName = organisation;
 
-            if (!orgId.HasValue)
+            if (orgId.HasValue)
+            {
+                var authoritativeCode = await GetCustomerCodeByIdAsync(orgId.Value, ct);
+                if (!string.IsNullOrWhiteSpace(authoritativeCode))
+                    custCode = authoritativeCode;
+            }
+            else
             {
                 orgId = await GetDefaultCustomerIdAsync(ct);
-                custCode = orgId.HasValue ? await GetCustomerCodeByIdAsync(orgId.Value, ct) : "C04518";
+                if (orgId.HasValue)
+                {
+                    var defaultCustomerCode = await GetCustomerCodeByIdAsync(orgId.Value, ct);
+                    if (!string.IsNullOrWhiteSpace(defaultCustomerCode))
+                        custCode = defaultCustomerCode;
+                }
             }
 
-            bookingNo = await GenerateNextBookingNoAsync(custCode ?? "C04518", ct);
+            var bookingCustomerCode = (custCode ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(bookingCustomerCode))
+            {
+                _logger.LogError(
+                    "[QUOTE GEN] Unable to generate booking number because customer code is missing. OrgId={OrgId}, ContactId={ContactId}",
+                    orgId,
+                    contactId);
+                return "";
+            }
+
+            bookingNo = await GenerateNextBookingNoAsync(bookingCustomerCode, ct);
             _logger.LogInformation(
                 "[QUOTE GEN] Creating booking {BookingNo} on-the-fly for customer code {CustomerCode}",
                 bookingNo,
-                custCode ?? "C04518");
+                bookingCustomerCode);
 
             var booking = new TblBooking
             {
@@ -245,7 +268,7 @@ public sealed partial class BookingPersistenceService
                 From_locn = 20,
                 return_to_locn = 20,
                 Trans_to_locn = 20,
-                CustCode = Trunc(custCode ?? "C04518", CustomerCodeMaxLength),
+                CustCode = Trunc(bookingCustomerCode, CustomerCodeMaxLength),
                 CustID = orgId ?? 13740,
                 ContactID = contactId,
                 contact_nameV6 = Trunc(contactName ?? "Contact", 35),

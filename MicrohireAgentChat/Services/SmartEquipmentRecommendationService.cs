@@ -26,8 +26,19 @@ public sealed partial class SmartEquipmentRecommendationService
     private readonly IWebHostEnvironment _env;
     private readonly ILogger<SmartEquipmentRecommendationService> _logger;
     private readonly IWestinRoomCatalog _roomCatalog;
-    private List<string>? _aiCatalogCodes;
-    private readonly SemaphoreSlim _aiCatalogCodesLock = new(1, 1);
+
+    /// <summary>Process-wide AI catalog list; invalidated when item-rules.json or venue-room-packages.json changes.</summary>
+    private static List<string>? _sharedAiCatalogCodes;
+    private static string? _sharedAiCatalogFingerprint;
+    private static readonly object _sharedAiCatalogLock = new();
+
+    /// <summary>Per <see cref="GetRecommendationsAsync"/> request: batched TblInvmas / TblRatetbls by product code.</summary>
+    private Dictionary<string, ProductInvSnap?>? _recommendationInvBatch;
+    private Dictionary<string, RateSnap?>? _recommendationRateBatch;
+
+    private readonly record struct ProductInvSnap(string ProductCode, string? Descriptionv6, string? PrintedDesc, string? Category, string? PictureFileName);
+
+    private readonly record struct RateSnap(double Rate1stDay, double RateExtraDays);
 
     public SmartEquipmentRecommendationService(
         BookingDbContext db,
@@ -58,32 +69,42 @@ public sealed partial class SmartEquipmentRecommendationService
         _logger.LogInformation("Getting smart equipment recommendations for {EventType} with {Attendees} attendees",
             context.EventType, context.ExpectedAttendees);
 
-        // Process each equipment request
-        foreach (var request in context.EquipmentRequests)
+        _recommendationInvBatch = new Dictionary<string, ProductInvSnap?>(StringComparer.OrdinalIgnoreCase);
+        _recommendationRateBatch = new Dictionary<string, RateSnap?>(StringComparer.OrdinalIgnoreCase);
+        try
         {
-            var recommendations = await GetEquipmentForRequestAsync(request, context, ct);
-            result.Items.AddRange(recommendations);
+            // Process each equipment request
+            foreach (var request in context.EquipmentRequests)
+            {
+                var recommendations = await GetEquipmentForRequestAsync(request, context, ct);
+                result.Items.AddRange(recommendations);
+            }
+
+            // AUDIO PAIRING LOGIC: Auto-suggest speakers when audio output is likely needed
+            await ApplyAudioPairingLogicAsync(result, context, ct);
+
+            // MIXER LOGIC: Add MIXER06 when more than 1 microphone (6ch supports up to 6 mics)
+            await ApplyMicrophoneMixerLogicAsync(result, context, ct);
+
+            // LABOR RECOMMENDATION LOGIC: Recommend technicians based on equipment and event complexity
+            await RecommendLaborAsync(result, context, ct);
+
+            // ROOM-SPECIFIC SUGGESTIONS: Add commentary or suggest additional items based on the room
+            await ApplyRoomSpecificSuggestionsAsync(result, context, ct);
+
+            // Calculate totals
+            result.TotalDayRate = result.Items.Sum(i => i.UnitPrice * i.Quantity);
+
+            _logger.LogInformation("Smart recommendations complete: {Count} items, ${Total}/day",
+                result.Items.Count, result.TotalDayRate);
+
+            return result;
         }
-
-        // AUDIO PAIRING LOGIC: Auto-suggest speakers when audio output is likely needed
-        await ApplyAudioPairingLogicAsync(result, context, ct);
-
-        // MIXER LOGIC: Add MIXER06 when more than 1 microphone (6ch supports up to 6 mics)
-        await ApplyMicrophoneMixerLogicAsync(result, context, ct);
-
-        // LABOR RECOMMENDATION LOGIC: Recommend technicians based on equipment and event complexity
-        await RecommendLaborAsync(result, context, ct);
-
-        // ROOM-SPECIFIC SUGGESTIONS: Add commentary or suggest additional items based on the room
-        await ApplyRoomSpecificSuggestionsAsync(result, context, ct);
-
-        // Calculate totals
-        result.TotalDayRate = result.Items.Sum(i => i.UnitPrice * i.Quantity);
-
-        _logger.LogInformation("Smart recommendations complete: {Count} items, ${Total}/day",
-            result.Items.Count, result.TotalDayRate);
-
-        return result;
+        finally
+        {
+            _recommendationInvBatch = null;
+            _recommendationRateBatch = null;
+        }
     }
 
     /// <summary>
@@ -163,79 +184,182 @@ public sealed partial class SmartEquipmentRecommendationService
     /// 2) venue-room-packages.json package codes
     /// 3) known fixed accessory/package codes used by recommendation logic
     /// </summary>
-    private async Task<List<string>> GetAiCatalogCodesAsync(CancellationToken ct)
+    private static string BuildAiCatalogFingerprint(IWebHostEnvironment env)
     {
-        if (_aiCatalogCodes is { Count: > 0 })
-            return _aiCatalogCodes;
+        var dataPath = Path.Combine(env.WebRootPath ?? string.Empty, "data");
+        var itemRulesPath = Path.Combine(dataPath, "item-rules.json");
+        var roomPackagesPath = Path.Combine(dataPath, "venue-room-packages.json");
+        return $"{itemRulesPath}|{GetFileWriteTicksUtc(itemRulesPath)}|{roomPackagesPath}|{GetFileWriteTicksUtc(roomPackagesPath)}";
+    }
 
-        await _aiCatalogCodesLock.WaitAsync(ct);
+    private static long GetFileWriteTicksUtc(string path)
+    {
         try
         {
-            if (_aiCatalogCodes is { Count: > 0 })
-                return _aiCatalogCodes;
-
-            var codes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            var dataPath = Path.Combine(_env.WebRootPath ?? string.Empty, "data");
-
-            // item-rules.json (extract all "product_code" values recursively)
-            var itemRulesPath = Path.Combine(dataPath, "item-rules.json");
-            if (File.Exists(itemRulesPath))
-            {
-                try
-                {
-                    using var fs = File.OpenRead(itemRulesPath);
-                    using var doc = await JsonDocument.ParseAsync(fs, cancellationToken: ct);
-                    CollectProductCodesRecursive(doc.RootElement, codes);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed reading item-rules.json for AI catalog code extraction");
-                }
-            }
-
-            // venue-room-packages.json (extract all string package codes recursively)
-            var roomPackagesPath = Path.Combine(dataPath, "venue-room-packages.json");
-            if (File.Exists(roomPackagesPath))
-            {
-                try
-                {
-                    using var fs = File.OpenRead(roomPackagesPath);
-                    using var doc = await JsonDocument.ParseAsync(fs, cancellationToken: ct);
-                    CollectCodesFromStringArraysRecursive(doc.RootElement, codes);
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogWarning(ex, "Failed reading venue-room-packages.json for AI catalog code extraction");
-                }
-            }
-
-            // Safety net for fixed codes used directly by recommendation logic
-            foreach (var fixedCode in new[]
-            {
-                "USBCMX2", "V1HD", "SDICROSS", "NATFLIPC", "LOG4kCAM", "LECT1", "SHURE418",
-                "NATFLSTD", "LCD40", "MIXER06", "LOGISPOT", "WIRPRES", "QLXD2SK",
-                "WSBTHAV", "WSBTHAUD", "WSBTHPRO",
-                "WSBBDPRO", "WSBBSPRO", "WSBNSPRO", "WSBSSPRO", "WSBFBALL", "WSBALLAU",
-                "WSBELSAD", "WSBELAUD",
-                "PCLPRO", "PCLP-L1", "PCLP-L2", "PCLP-L3", "PCPROLT1",
-                "13MBP-LM", "13MBP-LT", "13MBP-L1", "13MBP-L2"
-            })
-            {
-                codes.Add(fixedCode);
-            }
-
-            _aiCatalogCodes = codes
-                .Where(c => !string.IsNullOrWhiteSpace(c))
-                .Select(c => c.Trim())
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-
-            _logger.LogInformation("Loaded {Count} AI-catalog equipment codes", _aiCatalogCodes.Count);
-            return _aiCatalogCodes;
+            return File.Exists(path) ? File.GetLastWriteTimeUtc(path).Ticks : 0L;
         }
-        finally
+        catch
         {
-            _aiCatalogCodesLock.Release();
+            return -1L;
+        }
+    }
+
+    private async Task<List<string>> GetAiCatalogCodesAsync(CancellationToken ct)
+    {
+        var fingerprint = BuildAiCatalogFingerprint(_env);
+        lock (_sharedAiCatalogLock)
+        {
+            if (_sharedAiCatalogCodes is { Count: > 0 } && _sharedAiCatalogFingerprint == fingerprint)
+                return _sharedAiCatalogCodes;
+        }
+
+        var codes = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var dataPath = Path.Combine(_env.WebRootPath ?? string.Empty, "data");
+
+        // item-rules.json (extract all "product_code" values recursively)
+        var itemRulesPath = Path.Combine(dataPath, "item-rules.json");
+        if (File.Exists(itemRulesPath))
+        {
+            try
+            {
+                await using var fs = File.OpenRead(itemRulesPath);
+                using var doc = await JsonDocument.ParseAsync(fs, cancellationToken: ct);
+                CollectProductCodesRecursive(doc.RootElement, codes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed reading item-rules.json for AI catalog code extraction");
+            }
+        }
+
+        // venue-room-packages.json (extract all string package codes recursively)
+        var roomPackagesPath = Path.Combine(dataPath, "venue-room-packages.json");
+        if (File.Exists(roomPackagesPath))
+        {
+            try
+            {
+                await using var fs = File.OpenRead(roomPackagesPath);
+                using var doc = await JsonDocument.ParseAsync(fs, cancellationToken: ct);
+                CollectCodesFromStringArraysRecursive(doc.RootElement, codes);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed reading venue-room-packages.json for AI catalog code extraction");
+            }
+        }
+
+        // Safety net for fixed codes used directly by recommendation logic (includes new AI-folder SKUs + legacy WSB*)
+        foreach (var fixedCode in new[]
+                 {
+                     "USBCMX2", "V1HD", "SDICROSS", "NATFLIPC", "LOG4kCAM", "LECT1", "SHURE418",
+                     "NATFLSTD", "LCD40", "MIXER06", "LOGISPOT", "WIRPRES", "QLXD2SK",
+                     "THRVAVP", "THRVCSS", "THRVPROJ", "THRVIND",
+                     "WBDPROJ", "WBSPROJ", "WBSNPROJ", "WBSSPROJ", "WBFBCSS", "WBSBCSS", "WBIND", "WBAVP", "WBSAVP",
+                     "ELEVPROJ", "ELEVAVP", "ELEVSAVP", "ELEVCSS", "ELEVSCSS", "ELEVIND",
+                     "WSBTHAV", "WSBTHAUD", "WSBTHPRO",
+                     "WSBBDPRO", "WSBBSPRO", "WSBNSPRO", "WSBSSPRO", "WSBFBALL", "WSBALLAU",
+                     "WSBELSAD", "WSBELAUD", "WSBELPRO", "WSBELAV", "WSBFELAV",
+                     "WSBFPAUD", "WSBFPPRO", "WSBFPAVP",
+                     "PCLPRO", "PCLP-L1", "PCLP-L2", "PCLP-L3", "PCPROLT1",
+                     "13MBP-LM", "13MBP-LT", "13MBP-L1", "13MBP-L2",
+                     // In-memory / fixture SKUs used by unit tests (no item-rules.json in temp web roots)
+                     "MIC-HH-01", "PA-PORT-01", "SCREEN16"
+                 })
+        {
+            codes.Add(fixedCode);
+        }
+
+        var list = codes
+            .Where(c => !string.IsNullOrWhiteSpace(c))
+            .Select(c => c.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        lock (_sharedAiCatalogLock)
+        {
+            // Another thread may have populated while we were parsing; prefer the fresher fingerprint match.
+            if (_sharedAiCatalogCodes is { Count: > 0 } && _sharedAiCatalogFingerprint == fingerprint)
+                return _sharedAiCatalogCodes;
+
+            _sharedAiCatalogFingerprint = fingerprint;
+            _sharedAiCatalogCodes = list;
+        }
+
+        _logger.LogInformation("Loaded {Count} AI-catalog equipment codes (shared cache)", list.Count);
+        return list;
+    }
+
+    /// <summary>
+    /// Batches TblInvmas and TblRatetbls reads for the current recommendation request.
+    /// </summary>
+    private async Task EnsureRecommendationProductsLoadedAsync(IReadOnlyCollection<string> codes, CancellationToken ct)
+    {
+        if (_recommendationInvBatch == null || _recommendationRateBatch == null || codes.Count == 0)
+            return;
+
+        var normalized = codes
+            .Select(c => (c ?? "").Trim())
+            .Where(c => c.Length > 0)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        var needInv = normalized.Where(c => !_recommendationInvBatch.ContainsKey(c)).ToList();
+        if (needInv.Count > 0)
+        {
+            // Match DB codes without client-side Trim() in the predicate (InMemory + some providers translate poorly).
+            var needSet = needInv.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var rows = await _db.TblInvmas
+                .AsNoTracking()
+                .Where(p => p.product_code != null && needSet.Contains(p.product_code))
+                // Explicit SKU batch load: do not apply AI-catalog filter (differs from open search; avoids test/prod mismatches).
+                .Select(p => new ProductInvSnap(
+                    (p.product_code ?? "").Trim(),
+                    p.descriptionv6,
+                    p.PrintedDesc,
+                    p.category,
+                    p.PictureFileName))
+                .ToListAsync(ct);
+
+            var found = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var row in rows)
+            {
+                _recommendationInvBatch[row.ProductCode] = row;
+                found.Add(row.ProductCode);
+            }
+
+            foreach (var c in needInv)
+            {
+                if (!found.Contains(c))
+                    _recommendationInvBatch[c] = null;
+            }
+        }
+
+        var needRate = normalized
+            .Where(c => !_recommendationRateBatch.ContainsKey(c))
+            .Where(c => _recommendationInvBatch.TryGetValue(c, out var inv) && inv != null)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (needRate.Count > 0)
+        {
+            var rateSet = needRate.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var rates = await _db.TblRatetbls
+                .AsNoTracking()
+                .Where(r => r.TableNo == 0 && r.product_code != null && rateSet.Contains(r.product_code))
+                .Select(r => new { Code = r.product_code!.Trim(), r.rate_1st_day, r.rate_extra_days })
+                .ToListAsync(ct);
+
+            var byCode = rates
+                .GroupBy(r => r.Code, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(g => g.Key, g => g.First(), StringComparer.OrdinalIgnoreCase);
+
+            foreach (var c in needRate)
+            {
+                if (byCode.TryGetValue(c, out var rt))
+                    _recommendationRateBatch[c] = new RateSnap(rt.rate_1st_day ?? 0, rt.rate_extra_days ?? 0);
+                else
+                    _recommendationRateBatch[c] = null;
+            }
         }
     }
 

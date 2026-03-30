@@ -3,9 +3,7 @@ using MicrohireAgentChat.Helpers;
 using MicrohireAgentChat.Models;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
-using System.Net.Http.Json;
 using System.Text;
 using System.Web;
 
@@ -13,39 +11,20 @@ namespace MicrohireAgentChat.Services;
 
 /// <summary>
 /// Generates dynamic HTML quotes based on the quote-viewer.html template.
-/// More reliable than PDF generation - returns HTML that can be displayed in an iframe.
 /// </summary>
 public partial class HtmlQuoteGenerationService
 {
-    /// <summary>Grep App Service diagnostics for this string to confirm the PDF pipeline build is deployed.</summary>
-    public const string PdfQuotePipelineMarker = "QUOTE_PIPELINE_PDF_V2";
-
     private readonly BookingDbContext _db;
     private readonly IWebHostEnvironment _env;
-    private readonly IHostApplicationLifetime _hostLifetime;
-    private readonly IPlaywrightQuotePdfRenderer _pdfRenderer;
-    private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IConfiguration _config;
     private readonly ILogger<HtmlQuoteGenerationService> _logger;
-
-    /// <summary>Hard cap for Playwright/Chromium (install + launch + PDF) so work cannot hang forever.</summary>
-    public static readonly TimeSpan PdfGenerationAbsoluteTimeout = TimeSpan.FromMinutes(12);
 
     public HtmlQuoteGenerationService(
         BookingDbContext db,
         IWebHostEnvironment env,
-        IHostApplicationLifetime hostLifetime,
-        IPlaywrightQuotePdfRenderer pdfRenderer,
-        IHttpClientFactory httpClientFactory,
-        IConfiguration config,
         ILogger<HtmlQuoteGenerationService> logger)
     {
         _db = db;
         _env = env;
-        _hostLifetime = hostLifetime;
-        _pdfRenderer = pdfRenderer;
-        _httpClientFactory = httpClientFactory;
-        _config = config;
         _logger = logger;
     }
 
@@ -86,15 +65,19 @@ public partial class HtmlQuoteGenerationService
                 booking.VenueID,
                 booking.dDate);
 
-            // 2. Load venue information
-            TblVenue? venue = null;
-            if (booking.VenueID > 0)
+            // 2–5. Load venue, contact, organization, line items, and crew sequentially.
+            // EF Core disallows concurrent operations on a single DbContext instance; parallel Task.WhenAll caused
+            // "A second operation was started on this context instance before a previous operation completed."
+            int? bookingIdAsInt = null;
+            if (booking.ID <= int.MaxValue && booking.ID >= int.MinValue)
             {
-                venue = await _db.TblVenues
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(v => v.ID == booking.VenueID, ct);
+                bookingIdAsInt = decimal.ToInt32(decimal.Truncate(booking.ID));
             }
-            
+
+            TblVenue? venue = booking.VenueID > 0
+                ? await _db.TblVenues.AsNoTracking().FirstOrDefaultAsync(v => v.ID == booking.VenueID, ct).ConfigureAwait(false)
+                : null;
+
             // If session has a venue name that doesn't match the loaded venue, try to find the correct one
             string? sessionVenueNameForLookup = session?.GetString("Draft:VenueName");
             if (!string.IsNullOrWhiteSpace(sessionVenueNameForLookup) && venue != null &&
@@ -102,8 +85,9 @@ public partial class HtmlQuoteGenerationService
             {
                 var correctVenue = await _db.TblVenues
                     .AsNoTracking()
-                    .FirstOrDefaultAsync(v => v.VenueName != null && 
-                        v.VenueName.ToLower().Contains(sessionVenueNameForLookup.ToLower()), ct);
+                    .FirstOrDefaultAsync(v => v.VenueName != null &&
+                        v.VenueName.ToLower().Contains(sessionVenueNameForLookup.ToLower()), ct)
+                    .ConfigureAwait(false);
                 if (correctVenue != null)
                 {
                     _logger.LogInformation("[QUOTE GEN] Session venue '{SessionVenue}' differs from DB venue '{DbVenue}' (ID={VenueId}). Using correct venue '{CorrectVenue}' (ID={CorrectId})",
@@ -112,37 +96,28 @@ public partial class HtmlQuoteGenerationService
                 }
             }
 
-            // 3. Load contact
-            TblContact? contact = null;
-            if (booking.ContactID.HasValue)
-            {
-                contact = await _db.Contacts
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(c => c.Id == booking.ContactID.Value, ct);
-            }
+            TblContact? contact = booking.ContactID.HasValue
+                ? await _db.Contacts.AsNoTracking().FirstOrDefaultAsync(c => c.Id == booking.ContactID.Value, ct).ConfigureAwait(false)
+                : null;
 
-            // 4. Load organization
-            TblCust? organization = null;
-            if (booking.CustID.HasValue)
-            {
-                organization = await _db.TblCusts
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(c => c.ID == booking.CustID.Value, ct);
-            }
-
-            // 5. Load equipment items
-            int? bookingIdAsInt = null;
-            if (booking.ID <= int.MaxValue && booking.ID >= int.MinValue)
-            {
-                bookingIdAsInt = decimal.ToInt32(decimal.Truncate(booking.ID));
-            }
+            TblCust? organization = booking.CustID.HasValue
+                ? await _db.TblCusts.AsNoTracking().FirstOrDefaultAsync(c => c.ID == booking.CustID.Value, ct).ConfigureAwait(false)
+                : null;
 
             var items = await _db.TblItemtrans
                 .AsNoTracking()
                 .Where(i => i.BookingNoV32 == bookingNo || (bookingIdAsInt.HasValue && i.BookingId == bookingIdAsInt.Value))
-                .ToListAsync(ct);
+                .ToListAsync(ct)
+                .ConfigureAwait(false);
 
-            // 6. Load inventory master data for descriptions and prices
+            var crewRows = await _db.TblCrews
+                .AsNoTracking()
+                .Where(c => c.BookingNoV32 == bookingNo)
+                .OrderBy(c => c.Task).ThenBy(c => c.SeqNo)
+                .ToListAsync(ct)
+                .ConfigureAwait(false);
+
+            // 6. Load inventory master + rate table (sequential — same DbContext).
             var productCodes = items.Select(i => i.ProductCodeV42).Where(p => !string.IsNullOrEmpty(p)).Distinct().ToList();
             _logger.LogInformation(
                 "[QUOTE GEN] trace={Trace} phase=itemtrans_loaded booking={BookingNo} itemCount={ItemCount} distinctProductCodes={CodeCount}",
@@ -150,29 +125,28 @@ public partial class HtmlQuoteGenerationService
                 bookingNo,
                 items.Count,
                 productCodes.Count);
-            var inventoryItemsList = await _db.TblInvmas
-                .AsNoTracking()
-                .Where(inv => productCodes.Contains(inv.product_code))
-                .ToListAsync(ct);
+
+            var inventoryItemsList = productCodes.Count > 0
+                ? await _db.TblInvmas
+                    .AsNoTracking()
+                    .Where(inv => productCodes.Contains(inv.product_code))
+                    .ToListAsync(ct)
+                    .ConfigureAwait(false)
+                : new List<TblInvmas>();
             var inventoryItems = inventoryItemsList
                 .GroupBy(inv => inv.product_code ?? "")
                 .ToDictionary(g => g.Key, g => g.First());
 
-            // 6b. Load rate table data for proper pricing
-            var rateItemsList = await _db.TblRatetbls
-                .AsNoTracking()
-                .Where(r => productCodes.Contains(r.product_code) && r.TableNo == 0)
-                .ToListAsync(ct);
+            var rateItemsList = productCodes.Count > 0
+                ? await _db.TblRatetbls
+                    .AsNoTracking()
+                    .Where(r => productCodes.Contains(r.product_code) && r.TableNo == 0)
+                    .ToListAsync(ct)
+                    .ConfigureAwait(false)
+                : new List<TblRatetbl>();
             var rateItems = rateItemsList
                 .GroupBy(r => r.product_code ?? "")
                 .ToDictionary(g => g.Key, g => g.First());
-
-            // 6c. Load crew/labor data
-            var crewRows = await _db.TblCrews
-                .AsNoTracking()
-                .Where(c => c.BookingNoV32 == bookingNo)
-                .OrderBy(c => c.Task).ThenBy(c => c.SeqNo)
-                .ToListAsync(ct);
             _logger.LogInformation(
                 "[QUOTE GEN] trace={Trace} phase=crew_loaded booking={BookingNo} crewRows={CrewCount}",
                 trace,
@@ -240,61 +214,10 @@ public partial class HtmlQuoteGenerationService
                 htmlFileLen,
                 dest);
 
-            _logger.LogWarning(
-                "[QUOTE GEN] trace={Trace} {Marker} post-HTML checkpoint booking={BookingNo}",
-                trace,
-                PdfQuotePipelineMarker,
-                bookingNo);
-
-            try
-            {
-                var line = System.Text.Json.JsonSerializer.Serialize(new Dictionary<string, object?>
-                {
-                    ["sessionId"] = "8147b1",
-                    ["hypothesisId"] = "H1-stale-dll",
-                    ["location"] = "HtmlQuoteGenerationService.cs:post-html",
-                    ["message"] = "post-html checkpoint",
-                    ["data"] = new Dictionary<string, object?> { ["bookingNo"] = bookingNo, ["marker"] = PdfQuotePipelineMarker },
-                    ["timestamp"] = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-                });
-                DevelopmentDebugLog.TryAppendLine("debug-8147b1.log", line);
-            }
-            catch
-            {
-                /* optional Development-only file log */
-            }
-
-            // 10. PDF from HTML via remote PdfRenderService (fire-and-forget background task).
-            // HTML is ready -- return the URL immediately so the user is never blocked.
-            // PDF generation continues in the background; the file appears on disk when done.
             var url = QuoteFilesPaths.PublicUrlForFileName(outName);
-            var pdfName = Path.ChangeExtension(outName, ".pdf");
-            var pdfDest = Path.Combine(outDir, pdfName);
-
-            var capturedHtml = html;
-            var capturedTrace = trace;
-            var capturedBookingNo = bookingNo;
-            var capturedOutName = outName;
-            var capturedStartTime = startTime;
-
-            _ = Task.Run(async () =>
-            {
-                try
-                {
-                    await GeneratePdfInBackgroundAsync(
-                        capturedHtml, pdfDest, capturedTrace, capturedBookingNo,
-                        capturedOutName, capturedStartTime);
-                }
-                catch (Exception bgEx)
-                {
-                    _logger.LogError(bgEx,
-                        "[QUOTE GEN] trace={Trace} phase=background_pdf_crash booking={BookingNo}",
-                        capturedTrace, capturedBookingNo);
-                }
-            }, CancellationToken.None);
 
             _logger.LogInformation(
-                "[QUOTE GEN] trace={Trace} phase=success_html_returned booking={BookingNo} htmlFile={HtmlFile} htmlChars={HtmlChars} pdfQueued=true publicUrlPath=/files/quotes/{FileName}",
+                "[QUOTE GEN] trace={Trace} phase=success_html_returned booking={BookingNo} htmlFile={HtmlFile} htmlChars={HtmlChars} publicUrlPath=/files/quotes/{FileName}",
                 trace, bookingNo, outName, html.Length, outName);
 
             return (true, url, null);
@@ -311,91 +234,6 @@ public partial class HtmlQuoteGenerationService
                 errorDetail);
             return (false, null, errorDetail);
         }
-    }
-
-    /// <summary>
-    /// Tries the remote PdfRenderService first (VM-based Playwright). Falls back to local Playwright
-    /// if the remote service is not configured or unreachable.
-    /// Runs as a fire-and-forget background task -- never blocks the HTTP response.
-    /// </summary>
-    private async Task GeneratePdfInBackgroundAsync(
-        string html, string pdfDest, string trace, string bookingNo,
-        string outName, DateTime startTime)
-    {
-        var pdfSw = Stopwatch.StartNew();
-        var remoteBaseUrl = _config["PdfService:BaseUrl"];
-        bool pdfOk = false;
-
-        // --- Try remote PDF service first ---
-        if (!string.IsNullOrWhiteSpace(remoteBaseUrl))
-        {
-            _logger.LogInformation(
-                "[QUOTE GEN] trace={Trace} phase=pdf_remote_start booking={BookingNo} serviceUrl={Url}",
-                trace, bookingNo, remoteBaseUrl);
-            try
-            {
-                var client = _httpClientFactory.CreateClient("PdfRenderService");
-                var payload = new { html };
-                var response = await client.PostAsJsonAsync("pdf/from-html", payload, _hostLifetime.ApplicationStopping)
-                    .ConfigureAwait(false);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var pdfBytes = await response.Content.ReadAsByteArrayAsync(_hostLifetime.ApplicationStopping)
-                        .ConfigureAwait(false);
-                    if (pdfBytes.Length > 0)
-                    {
-                        await File.WriteAllBytesAsync(pdfDest, pdfBytes, _hostLifetime.ApplicationStopping)
-                            .ConfigureAwait(false);
-                        pdfOk = true;
-                        _logger.LogInformation(
-                            "[QUOTE GEN] trace={Trace} phase=pdf_remote_ok booking={BookingNo} pdfBytes={Bytes} ms={Ms}",
-                            trace, bookingNo, pdfBytes.Length, pdfSw.ElapsedMilliseconds);
-                    }
-                }
-                else
-                {
-                    var body = await response.Content.ReadAsStringAsync(_hostLifetime.ApplicationStopping).ConfigureAwait(false);
-                    _logger.LogWarning(
-                        "[QUOTE GEN] trace={Trace} phase=pdf_remote_failed booking={BookingNo} status={Status} body={Body}",
-                        trace, bookingNo, (int)response.StatusCode, body.Length > 500 ? body[..500] : body);
-                }
-            }
-            catch (Exception remoteEx)
-            {
-                _logger.LogWarning(remoteEx,
-                    "[QUOTE GEN] trace={Trace} phase=pdf_remote_exception booking={BookingNo}",
-                    trace, bookingNo);
-            }
-        }
-
-        // --- Fallback: local Playwright (may hang on Azure App Service, but works locally) ---
-        if (!pdfOk)
-        {
-            _logger.LogInformation(
-                "[QUOTE GEN] trace={Trace} phase=pdf_local_fallback booking={BookingNo}",
-                trace, bookingNo);
-            using var pdfTimeout = new CancellationTokenSource(TimeSpan.FromSeconds(60));
-            using var pdfWork = CancellationTokenSource.CreateLinkedTokenSource(
-                _hostLifetime.ApplicationStopping, pdfTimeout.Token);
-            try
-            {
-                pdfOk = await GeneratePdfFromHtmlAsync(html, pdfDest, _logger, pdfWork.Token, trace);
-            }
-            catch (OperationCanceledException)
-            {
-                _logger.LogWarning(
-                    "[QUOTE GEN] trace={Trace} phase=pdf_local_timeout booking={BookingNo}",
-                    trace, bookingNo);
-            }
-        }
-
-        pdfSw.Stop();
-        var pdfLen = File.Exists(pdfDest) ? new FileInfo(pdfDest).Length : 0;
-        var totalMs = (DateTime.UtcNow - startTime).TotalMilliseconds;
-        _logger.LogInformation(
-            "[QUOTE GEN] trace={Trace} phase=pdf_background_done booking={BookingNo} pdfOk={PdfOk} pdfBytes={PdfBytes} pdfMs={PdfMs} totalMs={TotalMs}",
-            trace, bookingNo, pdfOk, pdfLen, pdfSw.ElapsedMilliseconds, totalMs);
     }
 
     private QuoteHtmlData BuildQuoteData(
@@ -753,16 +591,4 @@ public partial class HtmlQuoteGenerationService
 
         return "Additional Equipment";
     }
-
-    /// <summary>
-    /// Converts an HTML string to a styled PDF using the shared Playwright Chromium instance
-    /// (<see cref="IPlaywrightQuotePdfRenderer"/>). Uses SetContent with Load (not NetworkIdle).
-    /// </summary>
-    public Task<bool> GeneratePdfFromHtmlAsync(
-        string html,
-        string pdfOutputPath,
-        ILogger? logger = null,
-        CancellationToken cancellationToken = default,
-        string? quoteTraceId = null) =>
-        _pdfRenderer.GeneratePdfFromHtmlAsync(html, pdfOutputPath, logger, cancellationToken, quoteTraceId);
 }

@@ -620,37 +620,10 @@ public sealed partial class AgentToolHandlerService
         var attendees = session?.GetString("Draft:ExpectedAttendees") ?? "";
         var setupStyle = session?.GetString("Draft:SetupStyle") ?? "";
 
-        var venueOptions = new object[]
-        {
-            new
-            {
-                id = "westin-ballroom",
-                label = "Westin Ballroom",
-                splits = new[]
-                {
-                    new { id = "full", label = "Full" },
-                    new { id = "1", label = "Ballroom 1" },
-                    new { id = "2", label = "Ballroom 2" }
-                }
-            },
-            new
-            {
-                id = "elevate",
-                label = "Elevate",
-                splits = new[]
-                {
-                    new { id = "full", label = "Full" },
-                    new { id = "1", label = "Elevate 1" },
-                    new { id = "2", label = "Elevate 2" }
-                }
-            },
-            new
-            {
-                id = "thrive-boardroom",
-                label = "Thrive Boardroom",
-                splits = Array.Empty<object>()
-            }
-        };
+        var rooms = _roomCatalog.GetVenueConfirmRoomOptions();
+        var draftRoom = session?.GetString("Draft:RoomName")?.Trim() ?? "";
+        var selectedSlug = WestinRoomCatalog.MatchDraftRoomNameToSlug(draftRoom, rooms);
+        var roomOptions = rooms.Select(r => new { id = r.Slug, label = r.Name }).ToArray();
 
         var setupOptions = new[]
         {
@@ -669,7 +642,9 @@ public sealed partial class AgentToolHandlerService
                 eventDate,
                 minDate = todayIso,
                 setupStyle,
-                venueOptions,
+                venueLabel = WestinRoomCatalog.VenueName,
+                roomOptions,
+                selectedRoomSlug = selectedSlug,
                 setupOptions,
                 schedule = new
                 {
@@ -1515,7 +1490,7 @@ public sealed partial class AgentToolHandlerService
         // Westin Ballroom parent room is ambiguous until user confirms full vs split.
         var isWestinBrisbaneVenue = (eventContext.VenueName ?? "").Trim().Contains("westin", StringComparison.OrdinalIgnoreCase) &&
                                     (eventContext.VenueName ?? "").Trim().Contains("brisbane", StringComparison.OrdinalIgnoreCase);
-        var userConfirmedFullWestinBallroom = UserExplicitlyConfirmedFullWestinBallroom(conversationMessages);
+        var userConfirmedFullWestinBallroom = UserExplicitlyConfirmedFullWestinBallroom(session, conversationMessages);
         var isFullWestinBallroomSelection =
             IsFullWestinBallroomRoom(eventContext.RoomName) ||
             (IsAmbiguousWestinBallroomParentRoom(eventContext.RoomName) && userConfirmedFullWestinBallroom);
@@ -2046,20 +2021,33 @@ public sealed partial class AgentToolHandlerService
         if (int.TryParse(session.GetString("Draft:PresenterCount") ?? "", out var presCount) && presCount > 0)
             eventContext.NumberOfPresentations = Math.Max(eventContext.NumberOfPresentations, presCount);
 
-        if (!string.Equals(session.GetString("Draft:BuiltInProjector") ?? "", "yes", StringComparison.OrdinalIgnoreCase)
-            && !HasAnyEquipmentType(requests, t => (t ?? "").Contains("projector", StringComparison.OrdinalIgnoreCase)))
+        var inbuiltProj = string.Equals(session.GetString("Draft:BuiltInProjector"), "yes", StringComparison.OrdinalIgnoreCase);
+        var inbuiltScreen = string.Equals(session.GetString("Draft:BuiltInScreen"), "yes", StringComparison.OrdinalIgnoreCase);
+        var inbuiltAudio = string.Equals(session.GetString("Draft:BuiltInSpeakers"), "yes", StringComparison.OrdinalIgnoreCase);
+
+        // Map "Inbuilt" combinations to specific types to help recommendation logic prioritize combined packages
+        if (inbuiltProj && inbuiltScreen && inbuiltAudio)
+        {
+            if (!HasAnyEquipmentType(requests, t => t is "av" or "base av" or "base_av"))
+                EnsureEquipmentRequest(requests, "av", 1);
+        }
+        else
+        {
+            if ((inbuiltProj || inbuiltScreen) && !HasAnyEquipmentType(requests, t => t is "vision" or "projector" or "screen" or "display" or "av"))
+                EnsureEquipmentRequest(requests, "vision", 1);
+
+            if (inbuiltAudio && !HasAnyEquipmentType(requests, t => t is "audio" or "speaker" or "av"))
+                EnsureEquipmentRequest(requests, "audio", 1);
+        }
+
+        // Standard checks for external items (when inbuilt is NOT selected but requested/needed)
+        if (!inbuiltProj && !HasAnyEquipmentType(requests, t => t.Contains("projector", StringComparison.OrdinalIgnoreCase) || t == "av" || t == "vision"))
             EnsureEquipmentRequest(requests, "projector", 1);
 
-        if (!string.Equals(session.GetString("Draft:BuiltInScreen") ?? "", "yes", StringComparison.OrdinalIgnoreCase)
-            && !HasAnyEquipmentType(requests, t =>
-                (t ?? "").Contains("screen", StringComparison.OrdinalIgnoreCase)
-                || (t ?? "").Contains("display", StringComparison.OrdinalIgnoreCase)))
+        if (!inbuiltScreen && !HasAnyEquipmentType(requests, t => t.Contains("screen", StringComparison.OrdinalIgnoreCase) || t.Contains("display", StringComparison.OrdinalIgnoreCase) || t == "av" || t == "vision"))
             EnsureEquipmentRequest(requests, "screen", 1);
 
-        if (!string.Equals(session.GetString("Draft:BuiltInSpeakers") ?? "", "yes", StringComparison.OrdinalIgnoreCase)
-            && !HasAnyEquipmentType(requests, t =>
-                (t ?? "").Contains("speaker", StringComparison.OrdinalIgnoreCase)
-                || (t ?? "") is "pa" or "audio"))
+        if (!inbuiltAudio && !HasAnyEquipmentType(requests, t => t.Contains("speaker", StringComparison.OrdinalIgnoreCase) || t is "pa" or "audio" or "av"))
             EnsureEquipmentRequest(requests, "speaker", 1);
 
         if (string.Equals(session.GetString("Draft:Flipchart") ?? "", "yes", StringComparison.OrdinalIgnoreCase))

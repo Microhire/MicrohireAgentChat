@@ -12,10 +12,12 @@ using MicrohireAgentChat.Services.Extraction;
 using MicrohireAgentChat.Services.Orchestration;
 using MicrohireAgentChat.Services.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -25,6 +27,36 @@ namespace MicrohireAgentChat.Services
 {
     public sealed partial class AzureAgentChatService
     {
+        /// <summary>
+        /// Tools handled entirely by <see cref="AgentToolHandlerService.HandleToolCallAsync"/> that do not mutate session
+        /// or booking state — safe to run with a scoped handler + isolated <see cref="BookingDbContext"/> in parallel.
+        /// </summary>
+        private static readonly HashSet<string> ParallelSafeReadOnlyTools = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "check_date_availability",
+            "get_now_aest",
+            "list_westin_rooms",
+            "build_time_picker",
+            "build_contact_form",
+            "build_event_form",
+            "build_av_extras_form",
+            "get_room_images",
+            "get_product_info",
+            "get_product_images",
+            "build_equipment_picker",
+            "search_equipment",
+            "get_equipment_recommendations",
+            "get_package_details",
+            "show_equipment_alternatives",
+            "get_product_knowledge",
+            "get_westin_venue_guide",
+            "get_capacity_table",
+            "get_room_capacity"
+        };
+
+        private static bool IsParallelSafeReadOnlyTool(string? name)
+            => !string.IsNullOrEmpty(name) && ParallelSafeReadOnlyTools.Contains(name);
+
         private async Task<Azure.AI.Agents.Persistent.ThreadRun> RunAgentAndHandleToolsAsync(string threadId, string agentId, CancellationToken ct)
         {
             // AUTO-PERSIST CONTACT INFO BEFORE TOOL CALLS
@@ -64,7 +96,7 @@ namespace MicrohireAgentChat.Services
                 var startUtc = DateTime.UtcNow;
                 var timeout = TimeSpan.FromMinutes(5);
                 var perToolTimeout = TimeSpan.FromSeconds(45);
-                var delayMs = 500;          // start slightly higher
+                var delayMs = 250;          // responsive first polls; backoff when idle
                 var maxDelayMs = 7000;      // ramp polling up to ~7s
 
                 var lastStatus = run.Status;
@@ -79,6 +111,7 @@ namespace MicrohireAgentChat.Services
                     {
                         _logger.LogInformation("Run {RunId} on thread {ThreadId} changed status: {OldStatus} -> {NewStatus}", run.Id, threadId, lastStatus, run.Status);
                         lastStatus = run.Status;
+                        delayMs = 250; // reset backoff after status change for faster follow-up polls
                     }
 
                     if (IsTerminal(run.Status)) return run;
@@ -138,16 +171,72 @@ namespace MicrohireAgentChat.Services
                         {
                             _logger.LogInformation("Processing {Count} tool calls for run {RunId}", toolCalls.Count(), run.Id);
                             var outputs = new List<(string Id, string Output)>();
-
+                            var callList = new List<(string Id, string Name, string ArgsJson)>();
                             foreach (var call in toolCalls)
                             {
-                                var toolCallId = (string)call.Id;
-                                string name = "unknown";
-                                string argsJson = "{}";
+                                var tcId = (string)call.Id;
+                                string tName = "unknown";
+                                string tArgs = "{}";
+                                try { tName = (string)call.Function.Name; } catch { try { tName = (string)call.Name; } catch { } }
+                                try { tArgs = (string)(call.Function.Arguments ?? "{}"); } catch { try { tArgs = (string)(call.Arguments ?? "{}"); } catch { } }
+                                tArgs ??= "{}";
+                                callList.Add((tcId, tName, tArgs));
+                            }
 
-                                try { name = (string)call.Function.Name; } catch { try { name = (string)call.Name; } catch { } }
-                                try { argsJson = (string)(call.Function.Arguments ?? "{}"); } catch { try { argsJson = (string)(call.Arguments ?? "{}"); } catch { } }
-                                argsJson ??= "{}";
+                            var parallelFilled = new ConcurrentDictionary<int, (string Id, string Output)>();
+                            var parallelJobs = callList.Select((c, i) => (i, c)).Where(x => IsParallelSafeReadOnlyTool(x.c.Name)).ToList();
+                            if (parallelJobs.Count > 0)
+                            {
+                                _logger.LogInformation("Running {ParallelCount} of {Total} tool calls in parallel for run {RunId}", parallelJobs.Count, callList.Count, run.Id);
+                                await Task.WhenAll(parallelJobs.Select(async job =>
+                                {
+                                    var (i, c) = job;
+                                    var (pToolCallId, pName, pArgsJson) = c;
+                                    try
+                                    {
+                                        await using var scope = _scopeFactory.CreateAsyncScope();
+                                        var handler = scope.ServiceProvider.GetRequiredService<AgentToolHandlerService>();
+                                        var pStart = DateTime.UtcNow;
+                                        string? pHandled;
+                                        using (var toolCts = CancellationTokenSource.CreateLinkedTokenSource(ct))
+                                        {
+                                            toolCts.CancelAfter(perToolTimeout);
+                                            pHandled = await handler.HandleToolCallAsync(pName, pArgsJson, threadId, toolCts.Token).ConfigureAwait(false);
+                                        }
+                                        var pDuration = DateTime.UtcNow - pStart;
+                                        if (pDuration.TotalSeconds > 5)
+                                            _logger.LogWarning("Slow tool call (parallel): {ToolName} took {Duration}s", pName, pDuration.TotalSeconds);
+                                        else
+                                            _logger.LogInformation("Tool call {ToolName} completed in {Duration}s (parallel)", pName, pDuration.TotalSeconds);
+                                        if (pHandled != null)
+                                            parallelFilled[i] = (pToolCallId, pHandled);
+                                    }
+                                    catch (OperationCanceledException) when (!ct.IsCancellationRequested)
+                                    {
+                                        _logger.LogWarning("Tool {ToolName} timed out after {TimeoutSeconds}s for run {RunId} (parallel)", pName, perToolTimeout.TotalSeconds, run.Id);
+                                        parallelFilled[i] = (pToolCallId, JsonSerializer.Serialize(new
+                                        {
+                                            error = $"Tool '{pName}' timed out after {(int)perToolTimeout.TotalSeconds} seconds.",
+                                            instruction = "Tell the user there was a temporary processing delay and ask them to retry."
+                                        }));
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogError(ex, "Tool {ToolName} failed (parallel)", pName);
+                                        parallelFilled[i] = (pToolCallId, JsonSerializer.Serialize(new { error = ex.Message }));
+                                    }
+                                }));
+                            }
+
+                            for (var idx = 0; idx < callList.Count; idx++)
+                            {
+                                var (toolCallId, name, argsJson) = callList[idx];
+                                if (parallelFilled.TryGetValue(idx, out var parallelDone))
+                                {
+                                    TrackPendingGalleries(parallelDone.Output);
+                                    outputs.Add((parallelDone.Id, parallelDone.Output));
+                                    continue;
+                                }
 
                                 _logger.LogInformation("Tool call: {ToolName} (ID: {ToolCallId})", name, toolCallId);
                                 // #region agent log
@@ -261,11 +350,7 @@ namespace MicrohireAgentChat.Services
                                                 var quoteGenerationApproved = string.Equals(session?.GetString("Draft:GenerateQuote"), "1", StringComparison.Ordinal);
                                                 if (!quoteGenerationApproved)
                                                 {
-                                                    outputs.Add((toolCallId, JsonSerializer.Serialize(new
-                                                    {
-                                                        error = "Quote generation is awaiting explicit user confirmation.",
-                                                        instruction = "Quote generation is locked until the user consents (e.g. they say 'yes create quote' / 'generate the quote') or submits structured follow-up AV (Generate quote). Do not ask for a long equipment summary; when requirements are complete, ask one short consent line if needed, then call generate_quote after they agree."
-                                                    })));
+                                                    outputs.Add((toolCallId, QuoteGenerationToolOutput.SerializeAwaitingExplicitUserConfirmation()));
                                                     break;
                                                 }
                                                 session?.Remove("Draft:GenerateQuote");
@@ -304,21 +389,8 @@ namespace MicrohireAgentChat.Services
                                                     var existingReq = _http.HttpContext?.Request;
                                                     var existingBaseUrl = (existingReq == null) ? "" : $"{existingReq.Scheme}://{existingReq.Host}";
                                                     var fullExistingUrl = existingQuoteUrl.StartsWith("http") ? existingQuoteUrl : $"{existingBaseUrl}{existingQuoteUrl}";
-                                                    var existingPendingDl = QuoteDownloadHref.BuildPendingDownloadAnchor(existingQuoteUrl, existingBookingNo);
                                                     
-                                                    outputs.Add((toolCallId, JsonSerializer.Serialize(new
-                                                    {
-                                                        ui = new
-                                                        {
-                                                            quoteUrl = fullExistingUrl,
-                                                            bookingNo = existingBookingNo,
-                                                            isHtml = true
-                                                        },
-                                                        message = $"Great news! I have successfully generated your quote for booking {existingBookingNo}. You can view it <a href=\"{fullExistingUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">here</a> or {existingPendingDl}.\n\nWould you like to confirm this quote?",
-                                                        alreadyExists = true,
-                                                        success = true,
-                                                        instruction = "OUTPUT ONLY the message field with the View Quote link and the confirmation prompt. Do not add any other text or mention issues."
-                                                    })));
+                                                    outputs.Add((toolCallId, QuoteGenerationToolOutput.SerializeExistingQuoteReady(fullExistingUrl, existingBookingNo)));
                                                     break;
                                                 }
                                                 
@@ -357,21 +429,8 @@ namespace MicrohireAgentChat.Services
                                                                 var existingReq2 = _http.HttpContext?.Request;
                                                                 var existingBaseUrl2 = (existingReq2 == null) ? "" : $"{existingReq2.Scheme}://{existingReq2.Host}";
                                                                 var fullExistingUrl2 = $"{existingBaseUrl2}{existingUrl}";
-                                                                var existingPendingDl2 = QuoteDownloadHref.BuildPendingDownloadAnchor(existingUrl, existingBookingNo);
                                                                 
-                                                                outputs.Add((toolCallId, JsonSerializer.Serialize(new
-                                                                {
-                                                                    ui = new
-                                                                    {
-                                                                        quoteUrl = fullExistingUrl2,
-                                                                        bookingNo = existingBookingNo,
-                                                                        isHtml = true
-                                                                    },
-                                                                    message = $"Great news! I have successfully generated your quote for booking {existingBookingNo}. You can view it <a href=\"{fullExistingUrl2}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">here</a> or {existingPendingDl2}.\n\nWould you like to confirm this quote?",
-                                                                    alreadyExists = true,
-                                                                    success = true,
-                                                                    instruction = "OUTPUT ONLY the message field with the View Quote link and the confirmation prompt. Do not add any other text or mention issues."
-                                                                })));
+                                                                outputs.Add((toolCallId, QuoteGenerationToolOutput.SerializeExistingQuoteReady(fullExistingUrl2, existingBookingNo)));
                                                                 break;
                                                             }
                                                         }
@@ -530,21 +589,8 @@ namespace MicrohireAgentChat.Services
                                                         var fullExistingQuoteUrl = existingErrorQuoteUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase)
                                                             ? existingErrorQuoteUrl
                                                             : $"{baseExisting}{existingErrorQuoteUrl}";
-                                                        var errPendingDl = QuoteDownloadHref.BuildPendingDownloadAnchor(existingErrorQuoteUrl, bookingNo);
 
-                                                        outputs.Add((toolCallId, JsonSerializer.Serialize(new
-                                                        {
-                                                            ui = new
-                                                            {
-                                                                quoteUrl = fullExistingQuoteUrl,
-                                                                bookingNo,
-                                                                isHtml = true
-                                                            },
-                                                            message = $"Great news! I have successfully generated your quote for booking {bookingNo}. You can view it <a href=\"{fullExistingQuoteUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">here</a> or {errPendingDl}.\n\nWould you like to confirm this quote?",
-                                                            recoveredFromError = true,
-                                                            success = true,
-                                                            instruction = "OUTPUT ONLY the message field with the View Quote link and the confirmation prompt. Do not add any other text or mention issues."
-                                                        })));
+                                                        outputs.Add((toolCallId, QuoteGenerationToolOutput.SerializeQuoteRecoveredAfterGenerationError(fullExistingQuoteUrl, bookingNo)));
                                                         break;
                                                     }
                                                     
@@ -564,7 +610,6 @@ namespace MicrohireAgentChat.Services
                                                 var req = _http.HttpContext?.Request;
                                                 var baseUrl = (req == null) ? "" : $"{req.Scheme}://{req.Host}";
                                                 var fullQuoteUrl = $"{baseUrl}{htmlUrl}";
-                                                var quotePendingDl = QuoteDownloadHref.BuildPendingDownloadAnchor(htmlUrl, bookingNo);
 
                                                 // ========== SYNC QUOTE STATE ==========
                                                 session?.SetString("Draft:QuoteUrl", htmlUrl);
@@ -583,18 +628,7 @@ namespace MicrohireAgentChat.Services
                                                     _logger.LogWarning(txEx, "[QUOTE GEN] Failed to save transcript for booking {BookingNo} after quote generation", bookingNo);
                                                 }
 
-                                                outputs.Add((toolCallId, JsonSerializer.Serialize(new
-                                                {
-                                                    ui = new
-                                                    {
-                                                        quoteUrl = fullQuoteUrl,
-                                                        bookingNo,
-                                                        isHtml = true
-                                                    },
-                                                    message = $"Great news! I have successfully generated your quote for booking {bookingNo}. You can view it <a href=\"{fullQuoteUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">here</a> or {quotePendingDl}.\n\nWould you like to confirm this quote?",
-                                                    success = true,
-                                                    instruction = "OUTPUT ONLY the message field with the View Quote link and the confirmation prompt. Do not add any other text or mention issues."
-                                                })));
+                                                outputs.Add((toolCallId, QuoteGenerationToolOutput.SerializeNewQuoteReady(fullQuoteUrl, bookingNo)));
                                                 break;
                                             }
 

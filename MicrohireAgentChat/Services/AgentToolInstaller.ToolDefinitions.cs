@@ -260,7 +260,7 @@ public sealed partial class AgentToolInstaller
                     }),
 
                 FunctionTool("generate_quote", 
-                    "Generate quote PDF/booking. Call when requirements are complete and the user has consented (e.g. 'yes create quote', structured FollowUpAv submit) or after update_equipment when they confirm. Do not paste a long pre-quote equipment summary first.",
+                    "Generate HTML quote / booking. Call when requirements are complete and the user has consented (e.g. 'yes create quote', structured FollowUpAv submit) or after update_equipment when they confirm. Do not paste a long pre-quote equipment summary first.",
                     new {
                         type = "object",
                         properties = new { 
@@ -475,7 +475,7 @@ public sealed partial class AgentToolInstaller
                 "     - 2–4 presenters → include 1 switcher (equipment_type='switcher', quantity=1)\n" +
                 "     - 5–8 presenters → 2 switchers; 9–12 → 3 switchers (formula: ceil(presenter_count/4))\n" +
                 "     - Do NOT ask the user about a switcher — include it automatically based on presenter count.\n" +
-                "2. Will you need to show slides or videos? (means projector + screen) — Do NOT ask this for Thrive Boardroom; WSBTHAV already includes the projector and screen.\n" +
+                "2. Will you need to show slides or videos? (means projector + screen) — Do NOT ask this for Thrive Boardroom; THRVAVP already includes the projector and screen.\n" +
                 "3. **AUDIO CHECK - If videos or media playback are relevant (Ballroom/Elevate only):** Ask one question at a time: first ask whether audio playback is needed. If yes, ask: 'Would you like to use the inbuilt speaker system or external/portable PA speakers?' (Ask this alone.)\n" +
                 "4. **LAPTOP - ASK ONCE when presentations/slides involve a laptop:** Ask this ONLY after the audio question(s) are complete for Ballroom/Elevate. Use: 'Are you bringing your own laptop or do you need one?' (Ask this alone.) After user answers own/provided, do NOT ask this ownership question again.\n" +
                 "5. If user needs Microhire to provide laptop(s), ask once: 'Windows or Mac?' Do NOT ask Windows/Mac if user said they are bringing their own laptop. If preference already provided earlier (e.g., 'Mac laptop please'), do NOT re-ask.\n" +
@@ -496,7 +496,7 @@ public sealed partial class AgentToolInstaller
                 "**Ballroom (Westin Ballroom, Westin Ballroom 1, Westin Ballroom 2):** If user says 'Westin Ballroom' parent name, FIRST ask: 'Is that the full Westin Ballroom, Westin Ballroom 1, or Westin Ballroom 2?' and wait for answer. Then ask the full set: speakers/presenter count (items 1a and 1b), presentation audio (see below, including speaker style choice), laptop, adaptor, operator, clicker (LOGISPOT), flipchart, foldback, lectern, wireless microphones. NOTE: switcher is automatic based on presenter_count — do NOT ask the user about switcher separately for the presentation scenario. If projection needed, ask for projector placement area using floor plan `/images/westin/westin-ballroom/floor-plan.png` (Ballroom 1: E/D/C, Ballroom 2: A/F/B, full: A-F; dual only B&C or E&F).\n" +
                 "**CRITICAL - DUAL PROJECTOR:** For Westin Ballroom 1 or Westin Ballroom 2, after confirming projector placement area, you MUST ask: 'Would you like a single projector setup or a dual projector setup?' Explain that dual projector is available in combinations B & C or E & F only. Do NOT assume single projector -- always ask.\n\n" +
                 "**Elevate (Elevate, Elevate 1, Elevate 2):** Same as Ballroom (including speakers/presenter count, automatic switcher from presenter_count) PLUS: 'Are you holding a video conference? Using Teams/Zoom etc?' (LOG4kCAM). Include equipment_type='video_conference_unit' when yes.\n\n" +
-                "**Thrive Boardroom:** The WSBTHAV package (Projector + Screen + PC Audio ceiling speakers) is AUTOMATICALLY included for Thrive — it is the built-in AV package for the room. Do NOT ask about or add projector, screen, or speakers separately.\n" +
+                "**Thrive Boardroom:** The THRVAVP package (Projector + Screen + PC Audio ceiling speakers) is AUTOMATICALLY included for Thrive — it is the built-in AV package for the room. Do NOT ask about or add projector, screen, or speakers separately.\n" +
                 "AV equipment questions for Thrive: ask ONLY the following (in order, one at a time):\n" +
                 "  1. 'Are you bringing your own laptop or do you need one?'\n" +
                 "  2. If own laptop: 'We will provide an HDMI connection to the projector. Do you need any adaptors? (Typically USB-C — we can add a USB-C adaptor.)'\n" +
@@ -506,7 +506,7 @@ public sealed partial class AgentToolInstaller
                 "Do NOT ask: projector, screen, speakers/presenter count, lectern, microphones, foldback, presentation-audio speaker style, or switcher — none of these apply to Thrive.\n" +
                 "When room is Thrive Boardroom, do NOT include equipment_type='projector', 'screen', 'lectern', 'microphone', 'foldback_monitor', 'speaker', or 'switcher' in equipment_requests. Do NOT pass presenter_count or speaker_count for Thrive.\n" +
                 "**IMPORTANT: The operator assistance check (rule #15) still applies to Thrive.** If there is complex content, recording, or streaming, you MUST still ask: 'Would you like technical operator assistance during your rehearsal or the event itself to ensure everything runs smoothly?'\n\n" +
-                "**Presentation audio (Ballroom and Elevate only):** When projector/screen and presentations, ask: 'Does your presentation include audio playback?' If yes, you MUST ask next (as a separate message): 'Would you like to use the inbuilt speaker system or external/portable PA speakers?' Capture this speaker style before asking laptop questions. Then include equipment_type='speaker' (drives WSBFBALL/WSBALLAU for Ballroom or WSBELSAD/WSBELAUD for Elevate). Do NOT ask this for Thrive.\n\n" +
+                "**Presentation audio (Ballroom and Elevate only):** When projector/screen and presentations, ask: 'Does your presentation include audio playback?' If yes, you MUST ask next (as a separate message): 'Would you like to use the inbuilt speaker system or external/portable PA speakers?' Capture this speaker style before asking laptop questions. Then include equipment_type='speaker' (drives WBFBCSS/WBSBCSS for Ballroom or ELEVSCSS/ELEVCSS for Elevate). Do NOT ask this for Thrive.\n\n" +
                 "**Foldback (Ballroom and Elevate only):** When projector/screen and presentations, ask: 'Would you like a foldback monitor so the presenter doesn't have to turn around to look at the screen?' Do NOT ask for Thrive.\n\n" +
                 "## AUDIO EQUIPMENT PAIRING - CRITICAL\n" +
                 "- **Microphones capture sound, speakers play sound - they are DIFFERENT needs**\n" +
@@ -629,7 +629,7 @@ public sealed partial class AgentToolInstaller
                 "   - Include lectern when user wants one (equipment_type='lectern', quantity=1) — EXCEPT for Thrive Boardroom\n" +
                 "   - Include foldback_monitor when user wants presenter to see screen without turning (equipment_type='foldback_monitor', quantity=1) — EXCEPT for Thrive Boardroom\n" +
                 "   - Include video_conference_unit for Elevate/Thrive when Teams/Zoom (equipment_type='video_conference_unit', quantity=1)\n" +
-                "   - **Thrive Boardroom:** Do NOT include projector, screen, lectern, microphone, foldback_monitor, speaker, or switcher. WSBTHAV already bundles projector + screen + PC Audio — adding these separately creates duplicates. Thrive AV accessories only: laptop, hdmi_adaptor, clicker, video_conference_unit, flipchart.\n\n" +
+                "   - **Thrive Boardroom:** Do NOT include projector, screen, lectern, microphone, foldback_monitor, speaker, or switcher. THRVAVP already bundles projector + screen + PC Audio — adding these separately creates duplicates. Thrive AV accessories only: laptop, hdmi_adaptor, clicker, video_conference_unit, flipchart.\n\n" +
                 "   **CRITICAL - Room for Westin Brisbane and Four Points Brisbane:** These venues have built-in AV packages that are room-specific. You MUST pass venue_name and room_name when calling recommend_equipment_for_event. If the user says 'Westin Brisbane' but hasn't specified a room, ask which room (e.g. Westin Ballroom, Westin Ballroom 1, Westin Ballroom 2, Elevate, Elevate 1, Elevate 2, Thrive Boardroom, Settimo Private Dining & Wine Room, Nautilus Pool Deck, Pre-Function Area, Chairman's Lounge, The Promenade, The Pier, or The Podium). When the user selects 'Westin Ballroom' (parent name), you MUST ask: 'Is that the full Westin Ballroom, Westin Ballroom 1, or Westin Ballroom 2?' before proceeding—do NOT assume full. Same for Four Points Brisbane - ask for the room if not specified. room_name is essential to recommend the correct built-in projector, speaker, and AV packages.\n\n" +
                 "   **CRITICAL - Westin Ballroom projector area:** If projection is needed and the selected room is Westin Ballroom, Westin Ballroom 1, or Westin Ballroom 2, ask the customer to choose projector placement area(s) using image `/images/westin/westin-ballroom/floor-plan.png`. Do NOT pass projector_area or projector_areas in the tool call until the customer has explicitly chosen an area after seeing the floor plan. If you pass an area without the customer selecting it, the system will ignore it and show the floor plan. For 1 projector capture one area. If customer asks for more than 1 projector, capture multiple areas (max 3) and pass projector_areas. Valid sets: Ballroom 1 => E/D/C, Ballroom 2 => A/F/B, full Westin Ballroom => A-F. For dual projector setup, valid combinations are ONLY B&C or E&F. Capture these before final quote generation.\n\n" +
                 "   **Example call with all equipment:**\n" +
@@ -684,8 +684,8 @@ public sealed partial class AgentToolInstaller
                 "## PRICE INFORMATION RULES - CRITICAL\n\n" +
                 "**Understanding how prices are displayed:**\n" +
                 "- Prices are NOT displayed in the chat interface (they are redacted for user privacy)\n" +
-                "- Prices ARE included in the generated quote PDF/HTML document\n" +
-                "- Chat does not show a full equipment quote summary before PDF generation\n\n" +
+                "- Prices ARE included in the generated quote HTML document\n" +
+                "- Chat does not show a full equipment quote summary before quote generation\n\n" +
                 "**What you SHOULD say:**\n" +
                 "- 'Your detailed quote with all pricing will be available in the generated document.'\n" +
                 "- 'The quote document will include a full breakdown of costs.'\n" +
@@ -743,7 +743,7 @@ public sealed partial class AgentToolInstaller
                 "When generate_quote succeeds:\n" +
                 "→ 'Great news! I've successfully generated your quote for booking [bookingNo].'\n" +
                 "→ Do NOT add any other text. Do NOT mention technical details.\n" +
-                "→ Do NOT tell the user you will create the booking or generate a quote PDF before calling generate_quote; call generate_quote immediately and then output only the tool result message (e.g. Great news! I've successfully generated...).\n\n" +
+                "→ Do NOT tell the user you will create the booking or generate a quote before calling generate_quote; call generate_quote immediately and then output only the tool result message (e.g. Great news! I've successfully generated...).\n\n" +
                 "When booking is created:\n" +
                 "→ 'Perfect! I've created booking [bookingNo] for your event.'\n\n" +
                 "When quote generation is pending or tool returns pending:\n" +

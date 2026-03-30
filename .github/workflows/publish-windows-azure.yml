@@ -1,34 +1,12 @@
 # -----------------------------------------------------------------------------
-# Publish Windows (Playwright Chromium) — production zip for Azure App Service (win-x64)
+# Publish win-x64 zip for Azure App Service (no Playwright / PDF).
 #
-# Prerequisites:
-#   - Repository on GitHub with Actions enabled (Settings → Actions → General).
-#   - This file on your default branch.
+# Output artifact: site-win64-azure (contains site.zip)
 #
-# How to run:
-#   Actions → "Publish Windows (Playwright Chromium)" → Run workflow.
-#
-# Output:
-#   Artifact name: site-win64-playwright  (contains site.zip)
-#
-# Deploy (manual from laptop):
-#   Unzip or use site.zip directly, e.g. from repo root:
-#     az webapp deploy --resource-group <rg> --name <app> --src-path site.zip --type zip --async true
-#
-# Deploy (optional from this workflow):
-#   1) One-time Azure CLI (run as a user who can create app registrations / assign roles):
-#        SUB=$(az account show --query id -o tsv)
-#        az ad sp create-for-rbac --name "github-MicrohireAgentChat-deploy" --role contributor \
-#          --scopes /subscriptions/$SUB/resourceGroups/rg-JennyJunkeer-9509 --json-auth
-#      Copy the JSON output into GitHub: Settings → Secrets and variables → Actions → New repository secret
-#      Name: AZURE_CREDENTIALS   Value: <paste entire JSON>
-#   2) Run workflow with "Deploy to Azure after build" checked.
-#   Edit AZURE_RG / AZURE_WEBAPP_NAME below if your App Service names differ.
-#
-# Trigger: manual only (workflow_dispatch). Add push: branches: [main] under on: if you want every merge to build.
+# Deploy: az webapp deploy --resource-group <rg> --name <app> --src-path site.zip --type zip --async true
 # -----------------------------------------------------------------------------
 
-name: Publish Windows (Playwright Chromium)
+name: Publish Windows (Azure App Service)
 
 on:
   workflow_dispatch:
@@ -60,45 +38,17 @@ jobs:
       - name: dotnet publish
         run: dotnet publish MicrohireAgentChat/MicrohireAgentChat.csproj -c Release -o publish_out -r win-x64 --self-contained false
 
-      - name: Install Chromium into publish (pw-browsers)
-        shell: pwsh
-        run: |
-          $publish = Join-Path $env:GITHUB_WORKSPACE "publish_out"
-          $browserDir = Join-Path $publish "pw-browsers"
-          New-Item -ItemType Directory -Force -Path $browserDir | Out-Null
-          $env:PLAYWRIGHT_BROWSERS_PATH = $browserDir
-          Set-Location $publish
-          if (-not (Test-Path ".\playwright.ps1")) { throw "playwright.ps1 missing from publish output" }
-          ./playwright.ps1 install chromium
-          foreach ($d in Get-ChildItem -Directory -Path $browserDir -ErrorAction SilentlyContinue) {
-            if ($d.Name -match '^(firefox|webkit|ffmpeg)-') {
-              Remove-Item -LiteralPath $d.FullName -Recurse -Force
-              Write-Host "removed $($d.Name)"
-            }
-          }
-
-      - name: Verify bundle
-        shell: pwsh
-        run: |
-          ./Scripts/azure-build-vm/Verify-PlaywrightBundle.ps1 -PublishRoot publish_out
-
       - name: Zip site package
         shell: pwsh
         run: |
           Add-Type -AssemblyName System.IO.Compression.FileSystem
           if (Test-Path "site.zip") { Remove-Item "site.zip" -Force }
           [System.IO.Compression.ZipFile]::CreateFromDirectory("publish_out", "site.zip")
-          $z = [System.IO.Compression.ZipFile]::OpenRead("site.zip")
-          try {
-            $ok = $false
-            foreach ($e in $z.Entries) { if ($e.FullName -match '(?i)^\.playwright[/\\]') { $ok = $true; Write-Host "zip: $($e.FullName)"; break } }
-            if (-not $ok) { throw "site.zip missing .playwright/; packaging broken" }
-          } finally { $z.Dispose() }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v6
         with:
-          name: site-win64-playwright
+          name: site-win64-azure
           path: site.zip
 
       - name: Azure login

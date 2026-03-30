@@ -54,15 +54,16 @@
   }
   .isla-cta-acceptance .isla-quote-accept-yes:hover{background:#b71c1c;transform:translateY(-1px);box-shadow:0 4px 12px rgba(198,40,40,0.3)}
   .isla-cta-acceptance .isla-quote-accept-yes:active{transform:translateY(0);box-shadow:0 1px 3px rgba(198,40,40,0.2)}
-  .isla-cta-acceptance .isla-quote-accept-no{
+  .isla-cta-acceptance .isla-quote-view-btn{
     display:inline-flex;align-items:center;
     background:transparent;color:#555;
     padding:0.625rem 1.25rem;border-radius:8px;border:1px solid #ccc;
     font-weight:500;font-size:0.95rem;cursor:pointer;
+    text-decoration:none;
     transition:background 0.2s ease,border-color 0.2s ease,color 0.2s ease;
   }
-  .isla-cta-acceptance .isla-quote-accept-no:hover{background:#f5f5f5;border-color:#999;color:#333}
-  .isla-cta-acceptance .isla-quote-accept-no:active{background:#eee}
+  .isla-cta-acceptance .isla-quote-view-btn:hover{background:#f5f5f5;border-color:#999;color:#333}
+  .isla-cta-acceptance .isla-quote-view-btn:active{background:#eee}
 
   /* Digital signing form */
   .isla-signing-form{margin-top:1rem;padding:1.25rem;background:#fff;border:1px solid #ddd;border-radius:10px}
@@ -109,15 +110,30 @@
   .isla-form-grid.two-col{grid-template-columns:1fr}
   .isla-form-field{display:flex;flex-direction:column;gap:.35rem}
   .isla-form-field label{font-weight:600;font-size:.8rem;color:#666;text-transform:uppercase;letter-spacing:.03em}
-  .isla-form-field input,.isla-form-field select{width:100%;height:42px;padding:8px 10px;border:1px solid #d9dee7;border-radius:10px;background:#fff;font:inherit;transition:border-color .15s ease, box-shadow .15s ease}
-  .isla-form-field input:hover,.isla-form-field select:hover{border-color:#cfd7e6}
-  .isla-form-field input:focus,.isla-form-field select:focus{outline:none;border-color:#7aa7ff;box-shadow:0 0 0 4px rgba(122,167,255,.20)}
+  /* Do not style radio/checkbox like text fields (100%×42px breaks native radios inside .isla-form-field). */
+  .isla-form-field input:not([type="checkbox"]):not([type="radio"]),
+  .isla-form-field select{width:100%;height:42px;padding:8px 10px;border:1px solid #d9dee7;border-radius:10px;background:#fff;font:inherit;transition:border-color .15s ease, box-shadow .15s ease}
+  .isla-form-field input:not([type="checkbox"]):not([type="radio"]):hover,.isla-form-field select:hover{border-color:#cfd7e6}
+  .isla-form-field input:not([type="checkbox"]):not([type="radio"]):focus,.isla-form-field select:focus{outline:none;border-color:#7aa7ff;box-shadow:0 0 0 4px rgba(122,167,255,.20)}
   .isla-form-checkbox{display:flex;align-items:center;gap:.5rem;font-size:.95rem;color:#1b2a3a}
-  .isla-form-checkbox input{width:18px;height:18px}
+  .isla-form-checkbox input{width:18px;height:18px;min-width:18px;flex-shrink:0;accent-color:#2563eb;cursor:pointer}
+  /* Checkboxes only: squaring radios breaks native disc and reads as disabled. */
+  .isla-form-field .isla-form-checkbox input[type="checkbox"]{width:18px;height:18px;min-width:18px;padding:0;margin:0;border:none;border-radius:4px;box-shadow:none;background:transparent;vertical-align:middle}
+  .isla-form-field .isla-form-checkbox input[type="radio"]{width:1.125rem;height:1.125rem;min-width:1.125rem;padding:0;margin:0;vertical-align:middle;accent-color:#2563eb;cursor:pointer;flex-shrink:0}
   .isla-form-actions{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.9rem}
   .isla-form-submit{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;background:#2563eb;color:#fff;border:none;border-radius:10px;padding:.625rem 1.1rem;font-weight:600;cursor:pointer}
   .isla-form-submit:hover{background:#1d4ed8}
   .isla-form-error{margin-top:.55rem;color:#c62828;font-size:.9rem}
+  .isla-form-instruction{margin:.8rem 0 0;color:#4b5563;font-size:.9rem;line-height:1.45}
+  .isla-form-status{display:inline-flex;align-items:center;padding:.2rem .6rem;border-radius:999px;background:#ecfdf3;color:#166534;font-size:.75rem;font-weight:700;margin:0 0 .5rem}
+  .isla-form-submitted{opacity:.78}
+  /* Wizard flows: keep submitted cards at full opacity so yes/no radios don’t look disabled. */
+  .isla-form-card.isla-venue-confirm-form.isla-form-submitted,
+  .isla-form-card.isla-event-details-form.isla-form-submitted,
+  .isla-form-card.isla-base-av-form.isla-form-submitted,
+  .isla-form-card.isla-followup-av-form.isla-form-submitted{opacity:1}
+  /* Scope to the card so only that form’s controls are inert (same element has .isla-form-card + .isla-form-submitted). */
+  .isla-form-card.isla-form-submitted input,.isla-form-card.isla-form-submitted select,.isla-form-card.isla-form-submitted button,.isla-form-card.isla-form-submitted textarea{pointer-events:none}
   .isla-venue-options{display:grid;grid-template-columns:1fr;gap:.55rem}
   .isla-venue-option{border:2px solid #d9dee7;border-radius:10px;padding:.65rem .7rem;background:#fff;transition:border-color .15s ease, box-shadow .15s ease}
   .isla-venue-option:hover{border-color:#b8c5d6}
@@ -131,10 +147,6 @@
   .isla-inline-note{font-size:.85rem;color:#6b7280}
   .isla-event-details-timing{margin-top:.25rem}
   .isla-event-details-timing .isla-timing-lead{font-weight:600;font-size:.92rem;color:#374151;margin:0 0 .2rem}
-  .isla-event-schedule-grid .isla-packup-span{grid-column:1/-1}
-  @@media(min-width:640px){
-    .isla-event-schedule-grid .isla-packup-span{max-width:calc(50% - .375rem)}
-  }
   .isla-form-tech-row{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
   .isla-form-secondary{display:inline-flex;align-items:center;justify-content:center;border:1px solid #cbd5e1;background:#fff;color:#334155;border-radius:10px;padding:.55rem .9rem;font-weight:600;cursor:pointer}
   .isla-form-secondary:hover{background:#f8fafc}
@@ -158,25 +170,35 @@
   /* Base AV package form */
   .isla-base-av-top-row{display:grid;grid-template-columns:1fr;gap:.75rem;align-items:start;margin-bottom:.25rem}
   .isla-base-av-checks{display:flex;flex-direction:column;gap:.5rem;min-width:0}
-  .isla-base-av-placement{width:fit-content;max-width:6rem;margin-left:0;flex-shrink:0}
-  .isla-base-av-placement.isla-form-field label{display:block}
-  .isla-base-av-placement select{width:100%!important;min-width:0;max-width:100%;box-sizing:border-box}
-  .isla-base-av-presenters input{width:100%;max-width:6.5rem}
-  .isla-base-av-sentence-label{text-transform:none!important;letter-spacing:normal!important;font-size:.92rem!important;color:#374151!important;font-weight:600!important}
-  .isla-base-av-yesno-btns{display:flex;justify-content:flex-start;align-items:center;gap:.75rem 1.25rem;flex-wrap:wrap}
-  .isla-base-av-laptop-block{margin-top:.15rem}
-  .isla-base-av-laptop-label-row{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;margin-bottom:.35rem;padding-right:0}
-  .isla-base-av-laptop-head{font-weight:600;font-size:.8rem;color:#666;text-transform:uppercase;letter-spacing:.03em}
-  .isla-base-av-qty-head{font-weight:600;font-size:.75rem;color:#666;text-transform:uppercase;letter-spacing:.03em;text-align:right;min-width:4.5rem}
+  .isla-base-av-checks .isla-form-checkbox{font-size:.95rem;color:#374151}
+  .isla-base-av-placement{width:100%;max-width:12rem;margin-left:0;flex-shrink:0}
+  .isla-base-av-placement.isla-form-field label{display:block;font-weight:600;font-size:.8rem;color:#666;text-transform:uppercase;letter-spacing:.03em;margin-bottom:.35rem}
+  .isla-base-av-placement select{width:100%!important;min-width:0;max-width:100%;box-sizing:border-box;height:42px;padding:.5rem .75rem;font-size:.95rem}
+  .isla-base-av-presenters{margin-top:.35rem}
+  .isla-base-av-presenters label{display:block;font-weight:600;font-size:.8rem;color:#666;text-transform:uppercase;letter-spacing:.03em;margin-bottom:.35rem}
+  .isla-base-av-presenters input{width:100%;max-width:6rem;height:42px;padding:.5rem .75rem;font-size:.95rem;box-sizing:border-box}
+  .isla-base-av-sentence-label{text-transform:none!important;letter-spacing:normal!important;font-size:.95rem!important;color:#374151!important;font-weight:600!important;display:block;margin-bottom:.35rem}
+  .isla-base-av-yesno-row{margin-top:.5rem}
+  .isla-base-av-yesno-btns{display:flex;justify-content:flex-start;align-items:center;gap:.75rem 1.5rem;flex-wrap:wrap}
+  .isla-base-av-yesno-btns .isla-form-checkbox{font-size:.95rem;color:#374151;display:inline-flex;align-items:center;gap:.4rem}
+  .isla-base-av-choice-matrix{display:grid;grid-template-columns:7.25rem 7.25rem minmax(4.85rem,max-content);column-gap:1.25rem;row-gap:.35rem;align-items:center;justify-items:start;margin-top:.35rem}
+  .isla-base-av-choice-matrix .isla-base-av-matrix-span{grid-column:1/-1;margin:0;padding:0}
+  .isla-base-av-choice-matrix .isla-base-av-matrix-gap{margin:0;padding:0;min-height:0}
+  .isla-base-av-choice-matrix .isla-base-av-matrix-q{margin-top:.55rem}
+  .isla-base-av-choice-matrix .isla-base-av-matrix-q:first-child{margin-top:0}
+  .isla-base-av-choice-matrix .isla-form-checkbox{font-size:.95rem;color:#374151;display:inline-flex;align-items:center;gap:.4rem;margin:0}
+  /* Matrix radios: explicit enabled styling (avoid looking like disabled native controls). */
+  .isla-base-av-choice-matrix input[type="radio"]:not(:disabled){opacity:1;accent-color:#2563eb;cursor:pointer}
+  .isla-base-av-laptop-qty-wrap{display:flex;flex-direction:column;gap:.3rem;min-width:0;align-self:end}
+  .isla-base-av-laptop-qty-wrap > label{font-weight:600;font-size:.72rem;color:#666;text-transform:uppercase;letter-spacing:.03em;margin:0;line-height:1.2}
+  .isla-base-av-laptop-qty-wrap input[data-ba-laptop-qty]{max-width:4.75rem;width:4.75rem;height:42px;box-sizing:border-box;padding:.5rem .75rem;font-size:.95rem;border:1px solid #d9dee7;border-radius:10px;background:#fff}
+  .isla-base-av-laptop-head{font-weight:600;font-size:.8rem;color:#666;text-transform:uppercase;letter-spacing:.03em;margin:0;padding:0}
   .isla-floorplan-open{margin:0 0 .35rem 0;padding:0;border:none;background:none;color:#1d4ed8;font-size:.85rem;font-weight:600;text-decoration:underline;cursor:pointer;font-family:inherit}
   .isla-floorplan-open:hover{color:#1e40af}
-  .isla-base-av-laptop-controls{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem 1rem}
-  .isla-base-av-laptop-radios{display:flex;align-items:center;gap:.75rem;flex:0 0 auto}
-  .isla-base-av-laptop-controls input[data-ba-laptop-qty]{max-width:5.5rem;width:5rem;flex:0 0 auto;height:42px;box-sizing:border-box;margin-left:auto}
-  .isla-base-av-form .isla-base-av-laptop-field{margin-top:.25rem}
-  .isla-base-av-form .isla-base-av-laptop-field > .isla-base-av-laptop-block{margin-top:0}
+  .isla-base-av-form .isla-form-instruction{margin-top:1rem;font-size:.9rem;color:#4b5563;line-height:1.5}
   @@media(min-width:640px){
-    .isla-base-av-top-row{grid-template-columns:minmax(0,1fr) max-content;gap:.85rem 1.75rem;align-items:start}
+    .isla-base-av-top-row{grid-template-columns:minmax(0,1.2fr) max-content;gap:1.5rem 2rem;align-items:start}
+    .isla-base-av-placement{max-width:14rem}
   }
 
   /* Follow-up AV form */
@@ -252,6 +274,7 @@ else
             draftContactNameForSigning = fromParts;
     }
     var quoteTermsUrl = (Configuration["Ui:QuoteTermsUrl"] ?? "").Trim();
+    var quoteUrlForAcceptance = (ViewData["QuoteUrl"] as string ?? "").Trim();
 
     // Precompute last message that qualifies for quote acceptance CTA (show CTA only once)
     var lastAcceptanceAskMessage = Model.LastOrDefault(m =>
@@ -269,14 +292,12 @@ else
         var isAssistant = string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase);
         var isUser = string.Equals(m.Role, "user", StringComparison.OrdinalIgnoreCase);
         
-        // Hide internal schedule confirmation messages from user view
-        // These are sent to the agent but should not be displayed to the user
         var messageText = string.Join(" ", m.Parts ?? new List<string>()).Trim();
-        var isHiddenScheduleMessage = isUser && messageText.StartsWith("I've selected this schedule:", StringComparison.OrdinalIgnoreCase);
+        var isHiddenSyntheticMessage = isUser && IsHiddenUserSyntheticMessage(messageText);
         
-        if (isHiddenScheduleMessage)
+        if (isHiddenSyntheticMessage)
         {
-            continue; // Skip rendering this message - it's only for the AI agent
+            continue;
         }
         
         var rowClass = isAssistant ? "message-recived" : "message-sent";
@@ -297,8 +318,7 @@ else
                                 || _rawAllLower.Contains("multitime");
         bool _quoteAlreadyAccepted = string.Equals(ViewData["QuoteAccepted"] as string, "1");
         bool _looksLikePreSignQuoteReady = _rawAllLower.Contains("generated your quote")
-                                           && _rawAllLower.Contains("you can view it")
-                                           && _rawAllLower.Contains("download it");
+                                           && _rawAllLower.Contains("you can view");
         bool _willShowAcceptanceCard = isAssistant && _looksLikeQuoteAcceptanceAsk && m == lastAcceptanceAskMessage
                                        && !_quoteAlreadyAccepted;
 
@@ -327,6 +347,7 @@ else
 
                 <div class="chat-message-body">
                     @{
+                        var msgFormUid = m.Timestamp.UtcTicks.ToString();
                         foreach (var rawPart in (m.Parts ?? new List<string>()))
                         {
                             var part = rawPart ?? string.Empty;
@@ -505,7 +526,7 @@ else
                                                 </div>
                                             }
                                         }
-                                        // ---- multi-time picker (setup / rehearsal / pack up) ----
+                                        // ---- multi-time picker (setup / rehearsal / event timings) ----
                                         else if (typeLower == "multitime")
                                         {
                                             var title = uiEl.TryGetProperty("title", out var tTitle) ? tTitle.GetString() : "Select your schedule";
@@ -518,7 +539,6 @@ else
                                             var viewDataRehearsal = ViewData["ScheduleRehearsalTime"] as string;
                                             var viewDataStart = ViewData["ScheduleStartTime"] as string;
                                             var viewDataEnd = ViewData["ScheduleEndTime"] as string;
-                                            var viewDataPackup = ViewData["SchedulePackupTime"] as string;
 
                                             var pickers = new List<(string name, string label, string value)>();
                                             if (uiEl.TryGetProperty("pickers", out var pArr) && pArr.ValueKind == JsonValueKind.Array)
@@ -542,8 +562,6 @@ else
                                                             finalValue = viewDataStart;
                                                         else if (nameLower == "end" && !string.IsNullOrWhiteSpace(viewDataEnd))
                                                             finalValue = viewDataEnd;
-                                                        else if ((nameLower == "packup" || nameLower == "pack_up" || nameLower == "packdown") && !string.IsNullOrWhiteSpace(viewDataPackup))
-                                                            finalValue = viewDataPackup;
                                                         else
                                                             finalValue = dv ?? "09:00";
                                                         
@@ -588,89 +606,67 @@ else
                                         else if (typeLower == "venueconfirmform")
                                         {
                                             var title = uiEl.TryGetProperty("title", out var vt) ? vt.GetString() : "Confirm venue";
-                                            var submit = uiEl.TryGetProperty("submitLabel", out var vs) ? vs.GetString() : "Continue";
                                             var attendees = uiEl.TryGetProperty("attendees", out var aEl) ? aEl.GetString() : "";
                                             var startDate = uiEl.TryGetProperty("startDate", out var sdEl) ? sdEl.GetString() : "";
                                             var endDate = uiEl.TryGetProperty("endDate", out var edEl) ? edEl.GetString() : "";
                                             var minDate = uiEl.TryGetProperty("minDate", out var mdEl) ? mdEl.GetString() : "";
-                                            <div class="isla-form-card isla-venue-confirm-form" data-venue-confirm-form>
-                                                <div class="isla-form-title">@title</div>
-                                                @if (uiEl.TryGetProperty("venueOptions", out var venueOptions) && venueOptions.ValueKind == JsonValueKind.Array)
+                                            var vcVenueLabel = uiEl.TryGetProperty("venueLabel", out var vclEl) ? vclEl.GetString() : "Westin Brisbane";
+                                            var venueSubmitted = string.Equals(ViewData["VenueConfirmSubmitted"] as string, "1", StringComparison.Ordinal);
+                                            var venueCardClass = venueSubmitted ? "isla-form-card isla-venue-confirm-form isla-form-submitted" : "isla-form-card isla-venue-confirm-form";
+                                            var vcSelectedSlug = "";
+                                            if (uiEl.TryGetProperty("selectedRoomSlug", out var vcssEl) && vcssEl.ValueKind == JsonValueKind.String)
+                                            {
+                                                vcSelectedSlug = vcssEl.GetString() ?? "";
+                                            }
+                                            <div class="@venueCardClass" data-venue-confirm-form data-form-submitted="@(venueSubmitted ? "1" : "0")">
+                                                @if (venueSubmitted)
                                                 {
-                                                    <script type="application/json" data-vc-venues-json>@Html.Raw(venueOptions.GetRawText())</script>
-                                                    JsonElement firstVenue = default;
-                                                    foreach (var v in venueOptions.EnumerateArray())
-                                                    {
-                                                        firstVenue = v;
-                                                        break;
-                                                    }
+                                                    <div class="isla-form-status">Confirmed</div>
+                                                }
+                                                <div class="isla-form-title">@title</div>
+                                                @if (uiEl.TryGetProperty("roomOptions", out var vcRoomOptions) && vcRoomOptions.ValueKind == JsonValueKind.Array && vcRoomOptions.GetArrayLength() > 0)
+                                                {
                                                     <div class="isla-venue-confirm-grid">
                                                         <div class="isla-form-field">
                                                             <label>Venue</label>
-                                                            <select data-vc-venue-select>
-                                                                @{
-                                                                    var venueIdx = 0;
-                                                                    foreach (var venue in venueOptions.EnumerateArray())
-                                                                    {
-                                                                        var venueId = venue.TryGetProperty("id", out var idEl) ? idEl.GetString() : "";
-                                                                        var venueLabel = venue.TryGetProperty("label", out var lblEl) ? lblEl.GetString() : venueId;
-                                                                        if (venueIdx == 0)
-                                                                        {
-                                                                            <option value="@venueId" selected>@venueLabel</option>
-                                                                        }
-                                                                        else
-                                                                        {
-                                                                            <option value="@venueId">@venueLabel</option>
-                                                                        }
-                                                                        venueIdx++;
-                                                                    }
-                                                                }
+                                                            <select data-vc-venue-select disabled aria-readonly="true" title="Venue">
+                                                                <option selected>@vcVenueLabel</option>
                                                             </select>
                                                         </div>
                                                         <div class="isla-form-field">
                                                             <label>Room</label>
-                                                            <select data-vc-room-select>
-                                                                @if (firstVenue.ValueKind != JsonValueKind.Undefined)
+                                                            <select data-vc-room-select @(venueSubmitted ? "disabled" : null)>
+                                                                @if (string.IsNullOrEmpty(vcSelectedSlug))
                                                                 {
-                                                                    if (firstVenue.TryGetProperty("splits", out var splits0) && splits0.ValueKind == JsonValueKind.Array && splits0.GetArrayLength() > 0)
+                                                                    <option value="" selected disabled>Select room</option>
+                                                                }
+                                                                @foreach (var roomOpt in vcRoomOptions.EnumerateArray())
+                                                                {
+                                                                    var rid = roomOpt.TryGetProperty("id", out var ridEl) ? ridEl.GetString() : "";
+                                                                    var rlabel = roomOpt.TryGetProperty("label", out var rlEl) ? rlEl.GetString() : rid;
+                                                                    var isSel = !string.IsNullOrEmpty(vcSelectedSlug) && string.Equals(rid, vcSelectedSlug, StringComparison.OrdinalIgnoreCase);
+                                                                    if (isSel)
                                                                     {
-                                                                        var si = 0;
-                                                                        foreach (var split in splits0.EnumerateArray())
-                                                                        {
-                                                                            var splitId = split.TryGetProperty("id", out var sidEl) ? sidEl.GetString() : "";
-                                                                            var splitLabel = split.TryGetProperty("label", out var slbEl) ? slbEl.GetString() : splitId;
-                                                                            if (si == 0)
-                                                                            {
-                                                                                <option value="@splitId" selected>@splitLabel</option>
-                                                                            }
-                                                                            else
-                                                                            {
-                                                                                <option value="@splitId">@splitLabel</option>
-                                                                            }
-                                                                            si++;
-                                                                        }
+                                                                        <option value="@rid" selected>@rlabel</option>
                                                                     }
                                                                     else
                                                                     {
-                                                                        var fvLabel = firstVenue.TryGetProperty("label", out var flEl) ? flEl.GetString() : "Room";
-                                                                        <option value="full" selected>@fvLabel</option>
+                                                                        <option value="@rid">@rlabel</option>
                                                                     }
                                                                 }
                                                             </select>
                                                         </div>
-                                                        <div class="isla-form-field"><label>Start date</label><input type="date" value="@startDate" min="@minDate" data-vc-start-date /></div>
-                                                        <div class="isla-form-field"><label>Attendees</label><input type="number" min="1" step="1" value="@attendees" data-vc-attendees /></div>
-                                                        <div class="isla-form-field"><label>End date</label><input type="date" value="@endDate" min="@minDate" data-vc-end-date /></div>
+                                                        <div class="isla-form-field"><label>Start date</label><input type="date" value="@startDate" min="@minDate" data-vc-start-date @(venueSubmitted ? "disabled" : null) /></div>
+                                                        <div class="isla-form-field"><label>Attendees</label><input type="number" min="1" step="1" value="@attendees" data-vc-attendees @(venueSubmitted ? "disabled" : null) /></div>
+                                                        <div class="isla-form-field"><label>End date</label><input type="date" value="@endDate" min="@minDate" data-vc-end-date @(venueSubmitted ? "disabled" : null) /></div>
                                                         <div class="isla-vc-grid-spacer" aria-hidden="true"></div>
                                                     </div>
                                                 }
                                                 else
                                                 {
-                                                    <div class="isla-form-error">Venue options unavailable.</div>
+                                                    <div class="isla-form-error">Room options unavailable.</div>
                                                 }
-                                                <div class="isla-form-actions">
-                                                    <button type="button" class="isla-form-submit" data-venue-confirm-submit style="background:#c62828">@submit</button>
-                                                </div>
+                                                <p class="isla-form-instruction">Please review the details above and make any necessary changes. When everything looks good, send me a message and I will proceed to the next step.</p>
                                                 <div class="isla-form-error" data-vc-error style="display:none"></div>
                                             </div>
                                         }
@@ -678,54 +674,57 @@ else
                                         {
                                             var title = uiEl.TryGetProperty("title", out var et) ? et.GetString() : "Event details";
                                             var submit = uiEl.TryGetProperty("submitLabel", out var eb) ? eb.GetString() : "Next";
+                                            var eventDetailsSubmitted = string.Equals(ViewData["EventFormSubmitted"] as string, "1", StringComparison.Ordinal);
+                                            var eventDetailsCardClass = eventDetailsSubmitted ? "isla-form-card isla-event-details-form isla-form-submitted" : "isla-form-card isla-event-details-form";
                                             var eventType = uiEl.TryGetProperty("eventType", out var etp) ? etp.GetString() : "";
                                             var wantsOp = uiEl.TryGetProperty("wantsOperator", out var woEl) ? woEl.GetString() : "";
                                             var setupDefault = "07:00";
                                             var rehearsalDefault = "09:30";
                                             var startDefault = "10:00";
                                             var endDefault = "16:00";
-                                            var packupDefault = "18:00";
                                             if (uiEl.TryGetProperty("schedule", out var scheduleEl))
                                             {
                                                 if (scheduleEl.TryGetProperty("setup", out var suEl)) setupDefault = suEl.GetString() ?? setupDefault;
                                                 if (scheduleEl.TryGetProperty("rehearsal", out var rhEl)) rehearsalDefault = rhEl.GetString() ?? rehearsalDefault;
                                                 if (scheduleEl.TryGetProperty("start", out var stEl)) startDefault = stEl.GetString() ?? startDefault;
                                                 if (scheduleEl.TryGetProperty("end", out var enEl)) endDefault = enEl.GetString() ?? endDefault;
-                                                if (scheduleEl.TryGetProperty("packup", out var puEl)) packupDefault = puEl.GetString() ?? packupDefault;
                                             }
-                                            <div class="isla-form-card isla-event-details-form" data-event-details-form>
+                                            <div class="@eventDetailsCardClass" data-event-details-form data-form-submitted="@(eventDetailsSubmitted ? "1" : "0")">
+                                                @if (eventDetailsSubmitted)
+                                                {
+                                                    <div class="isla-form-status">Confirmed</div>
+                                                }
                                                 <div class="isla-form-title">@title</div>
                                                 <div class="isla-form-grid">
-                                                    <div class="isla-form-field"><label>What type of event are you planning?</label><input type="text" value="@eventType" placeholder="e.g. product showcase, board meeting, hackathon" data-ed-event-type /></div>
+                                                    <div class="isla-form-field"><label>What type of event are you planning?</label><input type="text" value="@eventType" placeholder="e.g. product showcase, board meeting, hackathon" data-ed-event-type @(eventDetailsSubmitted ? "disabled" : null) /></div>
                                                 </div>
                                                 <div class="isla-event-details-timing">
                                                     <p class="isla-timing-lead">Please select the timing of your event</p>
                                                     <div class="isla-inline-note">Schedule</div>
                                                 </div>
                                                 <div class="isla-form-grid two-col isla-event-schedule-grid">
-                                                    <div class="isla-form-field"><label>Setup</label><input type="time" value="@setupDefault" step="1800" data-ed-setup-time /></div>
-                                                    <div class="isla-form-field"><label>Rehearsal</label><input type="time" value="@rehearsalDefault" step="1800" data-ed-rehearsal-time /></div>
-                                                    <div class="isla-form-field"><label>Start</label><input type="time" value="@startDefault" step="1800" data-ed-start-time /></div>
-                                                    <div class="isla-form-field"><label>End</label><input type="time" value="@endDefault" step="1800" data-ed-end-time /></div>
-                                                    <div class="isla-form-field isla-packup-span"><label>Pack up</label><input type="time" value="@packupDefault" step="1800" data-ed-packup-time /></div>
+                                                    <div class="isla-form-field"><label>Setup</label><input type="time" value="@setupDefault" step="1800" data-ed-setup-time @(eventDetailsSubmitted ? "disabled" : null) /></div>
+                                                    <div class="isla-form-field"><label>Rehearsal</label><input type="time" value="@rehearsalDefault" step="1800" data-ed-rehearsal-time @(eventDetailsSubmitted ? "disabled" : null) /></div>
+                                                    <div class="isla-form-field"><label>Start</label><input type="time" value="@startDefault" step="1800" data-ed-start-time @(eventDetailsSubmitted ? "disabled" : null) /></div>
+                                                    <div class="isla-form-field"><label>End</label><input type="time" value="@endDefault" step="1800" data-ed-end-time @(eventDetailsSubmitted ? "disabled" : null) /></div>
                                                 </div>
                                                 <div class="isla-form-field">
                                                     <label>Would you like an operator throughout your event?</label>
                                                     <div class="isla-form-actions" style="margin-top:.4rem">
                                                         @if (string.Equals(wantsOp, "yes", StringComparison.OrdinalIgnoreCase))
                                                         {
-                                                            <label class="isla-form-checkbox" style="display:inline-flex;margin-right:1rem"><input type="radio" name="ed-op" value="yes" data-ed-operator checked /> Yes</label>
-                                                            <label class="isla-form-checkbox" style="display:inline-flex"><input type="radio" name="ed-op" value="no" data-ed-operator /> No</label>
+                                                            <label class="isla-form-checkbox" style="display:inline-flex;margin-right:1rem"><input type="radio" name="ed-op" value="yes" data-ed-operator checked @(eventDetailsSubmitted ? "disabled" : null) /> Yes</label>
+                                                            <label class="isla-form-checkbox" style="display:inline-flex"><input type="radio" name="ed-op" value="no" data-ed-operator @(eventDetailsSubmitted ? "disabled" : null) /> No</label>
                                                         }
                                                         else
                                                         {
-                                                            <label class="isla-form-checkbox" style="display:inline-flex;margin-right:1rem"><input type="radio" name="ed-op" value="yes" data-ed-operator /> Yes</label>
-                                                            <label class="isla-form-checkbox" style="display:inline-flex"><input type="radio" name="ed-op" value="no" data-ed-operator checked /> No</label>
+                                                            <label class="isla-form-checkbox" style="display:inline-flex;margin-right:1rem"><input type="radio" name="ed-op" value="yes" data-ed-operator @(eventDetailsSubmitted ? "disabled" : null) /> Yes</label>
+                                                            <label class="isla-form-checkbox" style="display:inline-flex"><input type="radio" name="ed-op" value="no" data-ed-operator checked @(eventDetailsSubmitted ? "disabled" : null) /> No</label>
                                                         }
                                                     </div>
                                                 </div>
                                                 <div class="isla-form-actions">
-                                                    <button type="button" class="isla-form-submit" data-event-details-submit style="background:#c62828">@submit</button>
+                                                    <button type="button" class="isla-form-submit" data-event-details-submit style="background:#c62828" @(eventDetailsSubmitted ? "disabled" : null)>@submit</button>
                                                 </div>
                                                 <div class="isla-form-error" data-ed-error style="display:none"></div>
                                             </div>
@@ -733,8 +732,9 @@ else
                                         else if (typeLower == "baseavform")
                                         {
                                             var title = uiEl.TryGetProperty("title", out var bt) ? bt.GetString() : "Base AV";
-                                            var submit = uiEl.TryGetProperty("submitLabel", out var bs) ? bs.GetString() : "Next";
                                             var showPl = uiEl.TryGetProperty("showProjectorPlacement", out var spEl) && spEl.ValueKind == JsonValueKind.True;
+                                            var baseAvSubmitted = uiEl.TryGetProperty("submitted", out var baSubEl) && baSubEl.ValueKind == JsonValueKind.True;
+                                            var baseAvCardClass = baseAvSubmitted ? "isla-form-card isla-base-av-form isla-form-submitted" : "isla-form-card isla-base-av-form";
                                             var floorPlanUrl = "";
                                             if (uiEl.TryGetProperty("floorPlanUrl", out var fpu) && fpu.ValueKind == JsonValueKind.String)
                                                 floorPlanUrl = fpu.GetString() ?? "";
@@ -744,23 +744,58 @@ else
                                             var lapMode = uiEl.TryGetProperty("laptopMode", out var lmEl) ? lmEl.GetString() : "none";
                                             var lapQty = uiEl.TryGetProperty("laptopQty", out var lqEl) ? lqEl.GetString() : "0";
                                             var adCur = uiEl.TryGetProperty("adapterOwnLaptops", out var adEl) ? adEl.GetString() : "no";
-                                            <div class="isla-form-card isla-base-av-form" data-base-av-form>
+                                            var baseEquipList = new List<string>();
+                                            if (uiEl.TryGetProperty("baseEquipment", out var beEl) && beEl.ValueKind == JsonValueKind.Array)
+                                            {
+                                                foreach (var bel in beEl.EnumerateArray())
+                                                {
+                                                    if (bel.ValueKind != JsonValueKind.String) continue;
+                                                    var bl = bel.GetString();
+                                                    if (!string.IsNullOrWhiteSpace(bl))
+                                                        baseEquipList.Add(bl.Trim());
+                                                }
+                                            }
+                                            if (baseEquipList.Count == 0)
+                                            {
+                                                baseEquipList.Add("Inbuilt projector");
+                                                baseEquipList.Add("Inbuilt screen");
+                                                baseEquipList.Add("Inbuilt speakers");
+                                            }
+                                            <div class="@baseAvCardClass" data-base-av-form data-form-submitted="@(baseAvSubmitted ? "1" : "0")" data-ba-msg-uid="@msgFormUid">
+                                                @if (baseAvSubmitted)
+                                                {
+                                                    <div class="isla-form-status">Confirmed</div>
+                                                }
                                                 <div class="isla-form-title">@title</div>
                                                 <div class="isla-base-av-top-row">
                                                     <div class="isla-base-av-checks">
-                                                        <label class="isla-form-checkbox"><input type="checkbox" data-ba-proj checked /> Inbuilt projector</label>
-                                                        <label class="isla-form-checkbox"><input type="checkbox" data-ba-screen checked /> Inbuilt screen</label>
-                                                        <label class="isla-form-checkbox"><input type="checkbox" data-ba-spk checked /> Inbuilt speakers</label>
+                                                        @for (var bi = 0; bi < baseEquipList.Count; bi++)
+                                                        {
+                                                            var label = baseEquipList[bi];
+                                                            var dis = baseAvSubmitted ? "disabled" : null;
+                                                            if (bi == 0)
+                                                            {
+                                                                <label class="isla-form-checkbox"><input type="checkbox" data-ba-proj checked @dis /> @label</label>
+                                                            }
+                                                            else if (bi == 1)
+                                                            {
+                                                                <label class="isla-form-checkbox"><input type="checkbox" data-ba-screen checked @dis /> @label</label>
+                                                            }
+                                                            else
+                                                            {
+                                                                <label class="isla-form-checkbox"><input type="checkbox" data-ba-spk checked @dis /> @label</label>
+                                                            }
+                                                        }
                                                     </div>
                                                     @if (showPl)
                                                     {
                                                         <div class="isla-form-field isla-base-av-placement" data-ba-pl-wrap>
                                                             @if (!string.IsNullOrWhiteSpace(floorPlanUrl))
                                                             {
-                                                                <button type="button" class="isla-floorplan-open" data-ba-floorplan-open data-floorplan-src="@floorPlanUrl" aria-haspopup="dialog">View floor plan</button>
+                                                                <button type="button" class="isla-floorplan-open" data-ba-floorplan-open data-floorplan-src="@floorPlanUrl" aria-haspopup="dialog" @(baseAvSubmitted ? "disabled" : null)>View floor plan</button>
                                                             }
                                                             <label>Projector placement</label>
-                                                            <select data-ba-placement>
+                                                            <select data-ba-placement @(baseAvSubmitted ? "disabled" : null)>
                                                                 @if (uiEl.TryGetProperty("placementOptions", out var plOpts) && plOpts.ValueKind == JsonValueKind.Array)
                                                                 {
                                                                     foreach (var o in plOpts.EnumerateArray())
@@ -782,45 +817,33 @@ else
                                                         </div>
                                                     }
                                                 </div>
-                                                <div class="isla-form-field isla-base-av-presenters"><label>Number of presenters</label><input type="number" min="0" step="1" value="@presenters" data-ba-presenters /></div>
-                                                <div class="isla-form-field isla-base-av-yesno-row">
-                                                    <label class="isla-base-av-sentence-label">Will you need a Flipchart in the room?</label>
-                                                    <div class="isla-base-av-yesno-btns">
-                                                        <label class="isla-form-checkbox"><input type="radio" name="ba-fc" value="yes" data-ba-flip @(string.Equals(flipCur, "yes", StringComparison.OrdinalIgnoreCase) ? "checked" : null) /> Yes</label>
-                                                        <label class="isla-form-checkbox"><input type="radio" name="ba-fc" value="no" data-ba-flip @(!string.Equals(flipCur, "yes", StringComparison.OrdinalIgnoreCase) ? "checked" : null) /> No</label>
+                                                <div class="isla-form-field isla-base-av-presenters"><label>Number of presenters</label><input type="number" min="0" max="99" step="1" value="@presenters" data-ba-presenters aria-label="Number of presenters" @(baseAvSubmitted ? "disabled" : null) /></div>
+                                                <div class="isla-base-av-choice-matrix">
+                                                    <label class="isla-base-av-sentence-label isla-base-av-matrix-span isla-base-av-matrix-q">Will you need a Flipchart in the room?</label>
+                                                    <label class="isla-form-checkbox"><input type="radio" name="ba-fc-@msgFormUid" value="yes" data-ba-flip @(string.Equals(flipCur, "yes", StringComparison.OrdinalIgnoreCase) ? "checked" : null) @(baseAvSubmitted ? "disabled" : null) /> Yes</label>
+                                                    <label class="isla-form-checkbox"><input type="radio" name="ba-fc-@msgFormUid" value="no" data-ba-flip @(!string.Equals(flipCur, "yes", StringComparison.OrdinalIgnoreCase) ? "checked" : null) @(baseAvSubmitted ? "disabled" : null) /> No</label>
+                                                    <span class="isla-base-av-matrix-gap" aria-hidden="true"></span>
+                                                    <span class="isla-base-av-laptop-head isla-base-av-matrix-span isla-base-av-matrix-q">Laptop for Hire</span>
+                                                    <label class="isla-form-checkbox"><input type="radio" name="ba-lap-@msgFormUid" value="windows" data-ba-laptop-mode @(string.Equals(lapMode, "windows", StringComparison.OrdinalIgnoreCase) ? "checked" : null) @(baseAvSubmitted ? "disabled" : null) /> Windows</label>
+                                                    <label class="isla-form-checkbox"><input type="radio" name="ba-lap-@msgFormUid" value="mac" data-ba-laptop-mode @(string.Equals(lapMode, "mac", StringComparison.OrdinalIgnoreCase) ? "checked" : null) @(baseAvSubmitted ? "disabled" : null) /> Mac</label>
+                                                    <div class="isla-base-av-laptop-qty-wrap">
+                                                        <label for="ba-laptop-qty-@msgFormUid">Quantity</label>
+                                                        <input id="ba-laptop-qty-@msgFormUid" type="number" min="0" max="99" step="1" value="@lapQty" data-ba-laptop-qty aria-label="Laptop quantity" @(baseAvSubmitted ? "disabled" : null) />
                                                     </div>
+                                                    <label class="isla-base-av-sentence-label isla-base-av-matrix-span isla-base-av-matrix-q" data-ba-adapter-wrap>Do you need an adaptor for your own laptops?</label>
+                                                    <label class="isla-form-checkbox"><input type="radio" name="ba-ad-@msgFormUid" value="yes" data-ba-adapter @(string.Equals(adCur, "yes", StringComparison.OrdinalIgnoreCase) ? "checked" : null) @(baseAvSubmitted ? "disabled" : null) /> Yes</label>
+                                                    <label class="isla-form-checkbox"><input type="radio" name="ba-ad-@msgFormUid" value="no" data-ba-adapter @(!string.Equals(adCur, "yes", StringComparison.OrdinalIgnoreCase) ? "checked" : null) @(baseAvSubmitted ? "disabled" : null) /> No</label>
+                                                    <span class="isla-base-av-matrix-gap" aria-hidden="true"></span>
                                                 </div>
-                                                <div class="isla-form-field isla-base-av-laptop-field">
-                                                    <div class="isla-base-av-laptop-block">
-                                                        <div class="isla-base-av-laptop-label-row">
-                                                            <span class="isla-base-av-laptop-head">Laptop for Hire</span>
-                                                            <span class="isla-base-av-qty-head">Quantity</span>
-                                                        </div>
-                                                        <div class="isla-base-av-laptop-controls">
-                                                            <div class="isla-base-av-laptop-radios">
-                                                                <label class="isla-form-checkbox"><input type="radio" name="ba-lap" value="windows" data-ba-laptop-mode @(string.Equals(lapMode, "windows", StringComparison.OrdinalIgnoreCase) ? "checked" : null) /> Windows</label>
-                                                                <label class="isla-form-checkbox"><input type="radio" name="ba-lap" value="mac" data-ba-laptop-mode @(string.Equals(lapMode, "mac", StringComparison.OrdinalIgnoreCase) ? "checked" : null) /> Mac</label>
-                                                            </div>
-                                                            <input type="number" min="0" max="99" step="1" value="@lapQty" data-ba-laptop-qty aria-label="Laptop quantity" />
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="isla-form-field isla-base-av-yesno-row" data-ba-adapter-wrap>
-                                                    <label class="isla-base-av-sentence-label">Do you need an adaptor for your own laptops?</label>
-                                                    <div class="isla-base-av-yesno-btns">
-                                                        <label class="isla-form-checkbox"><input type="radio" name="ba-ad" value="yes" data-ba-adapter @(string.Equals(adCur, "yes", StringComparison.OrdinalIgnoreCase) ? "checked" : null) /> Yes</label>
-                                                        <label class="isla-form-checkbox"><input type="radio" name="ba-ad" value="no" data-ba-adapter @(!string.Equals(adCur, "yes", StringComparison.OrdinalIgnoreCase) ? "checked" : null) /> No</label>
-                                                    </div>
-                                                </div>
-                                                <div class="isla-form-actions">
-                                                    <button type="button" class="isla-form-submit" data-base-av-submit style="background:#c62828">@submit</button>
-                                                </div>
+                                                <p class="isla-form-instruction">Please make your AV selections. Feel free to ask me any clarifying questions at any time. When everything looks good, send me a message and I will proceed to the next step.</p>
                                                 <div class="isla-form-error" data-ba-error style="display:none"></div>
                                             </div>
                                         }
                                         else if (typeLower == "followupavform")
                                         {
                                             var submit = uiEl.TryGetProperty("submitLabel", out var fs) ? fs.GetString() : "Generate quote";
+                                            var followUpSubmitted = string.Equals(ViewData["FollowUpAvSubmitted"] as string, "1", StringComparison.Ordinal);
+                                            var followUpCardClass = followUpSubmitted ? "isla-form-card isla-followup-av-form isla-form-submitted" : "isla-form-card isla-followup-av-form";
                                             var pc = 0;
                                             if (uiEl.TryGetProperty("presenterCount", out var pcEl) && pcEl.TryGetInt32(out var pci)) pc = pci;
                                             var lq = 0;
@@ -843,7 +866,11 @@ else
                                             var switcherLabel = lq > 1
                                                 ? $"Do you need to seamlessly switch between the {lq} laptops?"
                                                 : "Do you need to seamlessly switch between the laptops?";
-                                            <div class="isla-form-card isla-followup-av-form" data-follow-up-av-form data-fu-presenters="@pc" data-fu-laptops="@lq">
+                                            <div class="@followUpCardClass" data-follow-up-av-form data-fu-presenters="@pc" data-fu-laptops="@lq" data-form-submitted="@(followUpSubmitted ? "1" : "0")">
+                                                @if (followUpSubmitted)
+                                                {
+                                                    <div class="isla-form-status">Confirmed</div>
+                                                }
                                                 <div class="isla-form-title">@(uiEl.TryGetProperty("title", out var ft) ? ft.GetString() : "Follow-up")</div>
                                                 <div data-fu-block-presenters style="display:@(pc > 0 ? "block" : "none")">
                                                     <div class="isla-form-field isla-fu-mic-row">
@@ -855,10 +882,10 @@ else
                                                                 </div>
                                                                 <div class="isla-fu-mic-controls">
                                                                     <div class="isla-fu-mic-radios">
-                                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-mic" value="handheld" data-fu-mic @(micIsLapel ? null : "checked") /> Handheld</label>
-                                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-mic" value="lapel" data-fu-mic @(micIsLapel ? "checked" : null) /> Lapel</label>
+                                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-mic" value="handheld" data-fu-mic @(micIsLapel ? null : "checked") @(followUpSubmitted ? "disabled" : null) /> Handheld</label>
+                                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-mic" value="lapel" data-fu-mic @(micIsLapel ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> Lapel</label>
                                                                     </div>
-                                                                    <input type="number" min="0" step="1" value="@(uiEl.TryGetProperty("micQty", out var mqEl) ? mqEl.GetString() : "0")" data-fu-mic-qty aria-label="Microphone quantity" />
+                                                                    <input type="number" min="0" step="1" value="@(uiEl.TryGetProperty("micQty", out var mqEl) ? mqEl.GetString() : "0")" data-fu-mic-qty aria-label="Microphone quantity" @(followUpSubmitted ? "disabled" : null) />
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -866,49 +893,49 @@ else
                                                     <div class="isla-form-field">
                                                         <label>Lectern</label>
                                                         <div class="isla-fu-lectern-radios">
-                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-lectern" value="none" data-fu-lectern @(!lecIsOnly && !lecIsMic ? "checked" : null) /> None</label>
-                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-lectern" value="lectern-only" data-fu-lectern @(lecIsOnly ? "checked" : null) /> Lectern only</label>
-                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-lectern" value="lectern-mic" data-fu-lectern @(lecIsMic ? "checked" : null) /> Lectern with microphone</label>
+                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-lectern" value="none" data-fu-lectern @(!lecIsOnly && !lecIsMic ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> None</label>
+                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-lectern" value="lectern-only" data-fu-lectern @(lecIsOnly ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> Lectern only</label>
+                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-lectern" value="lectern-mic" data-fu-lectern @(lecIsMic ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> Lectern with microphone</label>
                                                         </div>
                                                     </div>
                                                     <div class="isla-form-field isla-fu-field">
                                                         <label class="isla-base-av-sentence-label isla-fu-question-label">Foldback monitor</label>
                                                         <div class="isla-fu-yesno-btns">
-                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-fb" value="yes" data-fu-foldback @(fbYes ? "checked" : null) /> Yes</label>
-                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-fb" value="no" data-fu-foldback @(!fbYes ? "checked" : null) /> No</label>
+                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-fb" value="yes" data-fu-foldback @(fbYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> Yes</label>
+                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-fb" value="no" data-fu-foldback @(!fbYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> No</label>
                                                         </div>
                                                     </div>
                                                     <div class="isla-form-field isla-fu-field">
                                                         <label class="isla-base-av-sentence-label isla-fu-question-label">Remote wireless presenter</label>
                                                         <div class="isla-fu-yesno-btns isla-fu-yesno-caps">
-                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-rw" value="yes" data-fu-rwp @(rwpYes ? "checked" : null) /> YES</label>
-                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-rw" value="no" data-fu-rwp @(!rwpYes ? "checked" : null) /> NO</label>
+                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-rw" value="yes" data-fu-rwp @(rwpYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> YES</label>
+                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-rw" value="no" data-fu-rwp @(!rwpYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> NO</label>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div class="isla-form-field isla-fu-field" data-fu-switcher-wrap style="display:none">
                                                     <label class="isla-base-av-sentence-label isla-fu-question-label" data-fu-switcher-label>@switcherLabel</label>
                                                     <div class="isla-fu-yesno-btns isla-fu-yesno-caps">
-                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-sw" value="yes" data-fu-switcher @(swYes ? "checked" : null) /> YES</label>
-                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-sw" value="no" data-fu-switcher @(!swYes ? "checked" : null) /> NO</label>
+                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-sw" value="yes" data-fu-switcher @(swYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> YES</label>
+                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-sw" value="no" data-fu-switcher @(!swYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> NO</label>
                                                     </div>
                                                 </div>
                                                 <div class="isla-form-field isla-fu-field" data-fu-stage-wrap style="display:none">
                                                     <label class="isla-base-av-sentence-label isla-fu-question-label">Will you require a laptop on stage?</label>
                                                     <div class="isla-fu-yesno-btns isla-fu-yesno-caps">
-                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-st" value="yes" data-fu-stage @(stYes ? "checked" : null) /> YES</label>
-                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-st" value="no" data-fu-stage @(!stYes ? "checked" : null) /> NO</label>
+                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-st" value="yes" data-fu-stage @(stYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> YES</label>
+                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-st" value="no" data-fu-stage @(!stYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> NO</label>
                                                     </div>
                                                 </div>
                                                 <div class="isla-form-field isla-fu-field">
                                                     <label class="isla-base-av-sentence-label isla-fu-question-label">Are you hosting a video conference? <span class="isla-inline-note">(Teams)</span></label>
                                                     <div class="isla-fu-yesno-btns isla-fu-yesno-caps">
-                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-vc" value="yes" data-fu-vc @(vcYes ? "checked" : null) /> YES</label>
-                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-vc" value="no" data-fu-vc @(!vcYes ? "checked" : null) /> NO</label>
+                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-vc" value="yes" data-fu-vc @(vcYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> YES</label>
+                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-vc" value="no" data-fu-vc @(!vcYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> NO</label>
                                                     </div>
                                                 </div>
                                                 <div class="isla-form-actions">
-                                                    <button type="button" class="isla-form-submit" data-follow-up-av-submit style="background:#c62828">@submit</button>
+                                                    <button type="button" class="isla-form-submit" data-follow-up-av-submit style="background:#c62828" @(followUpSubmitted ? "disabled" : null)>@submit</button>
                                                 </div>
                                                 <div class="isla-form-error" data-fu-error style="display:none"></div>
                                             </div>
@@ -960,63 +987,64 @@ else
                                             var eventDate = uiEl.TryGetProperty("eventDate", out var dEl) ? dEl.GetString() : "";
                                             var minDate = uiEl.TryGetProperty("minDate", out var mdEl) ? mdEl.GetString() : "";
                                             var setupStyle = uiEl.TryGetProperty("setupStyle", out var ssEl) ? ssEl.GetString() : "";
+                                            var efVenueLabel = uiEl.TryGetProperty("venueLabel", out var efvEl) ? efvEl.GetString() : "Westin Brisbane";
+                                            var efSelectedSlug = "";
+                                            if (uiEl.TryGetProperty("selectedRoomSlug", out var efssEl) && efssEl.ValueKind == JsonValueKind.String)
+                                            {
+                                                efSelectedSlug = efssEl.GetString() ?? "";
+                                            }
 
                                             var setupDefault = "07:00";
                                             var rehearsalDefault = "09:30";
                                             var startDefault = "10:00";
                                             var endDefault = "16:00";
-                                            var packupDefault = "18:00";
                                             if (uiEl.TryGetProperty("schedule", out var scheduleEl))
                                             {
                                                 if (scheduleEl.TryGetProperty("setup", out var suEl)) setupDefault = suEl.GetString() ?? setupDefault;
                                                 if (scheduleEl.TryGetProperty("rehearsal", out var rhEl)) rehearsalDefault = rhEl.GetString() ?? rehearsalDefault;
                                                 if (scheduleEl.TryGetProperty("start", out var stEl)) startDefault = stEl.GetString() ?? startDefault;
                                                 if (scheduleEl.TryGetProperty("end", out var enEl)) endDefault = enEl.GetString() ?? endDefault;
-                                                if (scheduleEl.TryGetProperty("packup", out var puEl)) packupDefault = puEl.GetString() ?? packupDefault;
                                             }
                                             <div class="isla-form-card isla-event-form" data-event-form>
                                                 <div class="isla-form-title">@title</div>
-                                                <div class="isla-form-field">
-                                                    <label>Venue</label>
-                                                    <div class="isla-venue-options" data-event-venues>
-                                                        @if (uiEl.TryGetProperty("venueOptions", out var venueOptions) && venueOptions.ValueKind == JsonValueKind.Array)
-                                                        {
-                                                            var venueIndex = 0;
-                                                            foreach (var venue in venueOptions.EnumerateArray())
-                                                            {
-                                                                var venueId = venue.TryGetProperty("id", out var idEl) ? idEl.GetString() : "";
-                                                                var venueLabel = venue.TryGetProperty("label", out var lblEl) ? lblEl.GetString() : venueId;
-                                                                <div class="isla-venue-option">
-                                                                    <label class="isla-venue-option-header">
-                                                                        @if (venueIndex == 0)
-                                                                        {
-                                                                            <input type="radio" name="event-venue-radio" value="@venueId" data-event-venue-radio checked />
-                                                                        }
-                                                                        else
-                                                                        {
-                                                                            <input type="radio" name="event-venue-radio" value="@venueId" data-event-venue-radio />
-                                                                        }
-                                                                        <span>@venueLabel</span>
-                                                                    </label>
-                                                                    @if (venue.TryGetProperty("splits", out var splits) && splits.ValueKind == JsonValueKind.Array && splits.GetArrayLength() > 0)
+                                                @if (uiEl.TryGetProperty("roomOptions", out var efRoomOptions) && efRoomOptions.ValueKind == JsonValueKind.Array && efRoomOptions.GetArrayLength() > 0)
+                                                {
+                                                    <div class="isla-form-grid two-col">
+                                                        <div class="isla-form-field">
+                                                            <label>Venue</label>
+                                                            <select disabled aria-readonly="true" title="Venue">
+                                                                <option selected>@efVenueLabel</option>
+                                                            </select>
+                                                        </div>
+                                                        <div class="isla-form-field">
+                                                            <label>Room</label>
+                                                            <select data-event-room-select>
+                                                                @if (string.IsNullOrEmpty(efSelectedSlug))
+                                                                {
+                                                                    <option value="" selected disabled>Select room</option>
+                                                                }
+                                                                @foreach (var roomOpt in efRoomOptions.EnumerateArray())
+                                                                {
+                                                                    var erid = roomOpt.TryGetProperty("id", out var eridEl) ? eridEl.GetString() : "";
+                                                                    var erlabel = roomOpt.TryGetProperty("label", out var erlEl) ? erlEl.GetString() : erid;
+                                                                    var erSel = !string.IsNullOrEmpty(efSelectedSlug) && string.Equals(erid, efSelectedSlug, StringComparison.OrdinalIgnoreCase);
+                                                                    if (erSel)
                                                                     {
-                                                                        <div class="isla-venue-split" data-event-split-wrap style="display:none">
-                                                                            <select data-event-venue-split>
-                                                                                @foreach (var split in splits.EnumerateArray())
-                                                                                {
-                                                                                    var splitId = split.TryGetProperty("id", out var sidEl) ? sidEl.GetString() : "";
-                                                                                    var splitLabel = split.TryGetProperty("label", out var slbEl) ? slbEl.GetString() : splitId;
-                                                                                    <option value="@splitId">@splitLabel</option>
-                                                                                }
-                                                                            </select>
-                                                                        </div>
+                                                                        <option value="@erid" selected>@erlabel</option>
                                                                     }
-                                                                </div>
-                                                                venueIndex++;
-                                                            }
-                                                        }
+                                                                    else
+                                                                    {
+                                                                        <option value="@erid">@erlabel</option>
+                                                                    }
+                                                                }
+                                                            </select>
+                                                        </div>
                                                     </div>
-                                                </div>
+                                                }
+                                                else
+                                                {
+                                                    <div class="isla-form-error" style="margin-bottom:.75rem">Room options unavailable.</div>
+                                                }
 
                                                 <div class="isla-form-grid two-col">
                                                     <div class="isla-form-field">
@@ -1058,7 +1086,6 @@ else
                                                     <div class="isla-form-field"><label>Rehearsal</label><input type="time" value="@rehearsalDefault" step="1800" data-event-rehearsal-time /></div>
                                                     <div class="isla-form-field"><label>Start</label><input type="time" value="@startDefault" step="1800" data-event-start-time /></div>
                                                     <div class="isla-form-field"><label>End</label><input type="time" value="@endDefault" step="1800" data-event-end-time /></div>
-                                                    <div class="isla-form-field"><label>Pack up</label><input type="time" value="@packupDefault" step="1800" data-event-packup-time /></div>
                                                 </div>
                                                 <div class="isla-form-actions">
                                                     <button type="button" class="isla-form-submit" data-event-submit>@submit</button>
@@ -1223,15 +1250,21 @@ else
                                 <div class="isla-cta-sublabel">Selecting Yes will notify Microhire to finalize the details.</div>
                                 <div class="isla-cta-buttons" data-acceptance-buttons>
                                     <button type="button" class="isla-quote-accept-yes">Accept Quote</button>
-                                    <button type="button" class="isla-quote-accept-no">No, not yet</button>
+                                    @if (!string.IsNullOrWhiteSpace(quoteUrlForAcceptance))
+                                    {
+                                        <a href="@quoteUrlForAcceptance" target="_blank" rel="noopener noreferrer" class="isla-quote-view-btn isla-quote-open" data-quote-open="1">View Quote</a>
+                                    }
                                 </div>
-                                <div class="isla-quote-legal-copy" style="margin-top:1rem;padding:1rem 1.1rem;background:#fafafa;border:1px solid #e8e8e8;border-radius:8px;font-size:0.88rem;color:#444;line-height:1.55">
-                                    <p style="margin:0 0 0.75rem 0;font-weight:600;color:#222">Acceptance of quote</p>
-                                    <p style="margin:0 0 0.75rem 0">By proceeding to sign, you confirm that you have reviewed the equipment summary and pricing shown in this quote, and you authorise Microhire to supply the hire equipment and services described subject to Microhire’s standard rental terms.</p>
+                                <div class="isla-quote-legal-copy" style="display:none;margin-top:1rem;padding:1rem 1.1rem;background:#fafafa;border:1px solid #e8e8e8;border-radius:8px;font-size:0.88rem;color:#444;line-height:1.55" data-quote-legal-copy>
+                                    <p style="margin:0 0 0.75rem 0;font-weight:700;color:#222">Confirm Your Audio Visual Event Staging Quotation</p>
+                                    <p style="margin:0 0 0.75rem 0">By signing below, the undersigned confirms that they are duly authorised to accept this quotation and approve associated charges on behalf of their organisation, and agree to enter into a binding hire agreement with Microhire Venue Services Pty Ltd.</p>
+                                    <p style="margin:0 0 0.6rem 0">The signatory confirms and acknowledges that:</p>
                                     <ul style="margin:0 0 0.75rem 1.1rem;padding:0">
-                                        <li>Equipment is hired for the dates and venue details confirmed in your booking.</li>
-                                        <li>Changes after acceptance may affect availability and pricing.</li>
-                                        <li>Cancellation and liability terms apply as set out in our terms of hire.</li>
+                                        <li>All event details within this quotation have been reviewed and are accurate, including event dates, venue, delivery times, equipment quantities, and services requested.</li>
+                                        <li>They have full authority to approve the hire of equipment and services.</li>
+                                        <li>All Microhire services and associated costs will be charged to the event master account held with the venue.</li>
+                                        <li>Charges will be billed through the venue in accordance with the venue's billing procedures and terms.</li>
+                                        <li>All services and equipment hire remain subject to the Microhire Terms and Conditions of Hire.</li>
                                     </ul>
                                     @if (!string.IsNullOrWhiteSpace(quoteTermsUrl))
                                     {
@@ -1241,6 +1274,12 @@ else
                                     {
                                         <p style="margin:0">Full terms: <span class="text-muted">[Insert terms link — set <code>Ui:QuoteTermsUrl</code> in configuration]</span></p>
                                     }
+                                    <div style="margin-top:0.9rem">
+                                        <label class="isla-form-checkbox" style="align-items:flex-start">
+                                            <input type="checkbox" data-quote-confirm-checkbox />
+                                            <span>I confirm that I am authorised to accept this quotation, approve charges to the event Master Account with the venue, and agree to the Microhire Terms and Conditions of Hire and the venue's billing terms.</span>
+                                        </label>
+                                    </div>
                                 </div>
                                 <div class="isla-signing-form" style="display:none" data-signing-form>
                                     <div class="isla-signing-title">Sign to accept this quote</div>
@@ -1397,6 +1436,26 @@ else
     // still uses _looksLikeQuoteAcceptanceAsk (separate from this).
     bool IsFinalSummaryAskBubble(string rawLowerIgnored, string rawFullIgnored) => false;
 
+    bool IsHiddenUserSyntheticMessage(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text)) return false;
+        var trimmed = text.Trim();
+        return trimmed.StartsWith("I've selected this schedule:", StringComparison.OrdinalIgnoreCase)
+               || trimmed.StartsWith("Choose schedule:", StringComparison.OrdinalIgnoreCase)
+               || trimmed.StartsWith("Choose time:", StringComparison.OrdinalIgnoreCase)
+               || trimmed.StartsWith("Venue confirm:", StringComparison.OrdinalIgnoreCase)
+               || trimmed.StartsWith("VenueConfirm:", StringComparison.OrdinalIgnoreCase)
+               || trimmed.StartsWith("Event details provided:", StringComparison.OrdinalIgnoreCase)
+               || trimmed.StartsWith("EventDetails:", StringComparison.OrdinalIgnoreCase)
+               || trimmed.StartsWith("Base AV provided:", StringComparison.OrdinalIgnoreCase)
+               || trimmed.StartsWith("BaseAv:", StringComparison.OrdinalIgnoreCase)
+               || trimmed.StartsWith("AV extras provided:", StringComparison.OrdinalIgnoreCase)
+               || trimmed.StartsWith("FollowUpAv:", StringComparison.OrdinalIgnoreCase)
+               || trimmed.StartsWith("Contact details provided:", StringComparison.OrdinalIgnoreCase)
+               || trimmed.StartsWith("Contact:", StringComparison.OrdinalIgnoreCase)
+               || trimmed.StartsWith("Email confirmed for enquiry:", StringComparison.OrdinalIgnoreCase);
+    }
+
     // Detect if a user message is a structured form submission
     bool IsFormSubmission(string text){
         if (string.IsNullOrWhiteSpace(text)) return false;
@@ -1442,8 +1501,7 @@ else
                 ["setupTime"] = "Setup time",
                 ["rehearsalTime"] = "Rehearsal time",
                 ["startTime"] = "Start time",
-                ["endTime"] = "End time",
-                ["packupTime"] = "Pack up time"
+                ["endTime"] = "End time"
             });
         }
         else if (trimmed.StartsWith("AV Extras:", StringComparison.OrdinalIgnoreCase))
@@ -1566,6 +1624,7 @@ else
     host.scrollTop=host.scrollHeight;
     syncProgressBar();
     if(typeof window.hydrateUiBlocks==='function') window.hydrateUiBlocks(host);
+    if(typeof window.initWizardForms==='function') window.initWizardForms(host);
   }
   function clearThinkingNear(busyEl){
     if(!busyEl) return;
@@ -1653,68 +1712,14 @@ else
     showFormError:showFormError
   };
 
-  function parseVcVenuesJson(form){
-    const el=form&&form.querySelector('script[data-vc-venues-json]');
-    if(!el) return [];
-    try{ return JSON.parse((el.textContent||'').trim()||'[]'); }catch(_){ return []; }
-  }
-
-  function fillVcRoomSelectForVenue(form, venueId){
-    const roomSel=form.querySelector('[data-vc-room-select]');
-    if(!roomSel) return;
-    const venues=parseVcVenuesJson(form);
-    const venue=(venues||[]).find(function(v){ return v&&String(v.id)===String(venueId); });
-    roomSel.innerHTML='';
-    if(!venue){
-      return;
-    }
-    const splits=venue.splits||[];
-    if(splits.length===0){
-      const opt=document.createElement('option');
-      opt.value='full';
-      opt.textContent=(venue.label==='Thrive Boardroom')?'Thrive Boardroom':(venue.label||'Room');
-      opt.selected=true;
-      roomSel.appendChild(opt);
-      return;
-    }
-    splits.forEach(function(sp, idx){
-      const opt=document.createElement('option');
-      opt.value=sp.id!=null?String(sp.id):'';
-      opt.textContent=sp.label!=null?String(sp.label):opt.value;
-      if(idx===0) opt.selected=true;
-      roomSel.appendChild(opt);
-    });
-  }
-
-  function syncVenueConfirmFormState(form){
-    if(!form||!form.matches('[data-venue-confirm-form]')) return;
-    const venueSel=form.querySelector('[data-vc-venue-select]');
-    if(!venueSel) return;
-    fillVcRoomSelectForVenue(form, venueSel.value);
-  }
-
   function resolveVenueConfirmLabel(form){
-    const venueSel=form.querySelector('[data-vc-venue-select]');
-    const roomSel=form.querySelector('[data-vc-room-select]');
-    if(!venueSel) return '';
-    const venueId=(venueSel.value||'').trim();
-    const splitVal=roomSel?((roomSel.value||'').toLowerCase()):'';
-
-    if(venueId==='westin-ballroom'){
-      if(splitVal==='1') return 'Westin Ballroom 1';
-      if(splitVal==='2') return 'Westin Ballroom 2';
-      return 'Westin Ballroom Full';
-    }
-    if(venueId==='elevate'){
-      if(splitVal==='1') return 'Elevate 1';
-      if(splitVal==='2') return 'Elevate 2';
-      return 'Elevate Full';
-    }
-    if(venueId==='thrive-boardroom'){
-      return 'Thrive Boardroom';
-    }
-    const opt=venueSel.selectedOptions&&venueSel.selectedOptions[0];
-    return (opt?opt.textContent:'')||venueId;
+    const roomSel=form&&form.querySelector('[data-vc-room-select]');
+    if(!roomSel) return '';
+    const opt=roomSel.selectedOptions&&roomSel.selectedOptions[0];
+    if(!opt) return '';
+    const v=(opt.value||'').trim();
+    if(!v) return '';
+    return (opt.textContent||'').trim();
   }
 
   function syncEventFormState(form){
@@ -1722,52 +1727,23 @@ else
     if(form.matches('[data-venue-confirm-form]')){
       return;
     }
-    const selected=form.querySelector('[data-event-venue-radio]:checked');
-    const selectedVal=selected?selected.value:'';
-
-    // Update selected state styling on venue cards
-    form.querySelectorAll('.isla-venue-option').forEach(opt=>opt.classList.remove('isla-selected'));
-    if(selected){
-      const option=selected.closest('.isla-venue-option');
-      if(option) option.classList.add('isla-selected');
-    }
-
-    form.querySelectorAll('[data-event-split-wrap]').forEach(w=>{ w.style.display='none'; });
-    if(selected){
-      const option=selected.closest('.isla-venue-option');
-      const splitWrap=option?option.querySelector('[data-event-split-wrap]'):null;
-      if(splitWrap) splitWrap.style.display='block';
-    }
+    const roomSel=form.querySelector('[data-event-room-select]');
+    const slug=(roomSel&&(roomSel.value||'').trim())||'';
     const setupWrap=form.querySelector('[data-event-setup-wrap]');
     const setup=form.querySelector('[data-event-setup]');
-    const isThrive=selectedVal==='thrive-boardroom';
+    const isThrive=slug==='thrive-boardroom';
     if(setupWrap) setupWrap.style.display=isThrive?'none':'flex';
     if(isThrive && setup) setup.value='Boardroom';
   }
 
   function resolveVenueLabel(form){
-    const selected=form.querySelector('[data-event-venue-radio]:checked');
-    if(!selected) return '';
-    const venueId=selected.value||'';
-    const option=selected.closest('.isla-venue-option');
-    const splitSelect=option?option.querySelector('[data-event-venue-split]'):null;
-    const splitVal=splitSelect?((splitSelect.value||'').toLowerCase()):'';
-
-    if(venueId==='westin-ballroom'){
-      if(splitVal==='1') return 'Westin Ballroom 1';
-      if(splitVal==='2') return 'Westin Ballroom 2';
-      return 'Westin Ballroom Full';
-    }
-    if(venueId==='elevate'){
-      if(splitVal==='1') return 'Elevate 1';
-      if(splitVal==='2') return 'Elevate 2';
-      return 'Elevate Full';
-    }
-    if(venueId==='thrive-boardroom'){
-      return 'Thrive Boardroom';
-    }
-    const labelNode=option?option.querySelector('.isla-venue-option-header span'):null;
-    return (labelNode?labelNode.textContent:'')||venueId;
+    const roomSel=form&&form.querySelector('[data-event-room-select]');
+    if(!roomSel) return '';
+    const opt=roomSel.selectedOptions&&roomSel.selectedOptions[0];
+    if(!opt) return '';
+    const v=(opt.value||'').trim();
+    if(!v) return '';
+    return (opt.textContent||'').trim();
   }
 
   async function notifyQuoteReviewed(){
@@ -1799,50 +1775,6 @@ else
     }catch(e){
       console.warn('quote reviewed notify failed',e);
     }
-  }
-
-  function parseDownloadFilename(dispositionHeader){
-    if(!dispositionHeader) return '';
-    const utfMatch = dispositionHeader.match(/filename\*=UTF-8''([^;]+)/i);
-    if(utfMatch && utfMatch[1]){
-      try{ return decodeURIComponent(utfMatch[1]); }catch(_){ return utfMatch[1]; }
-    }
-    const plainMatch = dispositionHeader.match(/filename="?([^"]+)"?/i);
-    return (plainMatch && plainMatch[1]) ? plainMatch[1] : '';
-  }
-
-  function toQuoteDownloadEndpoint(rawHref, suggestedName){
-    const h = (rawHref || '').trim();
-    // Pending chat links use href="#" with data-download-name until the PDF is written beside the HTML.
-    if((h === '#' || h === '' || /^javascript:/i.test(h)) && (suggestedName || '').trim()){
-      return `/quotes/download?file=${encodeURIComponent(suggestedName.trim())}`;
-    }
-    if(!rawHref) return '';
-    let urlObj;
-    try{
-      urlObj = new URL(rawHref, window.location.origin);
-    }catch(_){
-      return '';
-    }
-
-    const path = urlObj.pathname || '';
-    if(path.startsWith('/quotes/render')){
-      return urlObj.toString();
-    }
-
-    if(path.startsWith('/quotes/download')){
-      return urlObj.toString();
-    }
-
-    if(path.startsWith('/files/quotes/') && path.toLowerCase().endsWith('.html')){
-      const htmlFile = path.split('/').pop() || 'quote.html';
-      const fallbackPdfName = htmlFile.replace(/\.html?$/i, '.pdf');
-      const outFile = (suggestedName || fallbackPdfName).trim();
-      const endpoint = `/quotes/render?src=${encodeURIComponent(path)}&outFile=${encodeURIComponent(outFile)}`;
-      return new URL(endpoint, window.location.origin).toString();
-    }
-
-    return urlObj.toString();
   }
 
   // --- Floor plan lightbox (Base AV); independent of image preview modal ---
@@ -1878,87 +1810,6 @@ else
       if (overlay.style.display === 'flex' || overlay.style.display === 'block') closeFloorplan();
     });
   })();
-
-  async function downloadQuoteWithoutNavigation(anchor){
-    const rawHref = anchor.getAttribute('href') || '';
-    const preferredName = (anchor.getAttribute('data-download-name') || '').trim();
-    const endpoint = toQuoteDownloadEndpoint(rawHref, preferredName);
-    if(!endpoint){
-      throw new Error('Missing download URL');
-    }
-
-    const resp = await fetch(endpoint, { method: 'GET', credentials: 'same-origin' });
-    if(!resp.ok){
-      if(resp.status === 404 && preferredName && endpoint.indexOf('/quotes/download') >= 0){
-        await downloadQuotePdfWhenReady(anchor);
-        return;
-      }
-      throw new Error(`Download failed with status ${resp.status}`);
-    }
-
-    const blob = await resp.blob();
-    const blobUrl = URL.createObjectURL(blob);
-    const headerName = parseDownloadFilename(resp.headers.get('content-disposition'));
-    const fallbackName = preferredName || headerName || 'Quote.pdf';
-
-    const dl = document.createElement('a');
-    dl.href = blobUrl;
-    dl.download = fallbackName;
-    dl.style.display = 'none';
-    document.body.appendChild(dl);
-    dl.click();
-    dl.remove();
-    setTimeout(()=>URL.revokeObjectURL(blobUrl), 1500);
-  }
-
-  /**
-   * PDF is generated asynchronously after HTML is returned. Poll /quotes/download until the file exists.
-   */
-  async function downloadQuotePdfWhenReady(anchor){
-    const preferredName = (anchor.getAttribute('data-download-name') || '').trim();
-    if(!preferredName){
-      throw new Error('Missing data-download-name');
-    }
-    if(anchor.hasAttribute('data-isla-quote-pdf-fetching')){
-      return;
-    }
-    anchor.setAttribute('data-isla-quote-pdf-fetching','1');
-    const endpoint = `/quotes/download?file=${encodeURIComponent(preferredName)}`;
-    const maxMs = 125000;
-    const intervalMs = 400;
-    const start = Date.now();
-    try{
-      while(Date.now() - start < maxMs){
-        let resp;
-        try{
-          resp = await fetch(endpoint, { method: 'GET', credentials: 'same-origin' });
-        }catch(_){
-          resp = null;
-        }
-        if(resp && resp.ok){
-          const blob = await resp.blob();
-          const blobUrl = URL.createObjectURL(blob);
-          const headerName = parseDownloadFilename(resp.headers.get('content-disposition'));
-          const fallbackName = preferredName || headerName || 'Quote.pdf';
-          const dl = document.createElement('a');
-          dl.href = blobUrl;
-          dl.download = fallbackName;
-          dl.style.display = 'none';
-          document.body.appendChild(dl);
-          dl.click();
-          dl.remove();
-          setTimeout(()=>URL.revokeObjectURL(blobUrl), 1500);
-          anchor.removeAttribute('data-isla-quote-pdf-pending');
-          anchor.setAttribute('href', endpoint);
-          return;
-        }
-        await new Promise(r=>setTimeout(r, intervalMs));
-      }
-      throw new Error('timeout');
-    }finally{
-      anchor.removeAttribute('data-isla-quote-pdf-fetching');
-    }
-  }
 
   // --- Image Preview Modal Logic ---
   let previewCards = [];
@@ -2109,14 +1960,10 @@ else
 
   document.addEventListener('change',(ev)=>{
     const target=ev.target;
-    if(target.matches('[data-vc-venue-select]')){
-      const form=target.closest('[data-venue-confirm-form]');
-      if(form){ syncVenueConfirmFormState(form); }
-      return;
+    if(target.matches('[data-event-room-select]')){
+      const form=target.closest('[data-event-form]');
+      if(form) syncEventFormState(form);
     }
-    if(!target.matches('[data-event-venue-radio], [data-event-venue-split]')) return;
-    const form=target.closest('[data-event-form]');
-    syncEventFormState(form);
   },{passive:true});
 
   function initWizardForms(root){
@@ -2163,6 +2010,9 @@ else
       form.querySelectorAll('[data-fu-switcher], input[data-fu-lectern]').forEach(el=>el.addEventListener('change',syncStage));
       syncStage();
     });
+    root.querySelectorAll('[data-event-form]').forEach(function(form){
+      syncEventFormState(form);
+    });
   }
   window.initWizardForms=initWizardForms;
   initWizardForms(document);
@@ -2179,21 +2029,6 @@ else
   },{passive:false});
 
   document.addEventListener('click',(ev)=>{
-    const btn=ev.target.closest('[data-venue-confirm-submit]'); if(!btn) return;
-    ev.preventDefault(); ev.stopPropagation();
-    const form=btn.closest('[data-venue-confirm-form]'); if(!form) return;
-    const err=form.querySelector('[data-vc-error]');
-    const venue=resolveVenueConfirmLabel(form);
-    const start=(form.querySelector('[data-vc-start-date]')?.value||'').trim();
-    const end=(form.querySelector('[data-vc-end-date]')?.value||'').trim();
-    const att=(form.querySelector('[data-vc-attendees]')?.value||'').trim();
-    if(!venue || !start || !att){ showFormError(err,'Please complete venue, dates, and attendees.'); return; }
-    showFormError(err,'');
-    const endD=end||start;
-    postChat(`VenueConfirm: venue=${encodeField(venue)}; startDate=${encodeField(start)}; endDate=${encodeField(endD)}; attendees=${encodeField(att)}`,btn);
-  },{passive:false});
-
-  document.addEventListener('click',(ev)=>{
     const btn=ev.target.closest('[data-event-details-submit]'); if(!btn) return;
     ev.preventDefault(); ev.stopPropagation();
     const form=btn.closest('[data-event-details-form]'); if(!form) return;
@@ -2203,30 +2038,10 @@ else
     const rehearsalTime=(form.querySelector('[data-ed-rehearsal-time]')?.value||'').trim();
     const startTime=(form.querySelector('[data-ed-start-time]')?.value||'').trim();
     const endTime=(form.querySelector('[data-ed-end-time]')?.value||'').trim();
-    const packupTime=(form.querySelector('[data-ed-packup-time]')?.value||'').trim();
     const wantsOp=form.querySelector('[data-ed-operator]:checked')?.value==='yes'?'yes':'no';
     if(!eventType || !startTime || !endTime){ showFormError(err,'Please complete event type and schedule.'); return; }
     showFormError(err,'');
-    postChat(`EventDetails: eventType=${encodeField(eventType)}; setup=${encodeField(setupTime)}; rehearsal=${encodeField(rehearsalTime)}; start=${encodeField(startTime)}; end=${encodeField(endTime)}; packup=${encodeField(packupTime)}; wantsOperator=${encodeField(wantsOp)}`,btn);
-  },{passive:false});
-
-  document.addEventListener('click',(ev)=>{
-    const btn=ev.target.closest('[data-base-av-submit]'); if(!btn) return;
-    ev.preventDefault(); ev.stopPropagation();
-    const form=btn.closest('[data-base-av-form]'); if(!form) return;
-    const err=form.querySelector('[data-ba-error]');
-    const bp=form.querySelector('[data-ba-proj]')?.checked?'yes':'no';
-    const bs=form.querySelector('[data-ba-screen]')?.checked?'yes':'no';
-    const bsp=form.querySelector('[data-ba-spk]')?.checked?'yes':'no';
-    const pl=(form.querySelector('[data-ba-placement]')?.value||'').trim();
-    const pr=(form.querySelector('[data-ba-presenters]')?.value||'0').trim();
-    const fc=form.querySelector('[data-ba-flip]:checked')?.value||'no';
-    const lapChecked=form.querySelector('[data-ba-laptop-mode]:checked');
-    const lm=lapChecked?lapChecked.value:'none';
-    const lq=(form.querySelector('[data-ba-laptop-qty]')?.value||'0').trim();
-    const ad=form.querySelector('[data-ba-adapter]:checked')?.value||'no';
-    showFormError(err,'');
-    postChat(`BaseAv: builtInProjector=${bp}; builtInScreen=${bs}; builtInSpeakers=${bsp}; projectorPlacement=${encodeField(pl)}; presenters=${encodeField(pr)}; flipchart=${encodeField(fc)}; laptopMode=${encodeField(lm)}; laptopQty=${encodeField(lq)}; adapterOwnLaptops=${encodeField(ad)}`,btn);
+    postChat(`EventDetails: eventType=${encodeField(eventType)}; setup=${encodeField(setupTime)}; rehearsal=${encodeField(rehearsalTime)}; start=${encodeField(startTime)}; end=${encodeField(endTime)}; wantsOperator=${encodeField(wantsOp)}`,btn);
   },{passive:false});
 
   document.addEventListener('click',(ev)=>{
@@ -2289,16 +2104,15 @@ else
     const rehearsalTime=(form.querySelector('[data-event-rehearsal-time]')?.value||'').trim();
     const startTime=(form.querySelector('[data-event-start-time]')?.value||'').trim();
     const endTime=(form.querySelector('[data-event-end-time]')?.value||'').trim();
-    const packupTime=(form.querySelector('[data-event-packup-time]')?.value||'').trim();
 
-    const selectedVenue=form.querySelector('[data-event-venue-radio]:checked')?.value||'';
-    const setupForSubmit=selectedVenue==='thrive-boardroom'?'Boardroom':setup;
+    const roomSlug=(form.querySelector('[data-event-room-select]')?.value||'').trim();
+    const setupForSubmit=roomSlug==='thrive-boardroom'?'Boardroom':setup;
 
     if(!venue || !eventType || !attendees || !date || !startTime || !endTime){
       showFormError(err,'Please complete venue, event type, attendee count, date, and start/end times.');
       return;
     }
-    if(selectedVenue!=='thrive-boardroom' && !setupForSubmit){
+    if(roomSlug!=='thrive-boardroom' && !setupForSubmit){
       showFormError(err,'Please choose a room setup style.');
       return;
     }
@@ -2313,8 +2127,7 @@ else
       `setup=${encodeField(setupTime)}`,
       `rehearsal=${encodeField(rehearsalTime)}`,
       `start=${encodeField(startTime)}`,
-      `end=${encodeField(endTime)}`,
-      `packup=${encodeField(packupTime)}`
+      `end=${encodeField(endTime)}`
     ];
     postChat(`Event: ${parts.join('; ')}`,btn);
   },{passive:false});
@@ -2422,13 +2235,11 @@ else
     const rehearsal=vals['rehearsal']||'';
     const start=vals['start']||'';
     const end=vals['end']||'';
-    const packup=vals['packup']||vals['pack_down']||vals['packdown']||'';
     
     const setupMins=timeToMinutes(setup);
     const rehearsalMins=timeToMinutes(rehearsal);
     const startMins=timeToMinutes(start);
     const endMins=timeToMinutes(end);
-    const packupMins=timeToMinutes(packup);
     
     // Validate: setup < rehearsal (if both provided)
     if(setupMins!==null && rehearsalMins!==null){
@@ -2457,30 +2268,12 @@ else
       }
     }
     
-    // Validate: end < packup (if both provided)
-    if(endMins!==null && packupMins!==null){
-      if(packupMins<=endMins){
-        errors.push('Pack Up time must be after Event End time');
-        invalidInputs.add('end');
-        invalidInputs.add('packup');
-      }
-    }
-    
     // Validate: setup < start (if both provided, and no rehearsal)
     if(setupMins!==null && startMins!==null && rehearsalMins===null){
       if(startMins<=setupMins){
         errors.push('Event Start time must be after Setup time');
         invalidInputs.add('setup');
         invalidInputs.add('start');
-      }
-    }
-    
-    // Validate: rehearsal < packup (if both provided, and no end)
-    if(rehearsalMins!==null && packupMins!==null && endMins===null){
-      if(packupMins<=rehearsalMins){
-        errors.push('Pack Up time must be after Rehearsal time');
-        invalidInputs.add('rehearsal');
-        invalidInputs.add('packup');
       }
     }
     
@@ -2661,10 +2454,9 @@ else
       console.log('Collected values:', vals);
       
       const setup=vals['setup']||'', rehearsal=vals['rehearsal']||'', start=vals['start']||'', end=vals['end']||'';
-      const packup=vals['packup']||vals['pack_down']||vals['packdown']||'';
       
       // Debug logging to help identify issues (can be removed in production)
-      console.log('Time picker values collected:',{setup,rehearsal,start,end,packup,allVals:vals});
+      console.log('Time picker values collected:',{setup,rehearsal,start,end,allVals:vals});
       
       console.log('About to validate before submission');
       console.log('window.validateScheduleTimes available:', typeof window.validateScheduleTimes);
@@ -2696,7 +2488,6 @@ else
       if(rehearsal)parts.push(`rehearsal=${rehearsal}`);
       if(start)parts.push(`start=${start}`);
       if(end)parts.push(`end=${end}`);
-      if(packup)parts.push(`packup=${packup}`);
 
       const message = `Choose schedule: ${parts.join('; ')}`;
       console.log('About to call postChat with message:', message);
@@ -2767,31 +2558,49 @@ else
     ev.preventDefault(); ev.stopPropagation();
     const cta=yes.closest('[data-quote-acceptance-controls]'); if(!cta) return;
     const buttons=cta.querySelector('[data-acceptance-buttons]');
+    const legalCopy=cta.querySelector('[data-quote-legal-copy]');
     const form=cta.querySelector('[data-signing-form]');
+    const confirmCheckbox=cta.querySelector('[data-quote-confirm-checkbox]');
     if(!form) return;
     if(buttons) buttons.style.display='none';
-    form.style.display='block';
-    const dateInput=form.querySelector('[data-sign-date]');
-    if(dateInput && !dateInput.value){
-      const d=new Date(); dateInput.value=d.toLocaleDateString('en-AU',{day:'2-digit',month:'long',year:'numeric'});
+    if(legalCopy) legalCopy.style.display='block';
+    if(confirmCheckbox){
+      confirmCheckbox.checked=false;
+      confirmCheckbox.dispatchEvent(new Event('change',{bubbles:true}));
+    }else{
+      form.style.display='none';
     }
-    initSignatureCanvas(form.querySelector('[data-sign-canvas]'));
-    const nameInput=form.querySelector('[data-sign-name]');
-    if(nameInput) nameInput.focus();
   },{passive:false});
 
-  document.addEventListener('click',(ev)=>{
-    const no=ev.target.closest('.isla-quote-accept-no'); if(!no) return;
-    ev.preventDefault(); ev.stopPropagation(); postChat('no, not yet', no);
-  },{passive:false});
+  document.addEventListener('change',(ev)=>{
+    const checkbox=ev.target.closest('[data-quote-confirm-checkbox]'); if(!checkbox) return;
+    const cta=checkbox.closest('[data-quote-acceptance-controls]'); if(!cta) return;
+    const form=cta.querySelector('[data-signing-form]'); if(!form) return;
+    if(checkbox.checked){
+      form.style.display='block';
+      const dateInput=form.querySelector('[data-sign-date]');
+      if(dateInput && !dateInput.value){
+        const d=new Date(); dateInput.value=d.toLocaleDateString('en-AU',{day:'2-digit',month:'long',year:'numeric'});
+      }
+      initSignatureCanvas(form.querySelector('[data-sign-canvas]'));
+      const nameInput=form.querySelector('[data-sign-name]');
+      if(nameInput) nameInput.focus();
+    }else{
+      form.style.display='none';
+    }
+  },{passive:true});
 
   document.addEventListener('click',(ev)=>{
     const btn=ev.target.closest('.isla-sign-cancel'); if(!btn) return;
     ev.preventDefault(); ev.stopPropagation();
     const cta=btn.closest('[data-quote-acceptance-controls]'); if(!cta) return;
     const buttons=cta.querySelector('[data-acceptance-buttons]');
+    const legalCopy=cta.querySelector('[data-quote-legal-copy]');
+    const confirmCheckbox=cta.querySelector('[data-quote-confirm-checkbox]');
     const form=cta.querySelector('[data-signing-form]');
     if(form) form.style.display='none';
+    if(legalCopy) legalCopy.style.display='none';
+    if(confirmCheckbox) confirmCheckbox.checked=false;
     if(buttons) buttons.style.display='flex';
   },{passive:false});
 
@@ -2815,7 +2624,9 @@ else
     const title=form.querySelector('[data-sign-title]')?.value?.trim()||'';
     const po=form.querySelector('[data-sign-po]')?.value?.trim()||'';
     const canvas=form.querySelector('[data-sign-canvas]');
+    const confirmCheckbox=form.closest('[data-quote-acceptance-controls]')?.querySelector('[data-quote-confirm-checkbox]');
     if(!name){ showErr('Please enter your full name.'); return; }
+    if(confirmCheckbox && !confirmCheckbox.checked){ showErr('Please confirm the required acceptance checkbox.'); return; }
     if(!canvas||!canvas._hasSig){ showErr('Please provide your signature.'); return; }
     const sigData=canvas.toDataURL('image/png');
     btn.disabled=true; btn.innerHTML='Submitting…<span class="isla-spinner"></span>';
@@ -2883,44 +2694,13 @@ else
   }
 
   document.addEventListener('click',(ev)=>{
-    if(ev.target.closest('.isla-quote-download,[data-quote-download="1"]')) return;
     const quoteLink = ev.target.closest('.isla-quote-open')
       || ev.target.closest('.chat-text a[href*="/files/quotes/"]');
     if(!quoteLink) return;
-    if(quoteLink.href && /\/quotes\/render(\?|$)/i.test(quoteLink.href)) return;
-    if(quoteLink.href && /\/quotes\/download(\?|$)/i.test(quoteLink.href)) return;
     ev.preventDefault();
     ev.stopPropagation();
     window.open(quoteLink.href, '_blank', 'noopener,noreferrer');
     notifyQuoteReviewed();
-  },{passive:false});
-
-  document.addEventListener('click',async(ev)=>{
-    const quoteDownloadLink = ev.target.closest('.isla-quote-download, .chat-text a[download]')
-      || ev.target.closest('.chat-text a[href*="/quotes/render"]')
-      || ev.target.closest('.chat-text a[href*="/quotes/download"]');
-    if(!quoteDownloadLink) return;
-    if(quoteDownloadLink.hasAttribute('data-isla-quote-pdf-pending')){
-      ev.preventDefault();
-      ev.stopPropagation();
-      try{
-        await downloadQuotePdfWhenReady(quoteDownloadLink);
-        notifyQuoteReviewed();
-      }catch(err){
-        console.warn('quote PDF not ready', err);
-        alert('The PDF is still being prepared. Wait a few seconds and try Download again, or open the full quote with View.');
-      }
-      return;
-    }
-    ev.preventDefault();
-    ev.stopPropagation();
-    try{
-      await downloadQuoteWithoutNavigation(quoteDownloadLink);
-      notifyQuoteReviewed();
-    }catch(err){
-      console.warn('quote download failed', err);
-      alert('Unable to download the quote right now. Please try again.');
-    }
   },{passive:false});
 })();
 </script>

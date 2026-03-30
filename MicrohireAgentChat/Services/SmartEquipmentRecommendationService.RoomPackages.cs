@@ -7,6 +7,53 @@ namespace MicrohireAgentChat.Services;
 
 public sealed partial class SmartEquipmentRecommendationService
 {
+    private static readonly object _venueRoomPackagesLock = new();
+    private static string? _venueRoomPackagesPathCached;
+    private static DateTime _venueRoomPackagesWriteUtc;
+    private static Dictionary<string, Dictionary<string, Dictionary<string, JsonElement>>>? _venueRoomPackagesMapping;
+
+    /// <summary>
+    /// Parsed venue-room-packages.json, cached until the file changes (mtime).
+    /// </summary>
+    private async Task<Dictionary<string, Dictionary<string, Dictionary<string, JsonElement>>>?> GetVenueRoomPackagesMappingAsync(CancellationToken ct)
+    {
+        var jsonPath = Path.Combine(_env.WebRootPath ?? "", "data", "venue-room-packages.json");
+        if (!File.Exists(jsonPath))
+            return null;
+
+        DateTime writeUtc;
+        try
+        {
+            writeUtc = File.GetLastWriteTimeUtc(jsonPath);
+        }
+        catch
+        {
+            writeUtc = DateTime.MinValue;
+        }
+
+        lock (_venueRoomPackagesLock)
+        {
+            if (_venueRoomPackagesMapping != null &&
+                _venueRoomPackagesPathCached == jsonPath &&
+                _venueRoomPackagesWriteUtc == writeUtc)
+            {
+                return _venueRoomPackagesMapping;
+            }
+        }
+
+        await using var stream = File.OpenRead(jsonPath);
+        var mapping = await JsonSerializer.DeserializeAsync<Dictionary<string, Dictionary<string, Dictionary<string, JsonElement>>>>(stream, cancellationToken: ct);
+
+        lock (_venueRoomPackagesLock)
+        {
+            _venueRoomPackagesMapping = mapping;
+            _venueRoomPackagesPathCached = jsonPath;
+            _venueRoomPackagesWriteUtc = writeUtc;
+        }
+
+        return mapping;
+    }
+
     private async Task ApplyRoomSpecificSuggestionsAsync(
         SmartEquipmentRecommendation result,
         EventContext context,
@@ -423,16 +470,15 @@ public sealed partial class SmartEquipmentRecommendationService
         if (roomKey == null)
             return new List<RecommendedEquipmentItem>();
 
-        var jsonPath = Path.Combine(_env.WebRootPath ?? "", "data", "venue-room-packages.json");
-        if (!File.Exists(jsonPath))
+        var mapping = await GetVenueRoomPackagesMappingAsync(ct);
+        if (mapping == null)
         {
-            _logger.LogWarning("venue-room-packages.json not found at {Path}", jsonPath);
+            var jsonPath = Path.Combine(_env.WebRootPath ?? "", "data", "venue-room-packages.json");
+            _logger.LogWarning("venue-room-packages.json not found or unreadable at {Path}", jsonPath);
             return new List<RecommendedEquipmentItem>();
         }
 
-        using var stream = File.OpenRead(jsonPath);
-        var mapping = await JsonSerializer.DeserializeAsync<Dictionary<string, Dictionary<string, Dictionary<string, JsonElement>>>>(stream, cancellationToken: ct);
-        if (mapping == null || !mapping.TryGetValue(mappingKey, out var venueRooms) || !venueRooms.TryGetValue(roomKey, out var roomPkgs))
+        if (!mapping.TryGetValue(mappingKey, out var venueRooms) || !venueRooms.TryGetValue(roomKey, out var roomPkgs))
         {
             _logger.LogDebug("No room mapping for {Venue} / {Room}", mappingKey, roomKey);
             return new List<RecommendedEquipmentItem>();
@@ -441,6 +487,7 @@ public sealed partial class SmartEquipmentRecommendationService
         List<string>? packageCodes = null;
         string[]? keysToTry = equipmentType.ToLowerInvariant() switch
         {
+            "av" => new[] { "av", "vision", "audio" },
             "vision" => new[] { "vision", "av" },
             "projector" or "projectors" or "screen" or "screens" => new[] { "vision", "av" },
             "speaker" or "speakers" or "audio" => new[] { "audio", "av" },
@@ -470,35 +517,74 @@ public sealed partial class SmartEquipmentRecommendationService
             return new List<RecommendedEquipmentItem>();
 
         // Westin Ballroom audio package routing:
-        // - Full Ballroom -> WSBFBALL
-        // - Ballroom 1/2 -> WSBALLAU
+        // - Full Ballroom -> WBFBCSS
+        // - Ballroom 1/2 -> WBSBCSS
         if ((equipmentType.Contains("speaker", StringComparison.OrdinalIgnoreCase) || equipmentType.Contains("audio", StringComparison.OrdinalIgnoreCase)) &&
             roomNorm.Contains("ballroom"))
         {
             var isBallroomOneOrTwo = roomNorm.Contains("ballroom 1") || roomNorm.Contains("ballroom 2");
             packageCodes = isBallroomOneOrTwo
-                ? packageCodes.Where(c => string.Equals(c, "WSBALLAU", StringComparison.OrdinalIgnoreCase)).ToList()
-                : packageCodes.Where(c => string.Equals(c, "WSBFBALL", StringComparison.OrdinalIgnoreCase)).ToList();
+                ? packageCodes.Where(c => string.Equals(c, "WBSBCSS", StringComparison.OrdinalIgnoreCase)).ToList()
+                : packageCodes.Where(c => string.Equals(c, "WBFBCSS", StringComparison.OrdinalIgnoreCase)).ToList();
 
             if (packageCodes.Count == 0)
                 return new List<RecommendedEquipmentItem>();
         }
 
-        // Elevate audio: WSBELSAD for Elevate 1/2 (half), WSBELAUD for Elevate (combined) - per question.txt
+        // Westin Ballroom AV package routing:
+        // - Full Ballroom -> WBAVP
+        // - Ballroom 1/2 -> WBSAVP
+        if (equipmentType.Equals("av", StringComparison.OrdinalIgnoreCase) && roomNorm.Contains("ballroom"))
+        {
+            var isBallroomOneOrTwo = roomNorm.Contains("ballroom 1") || roomNorm.Contains("ballroom 2");
+            packageCodes = isBallroomOneOrTwo
+                ? packageCodes.Where(c => string.Equals(c, "WBSAVP", StringComparison.OrdinalIgnoreCase)).ToList()
+                : packageCodes.Where(c => string.Equals(c, "WBAVP", StringComparison.OrdinalIgnoreCase)).ToList();
+
+            if (packageCodes.Count == 0)
+                return new List<RecommendedEquipmentItem>();
+        }
+
+        // Elevate audio: ELEVSCSS for Elevate 1/2 (half), ELEVCSS for Elevate (combined)
         if (roomKey == "Elevate" && (equipmentType.Contains("speaker", StringComparison.OrdinalIgnoreCase) || equipmentType.Contains("audio", StringComparison.OrdinalIgnoreCase)))
         {
             var isElevateHalf = roomNorm.Contains("elevate 1") || roomNorm.Contains("elevate-1") ||
-                               roomNorm.Contains("elevate 2") || roomNorm.Contains("elevate-2");
+                                roomNorm.Contains("elevate 2") || roomNorm.Contains("elevate-2");
             packageCodes = isElevateHalf
-                ? packageCodes.Where(c => string.Equals(c, "WSBELSAD", StringComparison.OrdinalIgnoreCase)).ToList()
-                : packageCodes.Where(c => string.Equals(c, "WSBELAUD", StringComparison.OrdinalIgnoreCase)).ToList();
+                ? packageCodes.Where(c => string.Equals(c, "ELEVSCSS", StringComparison.OrdinalIgnoreCase)).ToList()
+                : packageCodes.Where(c => string.Equals(c, "ELEVCSS", StringComparison.OrdinalIgnoreCase)).ToList();
             if (packageCodes.Count == 0)
                 return new List<RecommendedEquipmentItem>();
         }
 
+        // Elevate AV: ELEVSAVP for Elevate 1/2 (half), ELEVAVP for Elevate (combined)
+        if (roomKey == "Elevate" && equipmentType.Equals("av", StringComparison.OrdinalIgnoreCase))
+        {
+            var isElevateHalf = roomNorm.Contains("elevate 1") || roomNorm.Contains("elevate-1") ||
+                                roomNorm.Contains("elevate 2") || roomNorm.Contains("elevate-2");
+            packageCodes = isElevateHalf
+                ? packageCodes.Where(c => string.Equals(c, "ELEVSAVP", StringComparison.OrdinalIgnoreCase)).ToList()
+                : packageCodes.Where(c => string.Equals(c, "ELEVAVP", StringComparison.OrdinalIgnoreCase)).ToList();
+            if (packageCodes.Count == 0)
+                return new List<RecommendedEquipmentItem>();
+        }
+
+        var aiFolder = "WSB";
+        if (roomPkgs.TryGetValue("aiFolder", out var aiFolderEl) && aiFolderEl.ValueKind == JsonValueKind.String)
+        {
+            var folderStr = aiFolderEl.GetString();
+            if (!string.IsNullOrWhiteSpace(folderStr))
+                aiFolder = folderStr.Trim();
+        }
+
+        var folderNorm = aiFolder.Trim();
+        var folderNormLower = folderNorm.ToLower();
         var products = await _db.TblInvmas
             .AsNoTracking()
-            .Where(p => (p.category ?? "").Trim() == "WSB" && packageCodes.Contains((p.product_code ?? "").Trim()))
+            .Where(p =>
+                packageCodes.Contains((p.product_code ?? "").Trim()) &&
+                ((p.category ?? "").Trim().ToLower() == folderNormLower ||
+                 (p.category ?? "").Trim().ToLower() == "wsb"))
             .Select(p => new { p.product_code, p.descriptionv6, p.PrintedDesc, p.category, p.PictureFileName })
             .ToListAsync(ct);
 
@@ -535,13 +621,13 @@ public sealed partial class SmartEquipmentRecommendationService
             });
         }
 
-        // For projector/speaker, return single best match to avoid recommending both single+dual
-        if (items.Count > 1 && (equipmentType.Contains("projector") || equipmentType.Contains("speaker") || equipmentType.Contains("audio")))
+        // For projector/speaker/av, return single best match to avoid recommending redundant packages
+        if (items.Count > 1 && (equipmentType.Contains("projector") || equipmentType.Contains("speaker") || equipmentType.Contains("audio") || equipmentType.Contains("av") || equipmentType.Contains("vision")))
         {
             var qty = quantity;
             var attendees = context.ExpectedAttendees;
-            var best = equipmentType.Contains("projector") || equipmentType.Contains("vision")
-                ? (qty >= 2 ? items.FirstOrDefault(i => i.Description.ToLowerInvariant().Contains("dual")) ?? items.First()
+            var best = (equipmentType.Contains("projector") || equipmentType.Contains("vision") || equipmentType.Contains("av"))
+                ? (qty >= 2 || (context.ProjectorAreas?.Count >= 2) ? items.FirstOrDefault(i => i.Description.ToLowerInvariant().Contains("dual")) ?? items.First()
                   : items.OrderBy(i => i.UnitPrice).First())
                 : (attendees > 100 ? items.FirstOrDefault(i => i.Description.ToLowerInvariant().Contains("full")) ?? items.OrderByDescending(i => i.UnitPrice).First()
                   : items.OrderBy(i => i.UnitPrice).First());
@@ -550,22 +636,15 @@ public sealed partial class SmartEquipmentRecommendationService
         return items.OrderBy(i => i.UnitPrice).ToList();
     }
 
-    private static string? ResolveRoomKey(string roomNorm, string venueKey)
-    {
-        if (venueKey == "Westin Brisbane")
-        {
-            if (roomNorm.Contains("ballroom")) return "Westin Ballroom";
-            if (roomNorm.Contains("elevate 1") || roomNorm.Contains("elevate-1")) return "Elevate"; // Elevate 1 uses same packages as Elevate
-            if (roomNorm.Contains("elevate 2") || roomNorm.Contains("elevate-2")) return "Elevate"; // Elevate 2 uses same packages as Elevate
-            if (roomNorm.Contains("elevate")) return "Elevate";
-            if (roomNorm.Contains("thrive")) return "Thrive Boardroom";
-        }
-        if (venueKey == "Four Points Brisbane")
-        {
-            if (roomNorm.Contains("meeting") || roomNorm.Contains("four points")) return "Meeting Room";
-        }
-        return null;
-    }
+    private static string? ResolveRoomKey(string roomNorm, string venueKey) =>
+        VenueRoomPackagesCache.ResolveMappingRoomKey(roomNorm, venueKey);
+
+    /// <summary>
+    /// Projector placement dropdown options from <c>venue-room-packages.json</c> (cached).
+    /// Used by chat UI and kept in sync with ballroom package routing via <see cref="ResolveRoomKey"/>.
+    /// </summary>
+    public object[]? GetProjectorPlacementOptionsForUi(string? venueName, string? roomName) =>
+        VenueRoomPackagesCache.TryGetProjectorPlacementOptions(_env, venueName, roomName);
 
     /// <summary>
     /// True when venue is Westin Brisbane and room has max capacity <= 15 (e.g. Thrive Boardroom).

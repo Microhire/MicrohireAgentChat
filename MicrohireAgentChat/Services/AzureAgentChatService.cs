@@ -12,6 +12,7 @@ using MicrohireAgentChat.Services.Orchestration;
 using MicrohireAgentChat.Services.Persistence;
 using MicrohireAgentChat.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Concurrent;
@@ -51,7 +52,6 @@ namespace MicrohireAgentChat.Services
         private readonly BookingOrchestrationService _orchestration;
         private readonly AgentToolHandlerService _toolHandler;
         private readonly TimePickerService _timePicker;
-        private readonly QuoteGenerationService _quoteGen;
         private readonly HtmlQuoteGenerationService _htmlQuoteGen;
         private readonly ItemPersistenceService _itemPersistence;
         private readonly ConversationStateService _conversationState;
@@ -60,6 +60,7 @@ namespace MicrohireAgentChat.Services
         private readonly ConversationExtractionService _extraction;
         private readonly ChatExtractionService _chatExtraction;
         private readonly BookingPersistenceService _bookingPersistence;
+        private readonly IServiceScopeFactory _scopeFactory;
         
         private static readonly ConcurrentDictionary<string, SemaphoreSlim> _threadLocks = new();
         private static SemaphoreSlim GetThreadGate(string threadId)
@@ -76,7 +77,6 @@ namespace MicrohireAgentChat.Services
             BookingOrchestrationService orchestration,
             AgentToolHandlerService toolHandler,
             TimePickerService timePicker,
-            QuoteGenerationService quoteGen,
             HtmlQuoteGenerationService htmlQuoteGen,
             ItemPersistenceService itemPersistence,
             ConversationStateService conversationState,
@@ -84,7 +84,8 @@ namespace MicrohireAgentChat.Services
             QuestionDetectionService questionDetection,
             ConversationExtractionService extraction,
             ChatExtractionService chatExtraction,
-            BookingPersistenceService bookingPersistence)
+            BookingPersistenceService bookingPersistence,
+            IServiceScopeFactory scopeFactory)
         {
             _projectClient = projectClient;
             _agentId = options.Value.AgentId ?? throw new ArgumentNullException(nameof(options.Value.AgentId));
@@ -96,7 +97,6 @@ namespace MicrohireAgentChat.Services
             _orchestration = orchestration;
             _toolHandler = toolHandler;
             _timePicker = timePicker;
-            _quoteGen = quoteGen;
             _htmlQuoteGen = htmlQuoteGen;
             _itemPersistence = itemPersistence;
             _conversationState = conversationState;
@@ -105,6 +105,7 @@ namespace MicrohireAgentChat.Services
             _extraction = extraction;
             _chatExtraction = chatExtraction;
             _bookingPersistence = bookingPersistence;
+            _scopeFactory = scopeFactory;
         }
 
         private PersistentAgentsClient AgentsClient => _projectClient.GetPersistentAgentsClient();
@@ -259,6 +260,19 @@ namespace MicrohireAgentChat.Services
             await Task.CompletedTask;
         }
 
+        /// <summary>
+        /// Azure Agents SDK uses <see cref="MessageRole.Agent"/> (ToString "Agent"); the chat UI and
+        /// <c>EnsureStructuredFormsInChat</c> expect OpenAI-style "assistant" so wizard injections insert after the greeting.
+        /// </summary>
+        private static string NormalizeTranscriptRole(string roleFromSdk)
+        {
+            if (string.IsNullOrWhiteSpace(roleFromSdk)) return "user";
+            if (string.Equals(roleFromSdk, "user", StringComparison.OrdinalIgnoreCase)) return "user";
+            if (string.Equals(roleFromSdk, "agent", StringComparison.OrdinalIgnoreCase)) return "assistant";
+            if (string.Equals(roleFromSdk, "assistant", StringComparison.OrdinalIgnoreCase)) return "assistant";
+            return roleFromSdk;
+        }
+
         public (string ThreadId, IEnumerable<DisplayMessage> Messages) GetTranscript(string threadId)
         {
             var pipeline = new MarkdownPipelineBuilder()
@@ -284,7 +298,7 @@ namespace MicrohireAgentChat.Services
 
                 list.Add(new DisplayMessage
                 {
-                    Role = m.Role.ToString(),
+                    Role = NormalizeTranscriptRole(m.Role.ToString()),
                     Timestamp = m.CreatedAt,
                     Parts = parts,
                     FullText = full,
@@ -845,13 +859,13 @@ namespace MicrohireAgentChat.Services
                         }
                         catch { /* Fall through to default */ }
                     }
-                    return $"For room setup suggestions, I can help you choose the optimal configuration. What room will you be using?";
+                    return UserQuestionResponseTemplates.RoomSetupPromptNeedRoom;
 
                 case QuestionType.Equipment:
-                    return $"For equipment recommendations, I can suggest the best setup for your event. Let me ask a few questions about your needs first.";
+                    return UserQuestionResponseTemplates.EquipmentGuidance;
 
                 default:
-                    return $"I'd be happy to help answer your question. Let me gather some information about your event first.";
+                    return UserQuestionResponseTemplates.GeneralGatherEventInfo;
             }
         }
 

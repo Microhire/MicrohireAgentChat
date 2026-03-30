@@ -1,23 +1,76 @@
 {
   "Westin Brisbane": {
     "Westin Ballroom": {
-      "audio": ["WSBFBALL", "WSBALLAU"],
-      "vision": ["WSBBDPRO", "WSBBSPRO", "WSBNSPRO", "WSBSSPRO"],
-      "av": ["WSBWFAV", "WSBWSAV"]
+      "aiFolder": "WSBBALL",
+      "independentItems": ["WBIND"],
+      "baseEquipment": ["Inbuilt projector", "Inbuilt screen", "Inbuilt speakers"],
+      "audio": ["WBFBCSS", "WBSBCSS"],
+      "vision": ["WBDPROJ", "WBSPROJ", "WBSNPROJ", "WBSSPROJ"],
+      "av": ["WBAVP", "WBSAVP"],
+      "projectorPlacementOptions": [
+        { "id": "A", "label": "Area A — front left zone" },
+        { "id": "B", "label": "Area B — front centre-left" },
+        { "id": "C", "label": "Area C — centre / ceiling mount zone" },
+        { "id": "D", "label": "Area D — rear centre-left" },
+        { "id": "E", "label": "Area E — main stage / front centre" },
+        { "id": "F", "label": "Area F — front right zone" },
+        { "id": "B+C", "label": "Dual projection — zones B + C (wide front / centre coverage)" },
+        { "id": "E+F", "label": "Dual projection — zones E + F (full ballroom front span)" },
+        { "id": "E+D", "label": "Dual projection — zones E + D (front stage + mid room)" }
+      ]
+    },
+    "Westin Ballroom 1": {
+      "aiFolder": "WSBBALL",
+      "independentItems": ["WBIND"],
+      "baseEquipment": ["Inbuilt projector", "Inbuilt screen", "Inbuilt speakers"],
+      "audio": ["WBFBCSS", "WBSBCSS"],
+      "vision": ["WBDPROJ", "WBSPROJ", "WBSNPROJ", "WBSSPROJ"],
+      "av": ["WBAVP", "WBSAVP"],
+      "projectorPlacementOptions": [
+        { "id": "E", "label": "Area E — stage / front centre (Ballroom 1)" },
+        { "id": "D", "label": "Area D — mid room (Ballroom 1)" },
+        { "id": "C", "label": "Area C — rear / ceiling zone (Ballroom 1)" },
+        { "id": "E+D", "label": "Dual projection — E + D (Ballroom 1)" },
+        { "id": "D+C", "label": "Dual projection — D + C (Ballroom 1 depth coverage)" }
+      ]
+    },
+    "Westin Ballroom 2": {
+      "aiFolder": "WSBBALL",
+      "independentItems": ["WBIND"],
+      "baseEquipment": ["Inbuilt projector", "Inbuilt screen", "Inbuilt speakers"],
+      "audio": ["WBFBCSS", "WBSBCSS"],
+      "vision": ["WBDPROJ", "WBSPROJ", "WBSNPROJ", "WBSSPROJ"],
+      "av": ["WBAVP", "WBSAVP"],
+      "projectorPlacementOptions": [
+        { "id": "A", "label": "Area A — front left (Ballroom 2)" },
+        { "id": "F", "label": "Area F — front right (Ballroom 2)" },
+        { "id": "B", "label": "Area B — centre front (Ballroom 2)" },
+        { "id": "A+F", "label": "Dual projection — A + F (Ballroom 2 full front span)" },
+        { "id": "A+B", "label": "Dual projection — A + B (left + centre)" },
+        { "id": "B+F", "label": "Dual projection — B + F (centre + right)" }
+      ]
     },
     "Elevate": {
-      "audio": ["WSBELAUD", "WSBELSAD"],
-      "vision": ["WSBELPRO"],
-      "av": ["WSBFELAV", "WSBELAV"]
+      "aiFolder": "WSBELEV",
+      "independentItems": ["ELEVIND"],
+      "baseEquipment": ["Inbuilt projector", "Inbuilt screen", "Inbuilt speakers"],
+      "audio": ["ELEVCSS", "ELEVSCSS"],
+      "vision": ["ELEVPROJ"],
+      "av": ["ELEVAVP", "ELEVSAVP"]
     },
     "Thrive Boardroom": {
-      "audio": ["WSBTHAUD"],
-      "vision": ["WSBTHPRO"],
-      "av": ["WSBTHAV"]
+      "aiFolder": "WSBTHRV",
+      "independentItems": ["THRVIND"],
+      "baseEquipment": ["Projector", "Screen", "Ceiling speakers (PC Audio only)"],
+      "audio": ["THRVCSS"],
+      "vision": ["THRVPROJ"],
+      "av": ["THRVAVP"]
     }
   },
   "Four Points Brisbane": {
     "Meeting Room": {
+      "aiFolder": "WSB",
+      "baseEquipment": ["Inbuilt projector", "Inbuilt screen", "Inbuilt speakers"],
       "audio": ["WSBFPAUD"],
       "vision": ["WSBFPPRO"],
       "av": ["WSBFPAVP"]

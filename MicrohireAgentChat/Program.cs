@@ -21,9 +21,6 @@ if (!string.IsNullOrEmpty(Environment.GetEnvironmentVariable("APPLICATIONINSIGHT
     builder.Services.AddApplicationInsightsTelemetry();
 }
 
-// Writable browser cache + startup install so quote PDFs work on Azure when publish omitted Chromium.
-PlaywrightBootstrap.ConfigureBrowserDirectory(builder.Environment);
-
 // Local overrides (gitignored) - copy appsettings.Development.Local.json.example and fill in your Gmail
 builder.Configuration.AddJsonFile("appsettings.Development.Local.json", optional: true, reloadOnChange: true);
 
@@ -91,14 +88,7 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AzureAgentChatService>();
 builder.Services.AddScoped<ChatSessionPersistenceService>();
 builder.Services.AddScoped<BookingService>();
-builder.Services.AddHostedService<PlaywrightBootstrapHostedService>();
-// Single instance: PDF rendering (scoped services inject IPlaywrightQuotePdfRenderer) + IHostedService lifetime hook.
-builder.Services.AddSingleton<PlaywrightQuotePdfRenderer>();
-builder.Services.AddSingleton<IPlaywrightQuotePdfRenderer>(sp => sp.GetRequiredService<PlaywrightQuotePdfRenderer>());
-builder.Services.AddHostedService(sp => sp.GetRequiredService<PlaywrightQuotePdfRenderer>());
 builder.Services.AddHostedService<AgentToolInstaller>();
-builder.Services.AddSingleton<PdfStamperService>();
-builder.Services.AddSingleton<PdfFromBlankService>();
 builder.Services.AddSingleton<IWestinRoomCatalog, WestinRoomCatalog>();
 builder.Services.AddSingleton<IBookingDraftStore, BookingDraftStore>();
 
@@ -128,7 +118,6 @@ builder.Services.AddScoped<SmartEquipmentRecommendationService>(); // Smart equi
 builder.Services.AddScoped<AgentToolHandlerService>();
 builder.Services.AddScoped<BookingQueryService>();
 builder.Services.AddScoped<TimePickerService>();
-builder.Services.AddScoped<QuoteGenerationService>();
 builder.Services.AddScoped<HtmlQuoteGenerationService>();
 builder.Services.AddScoped<ConversationReplayService>();
 builder.Services.AddScoped<AutoTestCustomerService>();

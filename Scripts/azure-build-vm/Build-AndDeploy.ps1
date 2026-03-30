@@ -1,8 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-  Windows-only: publish MicrohireAgentChat for win-x64, install Playwright Chromium into pw-browsers,
-  zip to site.zip, optionally deploy to Azure App Service (same flow as .github/workflows/publish-windows-azure.yml).
+  Windows-only: publish MicrohireAgentChat for win-x64, zip to site.zip, optionally deploy to Azure App Service.
 
 .PARAMETER RepoRoot
   Path to the repository root (folder that contains MicrohireAgentChat\MicrohireAgentChat.csproj).
@@ -92,7 +91,7 @@ function Ensure-AzOnPath {
 $isWindows = ($PSVersionTable.PSVersion.Major -ge 6 -and $IsWindows) -or
     ($PSVersionTable.PSVersion.Major -lt 6 -and $env:OS -like "*Windows*")
 if (-not $isWindows) {
-    throw "This script must run on Windows (Playwright Chromium for win-x64)."
+    throw "This script must run on Windows."
 }
 
 Ensure-DotNetOnPath
@@ -138,84 +137,16 @@ Write-Host "dotnet publish -> $publishOut"
 dotnet publish $ProjectFile -c Release -o $publishOut -r win-x64 --self-contained false
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed with exit code $LASTEXITCODE" }
 
-$browserDir = Join-Path $publishOut "pw-browsers"
-New-Item -ItemType Directory -Force -Path $browserDir | Out-Null
-$env:PLAYWRIGHT_BROWSERS_PATH = $browserDir
-Push-Location $publishOut
-try {
-    if (-not (Test-Path -LiteralPath ".\playwright.ps1")) {
-        throw "playwright.ps1 missing from publish output (.playwright driver layout broken?)"
-    }
-    Write-Host "playwright.ps1 install chromium -> $browserDir"
-    & .\playwright.ps1 install chromium
-    if ($LASTEXITCODE -ne 0) { throw "playwright install chromium failed with exit code $LASTEXITCODE" }
-}
-finally {
-    Pop-Location
-}
-
-# `playwright.ps1 install chromium` may still download Firefox/WebKit/FFmpeg; quote PDF only needs Chromium.
-if (Test-Path -LiteralPath $browserDir) {
-    Write-Host "Trimming pw-browsers: removing firefox, webkit, ffmpeg folders (not used for PDF) to shrink site.zip"
-    foreach ($d in Get-ChildItem -Directory -Path $browserDir -ErrorAction SilentlyContinue) {
-        if ($d.Name -match '^(firefox|webkit|ffmpeg)-') {
-            Remove-Item -LiteralPath $d.FullName -Recurse -Force
-            Write-Host "  removed $($d.Name)"
-        }
-    }
-}
-
-$playwrightNode = Join-Path $publishOut ".playwright\node"
-if (-not (Test-Path -LiteralPath $playwrightNode)) {
-    throw ".playwright/node missing under publish_out"
-}
-$browserFiles = Get-ChildItem -Path $browserDir -Recurse -File -ErrorAction SilentlyContinue
-if (-not $browserFiles) {
-    throw "pw-browsers is empty after playwright install"
-}
-
-$verifyScript = Join-Path $PSScriptRoot "Verify-PlaywrightBundle.ps1"
-if (Test-Path -LiteralPath $verifyScript) {
-    & $verifyScript -PublishRoot $publishOut -CheckVcRedist
-}
-else {
-    Write-Warning "Verify-PlaywrightBundle.ps1 not found next to Build-AndDeploy.ps1; skipping bundle verification."
-}
-
-Write-Host ""
-Write-Host "Runtime (Azure App Service): PlaywrightBootstrap sets PLAYWRIGHT_BROWSERS_PATH to pw-browsers next to MicrohireAgentChat.dll when present."
-Write-Host "Do not set PLAYWRIGHT_BROWSERS_PATH in Portal unless you know the path - empty is correct so the app uses the bundled folder."
-Write-Host ""
-
-# PowerShell 5.1 Compress-Archive -Path "folder\*" does NOT include dot-prefixed names (e.g. .playwright).
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 if (Test-Path -LiteralPath $OutputZip) {
     Remove-Item -LiteralPath $OutputZip -Force
 }
 
-Write-Host "ZipFile.CreateFromDirectory -> $OutputZip (preserves .playwright and other hidden folders)"
+Write-Host "ZipFile.CreateFromDirectory -> $OutputZip"
 [System.IO.Compression.ZipFile]::CreateFromDirectory($publishOut, $OutputZip)
 
 $zipBytes = (Get-Item -LiteralPath $OutputZip).Length
 Write-Host ('OK: {0} ({1} bytes)' -f $OutputZip, $zipBytes)
-
-$zipRead = [System.IO.Compression.ZipFile]::OpenRead($OutputZip)
-try {
-    $hasDriver = $false
-    foreach ($e in $zipRead.Entries) {
-        if ($e.FullName -match '(?i)^\.playwright[/\\]') {
-            $hasDriver = $true
-            Write-Host ('Verified zip entry: {0}' -f $e.FullName)
-            break
-        }
-    }
-    if (-not $hasDriver) {
-        throw "site.zip has no .playwright/ entries; Playwright driver would be missing on Azure. Check publish_out before zipping."
-    }
-}
-finally {
-    $zipRead.Dispose()
-}
 
 if ($SkipDeploy) {
     Write-Host "SkipDeploy: not running az webapp deploy"

@@ -3,7 +3,7 @@
     {
       "roomKey": "ballroom",
       "roomContains": ["ballroom"],
-      "packageCodes": ["WSBBDPRO", "WSBBSPRO", "WSBNSPRO", "WSBSSPRO", "WSBFBALL", "WSBALLAU"],
+      "packageCodes": ["WBDPROJ", "WBSPROJ", "WBSNPROJ", "WBSSPROJ", "WBFBCSS", "WBSBCSS"],
       "baselineLaborCode": "AVTECH",
       "visionSpecialistCode": "VXTECH",
       "audioSpecialistCode": "AXTECH",
@@ -12,7 +12,7 @@
     {
       "roomKey": "elevate",
       "roomContains": ["elevate"],
-      "packageCodes": ["WSBELPRO", "WSBELSAD", "WSBELAUD", "WBELAUD"],
+      "packageCodes": ["ELEVPROJ", "ELEVSCSS", "ELEVCSS", "ELEVAVP", "ELEVSAVP"],
       "baselineLaborCode": "AVTECH",
       "visionSpecialistCode": "VXTECH",
       "audioSpecialistCode": "AXTECH",
@@ -21,7 +21,7 @@
     {
       "roomKey": "thrive",
       "roomContains": ["thrive"],
-      "packageCodes": ["WSBTHAV", "WSBTHAUD", "WSBTHPRO"],
+      "packageCodes": ["THRVAVP", "THRVCSS", "THRVPROJ"],
       "baselineLaborCode": "AVTECH",
       "visionSpecialistCode": "VXTECH",
       "audioSpecialistCode": "AXTECH",
