@@ -391,7 +391,7 @@ public sealed partial class SmartEquipmentRecommendationService
     {
         var items = new List<RecommendedEquipmentItem>();
 
-        // Thrive must use its dedicated room package (WSBTHAV) when projection/display is needed.
+        // Thrive must use its dedicated room package (THRVAVP) when projection/display is needed.
         var isThriveBoardroom = (context.RoomName ?? "").Contains("thrive", StringComparison.OrdinalIgnoreCase);
         // Other very small rooms can still fall back to attendee-based standalone projector logic.
         bool skipRoomPackages = !isThriveBoardroom && await IsSmallRoomAsync(context.VenueName, context.RoomName, ct);

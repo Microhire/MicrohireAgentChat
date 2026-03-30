@@ -11,9 +11,9 @@
       "av": ["WSBFELAV", "WSBELAV"]
     },
     "Thrive Boardroom": {
-      "audio": ["WSBTHAUD"],
-      "vision": ["WSBTHPRO"],
-      "av": ["WSBTHAV"]
+      "audio": ["THRVCSS"],
+      "vision": ["THRVPROJ"],
+      "av": ["THRVAVP"]
     }
   },
   "Four Points Brisbane": {

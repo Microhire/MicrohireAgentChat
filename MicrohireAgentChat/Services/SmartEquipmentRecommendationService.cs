@@ -214,7 +214,7 @@ public sealed partial class SmartEquipmentRecommendationService
             {
                 "USBCMX2", "V1HD", "SDICROSS", "NATFLIPC", "LOG4kCAM", "LECT1", "SHURE418",
                 "NATFLSTD", "LCD40", "MIXER06", "LOGISPOT", "WIRPRES", "QLXD2SK",
-                "WSBTHAV", "WSBTHAUD", "WSBTHPRO",
+                "THRVAVP", "THRVCSS", "THRVPROJ",
                 "WSBBDPRO", "WSBBSPRO", "WSBNSPRO", "WSBSSPRO", "WSBFBALL", "WSBALLAU",
                 "WSBELSAD", "WSBELAUD",
                 "PCLPRO", "PCLP-L1", "PCLP-L2", "PCLP-L3", "PCPROLT1",

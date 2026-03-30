@@ -439,7 +439,7 @@ public sealed partial class SmartEquipmentRecommendationService
         }
 
         // Thrive Boardroom package key order for projector/screen/vision:
-        // - av -> vision (WSBTHAV before WSBTHPRO)
+        // - av -> vision (THRVAVP before THRVPROJ; Rental Point AI THRIVE codes)
         // - other rooms: vision -> av (unchanged)
         var preferAvOverVision =
             string.Equals(roomKey, "Thrive Boardroom", StringComparison.OrdinalIgnoreCase);

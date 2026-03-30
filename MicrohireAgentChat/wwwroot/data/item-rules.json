@@ -267,7 +267,7 @@
     "roomContains": [ "thrive" ],
     "bundleItems": [
       {
-        "product_code": "WSBTHAUD",
+        "product_code": "THRVCSS",
         "comment": "Thrive Ceiling Speaker System",
         "qtyFrom": "literal",
         "literalQty": 1
@@ -287,7 +287,7 @@
     "requirePresentation": true,
     "bundleItems": [
       {
-        "product_code": "WSBTHAV",
+        "product_code": "THRVAVP",
         "comment": "Thrive AV Package",
         "qtyFrom": "literal",
         "literalQty": 1

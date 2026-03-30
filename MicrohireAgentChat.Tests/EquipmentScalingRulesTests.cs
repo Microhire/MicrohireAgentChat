@@ -342,8 +342,8 @@ public sealed class EquipmentScalingRulesTests
         var webRoot = CreateDataRoot();
         WriteThriveBoardroomVenuePackages(webRoot);
         await using var db = CreateDb(nameof(ThriveBoardroom_ProjectorPrefersAvPackageWsbtavOverVisionPackage));
-        SeedProduct(db, "WSBTHAV", "WSB", "Thrive AV Package", dayRate: 900);
-        SeedProduct(db, "WSBTHPRO", "WSB", "Thrive Projection Package", dayRate: 100);
+        SeedProduct(db, "THRVAVP", "WSB", "Thrive AV Package", dayRate: 900);
+        SeedProduct(db, "THRVPROJ", "WSB", "Thrive Projection Package", dayRate: 100);
         await db.SaveChangesAsync();
 
         var service = CreateService(db, webRoot);
@@ -361,9 +361,9 @@ public sealed class EquipmentScalingRulesTests
 
         var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
 
-        var pkg = result.Items.FirstOrDefault(i => string.Equals(i.ProductCode, "WSBTHAV", StringComparison.OrdinalIgnoreCase));
+        var pkg = result.Items.FirstOrDefault(i => string.Equals(i.ProductCode, "THRVAVP", StringComparison.OrdinalIgnoreCase));
         Assert.NotNull(pkg);
-        Assert.DoesNotContain(result.Items, i => string.Equals(i.ProductCode, "WSBTHPRO", StringComparison.OrdinalIgnoreCase));
+        Assert.DoesNotContain(result.Items, i => string.Equals(i.ProductCode, "THRVPROJ", StringComparison.OrdinalIgnoreCase));
     }
 
     [Fact]
@@ -372,8 +372,8 @@ public sealed class EquipmentScalingRulesTests
         var webRoot = CreateDataRoot();
         WriteThriveBoardroomVenuePackages(webRoot);
         await using var db = CreateDb(nameof(ThriveBoardroom_ScreenRequestDoesNotAddStandaloneScreen_WhenAvPackagePriced));
-        SeedProduct(db, "WSBTHAV", "WSB", "Thrive AV Package", dayRate: 900);
-        SeedProduct(db, "WSBTHPRO", "WSB", "Thrive Projection Package", dayRate: 100);
+        SeedProduct(db, "THRVAVP", "WSB", "Thrive AV Package", dayRate: 900);
+        SeedProduct(db, "THRVPROJ", "WSB", "Thrive Projection Package", dayRate: 100);
         SeedProduct(db, "SCREEN16", "SCREEN", "16x9 Fastfold Screen", dayRate: 220);
         await db.SaveChangesAsync();
 
@@ -402,7 +402,7 @@ public sealed class EquipmentScalingRulesTests
         var webRoot = CreateDataRoot();
         WriteThriveBoardroomVenuePackages(webRoot);
         await using var db = CreateDb(nameof(ThriveBoardroom_ScreenRequest_AvFirstAvoidsStandaloneScreen_WhenVisionPackageUnpriced));
-        SeedProduct(db, "WSBTHAV", "WSB", "Thrive AV Package", dayRate: 900);
+        SeedProduct(db, "THRVAVP", "WSB", "Thrive AV Package", dayRate: 900);
         SeedProduct(db, "SCREEN16", "SCREEN", "16x9 Fastfold Screen", dayRate: 220);
         await db.SaveChangesAsync();
 
@@ -530,8 +530,8 @@ public sealed class EquipmentScalingRulesTests
             {
                 ["Thrive Boardroom"] = new Dictionary<string, object>
                 {
-                    ["vision"] = new[] { "WSBTHPRO" },
-                    ["av"] = new[] { "WSBTHAV" }
+                    ["vision"] = new[] { "THRVPROJ" },
+                    ["av"] = new[] { "THRVAVP" }
                 }
             }
         });

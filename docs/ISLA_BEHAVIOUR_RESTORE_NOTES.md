@@ -18,7 +18,7 @@ requested corrections that remain intentionally active.
   - Microphone quantity is user-confirmed (not forced 1:1 from speakers).
   - Video conference components are confirm-first.
 - Thrive package handling:
-  - WSBTHAV is not auto-included; the user must confirm they want it.
+  - THRVAVP is not auto-included; the user must confirm they want it.
 - Room language:
   - Isla does not book venue rooms; Isla bases AV quote on selected room.
 - Room focus:

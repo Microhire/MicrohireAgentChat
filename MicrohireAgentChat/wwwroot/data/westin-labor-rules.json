@@ -21,7 +21,7 @@
     {
       "roomKey": "thrive",
       "roomContains": ["thrive"],
-      "packageCodes": ["WSBTHAV", "WSBTHAUD", "WSBTHPRO"],
+      "packageCodes": ["THRVAVP", "THRVCSS", "THRVPROJ"],
       "baselineLaborCode": "AVTECH",
       "visionSpecialistCode": "VXTECH",
       "audioSpecialistCode": "AXTECH",

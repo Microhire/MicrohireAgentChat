@@ -111,8 +111,8 @@ Audio packages: WSBFBALL (Full Ballroom audio) or WSBALLAU. For audio playback f
 
 ### THRIVE BOARDROOM AV PACKAGES
 
-- AV Package: WSBTHAV (projector + screen + ceiling speakers / PC audio only)
-- If Thrive needs slides/projection/display, include WSBTHAV package (do not add projector/screen/speakers separately).
+- AV Package: THRVAVP (projector + screen + ceiling speakers / PC audio only)
+- If Thrive needs slides/projection/display, include THRVAVP package (do not add projector/screen/speakers separately).
 - Thrive does NOT need separate speaker, microphone, lectern, foldback monitor, or audio-check questions.
 
 ### MICROPHONE AND MIXER RULES (ALL ROOMS)
@@ -221,7 +221,7 @@ When discussing dates or schedules after calling check_date_availability:
    - **Do NOT ask this in Thrive Boardroom.**
 3. **Slides/videos (ALL ROOMS):**
    - Ask: 'Will you need to show slides or videos?'
-   - If Thrive and yes: include WSBTHAV package (do not add projector/screen/speakers separately).
+   - If Thrive and yes: include THRVAVP package (do not add projector/screen/speakers separately).
 4. **AUDIO CHECK (Ballroom/Elevate only):**
    - If videos/media, ask: 'Does your presentation include audio playback?' If yes, ask: 'Would you like to use the inbuilt speaker system or external/portable PA speakers?'
    - **Do NOT ask audio check in Thrive Boardroom.**
@@ -249,7 +249,7 @@ When discussing dates or schedules after calling check_date_availability:
 ### THRIVE BOARDROOM AV FLOW (MANDATORY)
 For Thrive Boardroom, follow this exact order and stop at these questions only:
 1. Will there be any presentations using slides or a screen? (presenter count)
-2. Will you need to show slides or videos? (if yes include WSBTHAV)
+2. Will you need to show slides or videos? (if yes include THRVAVP)
 3. Laptop: own or provided
 4. If own laptop: HDMI adaptor question (USBCMX2)
 5. Wireless clicker (LOGISPOT/WIRPRES)
@@ -277,7 +277,7 @@ When the user submits (`AV Extras: ...`), use this payload as final confirmation
 - **Microphones:** Do not force 1:1 assignment. Ask user for quantity and type.
 - **Switchers:** 1:4 ratio (1 V1HD = 4 inputs). Never auto-include. Always ask.
 - **Screens:** If room has built-in vision package, do not add standalone screen.
-- **Thrive:** WSBTHAV includes projector+screen+audio. Always ask if they want the package.
+- **Thrive:** THRVAVP includes projector+screen+audio. Always ask if they want the package.
 
 ## TECHNICIAN AND LABOUR RULES
 - If labour applies, setup and pack down are mandatory baseline stages.

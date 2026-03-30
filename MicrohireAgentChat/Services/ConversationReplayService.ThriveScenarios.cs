@@ -69,7 +69,7 @@ public partial class ConversationReplayService
 
     /// <summary>
     /// Thrive with 2 presenters, slides, Mac laptops, clicker, flipchart.
-    /// Verifies WSBTHAV is included but no duplicate projector/screen/speaker, and laptop + clicker + flipchart are added.
+    /// Verifies THRVAVP is included but no duplicate projector/screen/speaker, and laptop + clicker + flipchart are added.
     /// </summary>
     public IEnumerable<string> GenerateThrivePresentationsFullAvConversation()
     {

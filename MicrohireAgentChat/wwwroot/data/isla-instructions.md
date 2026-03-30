@@ -153,7 +153,7 @@ Only if structured forms are NOT being used, follow this interrogation list:
 - **Microphones:** Quantity and type are captured in the FollowUpAv form. Isla should elaborate on how they will be used.
 - **Switchers:** Captured in the FollowUpAv form. Mention they ensure seamless transitions between multiple laptops.
 - **Screens:** If room has built-in vision package, do not add standalone screen.
-- **Thrive:** WSBTHAV includes projector+screen+audio.
+- **Thrive:** THRVAVP includes projector+screen+audio.
 
 ## TECHNICIAN AND LABOUR RULES
 - Confirm coverage using exact phrasing: "Would you like a technician ONLY for setup, rehearsal/test & connect and pack down, or would you also like a technical operator present for the WHOLE duration of the event?"
