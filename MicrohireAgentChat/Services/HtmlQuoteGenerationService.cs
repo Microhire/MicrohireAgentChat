@@ -155,6 +155,28 @@ public partial class HtmlQuoteGenerationService
                 bookingNo,
                 crewRows.Count);
 
+            // 6b. If session had equipment/labor, items were just synced to DB but the
+            //     booking-level financial fields (hire_price, labour, insurance_v5) still
+            //     hold values from the previous quote generation. Clear them so BuildQuoteData
+            //     recalculates from the freshly-synced line items instead of using stale totals.
+            var sessionHadEquipment = !string.IsNullOrWhiteSpace(session?.GetString("Draft:SelectedEquipment"));
+            var sessionHadLabor = !string.IsNullOrWhiteSpace(session?.GetString("Draft:SelectedLabor"));
+            if (sessionHadEquipment || sessionHadLabor)
+            {
+                if (sessionHadEquipment)
+                {
+                    booking.hire_price = null;
+                    booking.insurance_v5 = null;
+                }
+                if (sessionHadLabor)
+                {
+                    booking.labour = null;
+                }
+                _logger.LogInformation(
+                    "[QUOTE GEN] trace={Trace} phase=clear_stale_financials booking={BookingNo} clearedHirePrice={ClearedHire} clearedLabour={ClearedLabour}",
+                    trace, bookingNo, sessionHadEquipment, sessionHadLabor);
+            }
+
             // 7. Build quote data (pass session overrides for venue/contact when available)
             string? sessionVenueName = session?.GetString("Draft:VenueName");
             string? sessionContactName = session?.GetString("Draft:ContactName");
