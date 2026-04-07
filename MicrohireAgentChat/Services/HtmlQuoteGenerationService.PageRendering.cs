@@ -184,105 +184,29 @@ public partial class HtmlQuoteGenerationService
     {
         var equipmentHtml = new StringBuilder();
 
-        // Group equipment by Vision/Audio/etc
-        var visionItems = data.EquipmentSections
-            .Where(s => s.Category.Contains("Vision") || s.Category.Contains("Projector") || s.Category.Contains("Screen"))
-            .SelectMany(s => s.Items).ToList();
-        var audioItems = data.EquipmentSections
-            .Where(s => s.Category.Contains("Audio") || s.Category.Contains("Microphone") || s.Category.Contains("Speaker"))
-            .SelectMany(s => s.Items).ToList();
-
-        // Vision section
-        if (visionItems.Any() || data.EquipmentSections.Any())
+        // Flat equipment list — all sections rendered without category headers
+        foreach (var section in data.EquipmentSections)
         {
-            equipmentHtml.AppendLine(@"
-                <div class=""equipment-category-header"">Vision</div>");
-            
-            foreach (var section in data.EquipmentSections.Where(s => 
-                s.Category.Contains("Vision") || s.Category.Contains("Projector") || 
-                s.Category.Contains("Screen") || s.Category.Contains("AV")))
-            {
-                if (!string.IsNullOrEmpty(section.SubCategory))
-                {
-                    equipmentHtml.AppendLine($@"                <div class=""equipment-subcategory"">{HttpUtility.HtmlEncode(section.SubCategory)}</div>");
-                }
-                equipmentHtml.AppendLine($@"                <div class=""equipment-group-title"">Includes:</div>");
-
-                foreach (var item in section.Items)
-                {
-                    var itemClass = item.IsComponent ? "component" : "";
-                    equipmentHtml.AppendLine($@"
-                    <div class=""equipment-row"">
-                        <div class=""equipment-item {itemClass}"">{HttpUtility.HtmlEncode(item.Description)}</div>
-                        <div class=""equipment-qty"">{(item.Quantity > 0 ? item.Quantity : 1)}</div>
-                    </div>");
-                }
-            }
-
-            // Vision total
-            decimal visionTotal = data.EquipmentSections
-                .Where(s => s.Category.Contains("Vision") || s.Category.Contains("Projector") || 
-                    s.Category.Contains("Screen") || s.Category.Contains("AV"))
-                .Sum(s => s.Items.Sum(i => i.LineTotal));
-            equipmentHtml.AppendLine($@"
-                <div class=""section-total"">
-                    <div class=""section-total-label"">Vision Total</div>
-                    <div class=""section-total-amount"">{visionTotal:C}</div>
-                </div>");
-        }
-
-        // Audio section
-        if (data.EquipmentSections.Any(s => s.Category.Contains("Audio") || s.Category.Contains("Microphone") || s.Category.Contains("Speaker")))
-        {
-            equipmentHtml.AppendLine(@"
-                <div class=""equipment-category-header"">Audio</div>");
-
-            foreach (var section in data.EquipmentSections.Where(s => 
-                s.Category.Contains("Audio") || s.Category.Contains("Microphone") || s.Category.Contains("Speaker")))
-            {
-                foreach (var item in section.Items)
-                {
-                    var itemClass = item.IsComponent ? "component" : "";
-                    equipmentHtml.AppendLine($@"
-                    <div class=""equipment-row"">
-                        <div class=""equipment-item {itemClass}"">{HttpUtility.HtmlEncode(item.Description)}</div>
-                        <div class=""equipment-qty"">{(item.Quantity > 0 ? item.Quantity : 1)}</div>
-                    </div>");
-                }
-            }
-
-            // Audio total
-            decimal audioTotal = data.EquipmentSections
-                .Where(s => s.Category.Contains("Audio") || s.Category.Contains("Microphone") || s.Category.Contains("Speaker"))
-                .Sum(s => s.Items.Sum(i => i.LineTotal));
-            equipmentHtml.AppendLine($@"
-                <div class=""section-total"">
-                    <div class=""section-total-label"">Audio Total</div>
-                    <div class=""section-total-amount"">{audioTotal:C}</div>
-                </div>");
-        }
-
-        // Other equipment sections
-        var otherSections = data.EquipmentSections.Where(s => 
-            !s.Category.Contains("Vision") && !s.Category.Contains("Projector") && 
-            !s.Category.Contains("Screen") && !s.Category.Contains("AV") &&
-            !s.Category.Contains("Audio") && !s.Category.Contains("Microphone") && 
-            !s.Category.Contains("Speaker")).ToList();
-
-        foreach (var section in otherSections)
-        {
-            equipmentHtml.AppendLine($@"
-                <div class=""equipment-category-header"">{HttpUtility.HtmlEncode(section.Category)}</div>");
-
             foreach (var item in section.Items)
             {
+                var itemClass = item.IsComponent ? "component" : "";
                 equipmentHtml.AppendLine($@"
                     <div class=""equipment-row"">
-                        <div class=""equipment-item"">{HttpUtility.HtmlEncode(item.Description)}</div>
+                        <div class=""equipment-item {itemClass}"">{HttpUtility.HtmlEncode(item.Description)}</div>
                         <div class=""equipment-qty"">{(item.Quantity > 0 ? item.Quantity : 1)}</div>
                     </div>");
             }
         }
+
+        // Single equipment total — use the pre-calculated value from BuildQuoteData
+        // (which prefers RentalPoint's booking.hire_price) so the Equipment page and
+        // Budget Summary always agree.
+        decimal equipmentTotal = data.EquipmentTotal;
+        equipmentHtml.AppendLine($@"
+                <div class=""section-total"">
+                    <div class=""section-total-label""></div>
+                    <div class=""section-total-amount"">{equipmentTotal:C}</div>
+                </div>");
 
         return $@"
         <!-- PAGE 3: EQUIPMENT & SERVICES -->
@@ -300,7 +224,6 @@ public partial class HtmlQuoteGenerationService
 
                 <div class=""room-header"">
                     <div class=""room-name"">{HttpUtility.HtmlEncode(data.VenueRoom)}</div>
-                    <div class=""room-times"">Event Starts - {data.EventStartTime?.Replace(":", "")}<br>Event Ends - {data.EventEndTime?.Replace(":", "")}</div>
                 </div>
                 
                 {equipmentHtml}
@@ -373,7 +296,10 @@ public partial class HtmlQuoteGenerationService
             labourTotal = 385.00m;
         }
 
-        data.LabourTotal = labourTotal;
+        // Prefer the RentalPoint booking-level labour value if it was set in BuildQuoteData;
+        // otherwise use the value computed from crew rows (or the default hardcoded fallback).
+        if (data.LabourTotal <= 0)
+            data.LabourTotal = labourTotal;
 
         return $@"
         <!-- PAGE 4: TECHNICAL SERVICES -->
@@ -421,8 +347,11 @@ public partial class HtmlQuoteGenerationService
     {
         decimal serviceCharge = data.ServiceCharge;
         decimal subTotalExGst = data.EquipmentTotal + data.LabourTotal + serviceCharge;
-        decimal gst = subTotalExGst * 0.10m;
-        decimal grandTotal = subTotalExGst + gst;
+        // Prefer the pre-calculated totals from BuildQuoteData (which honours
+        // RentalPoint's booking.price_quoted). Only fall back to a fresh
+        // calculation if those weren't set.
+        decimal gst = data.Gst > 0 ? data.Gst : subTotalExGst * 0.10m;
+        decimal grandTotal = data.GrandTotal > 0 ? data.GrandTotal : subTotalExGst + gst;
 
         // Update data totals
         data.Gst = gst;

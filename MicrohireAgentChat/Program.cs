@@ -165,6 +165,10 @@ using (var scope = app.Services.CreateScope())
             IF NOT EXISTS (SELECT 1 FROM sys.indexes WHERE object_id = OBJECT_ID('dbo.AgentThreads') AND name = 'IX_AgentThreads_Email')
                 CREATE NONCLUSTERED INDEX IX_AgentThreads_Email ON dbo.AgentThreads (Email) WHERE Email IS NOT NULL;
             """);
+        context.Database.ExecuteSqlRaw("""
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.WestinLeads') AND name = 'BookingNo')
+                ALTER TABLE dbo.WestinLeads ADD BookingNo NVARCHAR(35) NULL;
+            """);
         logger.LogInformation("Ensured AgentThreads schema is up to date.");
     }
     catch (Exception ex)

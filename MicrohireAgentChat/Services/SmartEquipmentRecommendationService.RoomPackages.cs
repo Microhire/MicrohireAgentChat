@@ -7,6 +7,63 @@ namespace MicrohireAgentChat.Services;
 
 public sealed partial class SmartEquipmentRecommendationService
 {
+    // ── Dynamic SubCategory discovery ───────────────────────────────────
+
+    private enum RoomProductType { Audio, Vision, Av, Independent, Unknown }
+    private enum RoomSizeVariant { Full, Half, Any }
+
+    private static (RoomProductType Type, RoomSizeVariant Size) ClassifyRoomProduct(string description)
+    {
+        var d = (description ?? "").ToLowerInvariant();
+
+        if (d.Contains("independent"))
+            return (RoomProductType.Independent, RoomSizeVariant.Any);
+
+        bool isSingle = d.Contains("single") || d.Contains("(single)");
+
+        if (d.Contains("av package") || d.Contains("audio visual"))
+            return (RoomProductType.Av, isSingle ? RoomSizeVariant.Half : RoomSizeVariant.Full);
+
+        if (d.Contains("speaker") || d.Contains("ceiling speaker") || d.Contains("audio system"))
+            return (RoomProductType.Audio, isSingle ? RoomSizeVariant.Half : RoomSizeVariant.Full);
+
+        if (d.Contains("projection") || d.Contains("projector"))
+            return (RoomProductType.Vision, RoomSizeVariant.Any);
+
+        return (RoomProductType.Unknown, RoomSizeVariant.Any);
+    }
+
+    /// <summary>
+    /// Discovers all products in the given SubCategory and classifies them by type and room size.
+    /// </summary>
+    private async Task<List<(string ProductCode, string Description, RoomProductType Type, RoomSizeVariant Size)>>
+        DiscoverProductsBySubCategoryAsync(string subCategory, CancellationToken ct)
+    {
+        var subCatLower = subCategory.Trim().ToLowerInvariant();
+
+        var rows = await _db.TblInvmas
+            .AsNoTracking()
+            .Where(p => p.SubCategory != null &&
+                        (p.SubCategory ?? "").Trim().ToLower() == subCatLower)
+            .Select(p => new { Code = (p.product_code ?? "").Trim(), Desc = (p.descriptionv6 ?? p.PrintedDesc ?? "").Trim() })
+            .ToListAsync(ct);
+
+        var results = new List<(string, string, RoomProductType, RoomSizeVariant)>();
+        foreach (var r in rows)
+        {
+            if (string.IsNullOrWhiteSpace(r.Code)) continue;
+            var (type, size) = ClassifyRoomProduct(r.Desc);
+            results.Add((r.Code, r.Desc, type, size));
+        }
+
+        _logger.LogInformation("Discovered {Count} products in SubCategory {SubCat}: {Codes}",
+            results.Count, subCategory, string.Join(", ", results.Select(r => $"{r.Item1}({r.Item3}/{r.Item4})")));
+
+        return results;
+    }
+
+    // ── Venue-room-packages.json cache ──────────────────────────────────
+
     private static readonly object _venueRoomPackagesLock = new();
     private static string? _venueRoomPackagesPathCached;
     private static DateTime _venueRoomPackagesWriteUtc;
@@ -484,6 +541,17 @@ public sealed partial class SmartEquipmentRecommendationService
             return new List<RecommendedEquipmentItem>();
         }
 
+        // Read aiFolder early — drives dynamic SubCategory discovery
+        var aiFolder = "WSB";
+        if (roomPkgs.TryGetValue("aiFolder", out var aiFolderEl) && aiFolderEl.ValueKind == JsonValueKind.String)
+        {
+            var folderStr = aiFolderEl.GetString();
+            if (!string.IsNullOrWhiteSpace(folderStr))
+                aiFolder = folderStr.Trim();
+        }
+        bool hasSpecificAiFolder = !string.Equals(aiFolder, "WSB", StringComparison.OrdinalIgnoreCase);
+
+        // Try reading explicit package codes from JSON arrays (audio/vision/av)
         List<string>? packageCodes = null;
         string[]? keysToTry = equipmentType.ToLowerInvariant() switch
         {
@@ -513,8 +581,54 @@ public sealed partial class SmartEquipmentRecommendationService
             }
         }
 
-        if (packageCodes == null || packageCodes.Count == 0)
+        // ── Dynamic SubCategory discovery ────────────────────────────────
+        // When JSON arrays are absent but aiFolder points to a specific SubCategory,
+        // discover all products in that SubCategory and classify dynamically.
+        if ((packageCodes == null || packageCodes.Count == 0) && hasSpecificAiFolder)
+        {
+            var discovered = await DiscoverProductsBySubCategoryAsync(aiFolder, ct);
+            if (discovered.Count == 0)
+                return new List<RecommendedEquipmentItem>();
+
+            var targetType = equipmentType.ToLowerInvariant() switch
+            {
+                "av" => RoomProductType.Av,
+                "vision" or "projector" or "projectors" or "screen" or "screens" => RoomProductType.Vision,
+                "speaker" or "speakers" or "audio" => RoomProductType.Audio,
+                _ => (RoomProductType?)null
+            };
+
+            if (!targetType.HasValue)
+                return new List<RecommendedEquipmentItem>();
+
+            // Safety net: if the user explicitly declined projection via the combined checkbox,
+            // do not return vision packages even if a vision request somehow slipped through.
+            if (context.UserDeclinedProjection && targetType == RoomProductType.Vision)
+                return new List<RecommendedEquipmentItem>();
+
+            var isHalfRoom = roomNorm.Contains("elevate 1") || roomNorm.Contains("elevate-1") ||
+                             roomNorm.Contains("elevate 2") || roomNorm.Contains("elevate-2") ||
+                             roomNorm.Contains("thrive 1") || roomNorm.Contains("thrive-1") ||
+                             roomNorm.Contains("ballroom 1") || roomNorm.Contains("ballroom 2");
+            var targetSize = isHalfRoom ? RoomSizeVariant.Half : RoomSizeVariant.Full;
+
+            var candidates = discovered.Where(d => d.Type == targetType.Value).ToList();
+            var sizeMatched = candidates.Where(d => d.Size == targetSize).ToList();
+            if (sizeMatched.Count == 0)
+                sizeMatched = candidates.Where(d => d.Size == RoomSizeVariant.Any).ToList();
+            if (sizeMatched.Count == 0 && targetSize == RoomSizeVariant.Full)
+                sizeMatched = candidates; // full room can use any variant
+
+            packageCodes = sizeMatched.Select(d => d.ProductCode).ToList();
+            if (packageCodes.Count == 0)
+                return new List<RecommendedEquipmentItem>();
+        }
+        else if (packageCodes == null || packageCodes.Count == 0)
+        {
             return new List<RecommendedEquipmentItem>();
+        }
+
+        // ── Ballroom-specific routing (explicit JSON codes) ──────────────
 
         // Westin Ballroom audio package routing:
         // - Full Ballroom -> WBFBCSS
@@ -545,45 +659,15 @@ public sealed partial class SmartEquipmentRecommendationService
                 return new List<RecommendedEquipmentItem>();
         }
 
-        // Elevate audio: ELEVSCSS for Elevate 1/2 (half), ELEVCSS for Elevate (combined)
-        if (roomKey == "Elevate" && (equipmentType.Contains("speaker", StringComparison.OrdinalIgnoreCase) || equipmentType.Contains("audio", StringComparison.OrdinalIgnoreCase)))
-        {
-            var isElevateHalf = roomNorm.Contains("elevate 1") || roomNorm.Contains("elevate-1") ||
-                                roomNorm.Contains("elevate 2") || roomNorm.Contains("elevate-2");
-            packageCodes = isElevateHalf
-                ? packageCodes.Where(c => string.Equals(c, "ELEVSCSS", StringComparison.OrdinalIgnoreCase)).ToList()
-                : packageCodes.Where(c => string.Equals(c, "ELEVCSS", StringComparison.OrdinalIgnoreCase)).ToList();
-            if (packageCodes.Count == 0)
-                return new List<RecommendedEquipmentItem>();
-        }
+        // ── Fetch products from DB ───────────────────────────────────────
 
-        // Elevate AV: ELEVSAVP for Elevate 1/2 (half), ELEVAVP for Elevate (combined)
-        if (roomKey == "Elevate" && equipmentType.Equals("av", StringComparison.OrdinalIgnoreCase))
-        {
-            var isElevateHalf = roomNorm.Contains("elevate 1") || roomNorm.Contains("elevate-1") ||
-                                roomNorm.Contains("elevate 2") || roomNorm.Contains("elevate-2");
-            packageCodes = isElevateHalf
-                ? packageCodes.Where(c => string.Equals(c, "ELEVSAVP", StringComparison.OrdinalIgnoreCase)).ToList()
-                : packageCodes.Where(c => string.Equals(c, "ELEVAVP", StringComparison.OrdinalIgnoreCase)).ToList();
-            if (packageCodes.Count == 0)
-                return new List<RecommendedEquipmentItem>();
-        }
-
-        var aiFolder = "WSB";
-        if (roomPkgs.TryGetValue("aiFolder", out var aiFolderEl) && aiFolderEl.ValueKind == JsonValueKind.String)
-        {
-            var folderStr = aiFolderEl.GetString();
-            if (!string.IsNullOrWhiteSpace(folderStr))
-                aiFolder = folderStr.Trim();
-        }
-
-        var folderNorm = aiFolder.Trim();
-        var folderNormLower = folderNorm.ToLower();
+        var folderNormLower = aiFolder.Trim().ToLowerInvariant();
         var products = await _db.TblInvmas
             .AsNoTracking()
             .Where(p =>
                 packageCodes.Contains((p.product_code ?? "").Trim()) &&
-                ((p.category ?? "").Trim().ToLower() == folderNormLower ||
+                ((p.SubCategory ?? "").Trim().ToLower() == folderNormLower ||
+                 (p.category ?? "").Trim().ToLower() == folderNormLower ||
                  (p.category ?? "").Trim().ToLower() == "wsb"))
             .Select(p => new { p.product_code, p.descriptionv6, p.PrintedDesc, p.category, p.PictureFileName })
             .ToListAsync(ct);

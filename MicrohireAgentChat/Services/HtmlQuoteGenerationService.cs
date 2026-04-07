@@ -65,6 +65,8 @@ public partial class HtmlQuoteGenerationService
                 booking.VenueID,
                 booking.dDate);
 
+            ApplySessionScheduleTimesToBookingIfNeeded(booking, session);
+
             // 2–5. Load venue, contact, organization, line items, and crew sequentially.
             // EF Core disallows concurrent operations on a single DbContext instance; parallel Task.WhenAll caused
             // "A second operation was started on this context instance before a previous operation completed."
@@ -168,6 +170,9 @@ public partial class HtmlQuoteGenerationService
             var quoteData = BuildQuoteData(booking, venue, contact, organization, items, inventoryItems, rateItems,
                 crewRows, sessionVenueName, sessionContactName, sessionOrganisation);
 
+            // 7b. Sync calculated financials back to the booking so RentalPoint shows correct values
+            await SyncFinancialsToBookingAsync(bookingNo, quoteData, ct);
+
             // 8. Generate HTML
             var htmlSw = Stopwatch.StartNew();
             var html = GenerateHtml(quoteData);
@@ -233,6 +238,38 @@ public partial class HtmlQuoteGenerationService
                 elapsedMs,
                 errorDetail);
             return (false, null, errorDetail);
+        }
+    }
+
+    private async Task SyncFinancialsToBookingAsync(string bookingNo, QuoteHtmlData quoteData, CancellationToken ct)
+    {
+        try
+        {
+            var tracked = await _db.TblBookings.FirstOrDefaultAsync(b => b.booking_no == bookingNo, ct);
+            if (tracked == null) return;
+
+            bool changed = false;
+            void Sync(ref double? field, double value)
+            {
+                if (!field.HasValue || Math.Abs(field.Value - value) > 0.01)
+                { field = value; changed = true; }
+            }
+
+            var hp = tracked.hire_price; Sync(ref hp, (double)quoteData.EquipmentTotal); tracked.hire_price = hp;
+            var lb = tracked.labour; Sync(ref lb, (double)quoteData.LabourTotal); tracked.labour = lb;
+            var iv = tracked.insurance_v5; Sync(ref iv, (double)quoteData.ServiceCharge); tracked.insurance_v5 = iv;
+            var tx = tracked.Tax2; Sync(ref tx, (double)quoteData.Gst); tracked.Tax2 = tx;
+            var pq = tracked.price_quoted; Sync(ref pq, (double)quoteData.GrandTotal); tracked.price_quoted = pq;
+
+            if (!tracked.insurance_type.HasValue || tracked.insurance_type.Value != 1)
+            { tracked.insurance_type = 1; changed = true; }
+
+            if (changed)
+                await _db.SaveChangesAsync(ct);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to sync financials back to booking {BookingNo}", bookingNo);
         }
     }
 
@@ -304,20 +341,42 @@ public partial class HtmlQuoteGenerationService
         // Build equipment sections
         var equipmentSections = BuildEquipmentSections(items, inventoryLookup, rateLookup);
 
-        // Calculate totals
-        decimal equipmentTotal = equipmentSections.Sum(s => s.Items.Sum(i => i.LineTotal));
-        // Business rule: 10% service charge on total hire amount (rental equipment).
-        decimal serviceCharge = equipmentTotal * 0.10m;
-        decimal gst = equipmentTotal * 0.10m;
-        decimal grandTotal = equipmentTotal + gst;
+        // Calculate totals — prefer RentalPoint booking-level values (authoritative in DB),
+        // fall back to line-item sums / business rules only when DB values are not set.
+        decimal lineItemSum = equipmentSections.Sum(s => s.Items.Sum(i => i.LineTotal));
+        decimal equipmentTotal = booking.hire_price.HasValue && booking.hire_price.Value > 0
+            ? (decimal)booking.hire_price.Value
+            : lineItemSum;
 
-        // Use booking price if set
-        if (booking.price_quoted.HasValue && booking.price_quoted.Value > 0)
-        {
-            grandTotal = (decimal)booking.price_quoted.Value;
-            gst = grandTotal / 1.1m * 0.1m;
-            equipmentTotal = grandTotal - gst;
-        }
+        // Service charge is stored in insurance_v5 (RentalPoint's "Service Charge" field).
+        // insurance_type: 0=None, 1=10%, 2=35% — applied to hire_price.
+        // Use the DB value when set; otherwise default to 10% of equipment total.
+        decimal serviceCharge = booking.insurance_v5.HasValue && booking.insurance_v5.Value != 0
+            ? (decimal)booking.insurance_v5.Value
+            : Math.Round(equipmentTotal * 0.10m, 2);
+
+        // Labour from RentalPoint booking-level value (Inst/Operator field).
+        // When booking.labour is NULL or 0 (chat-flow bookings don't always persist it at the
+        // booking level), fall back to the sum of crew rows — that is what RentalPoint itself
+        // displays as Inst/Operator on-screen, and what BuildLaborItems / the Technical Services
+        // page renders. Without this fallback, the Budget Summary's GST and Total are computed
+        // from equipment alone, leaving them stale even though the labour rows render correctly.
+        var laborItems = BuildLaborItems(crewRows, eventDate.Value);
+        decimal crewRowSum = laborItems.Sum(l => l.LineTotal);
+        decimal labourTotal = booking.labour.HasValue && booking.labour.Value > 0
+            ? (decimal)booking.labour.Value
+            : crewRowSum;
+
+        // Grand total & GST: always compute from components using RentalPoint's on-screen formula:
+        //   Sub total   = hire_price + labour + sundry_total
+        //   GST         = Sub total × 10%
+        //   Total Price = Sub total + GST
+        // We intentionally do NOT use booking.price_quoted: RentalPoint recomputes its on-screen
+        // total live every time it's displayed and does not keep price_quoted in sync, so that
+        // field can be stale (e.g. equal to hire_price with no labour/GST rolled in).
+        decimal subTotalExGst = equipmentTotal + labourTotal + serviceCharge;
+        decimal gst = subTotalExGst * 0.10m;
+        decimal grandTotal = subTotalExGst + gst;
 
         var resolvedContactName = contact?.Contactname ?? booking.contact_nameV6;
         if (!string.IsNullOrWhiteSpace(sessionContactName))
@@ -328,8 +387,6 @@ public partial class HtmlQuoteGenerationService
             resolvedOrgName = sessionOrganisation;
 
         var venueCity = "Brisbane";
-
-        var laborItems = BuildLaborItems(crewRows, eventDate.Value);
 
         return new QuoteHtmlData
         {
@@ -374,6 +431,7 @@ public partial class HtmlQuoteGenerationService
             EquipmentSections = equipmentSections,
             LaborItems = laborItems,
             EquipmentTotal = equipmentTotal,
+            LabourTotal = labourTotal,
             ServiceCharge = serviceCharge,
             Gst = gst,
             GrandTotal = grandTotal
@@ -554,6 +612,52 @@ public partial class HtmlQuoteGenerationService
     private static string FormatHoursMinutes(int hours, int minutes)
     {
         return $"{hours:D2}:{minutes:D2}";
+    }
+
+    /// <summary>
+    /// When booking rows have no schedule times yet, copy session draft times so the quote matches the wizard
+    /// (safety net if upstream sync was skipped).
+    /// </summary>
+    private static void ApplySessionScheduleTimesToBookingIfNeeded(TblBooking booking, ISession? session)
+    {
+        if (session == null) return;
+
+        static string PadTimeHHmm(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return raw;
+            var digits = raw.Replace(":", "").Trim();
+            return digits.Length >= 4 ? digits : digits.PadLeft(4, '0');
+        }
+
+        static bool IsMissing(string? s) => string.IsNullOrWhiteSpace(s);
+
+        if (IsMissing(booking.setupTimeV61))
+        {
+            var v = session.GetString("Draft:SetupTime");
+            if (!string.IsNullOrWhiteSpace(v))
+                booking.setupTimeV61 = PadTimeHHmm(v);
+        }
+
+        if (IsMissing(booking.RehearsalTime))
+        {
+            var v = session.GetString("Draft:RehearsalTime");
+            if (!string.IsNullOrWhiteSpace(v))
+                booking.RehearsalTime = PadTimeHHmm(v);
+        }
+
+        if (IsMissing(booking.showStartTime))
+        {
+            var v = session.GetString("Draft:StartTime");
+            if (!string.IsNullOrWhiteSpace(v))
+                booking.showStartTime = PadTimeHHmm(v);
+        }
+
+        if (IsMissing(booking.ShowEndTime))
+        {
+            var v = session.GetString("Draft:EndTime");
+            if (!string.IsNullOrWhiteSpace(v))
+                booking.ShowEndTime = PadTimeHHmm(v);
+        }
     }
 
     /// <summary>

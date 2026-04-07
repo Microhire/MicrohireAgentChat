@@ -94,17 +94,18 @@ public sealed partial class BookingPersistenceService
 
     /// <summary>
     /// Sync latest session contact and organisation to an existing booking before quote generation.
+    /// Returns (changed, newBookingNo) — newBookingNo is non-null only when the booking number was regenerated.
     /// </summary>
-    public async Task<bool> SyncContactAndOrganisationForBookingAsync(string bookingNo, ISession? session, CancellationToken ct)
+    public async Task<(bool changed, string? newBookingNo)> SyncContactAndOrganisationForBookingAsync(string bookingNo, ISession? session, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(bookingNo) || session == null)
-            return false;
+            return (false, null);
 
         var booking = await _db.TblBookings.FirstOrDefaultAsync(b => b.booking_no == bookingNo, ct);
         if (booking == null)
         {
             _logger.LogWarning("[QUOTE GEN] Cannot sync contact/org - booking {BookingNo} not found", bookingNo);
-            return false;
+            return (false, null);
         }
 
         var contactName = session.GetString("Draft:ContactName");
@@ -161,12 +162,50 @@ public sealed partial class BookingPersistenceService
             }
         }
 
+        string? newBookingNo = null;
+
         if (changed)
         {
+            // If the customer code changed and the booking number prefix no longer matches,
+            // regenerate the booking number with the correct customer code prefix.
+            var currentCustCode = (booking.CustCode ?? "").Trim();
+            if (!string.IsNullOrWhiteSpace(currentCustCode) &&
+                !bookingNo.StartsWith(currentCustCode, StringComparison.OrdinalIgnoreCase))
+            {
+                newBookingNo = await GenerateNextBookingNoAsync(currentCustCode, ct);
+                _logger.LogInformation(
+                    "[QUOTE GEN] Regenerating booking number: {OldBookingNo} → {NewBookingNo} to match customer code {CustCode}",
+                    bookingNo, newBookingNo, currentCustCode);
+
+                // Cascade booking number to child tables
+                var oldNo = bookingNo;
+                var items = await _db.TblItemtrans
+                    .Where(i => i.BookingNoV32 == oldNo)
+                    .ToListAsync(ct);
+                foreach (var item in items)
+                    item.BookingNoV32 = newBookingNo;
+
+                var notes = await _db.TblBooknotes
+                    .Where(n => n.BookingNo == oldNo)
+                    .ToListAsync(ct);
+                foreach (var note in notes)
+                    note.BookingNo = newBookingNo;
+
+                var crew = await _db.TblCrews
+                    .Where(c => c.BookingNoV32 == oldNo)
+                    .ToListAsync(ct);
+                foreach (var c in crew)
+                    c.BookingNoV32 = newBookingNo;
+
+                booking.booking_no = newBookingNo;
+                if (booking.order_no == oldNo)
+                    booking.order_no = newBookingNo;
+            }
+
             await _db.SaveChangesAsync(ct);
-            _logger.LogInformation("[QUOTE GEN] Synced session contact/org (no-update policy) to booking {BookingNo}", bookingNo);
+            _logger.LogInformation("[QUOTE GEN] Synced session contact/org to booking {BookingNo}", newBookingNo ?? bookingNo);
         }
-        return changed;
+        return (changed, newBookingNo);
     }
 
     /// <summary>
@@ -184,7 +223,13 @@ public sealed partial class BookingPersistenceService
         try { anyChanged |= await SyncVenueAndRoomForBookingAsync(bookingNo, session, ct); }
         catch (Exception ex) { _logger.LogWarning(ex, "[PROACTIVE] Venue/room sync failed for {BookingNo}", bookingNo); }
 
-        try { anyChanged |= await SyncContactAndOrganisationForBookingAsync(bookingNo, session, ct); }
+        try
+        {
+            var (contactChanged, renamedBookingNo) = await SyncContactAndOrganisationForBookingAsync(bookingNo, session, ct);
+            anyChanged |= contactChanged;
+            if (!string.IsNullOrWhiteSpace(renamedBookingNo))
+                bookingNo = renamedBookingNo;
+        }
         catch (Exception ex) { _logger.LogWarning(ex, "[PROACTIVE] Contact/org sync failed for {BookingNo}", bookingNo); }
 
         try { anyChanged |= await SyncEventDetailsForBookingAsync(bookingNo, session, ct); }
@@ -199,7 +244,7 @@ public sealed partial class BookingPersistenceService
     /// <summary>
     /// Sync event date, times, event type, and equipment from session to booking.
     /// </summary>
-    private async Task<bool> SyncEventDetailsForBookingAsync(string bookingNo, ISession session, CancellationToken ct)
+    public async Task<bool> SyncEventDetailsForBookingAsync(string bookingNo, ISession session, CancellationToken ct)
     {
         var booking = await _db.TblBookings.FirstOrDefaultAsync(b => b.booking_no == bookingNo, ct);
         if (booking == null) return false;
@@ -403,6 +448,7 @@ public sealed partial class BookingPersistenceService
         return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz);
     }
 
+    [Obsolete("Use GenerateNextBookingNoAsync(customerCode) for Microhire CustomerCode + sequence format.")]
     private async Task<string> GenerateBookingNumberAsync(CancellationToken ct)
     {
         var now = NowAest();
@@ -436,7 +482,7 @@ public sealed partial class BookingPersistenceService
         return org;
     }
 
-    private async Task<int?> ResolveVenueIdAsync(string? venueName, CancellationToken ct)
+    public async Task<int?> ResolveVenueIdAsync(string? venueName, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(venueName))
             return null;
@@ -496,18 +542,6 @@ public sealed partial class BookingPersistenceService
             .FirstOrDefaultAsync(ct);
 
         return firstCust != 0 ? firstCust : 1;
-    }
-
-    /// <summary>
-    /// Get customer code by ID
-    /// </summary>
-    private async Task<string?> GetCustomerCodeByIdAsync(decimal custId, CancellationToken ct)
-    {
-        var code = await _db.TblCusts
-            .Where(c => c.ID == custId)
-            .Select(c => c.Customer_code)
-            .FirstOrDefaultAsync(ct);
-        return code;
     }
 
     private static string? GetFact(Dictionary<string, string> facts, string key)

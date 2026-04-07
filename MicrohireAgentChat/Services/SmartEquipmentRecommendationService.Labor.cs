@@ -18,6 +18,13 @@ public sealed partial class SmartEquipmentRecommendationService
         EventContext context,
         CancellationToken ct)
     {
+        // User explicitly chose not to have speakers via the base AV form — respect that choice.
+        if (context.UserDeclinedAudio)
+        {
+            _logger.LogInformation("Skipping audio pairing: user declined audio in base AV form.");
+            return;
+        }
+
         var speakerStyle = ResolveSpeakerStylePreference(context);
         var prefersExternalSpeakers = speakerStyle is "external" or "portable";
 

@@ -53,7 +53,7 @@ body {
         content: "";
         position: absolute;
         height: 100%;
-        background: #332d4f;
+        background: #ca1a20;
         transition: all 0.3s ease 0s;
     }
 
@@ -459,7 +459,7 @@ p {
 /* footer */
 
 footer {
-    background-color: #b71c1c;
+    background-color: #a8151a;
     color: #fff;
     padding: 50px 0px;
 }
@@ -1428,17 +1428,17 @@ form#sendForm
         margin-top: 8px;
         padding: 10px 14px;
         border-radius: 10px;
-        background: #2563eb;
+        background: #ca1a20;
         color: #fff;
-        border: 1px solid #1d4ed8;
+        border: 1px solid #a8151a;
         font-weight: 600;
         cursor: pointer;
         transition: transform .05s ease, box-shadow .15s ease, background .15s ease;
     }
 
         .isla-timepicker .btn-apply-time:hover {
-            background: #1e53d8;
-            box-shadow: 0 8px 18px rgba(29,78,216,.20);
+            background: #a8151a;
+            box-shadow: 0 8px 18px rgba(202,26,32,.20);
         }
 
         .isla-timepicker .btn-apply-time:active {
@@ -1446,7 +1446,7 @@ form#sendForm
         }
 
         .isla-timepicker .btn-apply-time:focus-visible {
-            outline: 3px solid rgba(37,99,235,.35);
+            outline: 3px solid rgba(202,26,32,.35);
             outline-offset: 2px;
         }
 
@@ -1515,17 +1515,17 @@ form#sendForm
         margin-top: 8px;
         padding: 10px 14px;
         border-radius: 10px;
-        background: #2563eb;
+        background: #ca1a20;
         color: #fff;
-        border: 1px solid #1d4ed8;
+        border: 1px solid #a8151a;
         font-weight: 600;
         cursor: pointer;
         transition: transform .05s ease, box-shadow .15s ease, background .15s ease;
     }
 
     .isla-multitime .btn-apply-multitime:hover {
-        background: #1e53d8;
-        box-shadow: 0 8px 18px rgba(29,78,216,.20);
+        background: #a8151a;
+        box-shadow: 0 8px 18px rgba(202,26,32,.20);
     }
 
     .isla-multitime .btn-apply-multitime:active {
@@ -1533,7 +1533,7 @@ form#sendForm
     }
 
     .isla-multitime .btn-apply-multitime:focus-visible {
-        outline: 3px solid rgba(37,99,235,.35);
+        outline: 3px solid rgba(202,26,32,.35);
         outline-offset: 2px;
     }
 
@@ -1600,7 +1600,7 @@ form#sendForm
     margin-left: 8px;
     border-radius: 50%;
     border: 2px solid #cfd8e3; /* light ring */
-    border-top-color: #2563eb; /* accent */
+    border-top-color: #ca1a20; /* accent */
     animation: isla-spin .8s linear infinite;
     vertical-align: text-bottom;
 }
@@ -1626,7 +1626,7 @@ form#sendForm
         width: 12px;
         height: 12px;
         border: 2px solid #cfd8e3;
-        border-top-color: #2563eb;
+        border-top-color: #ca1a20;
         border-radius: 50%;
         animation: isla-spin .8s linear infinite;
     }

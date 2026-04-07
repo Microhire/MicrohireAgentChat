@@ -1,4 +1,5 @@
 @using MicrohireAgentChat.Services
+@using System.Globalization
 @using Markdig
 @using System.Text.Json
 @using System.Net
@@ -30,7 +31,7 @@
   .isla-cta-sublabel{margin-bottom:.75rem;font-size:0.9rem;color:#666}
   .isla-cta-buttons{display:flex;gap:.625rem;flex-wrap:wrap}
   .isla-cta-buttons .isla-quote-yes,.isla-cta-buttons .isla-quote-no{padding:.375rem .75rem;border-radius:.5rem;border:none;cursor:pointer}
-  .isla-cta-buttons .isla-quote-yes{background:#c62828;color:#fff}
+  .isla-cta-buttons .isla-quote-yes{background:#ca1a20;color:#fff}
   .isla-cta-buttons .isla-quote-no{background:#eee;color:#333}
 
   /* Quote acceptance CTA — polished variant */
@@ -46,14 +47,14 @@
   .isla-cta-acceptance .isla-cta-buttons{gap:.75rem}
   .isla-cta-acceptance .isla-quote-accept-yes{
     display:inline-flex;align-items:center;gap:0.4rem;
-    background:#c62828;color:#fff;
+    background:#ca1a20;color:#fff;
     padding:0.625rem 1.25rem;border-radius:8px;border:none;
     font-weight:600;font-size:0.95rem;cursor:pointer;
     transition:background 0.2s ease,transform 0.1s ease,box-shadow 0.2s ease;
-    box-shadow:0 2px 6px rgba(198,40,40,0.25);
+    box-shadow:0 2px 6px rgba(202,26,32,0.25);
   }
-  .isla-cta-acceptance .isla-quote-accept-yes:hover{background:#b71c1c;transform:translateY(-1px);box-shadow:0 4px 12px rgba(198,40,40,0.3)}
-  .isla-cta-acceptance .isla-quote-accept-yes:active{transform:translateY(0);box-shadow:0 1px 3px rgba(198,40,40,0.2)}
+  .isla-cta-acceptance .isla-quote-accept-yes:hover{background:#a8151a;transform:translateY(-1px);box-shadow:0 4px 12px rgba(202,26,32,0.3)}
+  .isla-cta-acceptance .isla-quote-accept-yes:active{transform:translateY(0);box-shadow:0 1px 3px rgba(202,26,32,0.2)}
   .isla-cta-acceptance .isla-quote-view-btn{
     display:inline-flex;align-items:center;
     background:transparent;color:#555;
@@ -64,6 +65,7 @@
   }
   .isla-cta-acceptance .isla-quote-view-btn:hover{background:#f5f5f5;border-color:#999;color:#333}
   .isla-cta-acceptance .isla-quote-view-btn:active{background:#eee}
+  .isla-quote-legal-copy .isla-form-checkbox{font-size:0.88rem}
 
   /* Digital signing form */
   .isla-signing-form{margin-top:1rem;padding:1.25rem;background:#fff;border:1px solid #ddd;border-radius:10px}
@@ -71,24 +73,24 @@
   .isla-signing-row{display:flex;gap:1rem;margin-bottom:1rem}
   .isla-signing-row-full .isla-signing-field{flex:1 1 100%}
   .isla-signing-field{flex:1}
-  .isla-signing-field label{display:block;font-weight:600;font-size:0.8rem;color:#666;text-transform:uppercase;letter-spacing:0.03em;margin-bottom:0.35rem}
+  .isla-signing-field label{display:block;font-weight:600;font-size:0.8rem;color:#666;text-transform:none;letter-spacing:normal;margin-bottom:0.5rem}
   .isla-signing-field input{width:100%;padding:0.5rem 0.65rem;border:1px solid #ccc;border-radius:6px;font-size:0.95rem;font-family:inherit;box-sizing:border-box;transition:border-color 0.2s}
-  .isla-signing-field input:focus{outline:none;border-color:#c62828}
+  .isla-signing-field input:focus{outline:none;border-color:#ca1a20}
   .isla-signing-field input[readonly]{background:#f5f5f5;color:#666;cursor:default}
   .isla-signing-field canvas{width:100%;height:120px;border:1px solid #ccc;border-radius:6px;cursor:crosshair;touch-action:none;display:block}
   .isla-sign-clear{margin-top:0.35rem;background:none;border:none;color:#888;font-size:0.8rem;cursor:pointer;padding:0;text-decoration:underline}
-  .isla-sign-clear:hover{color:#c62828}
+  .isla-sign-clear:hover{color:#ca1a20}
   .isla-signing-actions{display:flex;gap:0.75rem;margin-top:1rem}
   .isla-sign-submit{
     display:inline-flex;align-items:center;gap:0.4rem;
-    background:#c62828;color:#fff;
+    background:#ca1a20;color:#fff;
     padding:0.625rem 1.25rem;border-radius:8px;border:none;
     font-weight:600;font-size:0.95rem;cursor:pointer;
     transition:background 0.2s ease,transform 0.1s ease,box-shadow 0.2s ease;
-    box-shadow:0 2px 6px rgba(198,40,40,0.25);
+    box-shadow:0 2px 6px rgba(202,26,32,0.25);
   }
-  .isla-sign-submit:hover{background:#b71c1c;transform:translateY(-1px);box-shadow:0 4px 12px rgba(198,40,40,0.3)}
-  .isla-sign-submit:active{transform:translateY(0);box-shadow:0 1px 3px rgba(198,40,40,0.2)}
+  .isla-sign-submit:hover{background:#a8151a;transform:translateY(-1px);box-shadow:0 4px 12px rgba(202,26,32,0.3)}
+  .isla-sign-submit:active{transform:translateY(0);box-shadow:0 1px 3px rgba(202,26,32,0.2)}
   .isla-sign-submit:disabled{opacity:0.6;pointer-events:none}
   .isla-sign-cancel{
     display:inline-flex;align-items:center;
@@ -98,33 +100,36 @@
     transition:background 0.2s ease,border-color 0.2s ease,color 0.2s ease;
   }
   .isla-sign-cancel:hover{background:#f5f5f5;border-color:#999;color:#333}
-  .isla-signing-error{margin-top:0.5rem;color:#c62828;font-size:0.9rem;font-weight:500}
+  .isla-signing-error{margin-top:0.5rem;color:#ca1a20;font-size:0.9rem;font-weight:500}
   @@media(max-width:540px){
     .isla-signing-row{flex-direction:column;gap:0.75rem}
   }
 
-  /* Inline chat forms */
-  .isla-form-card{margin-top:1rem;padding:1rem 1.1rem;background:linear-gradient(180deg,#ffffff 0%,#fbfcfe 100%);border:1px solid #e8ecf2;border-radius:12px;box-shadow:0 6px 16px rgba(16,24,40,.06)}
-  .isla-form-title{font-weight:700;font-size:1rem;color:#1b2a3a;margin:0 0 .85rem}
-  .isla-form-grid{display:grid;grid-template-columns:1fr;gap:.75rem}
+  /* Inline chat forms — typography scale: card title > question > field label > options */
+  .isla-form-card{--isla-form-section-gap:1.25rem;margin-top:1rem;padding:1rem 1.1rem;background:linear-gradient(180deg,#ffffff 0%,#fbfcfe 100%);border:1px solid #e8ecf2;border-radius:12px;box-shadow:0 6px 16px rgba(16,24,40,.06)}
+  .isla-form-title{font-weight:700;font-size:1rem;color:#1b2a3a;margin:0 0 1rem}
+  .isla-form-question,.isla-base-av-sentence-label{font-size:.9375rem;font-weight:600;color:#374151;line-height:1.35;text-transform:none;letter-spacing:normal}
+  label.isla-form-question,label.isla-base-av-sentence-label{display:block;margin-bottom:.5rem}
+  .isla-form-field-label{font-size:.8rem;font-weight:600;color:#64748b;text-transform:none;letter-spacing:normal}
+  .isla-form-grid{display:grid;grid-template-columns:1fr;gap:1rem}
   .isla-form-grid.two-col{grid-template-columns:1fr}
-  .isla-form-field{display:flex;flex-direction:column;gap:.35rem}
-  .isla-form-field label{font-weight:600;font-size:.8rem;color:#666;text-transform:uppercase;letter-spacing:.03em}
+  .isla-form-field{display:flex;flex-direction:column;gap:.5rem}
+  .isla-form-field > label:not(.isla-form-question):not(.isla-base-av-sentence-label){font-weight:600;font-size:.8rem;color:#64748b;text-transform:none;letter-spacing:normal}
   /* Do not style radio/checkbox like text fields (100%×42px breaks native radios inside .isla-form-field). */
   .isla-form-field input:not([type="checkbox"]):not([type="radio"]),
   .isla-form-field select{width:100%;height:42px;padding:8px 10px;border:1px solid #d9dee7;border-radius:10px;background:#fff;font:inherit;transition:border-color .15s ease, box-shadow .15s ease}
   .isla-form-field input:not([type="checkbox"]):not([type="radio"]):hover,.isla-form-field select:hover{border-color:#cfd7e6}
-  .isla-form-field input:not([type="checkbox"]):not([type="radio"]):focus,.isla-form-field select:focus{outline:none;border-color:#7aa7ff;box-shadow:0 0 0 4px rgba(122,167,255,.20)}
-  .isla-form-checkbox{display:flex;align-items:center;gap:.5rem;font-size:.95rem;color:#1b2a3a}
-  .isla-form-checkbox input{width:18px;height:18px;min-width:18px;flex-shrink:0;accent-color:#2563eb;cursor:pointer}
+  .isla-form-field input:not([type="checkbox"]):not([type="radio"]):focus,.isla-form-field select:focus{outline:none;border-color:#ca1a20;box-shadow:0 0 0 4px rgba(202,26,32,.15)}
+  .isla-form-checkbox{display:flex;align-items:center;gap:.5rem;font-size:.9375rem;font-weight:500;color:#374151}
+  .isla-form-checkbox input{width:18px;height:18px;min-width:18px;flex-shrink:0;accent-color:#ca1a20;cursor:pointer}
   /* Checkboxes only: squaring radios breaks native disc and reads as disabled. */
   .isla-form-field .isla-form-checkbox input[type="checkbox"]{width:18px;height:18px;min-width:18px;padding:0;margin:0;border:none;border-radius:4px;box-shadow:none;background:transparent;vertical-align:middle}
-  .isla-form-field .isla-form-checkbox input[type="radio"]{width:1.125rem;height:1.125rem;min-width:1.125rem;padding:0;margin:0;vertical-align:middle;accent-color:#2563eb;cursor:pointer;flex-shrink:0}
+  .isla-form-field .isla-form-checkbox input[type="radio"]{width:1.125rem;height:1.125rem;min-width:1.125rem;padding:0;margin:0;vertical-align:middle;accent-color:#ca1a20;cursor:pointer;flex-shrink:0}
   .isla-form-actions{display:flex;gap:.6rem;flex-wrap:wrap;margin-top:.9rem}
-  .isla-form-submit{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;background:#2563eb;color:#fff;border:none;border-radius:10px;padding:.625rem 1.1rem;font-weight:600;cursor:pointer}
-  .isla-form-submit:hover{background:#1d4ed8}
-  .isla-form-error{margin-top:.55rem;color:#c62828;font-size:.9rem}
-  .isla-form-instruction{margin:.8rem 0 0;color:#4b5563;font-size:.9rem;line-height:1.45}
+  .isla-form-submit{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;background:#ca1a20;color:#fff;border:none;border-radius:10px;padding:.625rem 1.1rem;font-weight:600;cursor:pointer;transition:background .2s ease}
+  .isla-form-submit:hover{background:#a8151a}
+  .isla-form-error{margin-top:.55rem;color:#ca1a20;font-size:.9rem}
+  .isla-form-instruction{margin:1rem 0 0;color:#4b5563;font-size:.9rem;line-height:1.45}
   .isla-form-status{display:inline-flex;align-items:center;padding:.2rem .6rem;border-radius:999px;background:#ecfdf3;color:#166534;font-size:.75rem;font-weight:700;margin:0 0 .5rem}
   .isla-form-submitted{opacity:.78}
   /* Wizard flows: keep submitted cards at full opacity so yes/no radios don’t look disabled. */
@@ -137,19 +142,19 @@
   .isla-venue-options{display:grid;grid-template-columns:1fr;gap:.55rem}
   .isla-venue-option{border:2px solid #d9dee7;border-radius:10px;padding:.65rem .7rem;background:#fff;transition:border-color .15s ease, box-shadow .15s ease}
   .isla-venue-option:hover{border-color:#b8c5d6}
-  .isla-venue-option.isla-selected{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+  .isla-venue-option.isla-selected{border-color:#ca1a20;box-shadow:0 0 0 3px rgba(202,26,32,.12)}
   .isla-venue-option-header{display:flex;align-items:center;gap:.5rem;font-weight:600;color:#1b2a3a}
-  .isla-venue-option-header input[type="radio"]{width:18px;height:18px;margin:0;flex-shrink:0;accent-color:#2563eb;cursor:pointer}
+  .isla-venue-option-header input[type="radio"]{width:18px;height:18px;margin:0;flex-shrink:0;accent-color:#ca1a20;cursor:pointer}
   .isla-venue-option-header input[type="radio"]:focus{outline:none}
   .isla-venue-split{margin-top:.55rem}
-  .isla-venue-confirm-grid{display:grid;grid-template-columns:1fr;gap:.75rem}
+  .isla-venue-confirm-grid{display:grid;grid-template-columns:1fr;gap:1rem}
   .isla-venue-confirm-grid .isla-vc-grid-spacer{display:none}
   .isla-inline-note{font-size:.85rem;color:#6b7280}
-  .isla-event-details-timing{margin-top:.25rem}
-  .isla-event-details-timing .isla-timing-lead{font-weight:600;font-size:.92rem;color:#374151;margin:0 0 .2rem}
+  .isla-event-details-timing{margin-top:var(--isla-form-section-gap,.75rem)}
+  .isla-event-details-timing .isla-timing-lead{font-weight:600;font-size:.9375rem;color:#374151;line-height:1.35;margin:0 0 .5rem}
   .isla-form-tech-row{display:grid;grid-template-columns:1fr 1fr;gap:.6rem}
-  .isla-form-secondary{display:inline-flex;align-items:center;justify-content:center;border:1px solid #cbd5e1;background:#fff;color:#334155;border-radius:10px;padding:.55rem .9rem;font-weight:600;cursor:pointer}
-  .isla-form-secondary:hover{background:#f8fafc}
+  .isla-form-secondary{display:inline-flex;align-items:center;justify-content:center;border:1px solid #d9dee7;background:#fff;color:#334155;border-radius:10px;padding:.55rem .9rem;font-weight:600;cursor:pointer;transition:background .2s ease,border-color .2s ease}
+  .isla-form-secondary:hover{background:#fef2f2;border-color:#ca1a20;color:#ca1a20}
   @@media(min-width:640px){
     .isla-form-grid.two-col{grid-template-columns:1fr 1fr}
     .isla-venue-confirm-grid{grid-template-columns:1fr 1fr}
@@ -157,12 +162,12 @@
   }
 
   /* Form submission summary cards */
-  .isla-form-summary-card{margin-top:.5rem;padding:.9rem 1rem;background:linear-gradient(135deg,#f0f7ff 0%,#e6f0ff 100%);border:1px solid #cce0ff;border-radius:12px;box-shadow:0 2px 8px rgba(37,99,235,.08)}
-  .isla-form-summary-title{font-weight:700;font-size:.95rem;color:#1d4ed8;margin:0 0 .65rem;padding-bottom:.5rem;border-bottom:1px solid #dbeafe}
+  .isla-form-summary-card{margin-top:.5rem;padding:.9rem 1rem;background:linear-gradient(135deg,#fff5f5 0%,#fef2f2 100%);border:1px solid #fecaca;border-radius:12px;box-shadow:0 2px 8px rgba(202,26,32,.08)}
+  .isla-form-summary-title{font-weight:700;font-size:.95rem;color:#ca1a20;margin:0 0 .65rem;padding-bottom:.5rem;border-bottom:1px solid #fecaca}
   .isla-form-summary-grid{display:grid;grid-template-columns:1fr;gap:.4rem}
   .isla-form-summary-item{display:flex;justify-content:space-between;align-items:center;gap:.75rem;padding:.3rem 0}
   .isla-form-summary-label{font-size:.85rem;color:#4b5563;font-weight:500}
-  .isla-form-summary-value{font-size:.85rem;color:#1e3a8a;font-weight:600}
+  .isla-form-summary-value{font-size:.85rem;color:#7f1d1d;font-weight:600}
   @@media(min-width:480px){
     .isla-form-summary-grid{grid-template-columns:1fr 1fr}
   }
@@ -170,31 +175,30 @@
   /* Base AV package form */
   .isla-base-av-top-row{display:grid;grid-template-columns:1fr;gap:.75rem;align-items:start;margin-bottom:.25rem}
   .isla-base-av-checks{display:flex;flex-direction:column;gap:.5rem;min-width:0}
-  .isla-base-av-checks .isla-form-checkbox{font-size:.95rem;color:#374151}
   .isla-base-av-placement{width:100%;max-width:12rem;margin-left:0;flex-shrink:0}
-  .isla-base-av-placement.isla-form-field label{display:block;font-weight:600;font-size:.8rem;color:#666;text-transform:uppercase;letter-spacing:.03em;margin-bottom:.35rem}
+  .isla-base-av-placement.isla-form-field > label:not(.isla-form-question){display:block;font-weight:600;font-size:.8rem;color:#64748b;text-transform:none;letter-spacing:normal;margin-bottom:.5rem}
   .isla-base-av-placement select{width:100%!important;min-width:0;max-width:100%;box-sizing:border-box;height:42px;padding:.5rem .75rem;font-size:.95rem}
-  .isla-base-av-presenters{margin-top:.35rem}
-  .isla-base-av-presenters label{display:block;font-weight:600;font-size:.8rem;color:#666;text-transform:uppercase;letter-spacing:.03em;margin-bottom:.35rem}
+  .isla-base-av-presenters{margin-top:var(--isla-form-section-gap,1.25rem)}
+  .isla-base-av-presenters label.isla-form-question{display:block;margin-bottom:.5rem}
   .isla-base-av-presenters input{width:100%;max-width:6rem;height:42px;padding:.5rem .75rem;font-size:.95rem;box-sizing:border-box}
-  .isla-base-av-sentence-label{text-transform:none!important;letter-spacing:normal!important;font-size:.95rem!important;color:#374151!important;font-weight:600!important;display:block;margin-bottom:.35rem}
+  span.isla-base-av-sentence-label,span.isla-form-question{display:block;margin-bottom:.5rem}
   .isla-base-av-yesno-row{margin-top:.5rem}
   .isla-base-av-yesno-btns{display:flex;justify-content:flex-start;align-items:center;gap:.75rem 1.5rem;flex-wrap:wrap}
-  .isla-base-av-yesno-btns .isla-form-checkbox{font-size:.95rem;color:#374151;display:inline-flex;align-items:center;gap:.4rem}
-  .isla-base-av-choice-matrix{display:grid;grid-template-columns:7.25rem 7.25rem minmax(4.85rem,max-content);column-gap:1.25rem;row-gap:.35rem;align-items:center;justify-items:start;margin-top:.35rem}
+  .isla-base-av-yesno-btns .isla-form-checkbox{display:inline-flex;align-items:center;gap:.4rem}
+  .isla-base-av-choice-matrix{display:grid;grid-template-columns:7.25rem 7.25rem minmax(4.85rem,max-content);column-gap:1.25rem;row-gap:.5rem;align-items:center;justify-items:start;margin-top:var(--isla-form-section-gap,1.25rem)}
   .isla-base-av-choice-matrix .isla-base-av-matrix-span{grid-column:1/-1;margin:0;padding:0}
   .isla-base-av-choice-matrix .isla-base-av-matrix-gap{margin:0;padding:0;min-height:0}
-  .isla-base-av-choice-matrix .isla-base-av-matrix-q{margin-top:.55rem}
+  .isla-base-av-choice-matrix .isla-base-av-matrix-q{margin-top:var(--isla-form-section-gap,1.25rem)}
   .isla-base-av-choice-matrix .isla-base-av-matrix-q:first-child{margin-top:0}
-  .isla-base-av-choice-matrix .isla-form-checkbox{font-size:.95rem;color:#374151;display:inline-flex;align-items:center;gap:.4rem;margin:0}
+  .isla-base-av-choice-matrix .isla-form-checkbox{display:inline-flex;align-items:center;gap:.4rem;margin:0}
   /* Matrix radios: explicit enabled styling (avoid looking like disabled native controls). */
-  .isla-base-av-choice-matrix input[type="radio"]:not(:disabled){opacity:1;accent-color:#2563eb;cursor:pointer}
+  .isla-base-av-choice-matrix input[type="radio"]:not(:disabled){opacity:1;accent-color:#ca1a20;cursor:pointer}
   .isla-base-av-laptop-qty-wrap{display:flex;flex-direction:column;gap:.3rem;min-width:0;align-self:end}
-  .isla-base-av-laptop-qty-wrap > label{font-weight:600;font-size:.72rem;color:#666;text-transform:uppercase;letter-spacing:.03em;margin:0;line-height:1.2}
+  .isla-base-av-laptop-qty-wrap > label.isla-form-field-label,.isla-base-av-laptop-qty-wrap > label{font-weight:600;font-size:.8rem;color:#64748b;text-transform:none;letter-spacing:normal;margin:0;line-height:1.2}
   .isla-base-av-laptop-qty-wrap input[data-ba-laptop-qty]{max-width:4.75rem;width:4.75rem;height:42px;box-sizing:border-box;padding:.5rem .75rem;font-size:.95rem;border:1px solid #d9dee7;border-radius:10px;background:#fff}
-  .isla-base-av-laptop-head{font-weight:600;font-size:.8rem;color:#666;text-transform:uppercase;letter-spacing:.03em;margin:0;padding:0}
-  .isla-floorplan-open{margin:0 0 .35rem 0;padding:0;border:none;background:none;color:#1d4ed8;font-size:.85rem;font-weight:600;text-decoration:underline;cursor:pointer;font-family:inherit}
-  .isla-floorplan-open:hover{color:#1e40af}
+  .isla-base-av-laptop-head.isla-form-question{margin:0;padding:0}
+  .isla-floorplan-open{margin:0 0 .35rem 0;padding:0;border:none;background:none;color:#ca1a20;font-size:.85rem;font-weight:600;text-decoration:underline;cursor:pointer;font-family:inherit}
+  .isla-floorplan-open:hover{color:#a8151a}
   .isla-base-av-form .isla-form-instruction{margin-top:1rem;font-size:.9rem;color:#4b5563;line-height:1.5}
   @@media(min-width:640px){
     .isla-base-av-top-row{grid-template-columns:minmax(0,1.2fr) max-content;gap:1.5rem 2rem;align-items:start}
@@ -202,20 +206,23 @@
   }
 
   /* Follow-up AV form */
-  .isla-followup-av-form .isla-fu-mic-row{margin-top:.15rem}
+  .isla-followup-av-form .isla-fu-mic-row{margin-top:0}
+  .isla-followup-av-form [data-fu-block-presenters] > .isla-form-field + .isla-form-field{margin-top:var(--isla-form-section-gap,1.25rem)}
+  .isla-followup-av-form [data-fu-block-presenters] + .isla-form-field{margin-top:var(--isla-form-section-gap,1.25rem)}
+  .isla-followup-av-form > .isla-form-field + .isla-form-field{margin-top:var(--isla-form-section-gap,1.25rem)}
   .isla-fu-mic-row-inner{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:.75rem 1.25rem}
   .isla-fu-mic-type{flex:1 1 12rem;min-width:0}
-  .isla-fu-mic-label-row{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;margin-bottom:.35rem}
-  .isla-fu-mic-type-head{font-weight:600;font-size:.8rem;color:#666;text-transform:none;letter-spacing:normal}
-  .isla-fu-mic-qty-head{font-weight:600;font-size:.75rem;color:#666;text-transform:uppercase;letter-spacing:.03em;text-align:right;min-width:4.5rem}
+  .isla-fu-mic-label-row{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;margin-bottom:.5rem}
+  .isla-fu-mic-label-row .isla-form-question{display:inline;margin-bottom:0}
+  .isla-fu-mic-qty-head{text-align:right;min-width:4.5rem}
   .isla-fu-mic-controls{display:flex;flex-wrap:wrap;align-items:center;gap:.75rem 1rem}
   .isla-fu-mic-radios{display:flex;align-items:center;gap:.75rem;flex:0 0 auto}
   .isla-fu-mic-controls input[data-fu-mic-qty]{max-width:5.5rem;width:5rem;flex:0 0 auto;height:42px;box-sizing:border-box;margin-left:auto}
   .isla-fu-lectern-radios{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem 1rem}
   .isla-fu-lectern-radios .isla-form-checkbox{white-space:nowrap}
-  .isla-fu-field .isla-fu-question-label{display:block;margin-bottom:.4rem}
+  .isla-fu-field .isla-fu-question-label{display:block;margin-bottom:.5rem}
   .isla-fu-yesno-btns{display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:.75rem 1.25rem}
-  .isla-fu-yesno-caps .isla-form-checkbox{text-transform:uppercase;font-size:.9rem;letter-spacing:.02em}
+  .isla-fu-yesno-caps .isla-form-checkbox{letter-spacing:normal}
 
   .isla-busy{opacity:.7;pointer-events:none}
   .isla-spinner{display:inline-block;width:.9em;height:.9em;margin-left:.5em;border:.15em solid currentColor;border-right-color:transparent;border-radius:50%;animation:isla-spin .8s linear infinite}
@@ -224,22 +231,22 @@
   /* Quote Ready Display */
   .isla-quote-ready{
     background:linear-gradient(135deg,#f8f9fa 0%,#fff 100%);
-    border:2px solid #c62828;
+    border:2px solid #ca1a20;
     border-radius:12px;
     padding:1.5rem;
     text-align:center;
     margin:1rem 0;
     box-shadow:0 4px 12px rgba(0,0,0,0.08);
   }
-  .isla-quote-icon{color:#c62828;margin-bottom:0.75rem}
-  .isla-quote-title{font-size:1.25rem;font-weight:700;color:#c62828;margin-bottom:0.5rem}
+  .isla-quote-icon{color:#ca1a20;margin-bottom:0.75rem}
+  .isla-quote-title{font-size:1.25rem;font-weight:700;color:#ca1a20;margin-bottom:0.5rem}
   .isla-quote-message{color:#555;font-size:0.95rem;margin-bottom:0.75rem}
   .isla-quote-ref{color:#888;font-size:0.85rem;margin-bottom:1rem}
   .isla-quote-download-btn{
     display:inline-flex;
     align-items:center;
     gap:0.5rem;
-    background:#c62828;
+    background:#ca1a20;
     color:#fff;
     padding:0.75rem 1.5rem;
     border-radius:8px;
@@ -247,12 +254,12 @@
     font-weight:600;
     transition:background 0.2s ease,transform 0.1s ease;
   }
-  .isla-quote-download-btn:hover{background:#b71c1c;transform:translateY(-1px);color:#fff}
+  .isla-quote-download-btn:hover{background:#a8151a;transform:translateY(-1px);color:#fff}
   .isla-quote-download-btn:active{transform:translateY(0)}
 
   /* Inline image previews for shared asset paths */
   .chat-inline-image{margin-top:.5rem;max-width:620px;width:100%}
-  .chat-inline-image a{display:block;font-size:.85rem;color:#c62828;word-break:break-all}
+  .chat-inline-image a{display:block;font-size:.85rem;color:#ca1a20;word-break:break-all}
   .chat-inline-image-frame{margin-top:.35rem;border:1px solid #e6e6e6;border-radius:10px;overflow:hidden;background:#fafafa}
   .chat-inline-image img{display:block;width:100%;height:auto;max-height:560px;object-fit:contain}
   .chat-inline-image.isla-img-error .chat-inline-image-frame{display:none}
@@ -283,7 +290,9 @@ else
         var raw = string.Join("\n", (m.Parts ?? new List<string>()).Select(p => p ?? string.Empty)).ToLowerInvariant();
         return raw.Contains("would you like to proceed with this quote") || raw.Contains("would you like to confirm this quote") || raw.Contains("would you like me to confirm this quote")
             || raw.Contains("would you like to proceed and accept this quote")
-            || raw.Contains("selecting yes will notify microhire") || raw.Contains("once you're done reviewing the quote")
+            || raw.Contains("selecting yes will notify microhire")
+            || raw.Contains("selecting \"accept quote\" will notify microhire")
+            || raw.Contains("once you're done reviewing the quote")
             || raw.Contains("notify microhire to finalize");
     });
 
@@ -312,6 +321,7 @@ else
                                            || _rawAllLower.Contains("would you like me to confirm this quote")
                                            || _rawAllLower.Contains("would you like to proceed and accept this quote")
                                            || _rawAllLower.Contains("selecting yes will notify microhire")
+                                           || _rawAllLower.Contains("selecting \"accept quote\" will notify microhire")
                                            || _rawAllLower.Contains("once you're done reviewing the quote")
                                            || _rawAllLower.Contains("notify microhire to finalize");
         bool _looksLikePicker = _rawAllLower.Contains("timepicker")
@@ -598,7 +608,7 @@ else
                                                     <input type="email" data-email-input autocomplete="email" placeholder="you@example.com" value="@defaultEmail" />
                                                 </div>
                                                 <div class="isla-form-actions">
-                                                    <button type="button" class="isla-form-submit" data-email-submit style="background:#c62828">@submit</button>
+                                                    <button type="button" class="isla-form-submit" data-email-submit>@submit</button>
                                                 </div>
                                                 <div class="isla-form-error" data-email-error style="display:none"></div>
                                             </div>
@@ -618,7 +628,13 @@ else
                                             {
                                                 vcSelectedSlug = vcssEl.GetString() ?? "";
                                             }
-                                            <div class="@venueCardClass" data-venue-confirm-form data-form-submitted="@(venueSubmitted ? "1" : "0")">
+                                            var vcStartDisplay = "";
+                                            var vcEndDisplay = "";
+                                            if (!string.IsNullOrWhiteSpace(startDate) && DateOnly.TryParse(startDate, out var sdVc))
+                                                vcStartDisplay = sdVc.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture);
+                                            if (!string.IsNullOrWhiteSpace(endDate) && DateOnly.TryParse(endDate, out var edVc))
+                                                vcEndDisplay = edVc.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture);
+                                            <div class="@venueCardClass" data-venue-confirm-form data-form-submitted="@(venueSubmitted ? "1" : "0")" data-vc-min-date="@minDate">
                                                 @if (venueSubmitted)
                                                 {
                                                     <div class="isla-form-status">Confirmed</div>
@@ -656,9 +672,9 @@ else
                                                                 }
                                                             </select>
                                                         </div>
-                                                        <div class="isla-form-field"><label>Start date</label><input type="date" value="@startDate" min="@minDate" data-vc-start-date @(venueSubmitted ? "disabled" : null) /></div>
+                                                        <div class="isla-form-field"><label>Start date</label><input type="text" value="@vcStartDisplay" placeholder="DD-MM-YYYY" inputmode="numeric" autocomplete="off" data-vc-start-date @(venueSubmitted ? "disabled" : null) /></div>
                                                         <div class="isla-form-field"><label>Attendees</label><input type="number" min="1" step="1" value="@attendees" data-vc-attendees @(venueSubmitted ? "disabled" : null) /></div>
-                                                        <div class="isla-form-field"><label>End date</label><input type="date" value="@endDate" min="@minDate" data-vc-end-date @(venueSubmitted ? "disabled" : null) /></div>
+                                                        <div class="isla-form-field"><label>End date</label><input type="text" value="@vcEndDisplay" placeholder="DD-MM-YYYY" inputmode="numeric" autocomplete="off" data-vc-end-date @(venueSubmitted ? "disabled" : null) /></div>
                                                         <div class="isla-vc-grid-spacer" aria-hidden="true"></div>
                                                     </div>
                                                 }
@@ -696,7 +712,7 @@ else
                                                 }
                                                 <div class="isla-form-title">@title</div>
                                                 <div class="isla-form-grid">
-                                                    <div class="isla-form-field"><label>What type of event are you planning?</label><input type="text" value="@eventType" placeholder="e.g. product showcase, board meeting, hackathon" data-ed-event-type @(eventDetailsSubmitted ? "disabled" : null) /></div>
+                                                    <div class="isla-form-field"><label class="isla-form-question">What type of event are you planning?</label><input type="text" value="@eventType" placeholder="e.g. product showcase, board meeting, hackathon" data-ed-event-type @(eventDetailsSubmitted ? "disabled" : null) /></div>
                                                 </div>
                                                 <div class="isla-event-details-timing">
                                                     <p class="isla-timing-lead">Please select the timing of your event</p>
@@ -709,8 +725,8 @@ else
                                                     <div class="isla-form-field"><label>End</label><input type="time" value="@endDefault" step="1800" data-ed-end-time @(eventDetailsSubmitted ? "disabled" : null) /></div>
                                                 </div>
                                                 <div class="isla-form-field">
-                                                    <label>Would you like an operator throughout your event?</label>
-                                                    <div class="isla-form-actions" style="margin-top:.4rem">
+                                                    <label class="isla-form-question">Would you like an operator throughout your event?</label>
+                                                    <div class="isla-form-actions" style="margin-top:.35rem">
                                                         @if (string.Equals(wantsOp, "yes", StringComparison.OrdinalIgnoreCase))
                                                         {
                                                             <label class="isla-form-checkbox" style="display:inline-flex;margin-right:1rem"><input type="radio" name="ed-op" value="yes" data-ed-operator checked @(eventDetailsSubmitted ? "disabled" : null) /> Yes</label>
@@ -724,7 +740,7 @@ else
                                                     </div>
                                                 </div>
                                                 <div class="isla-form-actions">
-                                                    <button type="button" class="isla-form-submit" data-event-details-submit style="background:#c62828" @(eventDetailsSubmitted ? "disabled" : null)>@submit</button>
+                                                    <button type="button" class="isla-form-submit" data-event-details-submit @(eventDetailsSubmitted ? "disabled" : null)>@submit</button>
                                                 </div>
                                                 <div class="isla-form-error" data-ed-error style="display:none"></div>
                                             </div>
@@ -772,14 +788,26 @@ else
                                                         @for (var bi = 0; bi < baseEquipList.Count; bi++)
                                                         {
                                                             var label = baseEquipList[bi];
+                                                            var labelLower = label.ToLowerInvariant();
                                                             var dis = baseAvSubmitted ? "disabled" : null;
-                                                            if (bi == 0)
+                                                            var hasProj = labelLower.Contains("projector");
+                                                            var hasScreen = labelLower.Contains("screen");
+                                                            var hasSpk = labelLower.Contains("speaker");
+                                                            if (hasProj && hasScreen)
+                                                            {
+                                                                <label class="isla-form-checkbox"><input type="checkbox" data-ba-projscreen checked @dis /> @label</label>
+                                                            }
+                                                            else if (hasProj)
                                                             {
                                                                 <label class="isla-form-checkbox"><input type="checkbox" data-ba-proj checked @dis /> @label</label>
                                                             }
-                                                            else if (bi == 1)
+                                                            else if (hasScreen)
                                                             {
                                                                 <label class="isla-form-checkbox"><input type="checkbox" data-ba-screen checked @dis /> @label</label>
+                                                            }
+                                                            else if (hasSpk)
+                                                            {
+                                                                <label class="isla-form-checkbox"><input type="checkbox" data-ba-spk checked @dis /> @label</label>
                                                             }
                                                             else
                                                             {
@@ -794,7 +822,7 @@ else
                                                             {
                                                                 <button type="button" class="isla-floorplan-open" data-ba-floorplan-open data-floorplan-src="@floorPlanUrl" aria-haspopup="dialog" @(baseAvSubmitted ? "disabled" : null)>View floor plan</button>
                                                             }
-                                                            <label>Projector placement</label>
+                                                            <label class="isla-form-field-label">Projector placement</label>
                                                             <select data-ba-placement @(baseAvSubmitted ? "disabled" : null)>
                                                                 @if (uiEl.TryGetProperty("placementOptions", out var plOpts) && plOpts.ValueKind == JsonValueKind.Array)
                                                                 {
@@ -817,17 +845,17 @@ else
                                                         </div>
                                                     }
                                                 </div>
-                                                <div class="isla-form-field isla-base-av-presenters"><label>Number of presenters</label><input type="number" min="0" max="99" step="1" value="@presenters" data-ba-presenters aria-label="Number of presenters" @(baseAvSubmitted ? "disabled" : null) /></div>
+                                                <div class="isla-form-field isla-base-av-presenters"><label class="isla-form-question">Number of presenters</label><input type="number" min="0" max="99" step="1" value="@presenters" data-ba-presenters aria-label="Number of presenters" @(baseAvSubmitted ? "disabled" : null) /></div>
                                                 <div class="isla-base-av-choice-matrix">
                                                     <label class="isla-base-av-sentence-label isla-base-av-matrix-span isla-base-av-matrix-q">Will you need a Flipchart in the room?</label>
                                                     <label class="isla-form-checkbox"><input type="radio" name="ba-fc-@msgFormUid" value="yes" data-ba-flip @(string.Equals(flipCur, "yes", StringComparison.OrdinalIgnoreCase) ? "checked" : null) @(baseAvSubmitted ? "disabled" : null) /> Yes</label>
                                                     <label class="isla-form-checkbox"><input type="radio" name="ba-fc-@msgFormUid" value="no" data-ba-flip @(!string.Equals(flipCur, "yes", StringComparison.OrdinalIgnoreCase) ? "checked" : null) @(baseAvSubmitted ? "disabled" : null) /> No</label>
                                                     <span class="isla-base-av-matrix-gap" aria-hidden="true"></span>
-                                                    <span class="isla-base-av-laptop-head isla-base-av-matrix-span isla-base-av-matrix-q">Laptop for Hire</span>
+                                                    <span class="isla-base-av-laptop-head isla-form-question isla-base-av-matrix-span isla-base-av-matrix-q">Laptop for Hire</span>
                                                     <label class="isla-form-checkbox"><input type="radio" name="ba-lap-@msgFormUid" value="windows" data-ba-laptop-mode @(string.Equals(lapMode, "windows", StringComparison.OrdinalIgnoreCase) ? "checked" : null) @(baseAvSubmitted ? "disabled" : null) /> Windows</label>
                                                     <label class="isla-form-checkbox"><input type="radio" name="ba-lap-@msgFormUid" value="mac" data-ba-laptop-mode @(string.Equals(lapMode, "mac", StringComparison.OrdinalIgnoreCase) ? "checked" : null) @(baseAvSubmitted ? "disabled" : null) /> Mac</label>
                                                     <div class="isla-base-av-laptop-qty-wrap">
-                                                        <label for="ba-laptop-qty-@msgFormUid">Quantity</label>
+                                                        <label class="isla-form-field-label" for="ba-laptop-qty-@msgFormUid">Quantity</label>
                                                         <input id="ba-laptop-qty-@msgFormUid" type="number" min="0" max="99" step="1" value="@lapQty" data-ba-laptop-qty aria-label="Laptop quantity" @(baseAvSubmitted ? "disabled" : null) />
                                                     </div>
                                                     <label class="isla-base-av-sentence-label isla-base-av-matrix-span isla-base-av-matrix-q" data-ba-adapter-wrap>Do you need an adaptor for your own laptops?</label>
@@ -877,8 +905,8 @@ else
                                                         <div class="isla-fu-mic-row-inner">
                                                             <div class="isla-fu-mic-type">
                                                                 <div class="isla-fu-mic-label-row">
-                                                                    <span class="isla-fu-mic-type-head">Type of microphone</span>
-                                                                    <span class="isla-fu-mic-qty-head">Quantity</span>
+                                                                    <span class="isla-fu-mic-type-head isla-form-question">Type of microphone</span>
+                                                                    <span class="isla-fu-mic-qty-head isla-form-question">Quantity</span>
                                                                 </div>
                                                                 <div class="isla-fu-mic-controls">
                                                                     <div class="isla-fu-mic-radios">
@@ -891,7 +919,7 @@ else
                                                         </div>
                                                     </div>
                                                     <div class="isla-form-field">
-                                                        <label>Lectern</label>
+                                                        <label class="isla-form-question">Lectern</label>
                                                         <div class="isla-fu-lectern-radios">
                                                             <label class="isla-form-checkbox"><input type="radio" name="fu-lectern" value="none" data-fu-lectern @(!lecIsOnly && !lecIsMic ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> None</label>
                                                             <label class="isla-form-checkbox"><input type="radio" name="fu-lectern" value="lectern-only" data-fu-lectern @(lecIsOnly ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> Lectern only</label>
@@ -900,7 +928,7 @@ else
                                                     </div>
                                                     <div class="isla-form-field isla-fu-field">
                                                         <label class="isla-base-av-sentence-label isla-fu-question-label">Foldback monitor</label>
-                                                        <div class="isla-fu-yesno-btns">
+                                                        <div class="isla-fu-yesno-btns isla-fu-yesno-caps">
                                                             <label class="isla-form-checkbox"><input type="radio" name="fu-fb" value="yes" data-fu-foldback @(fbYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> Yes</label>
                                                             <label class="isla-form-checkbox"><input type="radio" name="fu-fb" value="no" data-fu-foldback @(!fbYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> No</label>
                                                         </div>
@@ -908,34 +936,34 @@ else
                                                     <div class="isla-form-field isla-fu-field">
                                                         <label class="isla-base-av-sentence-label isla-fu-question-label">Remote wireless presenter</label>
                                                         <div class="isla-fu-yesno-btns isla-fu-yesno-caps">
-                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-rw" value="yes" data-fu-rwp @(rwpYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> YES</label>
-                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-rw" value="no" data-fu-rwp @(!rwpYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> NO</label>
+                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-rw" value="yes" data-fu-rwp @(rwpYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> Yes</label>
+                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-rw" value="no" data-fu-rwp @(!rwpYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> No</label>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div class="isla-form-field isla-fu-field" data-fu-switcher-wrap style="display:none">
                                                     <label class="isla-base-av-sentence-label isla-fu-question-label" data-fu-switcher-label>@switcherLabel</label>
                                                     <div class="isla-fu-yesno-btns isla-fu-yesno-caps">
-                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-sw" value="yes" data-fu-switcher @(swYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> YES</label>
-                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-sw" value="no" data-fu-switcher @(!swYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> NO</label>
+                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-sw" value="yes" data-fu-switcher @(swYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> Yes</label>
+                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-sw" value="no" data-fu-switcher @(!swYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> No</label>
                                                     </div>
                                                 </div>
                                                 <div class="isla-form-field isla-fu-field" data-fu-stage-wrap style="display:none">
                                                     <label class="isla-base-av-sentence-label isla-fu-question-label">Will you require a laptop on stage?</label>
                                                     <div class="isla-fu-yesno-btns isla-fu-yesno-caps">
-                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-st" value="yes" data-fu-stage @(stYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> YES</label>
-                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-st" value="no" data-fu-stage @(!stYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> NO</label>
+                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-st" value="yes" data-fu-stage @(stYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> Yes</label>
+                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-st" value="no" data-fu-stage @(!stYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> No</label>
                                                     </div>
                                                 </div>
                                                 <div class="isla-form-field isla-fu-field">
-                                                    <label class="isla-base-av-sentence-label isla-fu-question-label">Are you hosting a video conference? <span class="isla-inline-note">(Teams)</span></label>
+                                                    <label class="isla-base-av-sentence-label isla-fu-question-label">Are you hosting a video conference?</label>
                                                     <div class="isla-fu-yesno-btns isla-fu-yesno-caps">
-                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-vc" value="yes" data-fu-vc @(vcYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> YES</label>
-                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-vc" value="no" data-fu-vc @(!vcYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> NO</label>
+                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-vc" value="yes" data-fu-vc @(vcYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> Yes</label>
+                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-vc" value="no" data-fu-vc @(!vcYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> No</label>
                                                     </div>
                                                 </div>
                                                 <div class="isla-form-actions">
-                                                    <button type="button" class="isla-form-submit" data-follow-up-av-submit style="background:#c62828" @(followUpSubmitted ? "disabled" : null)>@submit</button>
+                                                    <button type="button" class="isla-form-submit" data-follow-up-av-submit @(followUpSubmitted ? "disabled" : null)>@submit</button>
                                                 </div>
                                                 <div class="isla-form-error" data-fu-error style="display:none"></div>
                                             </div>
@@ -993,6 +1021,9 @@ else
                                             {
                                                 efSelectedSlug = efssEl.GetString() ?? "";
                                             }
+                                            var eventDateDisplay = "";
+                                            if (!string.IsNullOrWhiteSpace(eventDate) && DateOnly.TryParse(eventDate, out var edForm))
+                                                eventDateDisplay = edForm.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture);
 
                                             var setupDefault = "07:00";
                                             var rehearsalDefault = "09:30";
@@ -1057,7 +1088,7 @@ else
                                                     </div>
                                                     <div class="isla-form-field">
                                                         <label>Date</label>
-                                                        <input type="date" value="@eventDate" min="@minDate" data-event-date />
+                                                        <input type="text" value="@eventDateDisplay" placeholder="DD-MM-YYYY" inputmode="numeric" autocomplete="off" data-event-date data-min-date="@minDate" />
                                                     </div>
                                                     <div class="isla-form-field" data-event-setup-wrap>
                                                         <label>Room setup style</label>
@@ -1172,10 +1203,10 @@ else
                                                     </svg>
                                                 </div>
                                                 <div class="isla-quote-title">Quote Ready!</div>
-                                                <p class="isla-quote-message">Your professional quote has been generated and is ready to view.</p>
+                                                <p class="isla-quote-message">Your quote has been generated and is ready to view.</p>
                                                 @if (!string.IsNullOrWhiteSpace(bookingNum))
                                                 {
-                                                    <p class="isla-quote-ref">Reference: @bookingNum</p>
+                                                    <p class="isla-quote-ref">Quote Number: @bookingNum</p>
                                                 }
                                                 <a href="@quoteUrlValue" target="_blank" rel="noopener noreferrer" class="isla-quote-download-btn isla-quote-open" data-quote-open="1">
                                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1247,33 +1278,26 @@ else
                         {
                             <div class="isla-cta isla-cta-acceptance" data-quote-acceptance-controls>
                                 <div class="isla-cta-label">Would you like to proceed and accept this quote?</div>
-                                <div class="isla-cta-sublabel">Selecting Yes will notify Microhire to finalize the details.</div>
+                                <div class="isla-cta-sublabel">Selecting "Accept Quote" will notify Microhire to finalize the details.</div>
                                 <div class="isla-cta-buttons" data-acceptance-buttons>
                                     <button type="button" class="isla-quote-accept-yes">Accept Quote</button>
-                                    @if (!string.IsNullOrWhiteSpace(quoteUrlForAcceptance))
-                                    {
-                                        <a href="@quoteUrlForAcceptance" target="_blank" rel="noopener noreferrer" class="isla-quote-view-btn isla-quote-open" data-quote-open="1">View Quote</a>
-                                    }
                                 </div>
                                 <div class="isla-quote-legal-copy" style="display:none;margin-top:1rem;padding:1rem 1.1rem;background:#fafafa;border:1px solid #e8e8e8;border-radius:8px;font-size:0.88rem;color:#444;line-height:1.55" data-quote-legal-copy>
                                     <p style="margin:0 0 0.75rem 0;font-weight:700;color:#222">Confirm Your Audio Visual Event Staging Quotation</p>
                                     <p style="margin:0 0 0.75rem 0">By signing below, the undersigned confirms that they are duly authorised to accept this quotation and approve associated charges on behalf of their organisation, and agree to enter into a binding hire agreement with Microhire Venue Services Pty Ltd.</p>
                                     <p style="margin:0 0 0.6rem 0">The signatory confirms and acknowledges that:</p>
                                     <ul style="margin:0 0 0.75rem 1.1rem;padding:0">
-                                        <li>All event details within this quotation have been reviewed and are accurate, including event dates, venue, delivery times, equipment quantities, and services requested.</li>
+                                        <li>All event details within this quotation have been reviewed and are accurate, including (but not limited to) event dates, venue, delivery times, equipment quantities, and services requested.</li>
                                         <li>They have full authority to approve the hire of equipment and services.</li>
-                                        <li>All Microhire services and associated costs will be charged to the event master account held with the venue.</li>
-                                        <li>Charges will be billed through the venue in accordance with the venue's billing procedures and terms.</li>
-                                        <li>All services and equipment hire remain subject to the Microhire Terms and Conditions of Hire.</li>
+                                        <li>All Microhire Audio Visual and Event Staging services, including equipment hire, labour, delivery, technical services, and any associated costs relating to this quotation, will be charged to your event Master Account held with the venue.</li>
+                                        <li>These charges will be billed through the venue in accordance with the venue's billing procedures, and payment will be governed by the client's separate agreement and payment terms with the venue.</li>
+                                        <li>All services and equipment hire remain subject to the Microhire Terms and Conditions of Hire, which form part of this agreement and can be viewed here:
+                                            <ul style="margin:0.25rem 0 0 1rem;padding:0">
+                                                <li><a href="@quoteTermsUrl" target="_blank" rel="noopener noreferrer" style="color:#ca1a20;text-decoration:underline">Microhire Terms &amp; Conditions</a></li>
+                                            </ul>
+                                        </li>
                                     </ul>
-                                    @if (!string.IsNullOrWhiteSpace(quoteTermsUrl))
-                                    {
-                                        <p style="margin:0">Full terms: <a href="@quoteTermsUrl" target="_blank" rel="noopener noreferrer">Terms and conditions</a></p>
-                                    }
-                                    else
-                                    {
-                                        <p style="margin:0">Full terms: <span class="text-muted">[Insert terms link — set <code>Ui:QuoteTermsUrl</code> in configuration]</span></p>
-                                    }
+                                    <p style="margin:0 0 0.75rem 0">Upon signing and successful authentication, this quotation will convert into a confirmed booking and binding hire agreement between the client and Microhire Venue Services Pty Ltd. This order will be submitted to the Microhire team at the venue for review and internal finalisation of the booking.</p>
                                     <div style="margin-top:0.9rem">
                                         <label class="isla-form-checkbox" style="align-items:flex-start">
                                             <input type="checkbox" data-quote-confirm-checkbox />
@@ -1388,7 +1412,7 @@ else
     }
 
     static readonly Regex QuoteAcceptancePhrasesRegex = new Regex(
-        @"(?:<p>)?\s*(?:would you like (?:to confirm|me to confirm|to proceed (?:with|and accept)) this quote\??|selecting yes will notify microhire[^.]*\.?|once you're done reviewing the quote[^.]*\.?|notify microhire to finalize[^.]*\.?)\s*(?:</p>)?",
+        @"(?:<p>)?\s*(?:would you like (?:to confirm|me to confirm|to proceed (?:with|and accept)) this quote\??|selecting(?:\s+yes|\s+""accept quote"")\s+will notify microhire[^.]*\.?|once you're done reviewing the quote[^.]*\.?|notify microhire to finalize[^.]*\.?)\s*(?:</p>)?",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     string StripQuoteAcceptancePhrases(string text){
@@ -2098,7 +2122,15 @@ else
     const venue=resolveVenueLabel(form);
     const eventType=(form.querySelector('[data-event-type]')?.value||'').trim();
     const attendees=(form.querySelector('[data-event-attendees]')?.value||'').trim();
-    const date=(form.querySelector('[data-event-date]')?.value||'').trim();
+    const dateRaw=(form.querySelector('[data-event-date]')?.value||'').trim();
+    const df=window.__islaDateFormat;
+    const dateIso=df?df.parseDdMmYyyyToIso(dateRaw):'';
+    const minD=(form.querySelector('[data-event-date]')?.getAttribute('data-min-date')||'').trim();
+    if(dateRaw && (!dateIso || (minD && df && df.compareIso(dateIso,minD)<0))){
+      showFormError(err,'Please enter a valid date as DD-MM-YYYY (on or after today).');
+      return;
+    }
+    const date=dateIso;
     const setup=(form.querySelector('[data-event-setup]')?.value||'').trim();
     const setupTime=(form.querySelector('[data-event-setup-time]')?.value||'').trim();
     const rehearsalTime=(form.querySelector('[data-event-rehearsal-time]')?.value||'').trim();
@@ -2653,7 +2685,25 @@ else
       if(!resp.ok) throw new Error('Server error '+resp.status);
       const html=await resp.text();
       const wrap=document.getElementById('messagesWrap');
+      // Save chat transcript to localStorage before replacing DOM
+      try{
+        if(wrap){
+          var lt=document.querySelector('meta[name="lead-token"]');
+          var tk=lt?lt.content:'';
+          if(tk){
+            localStorage.setItem('isla-transcript-'+tk, JSON.stringify({
+              html:wrap.innerHTML,
+              savedAt:new Date().toISOString()
+            }));
+          }
+        }
+      }catch(e){console.warn('Failed to save transcript to localStorage',e);}
       if(wrap){ applyMessagesPartialHtml(wrap, html); }
+      // Disable chat input after signing
+      var ti=document.getElementById('textInput');
+      var sb=document.getElementById('sendBtn');
+      if(ti){ti.disabled=true;ti.placeholder='This chat session has ended.';}
+      if(sb){sb.disabled=true;}
     }catch(ex){
       if(!ex || (ex.message!=='csrf' && ex.message!=='csrf400')){
         showErr('Something went wrong. Please try again.');

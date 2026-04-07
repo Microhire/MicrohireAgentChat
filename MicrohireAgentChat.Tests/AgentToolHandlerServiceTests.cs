@@ -1102,6 +1102,64 @@ public sealed class AgentToolHandlerServiceTests
     }
 
     [Fact]
+    public void ExtractExplicitAttendeesFromUserMessages_MatchesSevenPeople_Word()
+    {
+        var messages = new List<DisplayMessage>
+        {
+            new("user", DateTimeOffset.UtcNow, new[] { "We will have seven people in Thrive" }),
+        };
+
+        var explicitN = AgentToolHandlerService.ExtractExplicitAttendeesFromUserMessages(messages);
+        var fullN = AgentToolHandlerService.ExtractAttendeesFromUserMessages(messages);
+        Assert.Equal(7, explicitN);
+        Assert.Equal(7, fullN);
+    }
+
+    [Fact]
+    public void ExtractExplicitAttendeesFromUserMessages_MatchesRoughlyFifteen_Word()
+    {
+        var messages = new List<DisplayMessage>
+        {
+            new("user", DateTimeOffset.UtcNow, new[] { "roughly fifteen guests" }),
+        };
+
+        Assert.Equal(15, AgentToolHandlerService.ExtractExplicitAttendeesFromUserMessages(messages));
+    }
+
+    [Fact]
+    public void ResolveUserAttendeesFromTranscriptForEquipmentRecommendation_IgnoresContextual_WhenCrmSeedDisagrees()
+    {
+        var resolved = AgentToolHandlerService.ResolveUserAttendeesFromTranscriptForEquipmentRecommendation(
+            explicitAttendeesFromTranscript: 0,
+            userStatedAttendeesFull: 2,
+            attendeesFromSessionParsed: 7,
+            leadSeededParsed: 7);
+        Assert.Equal(0, resolved);
+    }
+
+    [Fact]
+    public void ResolveUserAttendeesFromTranscriptForEquipmentRecommendation_ExplicitOverridesSeed()
+    {
+        var resolved = AgentToolHandlerService.ResolveUserAttendeesFromTranscriptForEquipmentRecommendation(
+            explicitAttendeesFromTranscript: 2,
+            userStatedAttendeesFull: 2,
+            attendeesFromSessionParsed: 7,
+            leadSeededParsed: 7);
+        Assert.Equal(2, resolved);
+    }
+
+    [Fact]
+    public void ResolveUserAttendeesFromTranscriptForEquipmentRecommendation_ContextualPasses_WithoutSeed()
+    {
+        var resolved = AgentToolHandlerService.ResolveUserAttendeesFromTranscriptForEquipmentRecommendation(
+            explicitAttendeesFromTranscript: 0,
+            userStatedAttendeesFull: 75,
+            attendeesFromSessionParsed: 0,
+            leadSeededParsed: 0);
+        Assert.Equal(75, resolved);
+    }
+
+    [Fact]
     public void ExtractAttendeesFromUserMessages_ExtractsFromPaxKeyword()
     {
         var messages = new List<DisplayMessage>

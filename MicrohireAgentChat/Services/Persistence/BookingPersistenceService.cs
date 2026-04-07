@@ -23,6 +23,7 @@ public sealed partial class BookingPersistenceService
     private readonly ItemPersistenceService _itemService;
     private readonly CrewPersistenceService _crewService;
     private readonly ContactResolutionService _contactResolution;
+    private readonly OrganizationPersistenceService _orgService;
     private readonly RentalPointDefaultsOptions _rpDefaults;
     private readonly ILogger<BookingPersistenceService> _logger;
 
@@ -32,6 +33,7 @@ public sealed partial class BookingPersistenceService
         ItemPersistenceService itemService,
         CrewPersistenceService crewService,
         ContactResolutionService contactResolution,
+        OrganizationPersistenceService orgService,
         IOptions<RentalPointDefaultsOptions> rpDefaults,
         ILogger<BookingPersistenceService> logger)
     {
@@ -40,6 +42,7 @@ public sealed partial class BookingPersistenceService
         _itemService = itemService;
         _crewService = crewService;
         _contactResolution = contactResolution;
+        _orgService = orgService;
         _rpDefaults = rpDefaults.Value;
         _logger = logger;
     }
@@ -102,8 +105,12 @@ public sealed partial class BookingPersistenceService
                     ct);
             }
 
-            // Single-day booking (existing logic)
-            var bookingNo = existingBookingNo ?? await GenerateBookingNumberAsync(ct);
+            // Single-day booking: resolve customer before generating booking number (CustomerCode + 5-digit sequence)
+            var finalCustId = organizationId ?? await GetDefaultCustomerIdAsync(ct);
+            var resolvedCustCode = customerCode
+                ?? (finalCustId.HasValue ? await _orgService.GetCustomerCodeByIdAsync(finalCustId.Value, ct) : null);
+            var bookingNo = existingBookingNo ?? await GenerateNextBookingNoAsync(resolvedCustCode!, ct);
+            var finalCustCode = Trunc(resolvedCustCode, CustomerCodeMaxLength);
 
             // Extract structured data from facts
             var eventDate = ExtractDate(facts, "event_date");
@@ -133,6 +140,10 @@ public sealed partial class BookingPersistenceService
             var insurance = ParseDecimal(GetFact(facts, "insurance"));
             var tax2 = ParseDecimal(GetFact(facts, "gst"));
 
+            // Default 10% service charge on hire_price when not explicitly provided
+            if (!insurance.HasValue && hirePrice.HasValue && hirePrice.Value > 0)
+                insurance = Math.Round(hirePrice.Value * 0.10m, 2);
+
             // Status
             var statusFact = GetFact(facts, "booking_status");
             var initialStatus = statusFact ?? "Enquiry";
@@ -142,12 +153,6 @@ public sealed partial class BookingPersistenceService
             int? venueId = await ResolveVenueIdAsync(venueName, ct);
 
             var existing = await _db.TblBookings.FirstOrDefaultAsync(b => b.booking_no == bookingNo, ct);
-
-            // CRITICAL: CustID is required by the database - get default if not provided
-            var finalCustId = organizationId ?? await GetDefaultCustomerIdAsync(ct);
-            var finalCustCode = Trunc(
-                customerCode ?? (finalCustId.HasValue ? await GetCustomerCodeByIdAsync(finalCustId.Value, ct) : null),
-                CustomerCodeMaxLength);
 
             if (existing == null)
             {
@@ -195,7 +200,7 @@ public sealed partial class BookingPersistenceService
                     hire_price = (double?)hirePrice,
                     labour = (double?)labour,
                     insurance_v5 = (double?)insurance,
-                    sundry_total = (double?)insurance, // service charge
+                    insurance_type = 1, // default 10% service charge
                     Tax2 = (double?)tax2,
                     days_using = 1,
                     
@@ -280,7 +285,7 @@ public sealed partial class BookingPersistenceService
                 if (insurance.HasValue)
                 {
                     existing.insurance_v5 = (double?)insurance;
-                    existing.sundry_total = (double?)insurance;
+                    existing.insurance_type = (byte)(insurance.Value > 0 ? 1 : 0);
                 }
                 if (tax2.HasValue) existing.Tax2 = (double?)tax2;
 
@@ -319,9 +324,13 @@ public sealed partial class BookingPersistenceService
         DateTime now,
         CancellationToken ct)
     {
-        // Generate base booking number for the first day
-        var baseBookingNo = existingBookingNo ?? await GenerateBookingNumberAsync(ct);
+        // Resolve customer then generate base booking number (CustomerCode + 5-digit sequence)
+        var finalCustId = organizationId ?? await GetDefaultCustomerIdAsync(ct);
+        var resolvedCustCode = customerCode
+            ?? (finalCustId.HasValue ? await _orgService.GetCustomerCodeByIdAsync(finalCustId.Value, ct) : null);
+        var baseBookingNo = existingBookingNo ?? await GenerateNextBookingNoAsync(resolvedCustCode!, ct);
         var firstDayBookingNo = baseBookingNo;
+        var finalCustCode = Trunc(resolvedCustCode, CustomerCodeMaxLength);
 
         // Extract common data that applies to all days
         var venueName = GetFact(facts, "venue_name");
@@ -342,17 +351,15 @@ public sealed partial class BookingPersistenceService
         var insurance = ParseDecimal(GetFact(facts, "insurance"));
         var tax2 = ParseDecimal(GetFact(facts, "gst"));
 
+        // Default 10% service charge on hire_price when not explicitly provided
+        if (!insurance.HasValue && hirePrice.HasValue && hirePrice.Value > 0)
+            insurance = Math.Round(hirePrice.Value * 0.10m, 2);
+
         var status = GetFact(facts, "booking_status") ?? "Enquiry";
         var bookingType = ParseByte(GetFact(facts, "booking_type")) ?? (byte)2;
 
         // Venue lookup
         int? venueId = await ResolveVenueIdAsync(venueName, ct);
-
-        // CRITICAL: CustID is required
-        var finalCustId = organizationId ?? await GetDefaultCustomerIdAsync(ct);
-        var finalCustCode = Trunc(
-            customerCode ?? (finalCustId.HasValue ? await GetCustomerCodeByIdAsync(finalCustId.Value, ct) : null),
-            CustomerCodeMaxLength);
 
         // Create booking record for each day
         for (int dayNumber = 1; dayNumber <= multiDayDetails.DurationDays; dayNumber++)
@@ -422,7 +429,7 @@ public sealed partial class BookingPersistenceService
                     hire_price = (double?)dayHirePrice,
                     labour = (double?)dayLabour,
                     insurance_v5 = (double?)dayInsurance,
-                    sundry_total = (double?)dayInsurance,
+                    insurance_type = 1, // default 10% service charge
                     Tax2 = (double?)dayTax2,
                     days_using = 1, // Each day booking uses 1 day
 
@@ -488,7 +495,7 @@ public sealed partial class BookingPersistenceService
                 if (dayInsurance.HasValue)
                 {
                     existing.insurance_v5 = (double?)dayInsurance;
-                    existing.sundry_total = (double?)dayInsurance;
+                    existing.insurance_type = (byte)(dayInsurance.Value > 0 ? 1 : 0);
                 }
                 if (dayTax2.HasValue) existing.Tax2 = (double?)dayTax2;
 

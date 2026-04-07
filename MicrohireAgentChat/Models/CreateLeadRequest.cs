@@ -14,4 +14,6 @@ public sealed class CreateLeadRequest
     public string? Venue { get; set; }
     public string? Room { get; set; }
     public string? Attendees { get; set; }
+    /// <summary>Optional: ID of an existing organisation selected via autocomplete. Skips org creation when set.</summary>
+    public decimal? ExistingOrgId { get; set; }
 }

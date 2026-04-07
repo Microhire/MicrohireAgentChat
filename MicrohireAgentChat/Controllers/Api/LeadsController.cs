@@ -6,6 +6,7 @@ using MicrohireAgentChat.Config;
 using MicrohireAgentChat.Data;
 using MicrohireAgentChat.Models;
 using MicrohireAgentChat.Services;
+using MicrohireAgentChat.Services.Persistence;
 
 namespace MicrohireAgentChat.Controllers.Api;
 
@@ -16,6 +17,7 @@ public sealed class LeadsController : ControllerBase
     private readonly AppDbContext _db;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILeadSubmissionFollowUp _leadFollowUp;
+    private readonly OrganizationPersistenceService _orgService;
     private readonly IOptions<LeadEmailOptions> _leadEmailOptions;
     private readonly ILogger<LeadsController> _logger;
 
@@ -23,12 +25,14 @@ public sealed class LeadsController : ControllerBase
         AppDbContext db,
         IServiceScopeFactory scopeFactory,
         ILeadSubmissionFollowUp leadFollowUp,
+        OrganizationPersistenceService orgService,
         IOptions<MicrohireAgentChat.Config.LeadEmailOptions> leadEmailOptions,
         ILogger<LeadsController> logger)
     {
         _db = db;
         _scopeFactory = scopeFactory;
         _leadFollowUp = leadFollowUp;
+        _orgService = orgService;
         _leadEmailOptions = leadEmailOptions;
         _logger = logger;
     }
@@ -70,6 +74,13 @@ public sealed class LeadsController : ControllerBase
         var leadId = lead.Id;
         var syncResult = await _leadFollowUp.SyncLeadToBookingsDbAsync(request, ct);
 
+        // Persist booking number back to the WestinLead record
+        if (!string.IsNullOrEmpty(syncResult.BookingNo))
+        {
+            lead.BookingNo = syncResult.BookingNo;
+            await _db.SaveChangesAsync(ct);
+        }
+
         _ = SendLeadNotificationInBackgroundAsync(leadId, chatLink);
 
         return Ok(new
@@ -79,6 +90,8 @@ public sealed class LeadsController : ControllerBase
             emailQueued = true,
             contactSync = syncResult.ContactAction,
             orgSync = syncResult.OrgAction,
+            bookingNo = syncResult.BookingNo,
+            bookingSync = syncResult.BookingAction,
         });
 
         async Task SendLeadNotificationInBackgroundAsync(int id, string link)
@@ -94,6 +107,16 @@ public sealed class LeadsController : ControllerBase
                 _logger.LogError(ex, "Background lead notification failed for WestinLead {LeadId}", id);
             }
         }
+    }
+
+    [HttpGet("organizations/search")]
+    public async Task<IActionResult> SearchOrganizations([FromQuery] string? q, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(q) || q.Trim().Length < 3)
+            return BadRequest(new { error = "Query must be at least 3 characters." });
+
+        var results = await _orgService.SearchOrganisationsAsync(q.Trim(), 15, ct);
+        return Ok(results);
     }
 
     private string ResolveLeadChatBaseUrl()

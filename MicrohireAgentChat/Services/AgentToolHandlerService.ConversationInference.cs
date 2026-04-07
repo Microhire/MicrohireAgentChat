@@ -1,5 +1,6 @@
 using MicrohireAgentChat.Models;
 using Microsoft.AspNetCore.Http;
+using System.Globalization;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 
@@ -7,7 +8,33 @@ namespace MicrohireAgentChat.Services;
 
 public sealed partial class AgentToolHandlerService
 {
-    internal static int ExtractAttendeesFromUserMessages(IEnumerable<DisplayMessage> messages)
+    /// <summary>English number words for attendee phrases (e.g. "seven people").</summary>
+    private static readonly Dictionary<string, int> EnglishAttendeeNumberWords = BuildEnglishAttendeeNumberWords();
+
+    private static Dictionary<string, int> BuildEnglishAttendeeNumberWords()
+    {
+        var d = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        string[] ones = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+            "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"];
+        for (var i = 0; i < ones.Length; i++)
+            d[ones[i]] = i;
+        string[] tens = ["twenty", "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety"];
+        for (var t = 0; t < tens.Length; t++)
+            d[tens[t]] = (t + 2) * 10;
+        return d;
+    }
+
+    private static bool TryParseEnglishAttendeeWord(string word, out int n)
+    {
+        n = 0;
+        return !string.IsNullOrWhiteSpace(word) && EnglishAttendeeNumberWords.TryGetValue(word.Trim(), out n) && n > 0;
+    }
+
+    /// <summary>
+    /// Counts from clear user phrasing only (digits or number-words + people/attendees, update patterns).
+    /// Does not use assistant-follow-up + bare-number inference (avoids false positives vs CRM prefill).
+    /// </summary>
+    internal static int ExtractExplicitAttendeesFromUserMessages(IEnumerable<DisplayMessage> messages)
     {
         var ordered = messages?.ToList() ?? new List<DisplayMessage>();
         var userMessages = ordered
@@ -23,30 +50,88 @@ public sealed partial class AgentToolHandlerService
             if (string.IsNullOrWhiteSpace(part) || IsScheduleOrTimeSelectionMessage(part)) continue;
 
             var directMatch = Regex.Match(part, @"\b(\d{1,4})\s*(?:people|attendees|pax|participants|guests)\b", RegexOptions.IgnoreCase);
-            if (directMatch.Success && int.TryParse(directMatch.Groups[1].Value, out var direct) && direct > 0)
+            if (directMatch.Success && int.TryParse(directMatch.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var direct) && direct > 0)
             {
                 latestAttendees = direct;
                 continue;
             }
 
+            var directWord = Regex.Match(part,
+                @"\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)\s+(?:people|attendees|pax|participants|guests)\b",
+                RegexOptions.IgnoreCase);
+            if (directWord.Success && TryParseEnglishAttendeeWord(directWord.Groups[1].Value, out var dw) && dw > 0)
+            {
+                latestAttendees = dw;
+                continue;
+            }
+
             var expectingMatch = Regex.Match(part, @"\b(?:expecting|about|around|approximately|roughly)\s+(\d{1,4})(?:\s*(?:people|attendees|pax|participants|guests))?\b", RegexOptions.IgnoreCase);
-            if (expectingMatch.Success && int.TryParse(expectingMatch.Groups[1].Value, out var expecting) && expecting > 0)
+            if (expectingMatch.Success && int.TryParse(expectingMatch.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var expecting) && expecting > 0)
             {
                 latestAttendees = expecting;
                 continue;
             }
 
+            var expectingWord = Regex.Match(part,
+                @"\b(?:expecting|about|around|approximately|roughly)\s+(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)(?:\s+(?:people|attendees|pax|participants|guests))?\b",
+                RegexOptions.IgnoreCase);
+            if (expectingWord.Success && TryParseEnglishAttendeeWord(expectingWord.Groups[1].Value, out var ew) && ew > 0)
+            {
+                latestAttendees = ew;
+                continue;
+            }
+
             var updatedCountMatch = Regex.Match(part, @"\b(?:change|update|set|make)\s+(?:the\s+)?(?:attendee(?:s)?|count)\s+(?:to|as)\s+(\d{1,4})\b", RegexOptions.IgnoreCase);
-            if (updatedCountMatch.Success && int.TryParse(updatedCountMatch.Groups[1].Value, out var changed) && changed > 0)
+            if (updatedCountMatch.Success && int.TryParse(updatedCountMatch.Groups[1].Value, NumberStyles.None, CultureInfo.InvariantCulture, out var changed) && changed > 0)
             {
                 latestAttendees = changed;
+                continue;
             }
+
+            var updatedWord = Regex.Match(part,
+                @"\b(?:change|update|set|make)\s+(?:the\s+)?(?:attendee(?:s)?|count)\s+(?:to|as)\s+(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety)\b",
+                RegexOptions.IgnoreCase);
+            if (updatedWord.Success && TryParseEnglishAttendeeWord(updatedWord.Groups[1].Value, out var uw) && uw > 0)
+                latestAttendees = uw;
         }
 
+        return latestAttendees;
+    }
+
+    /// <summary>
+    /// Merges explicit attendee phrases, full transcript inference (incl. contextual bare numbers), and CRM-prefill session.
+    /// When a CRM seed exists, contextual inference that disagrees with session is ignored so prefill is not overwritten by ambiguous replies.
+    /// </summary>
+    internal static int ResolveUserAttendeesFromTranscriptForEquipmentRecommendation(
+        int explicitAttendeesFromTranscript,
+        int userStatedAttendeesFull,
+        int attendeesFromSessionParsed,
+        int leadSeededParsed)
+    {
+        if (explicitAttendeesFromTranscript > 0)
+            return explicitAttendeesFromTranscript;
+        if (leadSeededParsed > 0
+            && userStatedAttendeesFull > 0
+            && attendeesFromSessionParsed > 0
+            && userStatedAttendeesFull != attendeesFromSessionParsed)
+            return 0;
+        if (userStatedAttendeesFull > 0)
+            return userStatedAttendeesFull;
+        return 0;
+    }
+
+    internal static int ExtractAttendeesFromUserMessages(IEnumerable<DisplayMessage> messages)
+    {
+        var ordered = messages?.ToList() ?? new List<DisplayMessage>();
+        var userMessages = ordered
+            .Where(m => m.Role.Equals("user", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (userMessages.Count == 0) return 0;
+
+        var latestAttendees = ExtractExplicitAttendeesFromUserMessages(ordered);
         if (latestAttendees > 0)
-        {
             return latestAttendees;
-        }
 
         for (int i = 0; i < ordered.Count; i++)
         {

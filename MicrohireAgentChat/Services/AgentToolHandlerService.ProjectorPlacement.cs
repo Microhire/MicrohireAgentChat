@@ -20,7 +20,8 @@ public sealed partial class AgentToolHandlerService
         return type.Contains("projector")
             || type.Contains("screen")
             || type.Contains("display")
-            || type.Contains("vision");
+            || type.Contains("vision")
+            || type is "av" or "base av" or "base_av";
     }
 
     private static bool IsSpeakerOrMicrophoneEquipmentType(string? equipmentType)

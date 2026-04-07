@@ -73,6 +73,7 @@ namespace MicrohireAgentChat.Models
         public double? discount_rate { get; set; }
         public string? same_address { get; set; }
         public double? insurance_v5 { get; set; }
+        public byte? insurance_type { get; set; }  // 0=None, 1=10%, 2=35% service charge on hire_price
         public int? days_using { get; set; }
         public double? un_disc_amount { get; set; }
         public byte? del_time_h { get; set; }

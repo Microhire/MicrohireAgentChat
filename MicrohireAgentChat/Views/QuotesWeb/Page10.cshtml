@@ -17,7 +17,7 @@
     .page-header {
         margin-bottom: 2rem;
         padding-bottom: 1rem;
-        border-bottom: 2px solid #E71E25;
+        border-bottom: 2px solid #ca1a20;
     }
     
     .page-title {
@@ -52,7 +52,7 @@
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 1px;
-        color: #E71E25;
+        color: #ca1a20;
         margin-bottom: 1.5rem;
         padding-bottom: 0.5rem;
         border-bottom: 1px solid #f0f0f0;
@@ -147,10 +147,10 @@
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 1px;
-        color: #E71E25;
+        color: #ca1a20;
         margin-bottom: 1.5rem;
         padding-bottom: 0.5rem;
-        border-bottom: 2px solid #E71E25;
+        border-bottom: 2px solid #ca1a20;
     }
     
     .reference-info {
@@ -213,7 +213,7 @@
     
     .form-input:focus {
         outline: none;
-        border-color: #E71E25;
+        border-color: #ca1a20;
     }
     
     .submit-section {
@@ -224,7 +224,7 @@
     }
     
     .btn-submit {
-        background: linear-gradient(135deg, #E71E25 0%, #c0392b 100%);
+        background: linear-gradient(135deg, #ca1a20 0%, #a8151a 100%);
         color: white;
         border: none;
         padding: 1rem 2rem;
@@ -243,7 +243,7 @@
     }
     
     .account-manager-card {
-        background: linear-gradient(135deg, #E71E25 0%, #c0392b 100%);
+        background: linear-gradient(135deg, #ca1a20 0%, #a8151a 100%);
         color: white;
         border-radius: 12px;
         padding: 1.5rem;
@@ -359,7 +359,7 @@
         <p class="terms-text">@Model.ConfirmP3</p>
         <p class="terms-text">@Model.ConfirmP4</p>
         <p class="terms-text" style="margin-top: 1rem;">
-            <a href="@Model.ConfirmTermsUrl" target="_blank" style="color: #E71E25;">View Terms & Conditions</a>
+            <a href="@Model.ConfirmTermsUrl" target="_blank" style="color: #ca1a20;">View Terms & Conditions</a>
         </p>
         
         <div class="signature-grid">
@@ -376,7 +376,7 @@
             <div>
                 <div class="form-group">
                     <label class="form-label">Date</label>
-                    <input type="date" class="form-input" name="Date"/>
+                    <input type="text" class="form-input" name="Date" placeholder="DD-MM-YYYY" inputmode="numeric" autocomplete="off"/>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Purchase Order (if applicable)</label>

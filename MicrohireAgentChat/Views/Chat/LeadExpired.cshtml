@@ -1,0 +1,126 @@
+@model MicrohireAgentChat.Models.LeadExpiredViewModel
+@{
+    ViewData["Title"] = "Quote Already Accepted – Microhire";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"]</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
+
+    <!-- Phosphor icons -->
+    <link rel="stylesheet" href="https://unpkg.com/%40phosphor-icons/web@2.1.1/src/index.css" />
+
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .expired-card {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .expired-icon {
+            font-size: 64px;
+            color: #ca1a20;
+            margin-bottom: 20px;
+        }
+
+        .expired-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 16px;
+        }
+
+        .expired-message {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+
+        .expired-message strong {
+            color: #333;
+        }
+
+        .expired-actions {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            background: #ca1a20;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background-color 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #a8151a;
+            color: white;
+            text-decoration: none;
+        }
+
+        @@keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="expired-card">
+        <div class="expired-icon">
+            <i class="ph ph-check-circle"></i>
+        </div>
+
+        <h1 class="expired-title">Quote Already Accepted</h1>
+
+        <p class="expired-message">
+            This quote has already been signed and accepted.
+            @if (!string.IsNullOrWhiteSpace(Model.BookingNo))
+            {
+                <br /><text>Your booking reference is <strong>@Model.BookingNo</strong>.</text>
+            }
+            <br />If you need to make changes, please contact Microhire directly.
+        </p>
+
+        <div class="expired-actions">
+            <a href="tel:+611300347652" class="btn-primary">
+                <i class="ph ph-phone"></i>
+                Contact Microhire
+            </a>
+        </div>
+    </div>
+</body>
+</html>

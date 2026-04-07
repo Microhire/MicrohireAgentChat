@@ -384,3 +384,14 @@ Scripts/delete-email.env
 # Local extracts of Kudu/App logs (long filenames break `git pull` on Windows if committed)
 _azure-logs/
 _azure-log-extract/
+
+# RP-AI-TEST folder and archive
+RP-AI-TEST/
+RP-AI-TEST.zip
+
+# Local scripts with secrets/credentials
+export_to_azure.ps1
+export_to_azure.bat
+RPIni_azure.ini
+RPIni_local.ini
+clone-prod-db.ps1

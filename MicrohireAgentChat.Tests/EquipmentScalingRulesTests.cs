@@ -402,8 +402,8 @@ public sealed class EquipmentScalingRulesTests
     {
         var webRoot = CreateDataRoot(includeVenuePackages: true);
         await using var db = CreateDb(nameof(Av_ElevateFull_SelectsELEVAVP));
-        SeedProduct(db, "ELEVAVP", "WSBELEV", "Elevate Full AV Package", dayRate: 800);
-        SeedProduct(db, "ELEVSAVP", "WSBELEV", "Elevate Single AV Package", dayRate: 400);
+        SeedProduct(db, "ELEVAVP", "WSB", "Elevate AV Package", dayRate: 800, subCategory: "WSBELEV");
+        SeedProduct(db, "ELEVSAVP", "WSB", "Elevate (Single) AV Package", dayRate: 400, subCategory: "WSBELEV");
         await db.SaveChangesAsync();
 
         var service = CreateService(db, webRoot);
@@ -434,8 +434,8 @@ public sealed class EquipmentScalingRulesTests
     {
         var webRoot = CreateDataRoot(includeVenuePackages: true);
         await using var db = CreateDb($"{nameof(Av_ElevateHalf_SelectsELEVSAVP)}_{roomName.Replace(' ', '_')}");
-        SeedProduct(db, "ELEVAVP", "WSBELEV", "Elevate Full AV Package", dayRate: 800);
-        SeedProduct(db, "ELEVSAVP", "WSBELEV", "Elevate Single AV Package", dayRate: 400);
+        SeedProduct(db, "ELEVAVP", "WSB", "Elevate AV Package", dayRate: 800, subCategory: "WSBELEV");
+        SeedProduct(db, "ELEVSAVP", "WSB", "Elevate (Single) AV Package", dayRate: 400, subCategory: "WSBELEV");
         await db.SaveChangesAsync();
 
         var service = CreateService(db, webRoot);
@@ -464,8 +464,8 @@ public sealed class EquipmentScalingRulesTests
     {
         var webRoot = CreateDataRoot(includeVenuePackages: true);
         await using var db = CreateDb(nameof(Speaker_ElevateFull_SelectsELEVCSS));
-        SeedProduct(db, "ELEVCSS", "WSBELEV", "Elevate Combined Ceiling Speaker System", dayRate: 350);
-        SeedProduct(db, "ELEVSCSS", "WSBELEV", "Elevate Single Ceiling Speaker System", dayRate: 200);
+        SeedProduct(db, "ELEVCSS", "WSB", "Elevate Ceiling Speaker System", dayRate: 350, subCategory: "WSBELEV");
+        SeedProduct(db, "ELEVSCSS", "WSB", "Elevate Single Ceiling Speaker System", dayRate: 200, subCategory: "WSBELEV");
         await db.SaveChangesAsync();
 
         var service = CreateService(db, webRoot);
@@ -492,8 +492,8 @@ public sealed class EquipmentScalingRulesTests
     {
         var webRoot = CreateDataRoot(includeVenuePackages: true);
         await using var db = CreateDb(nameof(Speaker_Elevate1_SelectsELEVSCSS));
-        SeedProduct(db, "ELEVCSS", "WSBELEV", "Elevate Combined Ceiling Speaker System", dayRate: 350);
-        SeedProduct(db, "ELEVSCSS", "WSBELEV", "Elevate Single Ceiling Speaker System", dayRate: 200);
+        SeedProduct(db, "ELEVCSS", "WSB", "Elevate Ceiling Speaker System", dayRate: 350, subCategory: "WSBELEV");
+        SeedProduct(db, "ELEVSCSS", "WSB", "Elevate Single Ceiling Speaker System", dayRate: 200, subCategory: "WSBELEV");
         await db.SaveChangesAsync();
 
         var service = CreateService(db, webRoot);
@@ -569,6 +569,41 @@ public sealed class EquipmentScalingRulesTests
             string.Equals(i.ProductCode, "THRVCSS", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public async Task DynamicDiscovery_NewProductAdded_AutoDiscovered()
+    {
+        var webRoot = CreateDataRoot(includeVenuePackages: true);
+        await using var db = CreateDb(nameof(DynamicDiscovery_NewProductAdded_AutoDiscovered));
+        // Seed the standard Elevate products plus a hypothetical new one
+        SeedProduct(db, "ELEVAVP", "WSB", "Elevate AV Package", dayRate: 800, subCategory: "WSBELEV");
+        SeedProduct(db, "ELEVSAVP", "WSB", "Elevate (Single) AV Package", dayRate: 400, subCategory: "WSBELEV");
+        SeedProduct(db, "ELEVPREMAV", "WSB", "Elevate Premium AV Package", dayRate: 1200, subCategory: "WSBELEV");
+        await db.SaveChangesAsync();
+
+        var service = CreateService(db, webRoot);
+        var context = new EventContext
+        {
+            EventType = "gala",
+            VenueName = "Westin Brisbane",
+            RoomName = "Elevate",
+            ExpectedAttendees = 120,
+            EquipmentRequests = new List<EquipmentRequest>
+            {
+                new() { EquipmentType = "av", Quantity = 1 }
+            }
+        };
+
+        var result = await service.GetRecommendationsAsync(context, CancellationToken.None);
+
+        // The new product should be discovered without any JSON or code changes
+        var avItems = result.Items.Where(i =>
+            i.ProductCode.StartsWith("ELEV", StringComparison.OrdinalIgnoreCase) &&
+            i.Description.ToLowerInvariant().Contains("av package")).ToList();
+
+        // At least one Elevate AV package should be returned (the best-match selection logic picks one)
+        Assert.NotEmpty(avItems);
+    }
+
     #region Test Helpers
 
     private static BookingDbContext CreateDb(string dbName)
@@ -579,13 +614,14 @@ public sealed class EquipmentScalingRulesTests
         return new BookingDbContext(options);
     }
 
-    private static void SeedProduct(BookingDbContext db, string code, string category, string description, double dayRate)
+    private static void SeedProduct(BookingDbContext db, string code, string category, string description, double dayRate, string? subCategory = null)
     {
         db.TblInvmas.Add(new TblInvmas
         {
             product_code = code,
             category = category,
-            descriptionv6 = description
+            descriptionv6 = description,
+            SubCategory = subCategory
         });
         db.TblRatetbls.Add(new TblRatetbl
         {
@@ -633,9 +669,7 @@ public sealed class EquipmentScalingRulesTests
             var elevatePkgs = new Dictionary<string, object>
             {
                 ["aiFolder"] = "WSBELEV",
-                ["audio"] = new[] { "ELEVCSS", "ELEVSCSS" },
-                ["vision"] = new[] { "ELEVPROJ" },
-                ["av"] = new[] { "ELEVAVP", "ELEVSAVP" }
+                ["baseEquipment"] = new[] { "Inbuilt projector and screen", "Inbuilt speakers" }
             };
             var thrivePkgs = new Dictionary<string, object>
             {

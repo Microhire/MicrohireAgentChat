@@ -14,10 +14,10 @@ public partial class HtmlQuoteGenerationService
     {
         return @"
         :root {
-            --microhire-red: #E81E25;
-            --microhire-red-dark: #C91A20;
-            --microhire-red-darker: #9E1D20;
-            --microhire-accent: #FF3262;
+            --microhire-red: #ca1a20;
+            --microhire-red-dark: #a8151a;
+            --microhire-red-darker: #7f1d1d;
+            --microhire-accent: #ca1a20;
             --text-dark: #1a1a1a;
             --text-gray: #4a4a4a;
             --text-light: #6b6b6b;

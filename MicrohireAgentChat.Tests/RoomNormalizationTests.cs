@@ -37,6 +37,7 @@ public sealed class RoomNormalizationTests
             itemService,
             crewService,
             resolution,
+            orgService,
             Options.Create(new RentalPointDefaultsOptions()),
             NullLogger<BookingPersistenceService>.Instance);
     }

@@ -184,7 +184,7 @@ public sealed class OrganizationPersistenceService
         if (org == null) return null;
 
         var code = string.IsNullOrWhiteSpace(org.Customer_code)
-            ? "C" + Convert.ToInt32(org.ID)
+            ? MakeCustomerCodeFromId(org.ID)
             : org.Customer_code!;
 
         return (org.ID, code, org.OrganisationV6!);
@@ -203,7 +203,7 @@ public sealed class OrganizationPersistenceService
         if (c == null) return null;
 
         return string.IsNullOrWhiteSpace(c.Customer_code)
-            ? "C" + Convert.ToInt32(c.ID)
+            ? MakeCustomerCodeFromId(c.ID)
             : c.Customer_code!;
     }
 
@@ -230,6 +230,36 @@ public sealed class OrganizationPersistenceService
         });
 
         await _db.SaveChangesAsync(ct);
+    }
+
+    /// <summary>
+    /// Search organisations by name for autocomplete. Returns top <paramref name="limit"/> matches.
+    /// </summary>
+    public async Task<List<OrganisationSearchResult>> SearchOrganisationsAsync(
+        string query, int limit, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(query) || query.Trim().Length < 3)
+            return new List<OrganisationSearchResult>();
+
+        var q = query.Trim().ToLower();
+
+        var rows = await _db.TblCusts
+            .AsNoTracking()
+            .Where(c => c.OrganisationV6 != null && c.OrganisationV6.ToLower().Contains(q))
+            .OrderByDescending(c => c.CustCDate)
+            .Take(limit)
+            .Select(c => new { c.ID, c.Customer_code, c.OrganisationV6, c.Address_l1V6 })
+            .ToListAsync(ct);
+
+        return rows.Select(r => new OrganisationSearchResult
+        {
+            Id = r.ID,
+            CustomerCode = string.IsNullOrWhiteSpace(r.Customer_code)
+                ? MakeCustomerCodeFromId(r.ID)
+                : r.Customer_code!,
+            Name = r.OrganisationV6 ?? "",
+            Address = r.Address_l1V6,
+        }).ToList();
     }
 
     // ==================== PRIVATE HELPERS ====================

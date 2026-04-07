@@ -53,6 +53,9 @@ namespace MicrohireAgentChat.Data
                 e.Property(x => x.Room).HasMaxLength(100).IsRequired();
                 e.Property(x => x.Attendees).HasMaxLength(20).IsRequired();
                 e.Property(x => x.CreatedUtc).IsRequired();
+                e.Property(x => x.BookingNo).HasMaxLength(35);
+                e.Property(x => x.QuoteSignedUtc);
+                e.Property(x => x.SignedByName).HasMaxLength(200);
             });
         }
     }

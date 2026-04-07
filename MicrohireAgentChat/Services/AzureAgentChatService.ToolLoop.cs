@@ -537,11 +537,34 @@ namespace MicrohireAgentChat.Services
 
                                                 try
                                                 {
-                                                    await _bookingPersistence.SyncContactAndOrganisationForBookingAsync(bookingNo, session, ct);
+                                                    var (_, renamedBookingNo) = await _bookingPersistence.SyncContactAndOrganisationForBookingAsync(bookingNo, session, ct);
+                                                    if (!string.IsNullOrWhiteSpace(renamedBookingNo))
+                                                    {
+                                                        bookingNo = renamedBookingNo;
+                                                        session?.SetString("Draft:BookingNo", bookingNo);
+                                                    }
                                                 }
                                                 catch (Exception ex)
                                                 {
                                                     _logger.LogWarning(ex, "[QUOTE GEN] Failed to sync session contact/organisation to booking {BookingNo}; continuing", bookingNo);
+                                                }
+
+                                                if (session != null)
+                                                {
+                                                    try
+                                                    {
+                                                        var eventDetailsChanged = await _bookingPersistence.SyncEventDetailsForBookingAsync(bookingNo, session, ct);
+                                                        if (eventDetailsChanged)
+                                                        {
+                                                            session.Remove("Draft:QuoteUrl");
+                                                            session.Remove("Draft:QuoteComplete");
+                                                            session.Remove("Draft:QuoteTimestamp");
+                                                        }
+                                                    }
+                                                    catch (Exception ex)
+                                                    {
+                                                        _logger.LogWarning(ex, "[QUOTE GEN] Failed to sync session event details (schedule/times) to booking {BookingNo}; continuing", bookingNo);
+                                                    }
                                                 }
 
                                                 // ========== SYNC SESSION EQUIPMENT TO BOOKING BEFORE QUOTE ==========
@@ -680,8 +703,8 @@ namespace MicrohireAgentChat.Services
                                                     {
                                                         success = true,
                                                         ui = new { quoteUrl = fullRegenUrl, bookingNo = regenBookingNo, isHtml = true },
-                                                        message = $"I've updated your quote for booking {regenBookingNo}. <a href=\"{fullRegenUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">View Quote</a>\n\nWould you like to proceed and accept this quote?",
-                                                        instruction = "OUTPUT the message with the View Quote link and the confirmation prompt. Do not add other text."
+                                                        message = $"I've updated your quote for booking {regenBookingNo}. <a href=\"{fullRegenUrl}\" target=\"_blank\" rel=\"noopener noreferrer\" class=\"isla-quote-open\" data-quote-open=\"1\">View Quote</a>",
+                                                        instruction = "OUTPUT the message with the View Quote link. Do not add other text."
                                                     })));
                                                 }
                                                 catch (Exception ex)

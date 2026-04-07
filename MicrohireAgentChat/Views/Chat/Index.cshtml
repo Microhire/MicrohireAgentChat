@@ -5,6 +5,8 @@
     ViewData["Title"] = "Isla – Microhire";
 }
 
+<meta name="lead-token" content="@(ViewData["LeadToken"] ?? "")" />
+
 <!-- Fonts -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -100,6 +102,7 @@
             </div>
         </div>
 
+        <script src="~/js/isla-chat-dates.js" asp-append-version="true"></script>
         <div id="messagesWrap" class="chat-box-wrap">
             @await Html.PartialAsync("_Messages", Model)
         </div>
@@ -567,6 +570,12 @@
           const sendToken  = sendForm.querySelector('input[name="__RequestVerificationToken"]').value;
           const resetToken = resetForm ? resetForm.querySelector('input[name="__RequestVerificationToken"]').value : null;
 
+          // Disable chat input if quote was already accepted (page refresh after signing)
+          if ('@(ViewData["QuoteAccepted"])' === '1') {
+            if (input) { input.disabled = true; input.placeholder = 'This chat session has ended.'; }
+            if (sendBtn) { sendBtn.disabled = true; }
+          }
+
           function scrollToBottom() { messagesWrap.scrollTop = messagesWrap.scrollHeight; }
 
           function updateProgressBar() {
@@ -809,6 +818,10 @@
                     return `<option value="${opt || ''}" ${selected}>${opt || ''}</option>`;
                   }).join('');
 
+                  const dfHydrate = window.__islaDateFormat;
+                  const eventDateDisplay = dfHydrate ? dfHydrate.formatIsoToDdMmYyyy(item.eventDate || '') : (item.eventDate || '');
+                  const minDateAttr = item.minDate || '';
+
                   wrap.innerHTML = `
                     <div class="isla-form-title">${item.title || 'Please share your event details'}</div>
                     <div class="isla-form-grid two-col">
@@ -818,7 +831,7 @@
                     <div class="isla-form-grid two-col">
                       <div class="isla-form-field"><label>Event type</label><input type="text" value="${item.eventType || ''}" data-event-type /></div>
                       <div class="isla-form-field"><label>Attendee count</label><input type="number" min="1" step="1" value="${item.attendees || ''}" data-event-attendees /></div>
-                      <div class="isla-form-field"><label>Date</label><input type="date" value="${item.eventDate || ''}" min="${item.minDate || ''}" data-event-date /></div>
+                      <div class="isla-form-field"><label>Date</label><input type="text" value="${eventDateDisplay}" placeholder="DD-MM-YYYY" inputmode="numeric" autocomplete="off" data-event-date data-min-date="${minDateAttr}" /></div>
                       <div class="isla-form-field" data-event-setup-wrap><label>Room setup style</label><select data-event-setup>${setupHtml}</select></div>
                     </div>
                     <div class="isla-inline-note">Schedule</div>
@@ -1081,25 +1094,70 @@
             return isActiveForm(formEl);
           }
 
+          function validateVenueConfirmForSend() {
+            const form = messagesWrap.querySelector('[data-venue-confirm-form]');
+            if (!isVenueConfirmFormVisible(form)) return true;
+            const df = window.__islaDateFormat;
+            const err = form.querySelector('[data-vc-error]');
+            const showErr = (msg) => {
+              if (window.__islaChatHelpers && window.__islaChatHelpers.showFormError) window.__islaChatHelpers.showFormError(err, msg);
+              else if (err) { err.textContent = msg || ''; err.style.display = msg ? 'block' : 'none'; }
+            };
+            const venue = (form.querySelector('[data-vc-venue-select] option:checked')?.textContent || '').trim();
+            const room = (form.querySelector('[data-vc-room-select]')?.value || '').trim();
+            const startRaw = (form.querySelector('[data-vc-start-date]')?.value || '').trim();
+            const endRaw = (form.querySelector('[data-vc-end-date]')?.value || '').trim() || startRaw;
+            const attendees = (form.querySelector('[data-vc-attendees]')?.value || '').trim();
+            if (!venue || !room || !startRaw || !attendees) {
+              showErr('');
+              return true;
+            }
+            if (!df) {
+              showErr('Date helpers failed to load. Please refresh the page.');
+              return false;
+            }
+            const startIso = df.parseDdMmYyyyToIso(startRaw);
+            const endIso = df.parseDdMmYyyyToIso(endRaw);
+            if (!startIso || !endIso) {
+              showErr('Please enter start and end dates as DD-MM-YYYY.');
+              return false;
+            }
+            const minD = (form.getAttribute('data-vc-min-date') || '').trim();
+            if (minD && (df.compareIso(startIso, minD) < 0 || df.compareIso(endIso, minD) < 0)) {
+              showErr('Event dates must be on or after the minimum date allowed.');
+              return false;
+            }
+            showErr('');
+            return true;
+          }
+
           function buildVenueConfirmPayload(userText) {
             const form = messagesWrap.querySelector('[data-venue-confirm-form]');
             if (!isVenueConfirmFormVisible(form)) return '';
             const venue = (form.querySelector('[data-vc-venue-select] option:checked')?.textContent || '').trim();
             const room = (form.querySelector('[data-vc-room-select]')?.value || '').trim();
-            const start = (form.querySelector('[data-vc-start-date]')?.value || '').trim();
-            const end = (form.querySelector('[data-vc-end-date]')?.value || start).trim();
+            const startRaw = (form.querySelector('[data-vc-start-date]')?.value || '').trim();
+            const endRaw = (form.querySelector('[data-vc-end-date]')?.value || '').trim() || startRaw;
             const attendees = (form.querySelector('[data-vc-attendees]')?.value || '').trim();
-            if (!venue || !room || !start || !attendees) return '';
+            if (!venue || !room || !startRaw || !attendees) return '';
+            const df = window.__islaDateFormat;
+            if (!df) return '';
+            const startIso = df.parseDdMmYyyyToIso(startRaw);
+            const endIso = df.parseDdMmYyyyToIso(endRaw);
+            if (!startIso || !endIso) return '';
+            const minD = (form.getAttribute('data-vc-min-date') || '').trim();
+            if (minD && (df.compareIso(startIso, minD) < 0 || df.compareIso(endIso, minD) < 0)) return '';
             const enc = (v) => encodeURIComponent(v || '');
-            return `VenueConfirm: venue=${enc(venue)}; room=${enc(room)}; startDate=${enc(start)}; endDate=${enc(end)}; attendees=${enc(attendees)}; userMessage=${enc(userText)}`;
+            return `VenueConfirm: venue=${enc(venue)}; room=${enc(room)}; startDate=${enc(startIso)}; endDate=${enc(endIso)}; attendees=${enc(attendees)}; userMessage=${enc(userText)}`;
           }
 
           function buildBaseAvPayload(userText) {
             const forms = Array.from(messagesWrap.querySelectorAll('[data-base-av-form]')).filter(isBaseAvFormVisible);
             const form = forms.length ? forms[forms.length - 1] : null;
             if (!form) return '';
-            const bp = form.querySelector('[data-ba-proj]')?.checked ? 'yes' : 'no';
-            const bs = form.querySelector('[data-ba-screen]')?.checked ? 'yes' : 'no';
+            const combinedPS = form.querySelector('[data-ba-projscreen]');
+            const bp = combinedPS ? (combinedPS.checked ? 'yes' : 'no') : (form.querySelector('[data-ba-proj]')?.checked ? 'yes' : 'no');
+            const bs = combinedPS ? (combinedPS.checked ? 'yes' : 'no') : (form.querySelector('[data-ba-screen]')?.checked ? 'yes' : 'no');
             const bsp = form.querySelector('[data-ba-spk]')?.checked ? 'yes' : 'no';
             const pl = (form.querySelector('[data-ba-placement]')?.value || '').trim();
             const pr = (form.querySelector('[data-ba-presenters]')?.value || '0').trim();
@@ -1123,6 +1181,7 @@
             e.preventDefault();
             const userText = (input.value || '').trim();
             if (!userText) return;
+            if (!validateVenueConfirmForSend()) return;
             const payloadText = buildStructuredSendText(userText);
 
             const userMessageDiv = document.createElement('div');

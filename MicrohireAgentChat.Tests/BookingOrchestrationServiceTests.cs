@@ -71,6 +71,7 @@ public sealed class BookingOrchestrationServiceTests
             itemService,
             crewService,
             resolution,
+            orgService,
             Options.Create(new RentalPointDefaultsOptions()),
             NullLogger<BookingPersistenceService>.Instance);
 

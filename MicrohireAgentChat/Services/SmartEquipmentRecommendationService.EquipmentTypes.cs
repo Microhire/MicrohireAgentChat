@@ -65,6 +65,7 @@ public sealed partial class SmartEquipmentRecommendationService
 
             case "projector":
             case "projectors":
+                if (context.UserDeclinedProjection) break;
                 items.AddRange(await RecommendProjectorPackagesAsync(quantity, context, ct));
                 break;
 
@@ -74,6 +75,7 @@ public sealed partial class SmartEquipmentRecommendationService
             case "displays":
             case "monitor":
             case "monitors":
+                if (context.UserDeclinedProjection) break;
                 items.AddRange(await RecommendScreenPackagesAsync(quantity, context, ct));
                 break;
 
@@ -181,6 +183,16 @@ public sealed partial class SmartEquipmentRecommendationService
             case "video conference unit":
             case "videoconference":
                 items.AddRange(await RecommendProductByCodeAsync("LOG4kCAM", quantity, "Video conference unit for Teams/Zoom", context, ct));
+                break;
+
+            case "vision":
+                if (context.UserDeclinedProjection) break;
+                // Room-specific vision-only package (e.g. ELEVPROJ for Elevate). Falls back to projector.
+                var roomVision = await TryGetRoomSpecificPackagesAsync(context.VenueName, context.RoomName, "vision", quantity, context, ct);
+                if (roomVision.Count > 0)
+                    items.AddRange(roomVision);
+                else
+                    items.AddRange(await RecommendProjectorPackagesAsync(quantity, context, ct));
                 break;
 
             case "av":

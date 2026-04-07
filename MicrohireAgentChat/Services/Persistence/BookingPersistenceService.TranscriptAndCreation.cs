@@ -228,7 +228,7 @@ public sealed partial class BookingPersistenceService
 
             if (orgId.HasValue)
             {
-                var authoritativeCode = await GetCustomerCodeByIdAsync(orgId.Value, ct);
+                var authoritativeCode = await _orgService.GetCustomerCodeByIdAsync(orgId.Value, ct);
                 if (!string.IsNullOrWhiteSpace(authoritativeCode))
                     custCode = authoritativeCode;
             }
@@ -237,7 +237,7 @@ public sealed partial class BookingPersistenceService
                 orgId = await GetDefaultCustomerIdAsync(ct);
                 if (orgId.HasValue)
                 {
-                    var defaultCustomerCode = await GetCustomerCodeByIdAsync(orgId.Value, ct);
+                    var defaultCustomerCode = await _orgService.GetCustomerCodeByIdAsync(orgId.Value, ct);
                     if (!string.IsNullOrWhiteSpace(defaultCustomerCode))
                         custCode = defaultCustomerCode;
                 }
@@ -253,11 +253,32 @@ public sealed partial class BookingPersistenceService
                 return "";
             }
 
+            if (!orgId.HasValue)
+            {
+                _logger.LogError(
+                    "[QUOTE GEN] CustID could not be resolved. CustCode={CustCode}, ContactId={ContactId}",
+                    bookingCustomerCode, contactId);
+                return "";
+            }
+
             bookingNo = await GenerateNextBookingNoAsync(bookingCustomerCode, ct);
             _logger.LogInformation(
-                "[QUOTE GEN] Creating booking {BookingNo} on-the-fly for customer code {CustomerCode}",
+                "[QUOTE GEN] Creating booking {BookingNo} on-the-fly for customer code {CustomerCode}, OrgId={OrgId}",
                 bookingNo,
-                bookingCustomerCode);
+                bookingCustomerCode,
+                orgId);
+
+            if (!bookingNo.StartsWith(bookingCustomerCode, StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogError(
+                    "[QUOTE GEN] MISMATCH: Booking number {BookingNo} does not start with customer code {CustCode}. OrgId={OrgId}",
+                    bookingNo, bookingCustomerCode, orgId);
+            }
+
+            var attendeesStr = session.GetString("Draft:ExpectedAttendees") ?? session.GetString("Ack:Attendees");
+            int? sessionAttendees = null;
+            if (!string.IsNullOrWhiteSpace(attendeesStr) && int.TryParse(attendeesStr.Trim(), out var parsedAttendees) && parsedAttendees > 0)
+                sessionAttendees = parsedAttendees;
 
             var booking = new TblBooking
             {
@@ -269,9 +290,10 @@ public sealed partial class BookingPersistenceService
                 return_to_locn = 20,
                 Trans_to_locn = 20,
                 CustCode = Trunc(bookingCustomerCode, CustomerCodeMaxLength),
-                CustID = orgId ?? 13740,
+                CustID = orgId.Value,
                 ContactID = contactId,
                 contact_nameV6 = Trunc(contactName ?? "Contact", 35),
+                expAttendees = sessionAttendees,
                 OrganizationV6 = Trunc(orgName ?? organisation, 50),
                 Salesperson = Trunc(_rpDefaults.Salesperson, SalespersonMaxLength),
                 VenueID = await ResolveVenueIdAsync(session.GetString("Draft:VenueName"), ct) ?? 20,

@@ -63,6 +63,7 @@ public class BookingDbContext : DbContext
         e.Property(x => x.hire_price).HasColumnName("hire_price");
         e.Property(x => x.labour).HasColumnName("labour");
         e.Property(x => x.sundry_total).HasColumnName("sundry_total");
+        e.Property(x => x.insurance_type).HasColumnName("insurance_type");
         e.Property(x => x.Tax2).HasColumnName("Tax2");
         // Booking meta (limited set)
         e.Property(x => x.booking_type_v32).HasColumnName("booking_type_v32");

@@ -33,6 +33,13 @@ namespace MicrohireAgentChat.Migrations
                     b.Property<DateTime>("CreatedUtc")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("DraftStateJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
                     b.Property<DateTime>("LastSeenUtc")
                         .HasColumnType("datetime2");
 
@@ -47,6 +54,8 @@ namespace MicrohireAgentChat.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("Email");
 
                     b.HasIndex("ThreadId")
                         .IsUnique();
@@ -69,6 +78,10 @@ namespace MicrohireAgentChat.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("BookingNo")
+                        .HasMaxLength(35)
+                        .HasColumnType("nvarchar(35)");
 
                     b.Property<DateTime>("CreatedUtc")
                         .HasColumnType("datetime2");
@@ -113,10 +126,17 @@ namespace MicrohireAgentChat.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<DateTime?>("QuoteSignedUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Room")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("SignedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<Guid>("Token")
                         .HasColumnType("uniqueidentifier");

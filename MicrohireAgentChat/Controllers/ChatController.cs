@@ -295,6 +295,7 @@ public sealed class ChatController : Controller
         HttpContext.Session.Remove("Draft:BuiltInProjector");
         HttpContext.Session.Remove("Draft:BuiltInScreen");
         HttpContext.Session.Remove("Draft:BuiltInSpeakers");
+        HttpContext.Session.Remove("Draft:CombinedProjectorScreen");
         HttpContext.Session.Remove("Draft:ProjectorPlacementChoice");
         HttpContext.Session.Remove("Draft:Flipchart");
         HttpContext.Session.Remove("Draft:LaptopMode");
@@ -308,6 +309,7 @@ public sealed class ChatController : Controller
         HttpContext.Session.Remove("Draft:LaptopSwitcher");
         HttpContext.Session.Remove("Draft:StageLaptop");
         HttpContext.Session.Remove("Draft:VideoConference");
+        HttpContext.Session.Remove("Draft:LeadSeededExpectedAttendees");
     }
 
     /// <summary>
@@ -332,6 +334,7 @@ public sealed class ChatController : Controller
         "Draft:EventDate",
         "Draft:EventEndDate",
         "Draft:ExpectedAttendees",
+        "Draft:LeadSeededExpectedAttendees",
         // Wizard progress + submissions (survive thread reset when AgentThreads draft row is missing)
         "Draft:VenueConfirmSubmitted",
         "Draft:EventFormSubmitted",
@@ -347,6 +350,7 @@ public sealed class ChatController : Controller
         "Draft:BuiltInProjector",
         "Draft:BuiltInScreen",
         "Draft:BuiltInSpeakers",
+        "Draft:CombinedProjectorScreen",
         "Draft:ProjectorPlacementChoice",
         "Draft:Flipchart",
         "Draft:LaptopMode",
@@ -360,6 +364,8 @@ public sealed class ChatController : Controller
         "Draft:LaptopSwitcher",
         "Draft:StageLaptop",
         "Draft:VideoConference",
+        "Draft:BookingNo",
+        "Draft:ActiveLeadToken",
     };
 
     private Dictionary<string, string> SnapshotPreservedChatIdentityKeys()
@@ -566,6 +572,17 @@ public sealed class ChatController : Controller
                 var lead = await _appDb.WestinLeads.AsNoTracking()
                     .FirstOrDefaultAsync(l => l.Token == leadToken, sqlCt);
                 leadDatabaseHit = lead != null;
+
+                if (lead != null && lead.QuoteSignedUtc.HasValue)
+                {
+                    return View("LeadExpired", new Models.LeadExpiredViewModel
+                    {
+                        Organisation = lead.Organisation,
+                        BookingNo = lead.BookingNo,
+                        SignedAtUtc = lead.QuoteSignedUtc.Value
+                    });
+                }
+
                 if (lead != null)
                 {
                     var activeLeadToken = HttpContext.Session.GetString("Draft:ActiveLeadToken");
@@ -596,6 +613,18 @@ public sealed class ChatController : Controller
                     HttpContext.Session.Remove("Ack:Dates");
 
                     HttpContext.Session.SetString("Draft:EntrySource", "lead");
+
+                    // Always clear lead-seeded fields before re-applying from new lead, so no stale data
+                    // from a previous lead session carries over when fields are absent on the new lead.
+                    HttpContext.Session.Remove("Draft:ContactName");
+                    HttpContext.Session.Remove("Draft:ContactPhone");
+                    HttpContext.Session.Remove("Draft:Organisation");
+                    HttpContext.Session.Remove("Draft:OrganisationAddress");
+                    HttpContext.Session.Remove("Draft:VenueName");
+                    HttpContext.Session.Remove("Draft:RoomName");
+                    HttpContext.Session.Remove("Draft:EventDate");
+                    HttpContext.Session.Remove("Draft:ExpectedAttendees");
+
                     var contactName = $"{lead.FirstName} {lead.LastName}".Trim();
                     if (!string.IsNullOrWhiteSpace(contactName)) HttpContext.Session.SetString("Draft:ContactName", contactName);
                     if (!string.IsNullOrWhiteSpace(lead.Email) && TryValidateEmailFormat(lead.Email, out var leadEmailNorm))
@@ -616,7 +645,18 @@ public sealed class ChatController : Controller
                     if (!string.IsNullOrWhiteSpace(lead.Room)) HttpContext.Session.SetString("Draft:RoomName", lead.Room);
                     if (!string.IsNullOrWhiteSpace(lead.EventStartDate)) HttpContext.Session.SetString("Draft:EventDate", NormalizeToIsoDateOrEmpty(lead.EventStartDate));
                     if (!string.IsNullOrWhiteSpace(lead.EventEndDate)) HttpContext.Session.SetString("Draft:EventEndDate", NormalizeToIsoDateOrEmpty(lead.EventEndDate));
-                    if (!string.IsNullOrWhiteSpace(lead.Attendees)) HttpContext.Session.SetString("Draft:ExpectedAttendees", lead.Attendees);
+                    if (!string.IsNullOrWhiteSpace(lead.Attendees))
+                    {
+                        HttpContext.Session.SetString("Draft:ExpectedAttendees", lead.Attendees);
+                        HttpContext.Session.SetString("Draft:LeadSeededExpectedAttendees", lead.Attendees.Trim());
+                    }
+
+                    // Reuse the booking created at lead-save time so quote generation updates it
+                    // instead of creating a second booking (see LeadsController.Create -> WestinLead.BookingNo).
+                    if (!string.IsNullOrWhiteSpace(lead.BookingNo))
+                    {
+                        HttpContext.Session.SetString("Draft:BookingNo", lead.BookingNo);
+                    }
 
                     if (!string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:LeadVerifyEmail")))
                     {
@@ -728,6 +768,7 @@ public sealed class ChatController : Controller
             _logger.LogInformation("DevMode enabled: {_devOptions.Enabled}", _devOptions.Enabled);
             ViewData["QuoteComplete"] = false;
             ViewData["QuoteAccepted"] = HttpContext.Session.GetString("Draft:QuoteAccepted") ?? "0";
+            ViewData["LeadToken"] = HttpContext.Session.GetString("Draft:ActiveLeadToken") ?? "";
             SetScheduleTimesInViewData();
             ViewData["ProgressStep"] = DetermineProgressStep(msgList);
             return View(msgList);
@@ -814,6 +855,9 @@ public sealed class ChatController : Controller
     public async Task<IActionResult> Send(string text, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(text))
+            return RedirectToAction(nameof(Index));
+
+        if (string.Equals(HttpContext.Session.GetString("Draft:QuoteAccepted"), "1"))
             return RedirectToAction(nameof(Index));
 
         try
@@ -920,6 +964,9 @@ public sealed class ChatController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ContinuePartial(CancellationToken ct)
     {
+        if (string.Equals(HttpContext.Session.GetString("Draft:QuoteAccepted"), "1"))
+            return Json(new { success = false, error = "This quote has already been accepted. The chat session has ended." });
+
         try
         {
             var threadId = _chat.EnsureThreadId(HttpContext.Session);
@@ -1571,6 +1618,9 @@ public sealed class ChatController : Controller
     {
         if (string.IsNullOrWhiteSpace(text)) return BadRequest("empty");
 
+        if (string.Equals(HttpContext.Session.GetString("Draft:QuoteAccepted"), "1"))
+            return Json(new { success = false, error = "This quote has already been accepted. The chat session has ended." });
+
         try
         {
             var userKey = GetUserKey();
@@ -2096,6 +2146,8 @@ public sealed class ChatController : Controller
                     HttpContext.Session.SetString(AwaitingQuoteReviewPromptKey, "0");
                     HttpContext.Session.SetString(QuoteReviewPromptShownKey, "1");
 
+                    await MarkLeadAsSignedAsync(null, ct);
+
                     ViewData["QuoteAccepted"] = "1";
                     ViewData["ShowQuoteCta"] = "0";
                     SetScheduleTimesInViewData();
@@ -2395,6 +2447,9 @@ public sealed class ChatController : Controller
                     {
                         additionalFacts["venue_room"] = roomName;
                     }
+                    var expectedAttendeesVal = HttpContext.Session.GetString("Draft:ExpectedAttendees") ?? HttpContext.Session.GetString("Ack:Attendees");
+                    if (!string.IsNullOrWhiteSpace(expectedAttendeesVal))
+                        additionalFacts["expected_attendees"] = expectedAttendeesVal;
 
                     var result = await _orchestration.ProcessConversationAsync(msgList, existingBookingNo, ct, additionalFacts);
 
@@ -2896,6 +2951,9 @@ public sealed class ChatController : Controller
             var roomName = HttpContext.Session.GetString("Draft:RoomName");
             if (!string.IsNullOrWhiteSpace(roomName))
                 additionalFacts["venue_room"] = roomName;
+            var expectedAttendeesVal = HttpContext.Session.GetString("Draft:ExpectedAttendees") ?? HttpContext.Session.GetString("Ack:Attendees");
+            if (!string.IsNullOrWhiteSpace(expectedAttendeesVal))
+                additionalFacts["expected_attendees"] = expectedAttendeesVal;
 
             var result = await _orchestration.ProcessConversationAsync(msgList, existingBookingNo, ct, additionalFacts);
 
@@ -2955,7 +3013,12 @@ public sealed class ChatController : Controller
 
             try
             {
-                var contactOrOrgChanged = await _bookingPersistence.SyncContactAndOrganisationForBookingAsync(bookingNo, HttpContext.Session, ct);
+                var (contactOrOrgChanged, renamedBookingNo) = await _bookingPersistence.SyncContactAndOrganisationForBookingAsync(bookingNo, HttpContext.Session, ct);
+                if (!string.IsNullOrWhiteSpace(renamedBookingNo))
+                {
+                    bookingNo = renamedBookingNo;
+                    HttpContext.Session.SetString("Draft:BookingNo", bookingNo);
+                }
                 if (contactOrOrgChanged)
                 {
                     HttpContext.Session.Remove("Draft:QuoteUrl");
@@ -2966,6 +3029,21 @@ public sealed class ChatController : Controller
             catch (Exception ex)
             {
                 _logger.LogWarning(ex, "Failed to sync session contact/organisation to booking {BookingNo} before quote generation", bookingNo);
+            }
+
+            try
+            {
+                var eventDetailsChanged = await _bookingPersistence.SyncEventDetailsForBookingAsync(bookingNo, HttpContext.Session, ct);
+                if (eventDetailsChanged)
+                {
+                    HttpContext.Session.Remove("Draft:QuoteUrl");
+                    HttpContext.Session.Remove("Draft:QuoteComplete");
+                    HttpContext.Session.Remove("Draft:QuoteTimestamp");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to sync session event details (schedule/times) to booking {BookingNo} before quote generation", bookingNo);
             }
         }
         catch (Exception ex)
@@ -3546,6 +3624,8 @@ public sealed class ChatController : Controller
             HttpContext.Session.SetString(AwaitingQuoteReviewPromptKey, "0");
             HttpContext.Session.SetString(QuoteReviewPromptShownKey, "1");
 
+            await MarkLeadAsSignedAsync(fullName, ct);
+
             ViewData["QuoteAccepted"] = "1";
             ViewData["ShowQuoteCta"] = "0";
             SetScheduleTimesInViewData();
@@ -3558,6 +3638,23 @@ public sealed class ChatController : Controller
             Response.StatusCode = 500;
             return Content("Unable to process quote acceptance.");
         }
+    }
+
+    private async Task MarkLeadAsSignedAsync(string? signerName, CancellationToken ct)
+    {
+        var leadTokenStr = HttpContext.Session.GetString("Draft:ActiveLeadToken");
+        if (string.IsNullOrWhiteSpace(leadTokenStr) || !Guid.TryParse(leadTokenStr, out var leadToken))
+            return;
+
+        var lead = await _appDb.WestinLeads
+            .FirstOrDefaultAsync(l => l.Token == leadToken, ct);
+        if (lead == null || lead.QuoteSignedUtc.HasValue)
+            return;
+
+        lead.QuoteSignedUtc = DateTime.UtcNow;
+        lead.SignedByName = signerName;
+        await _appDb.SaveChangesAsync(ct);
+        _logger.LogInformation("[SIGNING] Marked lead {Token} as signed by {Name}", leadToken, signerName ?? "(unknown)");
     }
 
     private async Task<IActionResult> ReturnQuoteAcceptanceUnavailablePartialAsync(string assistantMessage, CancellationToken ct)
@@ -4093,7 +4190,7 @@ public sealed class ChatController : Controller
 
     private static DisplayMessage BuildPostQuoteReviewPromptMessage()
     {
-        const string promptText = "Would you like to proceed and accept this quote?\n\nSelecting Yes will notify Microhire to finalize the details.";
+        const string promptText = "Would you like to proceed and accept this quote?\n\nSelecting \"Accept Quote\" will notify Microhire to finalize the details.";
         return new DisplayMessage
         {
             Role = "assistant",
@@ -4106,9 +4203,7 @@ public sealed class ChatController : Controller
 
     private static DisplayMessage BuildQuoteReadyMessage(string bookingNo, string quoteUrl)
     {
-        var text = $"Great news! I have successfully generated your quote for booking {bookingNo}. " +
-                   "Use **View quote** below to review the details. " +
-                   "Would you like to proceed and accept this quote?";
+        var text = $"Great news! I have successfully generated your quote for booking {bookingNo}.";
         var uiJson = JsonSerializer.Serialize(new
         {
             ui = new { quoteUrl, bookingNo, isHtml = true }
@@ -4130,7 +4225,7 @@ public sealed class ChatController : Controller
         var safeRef = System.Net.WebUtility.HtmlEncode(bookingNo ?? "");
         var refHtml = string.IsNullOrWhiteSpace(bookingNo)
             ? ""
-            : $"<p class=\"isla-quote-ref\">Reference: {safeRef}</p>";
+            : $"<p class=\"isla-quote-ref\">Quote Number: {safeRef}</p>";
 
         // Matches the Quote Ready card in _Messages.cshtml (isla-quote-ready + icon + CTA with external-link SVG).
         return $"""
@@ -4438,7 +4533,8 @@ View Signed Quote
         if (!string.IsNullOrWhiteSpace(submission.SetupStyle))
             HttpContext.Session.SetString("Draft:SetupStyle", submission.SetupStyle);
 
-        if (DateTime.TryParse(submission.Date, CultureInfo.InvariantCulture, DateTimeStyles.None, out var eventDate)
+        var eventDateNormalized = NormalizeToIsoDateOrEmpty(submission.Date);
+        if (DateTime.TryParse(eventDateNormalized, CultureInfo.InvariantCulture, DateTimeStyles.None, out var eventDate)
             && TimeSpan.TryParse(submission.SetupTime, CultureInfo.InvariantCulture, out var setup)
             && TimeSpan.TryParse(submission.RehearsalTime, CultureInfo.InvariantCulture, out var rehearsal)
             && TimeSpan.TryParse(submission.EndTime, CultureInfo.InvariantCulture, out var endForPackup))
@@ -4477,9 +4573,10 @@ View Signed Quote
         else
             HttpContext.Session.Remove("Draft:RoomName");
 
-        HttpContext.Session.SetString("Draft:EventDate", submission.StartDate);
-        HttpContext.Session.SetString("Draft:EventEndDate",
-            string.IsNullOrWhiteSpace(submission.EndDate) ? submission.StartDate : submission.EndDate);
+        var startNorm = NormalizeToIsoDateOrEmpty(submission.StartDate);
+        var endNorm = string.IsNullOrWhiteSpace(submission.EndDate) ? startNorm : NormalizeToIsoDateOrEmpty(submission.EndDate);
+        HttpContext.Session.SetString("Draft:EventDate", startNorm);
+        HttpContext.Session.SetString("Draft:EventEndDate", endNorm);
         HttpContext.Session.SetString("Draft:ExpectedAttendees", submission.Attendees.ToString(CultureInfo.InvariantCulture));
         HttpContext.Session.SetString("Draft:VenueConfirmSubmitted", "1");
     }
@@ -4564,6 +4661,18 @@ View Signed Quote
         HttpContext.Session.SetString("Draft:BuiltInProjector", s.BuiltInProjector ? "yes" : "no");
         HttpContext.Session.SetString("Draft:BuiltInScreen", s.BuiltInScreen ? "yes" : "no");
         HttpContext.Session.SetString("Draft:BuiltInSpeakers", s.BuiltInSpeakers ? "yes" : "no");
+
+        // Detect combined "Inbuilt projector and screen" checkbox (e.g. Elevate rooms).
+        // When this combined checkbox is unchecked, the user means "no projection at all",
+        // not "I want external projection equipment".
+        var venue = HttpContext.Session.GetString("Draft:VenueName");
+        var room = HttpContext.Session.GetString("Draft:RoomName");
+        var baseLabels = VenueRoomPackagesCache.TryGetBaseEquipmentLabels(_env, venue, room);
+        var hasCombinedPS = baseLabels.Any(l =>
+            l.Contains("projector", StringComparison.OrdinalIgnoreCase) &&
+            l.Contains("screen", StringComparison.OrdinalIgnoreCase));
+        HttpContext.Session.SetString("Draft:CombinedProjectorScreen", hasCombinedPS ? "1" : "0");
+
         HttpContext.Session.SetString("Draft:ProjectorPlacementChoice", s.ProjectorPlacement);
         HttpContext.Session.SetString("Draft:PresenterCount", s.Presenters.ToString(CultureInfo.InvariantCulture));
         HttpContext.Session.SetString("Draft:SpeakerCount", "0");
@@ -4762,7 +4871,11 @@ View Signed Quote
     private static string NormalizeToIsoDateOrEmpty(string raw)
     {
         if (string.IsNullOrWhiteSpace(raw)) return "";
-        if (DateTime.TryParse(raw, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
+        var t = raw.Trim().Replace('/', '-');
+        var formats = new[] { "yyyy-MM-dd", "dd-MM-yyyy", "d-M-yyyy", "dd-M-yyyy", "d-MM-yyyy" };
+        if (DateOnly.TryParseExact(t, formats, CultureInfo.InvariantCulture, DateTimeStyles.None, out var d))
+            return d.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+        if (DateTime.TryParse(t, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
             return dt.ToString("yyyy-MM-dd");
         return raw.Trim();
     }
@@ -4827,7 +4940,11 @@ View Signed Quote
             HttpContext.Session.SetString("Draft:EventEndDate", startDay.Value.ToString("yyyy-MM-dd"));
 
         if (b.expAttendees is > 0)
-            HttpContext.Session.SetString("Draft:ExpectedAttendees", b.expAttendees.Value.ToString(CultureInfo.InvariantCulture));
+        {
+            var exp = b.expAttendees.Value.ToString(CultureInfo.InvariantCulture);
+            HttpContext.Session.SetString("Draft:ExpectedAttendees", exp);
+            HttpContext.Session.SetString("Draft:LeadSeededExpectedAttendees", exp);
+        }
 
         HttpContext.Session.SetString("Draft:ContactFormSubmitted", "1");
         HttpContext.Session.Remove("Draft:NeedManualContact");
@@ -4982,7 +5099,7 @@ View Signed Quote
         {
             var intro = HttpContext.Session.GetString("Draft:BookingLookupApplied") == "1"
                 ? "I've found your booking details. Please review and confirm."
-                : "Please confirm your venue, room, and event dates.";
+                : "Review your venue, room, and event dates in the form below.";
             messages.Insert(index++, BuildUiAssistantMessage(intro, BuildVenueConfirmFormUiJson()));
         }
         else index++;
@@ -5019,7 +5136,7 @@ View Signed Quote
         if (!messages.Any(m => MessageContainsUiType(m, "baseAvForm")))
         {
             messages.Insert(index++, BuildUiAssistantMessage(
-                $"The base AV package for {HttpContext.Session.GetString("Draft:RoomName") ?? "your room"} is:",
+                "Please review the included equipment for this room and confirm the options below.",
                 BuildBaseAvFormUiJson(baseAvActuallySubmitted)));
         }
         else index++;

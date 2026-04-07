@@ -5,6 +5,7 @@ using MicrohireAgentChat.Services.Extraction;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
@@ -1095,11 +1096,37 @@ public sealed partial class AgentToolHandlerService
         var attendeesFromSessionStr = session?.GetString("Draft:ExpectedAttendees") ?? session?.GetString("Ack:Attendees");
         int attendeesFromSessionParsed = 0;
         if (!string.IsNullOrWhiteSpace(attendeesFromSessionStr))
-            int.TryParse(attendeesFromSessionStr, out attendeesFromSessionParsed);
+            int.TryParse(attendeesFromSessionStr, NumberStyles.None, CultureInfo.InvariantCulture, out attendeesFromSessionParsed);
 
-        var userStatedAttendees = conversationMessages.Count > 0
+        var leadSeededAttendeesStr = session?.GetString("Draft:LeadSeededExpectedAttendees");
+        var leadSeededParsed = 0;
+        if (!string.IsNullOrWhiteSpace(leadSeededAttendeesStr))
+            int.TryParse(leadSeededAttendeesStr.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out leadSeededParsed);
+
+        var explicitAttendeesFromTranscript = conversationMessages.Count > 0
+            ? ExtractExplicitAttendeesFromUserMessages(conversationMessages)
+            : 0;
+        var userStatedAttendeesFull = conversationMessages.Count > 0
             ? ExtractAttendeesFromUserMessages(conversationMessages)
             : 0;
+
+        var userAttendeesFromTranscript = ResolveUserAttendeesFromTranscriptForEquipmentRecommendation(
+            explicitAttendeesFromTranscript,
+            userStatedAttendeesFull,
+            attendeesFromSessionParsed,
+            leadSeededParsed);
+        if (leadSeededParsed > 0
+            && explicitAttendeesFromTranscript == 0
+            && userStatedAttendeesFull > 0
+            && attendeesFromSessionParsed > 0
+            && userStatedAttendeesFull != attendeesFromSessionParsed
+            && userAttendeesFromTranscript == 0)
+        {
+            _logger.LogWarning(
+                "Attendees contextual inference ({Inferred}) disagrees with session ({Session}) while CRM prefill seed is {Seed} for thread {ThreadId} — using session, not contextual inference.",
+                userStatedAttendeesFull, attendeesFromSessionParsed, leadSeededParsed, threadId);
+        }
+
         // #region agent log
         EmitAgentDebugLog(
             $"thread:{threadId}",
@@ -1111,25 +1138,28 @@ public sealed partial class AgentToolHandlerService
                 attendeesFromArgs,
                 attendeesFromSessionStr,
                 attendeesFromSessionParsed,
-                userStatedAttendees
+                leadSeededParsed,
+                explicitAttendeesFromTranscript,
+                userStatedAttendeesFull,
+                userAttendeesFromTranscript
             });
         // #endregion
 
         int expectedAttendees;
         var expectedAttendeesSource = "none";
-        if (userStatedAttendees > 0)
+        if (userAttendeesFromTranscript > 0)
         {
-            expectedAttendees = userStatedAttendees;
+            expectedAttendees = userAttendeesFromTranscript;
             expectedAttendeesSource = "user";
-            if (attendeesFromArgs > 0 && attendeesFromArgs != userStatedAttendees)
+            if (attendeesFromArgs > 0 && attendeesFromArgs != userAttendeesFromTranscript)
             {
                 _logger.LogWarning("Attendees mismatch for thread {ThreadId}. ToolArgs={ArgsAttendees}, UserStated={UserAttendees}. Using user-stated value.",
-                    threadId, attendeesFromArgs, userStatedAttendees);
+                    threadId, attendeesFromArgs, userAttendeesFromTranscript);
             }
-            if (attendeesFromSessionParsed > 0 && attendeesFromSessionParsed != userStatedAttendees)
+            if (attendeesFromSessionParsed > 0 && attendeesFromSessionParsed != userAttendeesFromTranscript)
             {
                 _logger.LogWarning("Attendees mismatch for thread {ThreadId}. Session={SessionAttendees}, UserStated={UserAttendees}. Using user-stated value.",
-                    threadId, attendeesFromSessionParsed, userStatedAttendees);
+                    threadId, attendeesFromSessionParsed, userAttendeesFromTranscript);
             }
         }
         else if (attendeesFromSessionParsed > 0)
@@ -1164,7 +1194,8 @@ public sealed partial class AgentToolHandlerService
                 expectedAttendeesSource,
                 attendeesFromArgs,
                 attendeesFromSessionParsed,
-                userStatedAttendees
+                userAttendeesFromTranscript,
+                leadSeededParsed
             });
         // #endregion
 
@@ -1862,6 +1893,19 @@ public sealed partial class AgentToolHandlerService
                 ? $"Address these items briefly: {string.Join(", ", conversationContextWarnings)}. OUTPUT 'outputToUser' EXACTLY AS-IS, then call generate_quote if requirements are met."
                 : "Do NOT output an equipment quote summary or ask 'Would you like me to create the quote now?'. OUTPUT 'outputToUser' EXACTLY AS-IS (one short line). Then call **generate_quote** in this turn when contact and schedule requirements are satisfied; if something is still missing, ask only for that.");
 
+        if (session != null
+            && leadSeededParsed > 0
+            && explicitAttendeesFromTranscript == 0
+            && int.TryParse(session.GetString("Draft:ExpectedAttendees"), NumberStyles.None, CultureInfo.InvariantCulture, out var sessAlign)
+            && sessAlign == leadSeededParsed
+            && eventContext.ExpectedAttendees != sessAlign)
+        {
+            _logger.LogWarning(
+                "Aligning event context attendees from {Resolved} to session/CRM seed {Session} for thread {ThreadId} before tool response.",
+                eventContext.ExpectedAttendees, sessAlign, threadId);
+            eventContext.ExpectedAttendees = sessAlign;
+        }
+
         var response = JsonSerializer.Serialize(new
         {
             success = true,
@@ -1925,7 +1969,7 @@ public sealed partial class AgentToolHandlerService
                     if (!string.IsNullOrWhiteSpace(eventContext.VenueName) || !string.IsNullOrWhiteSpace(eventContext.RoomName))
                         _logger.LogInformation("Session venue/room persisted for quote: Venue={Venue}, Room={Room}", eventContext.VenueName ?? "(null)", eventContext.RoomName ?? "(null)");
                     if (!string.IsNullOrWhiteSpace(eventContext.EventType)) session.SetString("Draft:EventType", eventContext.EventType);
-                    session.SetString("Draft:ExpectedAttendees", eventContext.ExpectedAttendees.ToString());
+                    session.SetString("Draft:ExpectedAttendees", eventContext.ExpectedAttendees.ToString(CultureInfo.InvariantCulture));
                     if (!string.IsNullOrWhiteSpace(setupStyle)) session.SetString("Draft:SetupStyle", setupStyle);
                     if (projectorAreas.Count > 0)
                     {
@@ -2040,15 +2084,27 @@ public sealed partial class AgentToolHandlerService
                 EnsureEquipmentRequest(requests, "audio", 1);
         }
 
-        // Standard checks for external items (when inbuilt is NOT selected but requested/needed)
-        if (!inbuiltProj && !HasAnyEquipmentType(requests, t => t.Contains("projector", StringComparison.OrdinalIgnoreCase) || t == "av" || t == "vision"))
-            EnsureEquipmentRequest(requests, "projector", 1);
+        // For rooms with a combined "Inbuilt projector and screen" checkbox (e.g. Elevate),
+        // unchecking means "no projection needed at all" — do NOT add external projector/screen.
+        var combinedPS = string.Equals(session.GetString("Draft:CombinedProjectorScreen"), "1", StringComparison.Ordinal);
 
-        if (!inbuiltScreen && !HasAnyEquipmentType(requests, t => t.Contains("screen", StringComparison.OrdinalIgnoreCase) || t.Contains("display", StringComparison.OrdinalIgnoreCase) || t == "av" || t == "vision"))
-            EnsureEquipmentRequest(requests, "screen", 1);
+        if (!combinedPS)
+        {
+            // Standard checks for external items (when inbuilt is NOT selected but requested/needed)
+            if (!inbuiltProj && !HasAnyEquipmentType(requests, t => t.Contains("projector", StringComparison.OrdinalIgnoreCase) || t == "av" || t == "vision"))
+                EnsureEquipmentRequest(requests, "projector", 1);
 
+            if (!inbuiltScreen && !HasAnyEquipmentType(requests, t => t.Contains("screen", StringComparison.OrdinalIgnoreCase) || t.Contains("display", StringComparison.OrdinalIgnoreCase) || t == "av" || t == "vision"))
+                EnsureEquipmentRequest(requests, "screen", 1);
+        }
+
+        if (combinedPS && !inbuiltProj)
+            eventContext.UserDeclinedProjection = true;
+
+        // Do NOT auto-add speakers when inbuilt audio was not checked — the user made a deliberate
+        // choice. The audio pairing logic respects UserDeclinedAudio to avoid overriding this.
         if (!inbuiltAudio && !HasAnyEquipmentType(requests, t => t.Contains("speaker", StringComparison.OrdinalIgnoreCase) || t is "pa" or "audio" or "av"))
-            EnsureEquipmentRequest(requests, "speaker", 1);
+            eventContext.UserDeclinedAudio = true;
 
         if (string.Equals(session.GetString("Draft:Flipchart") ?? "", "yes", StringComparison.OrdinalIgnoreCase))
             EnsureEquipmentRequest(requests, "flipchart", 1);

@@ -23,7 +23,7 @@ internal static class QuoteGenerationToolOutput
         }, SerializerOptions);
 
     private static string ViewQuoteMessage(string bookingNo) =>
-        $"Great news! I have successfully generated your quote for booking {bookingNo}. Use **View quote** below to review your quote.\n\nWould you like to proceed and accept this quote?";
+        $"Great news! I have successfully generated your quote for booking {bookingNo}.";
 
     private static readonly string ViewQuoteInstruction =
         "OUTPUT ONLY the message field (no extra text). The UI already provides View quote and Accept actions; do not add download links or duplicate URLs.";

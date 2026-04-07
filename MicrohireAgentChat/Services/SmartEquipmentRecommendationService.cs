@@ -248,6 +248,38 @@ public sealed partial class SmartEquipmentRecommendationService
             }
         }
 
+        // Dynamic SubCategory discovery: pull all product codes from aiFolders referenced in venue-room-packages.json
+        var venueSubCategories = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        if (File.Exists(roomPackagesPath))
+        {
+            try
+            {
+                await using var fs2 = File.OpenRead(roomPackagesPath);
+                using var doc2 = await JsonDocument.ParseAsync(fs2, cancellationToken: ct);
+                CollectAiFolderValues(doc2.RootElement, venueSubCategories);
+            }
+            catch { /* best effort */ }
+        }
+
+        if (venueSubCategories.Count > 0)
+        {
+            try
+            {
+                var subCatNorm = venueSubCategories.Select(s => s.Trim().ToLowerInvariant()).ToHashSet();
+                var subCatProducts = await _db.TblInvmas
+                    .AsNoTracking()
+                    .Where(p => p.SubCategory != null && subCatNorm.Contains((p.SubCategory ?? "").Trim().ToLower()))
+                    .Select(p => (p.product_code ?? "").Trim())
+                    .ToListAsync(ct);
+                foreach (var code in subCatProducts.Where(c => !string.IsNullOrWhiteSpace(c)))
+                    codes.Add(code);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed discovering AI catalog codes from SubCategories");
+            }
+        }
+
         // Safety net for fixed codes used directly by recommendation logic (includes new AI-folder SKUs + legacy WSB*)
         foreach (var fixedCode in new[]
                  {
@@ -387,6 +419,30 @@ public sealed partial class SmartEquipmentRecommendationService
         }
     }
 
+    private static void CollectAiFolderValues(JsonElement element, HashSet<string> folders)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.Object:
+                foreach (var prop in element.EnumerateObject())
+                {
+                    if (prop.NameEquals("aiFolder") && prop.Value.ValueKind == JsonValueKind.String)
+                    {
+                        var val = prop.Value.GetString();
+                        if (!string.IsNullOrWhiteSpace(val))
+                            folders.Add(val.Trim());
+                    }
+                    CollectAiFolderValues(prop.Value, folders);
+                }
+                break;
+
+            case JsonValueKind.Array:
+                foreach (var item in element.EnumerateArray())
+                    CollectAiFolderValues(item, folders);
+                break;
+        }
+    }
+
     private static void CollectCodesFromStringArraysRecursive(JsonElement element, HashSet<string> codes)
     {
         switch (element.ValueKind)
@@ -472,6 +528,16 @@ public class EventContext
     public bool NeedsLighting { get; set; } // New field
     public bool NeedsAdvancedLighting { get; set; } // New field
     public string? SpeakerStylePreference { get; set; } // e.g., "inbuilt", "external", "portable"
+    /// <summary>
+    /// Set when the base AV wizard was submitted and the user explicitly did NOT select speakers.
+    /// Prevents audio pairing logic from auto-adding speakers against the user's choice.
+    /// </summary>
+    public bool UserDeclinedAudio { get; set; }
+    /// <summary>
+    /// Set when the base AV wizard was submitted and the user explicitly unchecked the combined
+    /// "Inbuilt projector and screen" checkbox. Prevents projection packages from being auto-added.
+    /// </summary>
+    public bool UserDeclinedProjection { get; set; }
     public List<string> ProjectorAreas { get; set; } = new();
     public List<EquipmentRequest> EquipmentRequests { get; set; } = new();
 }
