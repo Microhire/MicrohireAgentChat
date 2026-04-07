@@ -2094,6 +2094,20 @@ public sealed class ChatController : Controller
                 var bookingNo = HttpContext.Session.GetString("Draft:BookingNo");
                 if (!string.IsNullOrWhiteSpace(bookingNo))
                 {
+                    // Check whether a digital signature file exists for this booking
+                    var sigFile = Path.Combine(QuoteFilesPaths.GetPhysicalQuotesDirectory(_env), $"Quote-{bookingNo}-signature.json");
+                    var hasSignatureFile = System.IO.File.Exists(sigFile);
+
+                    if (!hasSignatureFile)
+                    {
+                        // No digital signature on file — redirect user to the proper signing flow
+                        _logger.LogInformation("[QUOTE FLOW] Text acceptance for booking {BookingNo} but no signature file found. Showing acceptance CTA instead.", bookingNo);
+                        AppendQuoteReviewPromptImmediately(msgList);
+                        SetScheduleTimesInViewData();
+                        ViewData["ProgressStep"] = DetermineProgressStep(msgList);
+                        return PartialView("_Messages", msgList);
+                    }
+
                     var booking = await _bookingDb.TblBookings.FirstOrDefaultAsync(b => b.booking_no == bookingNo, ct);
                     if (booking != null)
                     {
@@ -2102,7 +2116,7 @@ public sealed class ChatController : Controller
                         _logger.LogInformation("Updated booking {BookingNo} status to Heavy Pencil (text fallback)", bookingNo);
                     }
 
-                    try 
+                    try
                     {
                         await _chat.SendInternalFollowupAsync(bookingNo, "Quote accepted by user (text consent) - status updated to Heavy Pencil.", ct);
                     }
@@ -5094,11 +5108,31 @@ View Signed Quote
 
         var followUpAvSubmitted = HttpContext.Session.GetString("Draft:FollowUpAvSubmitted") == "1";
 
+        // When the wizard is incomplete (quote not generated yet), strip any leftover
+        // "Quote Ready" messages from a previous run so they don't render prematurely
+        // (e.g. after Edit Quote resets the form flags but the Azure transcript still
+        // contains the old quote-success message).
+        if (HttpContext.Session.GetString("Draft:QuoteComplete") != "1")
+        {
+            messages.RemoveAll(m =>
+            {
+                if (!IsAssistantMessageRole(m.Role)) return false;
+                var raw = string.Join("\n", (m.Parts ?? new List<string>()).Select(p => p ?? string.Empty))
+                    .ToLowerInvariant();
+                if (raw.Contains("\"quoteurl\"") || raw.Contains("\"quote_url\""))
+                    return true;
+                if (raw.Contains("generated your quote") && (raw.Contains("quote ready") || raw.Contains("view quote")))
+                    return true;
+                return false;
+            });
+        }
+
         var entrySource = HttpContext.Session.GetString("Draft:EntrySource") ?? "general";
         var emailGateComplete = HttpContext.Session.GetString("Draft:EmailGateCompleted") == "1";
         var needManualContact = HttpContext.Session.GetString("Draft:NeedManualContact") == "1";
         var contactFormSubmitted = HttpContext.Session.GetString("Draft:ContactFormSubmitted") == "1";
         var venueConfirmSubmitted = HttpContext.Session.GetString("Draft:VenueConfirmSubmitted") == "1";
+        var eventFormSubmitted = HttpContext.Session.GetString("Draft:EventFormSubmitted") == "1";
         var baseAvSubmitted = HttpContext.Session.GetString("Draft:BaseAvSubmitted") == "1";
 
         // Lead links: after email verification, show venue wizard even if org/name are missing on the lead row.
@@ -5199,7 +5233,7 @@ View Signed Quote
         }
         else index++;
 
-        if (!hasEventCoreDraft)
+        if (!hasEventCoreDraft || !eventFormSubmitted)
             return;
 
         // 6) Base AV package — always inject when missing from thread, embedding per-form submitted state

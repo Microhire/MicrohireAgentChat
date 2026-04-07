@@ -1227,6 +1227,7 @@
             const btn = e.target.closest('.isla-quote-edit-btn');
             if (!btn) return;
             btn.disabled = true;
+            if (input) { input.placeholder = 'Loading...'; input.disabled = true; }
             try {
               const res = await fetch('@Url.Action("EditQuotePartial", "Chat")', {
                 method: 'POST',
@@ -1238,10 +1239,12 @@
               hydrateUiBlocks(messagesWrap);
               updateProgressBar();
               scrollToBottom();
+              if (input) { input.placeholder = 'Type your message...'; input.disabled = false; }
               input.focus();
             } catch (err) {
               console.error(err);
               btn.disabled = false;
+              if (input) { input.placeholder = 'Type your message...'; input.disabled = false; }
             }
           });
 
