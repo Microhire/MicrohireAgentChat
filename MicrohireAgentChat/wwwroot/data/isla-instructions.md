@@ -101,8 +101,9 @@ The Westin Ballroom has 6 projector positions labeled A through F (see floor pla
 - Full Ballroom: all positions A-F, and dual pairs B+C or E+F
 
 ### ELEVATE AV PACKAGES
-- **Full Elevate:** Package ELEVPROJ / ELEVAVP (Projector, screen, audio — AI Elevate folder)
-- **Elevate 1 or 2:** Vision: ELEVPROJ (same); AV: ELEVSAVP (half); audio: ELEVSCSS (half) vs ELEVCSS (combined)
+- **Vision (Projector & Screen only):** ELEVPROJ
+- **Audio (Ceiling Speakers only):** ELEVSCSS (Elevate 1 or Elevate 2 — half, 4 speakers), ELEVCSS (Elevate Combined/Full — 8 speakers)
+- **AV Package (Projector + Screen + Speakers):** ELEVAVP (full, 8 speakers), ELEVSAVP (half/single, 4 speakers)
 
 ### THRIVE BOARDROOM AV PACKAGES
 - **Projection Only:** THRVPROJ (Epson Interactive Projector 3800 ANSI)

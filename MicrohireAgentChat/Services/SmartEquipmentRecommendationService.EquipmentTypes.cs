@@ -1403,9 +1403,9 @@ public sealed partial class SmartEquipmentRecommendationService
         var items = new List<RecommendedEquipmentItem>();
         var lecternItems = await RecommendProductByCodeAsync("LECT1", quantity, "Professional lectern with light and mic points", context, ct);
         items.AddRange(lecternItems);
-        // Lectern typically includes gooseneck mic (SHURE418) - add if not in package
+        // Lectern typically includes gooseneck mic (SHURE418) - add if not already a component
+        // Only check for the actual SHURE418 product code — description matches like "Mic Points" are NOT the gooseneck mic
         var hasMic = items.Any(i => (i.Components ?? new List<PackageComponent>()).Any(c =>
-            (c.Description ?? "").Contains("microphone", StringComparison.OrdinalIgnoreCase) ||
             (c.ProductCode ?? "").Equals("SHURE418", StringComparison.OrdinalIgnoreCase)));
         if (!hasMic)
         {

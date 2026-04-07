@@ -12,7 +12,7 @@
     {
       "roomKey": "elevate",
       "roomContains": ["elevate"],
-      "packageCodes": ["ELEVPROJ", "ELEVSCSS", "ELEVCSS", "ELEVAVP", "ELEVSAVP"],
+      "packageCodes": ["ELEVPROJ", "ELEVAVP", "ELEVSAVP", "ELEVCSS", "ELEVSCSS"],
       "baselineLaborCode": "AVTECH",
       "visionSpecialistCode": "VXTECH",
       "audioSpecialistCode": "AXTECH",
@@ -25,7 +25,11 @@
       "baselineLaborCode": "AVTECH",
       "visionSpecialistCode": "VXTECH",
       "audioSpecialistCode": "AXTECH",
-      "microphoneOperatorThreshold": 2
+      "microphoneOperatorThreshold": 2,
+      "baselineSetupMinutes": 15,
+      "baselineTcMinutes": 15,
+      "baselinePackdownMinutes": 0,
+      "supportsOperatorEscalation": false
     }
   ],
   "specialRules": {

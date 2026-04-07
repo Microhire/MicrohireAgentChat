@@ -290,7 +290,7 @@ public sealed partial class SmartEquipmentRecommendationService
                      "ELEVPROJ", "ELEVAVP", "ELEVSAVP", "ELEVCSS", "ELEVSCSS", "ELEVIND",
                      "WSBTHAV", "WSBTHAUD", "WSBTHPRO",
                      "WSBBDPRO", "WSBBSPRO", "WSBNSPRO", "WSBSSPRO", "WSBFBALL", "WSBALLAU",
-                     "WSBELSAD", "WSBELAUD", "WSBELPRO", "WSBELAV", "WSBFELAV",
+                     "WSBELSAD", "WSBELAUD", "WBELAUD", "WSBELPRO", "WSBELAV", "WSBFELAV",
                      "WSBFPAUD", "WSBFPPRO", "WSBFPAVP",
                      "PCLPRO", "PCLP-L1", "PCLP-L2", "PCLP-L3", "PCPROLT1",
                      "13MBP-LM", "13MBP-LT", "13MBP-L1", "13MBP-L2",
@@ -509,6 +509,10 @@ internal sealed class WestinLaborRoomRule
     public string VisionSpecialistCode { get; set; } = "VXTECH";
     public string AudioSpecialistCode { get; set; } = "AXTECH";
     public int MicrophoneOperatorThreshold { get; set; } = 2;
+    public int BaselineSetupMinutes { get; set; } = 30;
+    public int BaselineTcMinutes { get; set; } = 30;
+    public int BaselinePackdownMinutes { get; set; } = 30;
+    public bool SupportsOperatorEscalation { get; set; } = true;
 }
 
 internal sealed class WestinLaborSpecialRules

@@ -5367,7 +5367,10 @@ View Signed Quote
                 flipchart = HttpContext.Session.GetString("Draft:Flipchart") ?? "no",
                 laptopMode = HttpContext.Session.GetString("Draft:LaptopMode") ?? "none",
                 laptopQty = HttpContext.Session.GetString("Draft:LaptopQty") ?? "0",
-                adapterOwnLaptops = HttpContext.Session.GetString("Draft:AdapterOwnLaptops") ?? "no"
+                adapterOwnLaptops = HttpContext.Session.GetString("Draft:AdapterOwnLaptops") ?? "no",
+                builtInProjector = HttpContext.Session.GetString("Draft:BuiltInProjector") ?? "yes",
+                builtInScreen = HttpContext.Session.GetString("Draft:BuiltInScreen") ?? "yes",
+                builtInSpeakers = HttpContext.Session.GetString("Draft:BuiltInSpeakers") ?? "yes"
             }
         };
         return JsonSerializer.Serialize(payload);

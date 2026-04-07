@@ -659,6 +659,37 @@ public sealed partial class SmartEquipmentRecommendationService
                 return new List<RecommendedEquipmentItem>();
         }
 
+        // Elevate audio package routing:
+        // - Full Elevate -> ELEVCSS (8 speakers)
+        // - Elevate 1/2 -> ELEVSCSS (4 speakers)
+        if ((equipmentType.Contains("speaker", StringComparison.OrdinalIgnoreCase) || equipmentType.Contains("audio", StringComparison.OrdinalIgnoreCase)) &&
+            roomNorm.Contains("elevate"))
+        {
+            var isHalfElevate = roomNorm.Contains("elevate 1") || roomNorm.Contains("elevate-1") ||
+                                roomNorm.Contains("elevate 2") || roomNorm.Contains("elevate-2");
+            packageCodes = isHalfElevate
+                ? packageCodes.Where(c => string.Equals(c, "ELEVSCSS", StringComparison.OrdinalIgnoreCase)).ToList()
+                : packageCodes.Where(c => string.Equals(c, "ELEVCSS", StringComparison.OrdinalIgnoreCase)).ToList();
+
+            if (packageCodes.Count == 0)
+                return new List<RecommendedEquipmentItem>();
+        }
+
+        // Elevate AV package routing:
+        // - Full Elevate -> ELEVAVP (projector + screen + 8 speakers)
+        // - Elevate 1/2 -> ELEVSAVP (projector + screen + 4 speakers)
+        if (equipmentType.Equals("av", StringComparison.OrdinalIgnoreCase) && roomNorm.Contains("elevate"))
+        {
+            var isHalfElevate = roomNorm.Contains("elevate 1") || roomNorm.Contains("elevate-1") ||
+                                roomNorm.Contains("elevate 2") || roomNorm.Contains("elevate-2");
+            packageCodes = isHalfElevate
+                ? packageCodes.Where(c => string.Equals(c, "ELEVSAVP", StringComparison.OrdinalIgnoreCase)).ToList()
+                : packageCodes.Where(c => string.Equals(c, "ELEVAVP", StringComparison.OrdinalIgnoreCase)).ToList();
+
+            if (packageCodes.Count == 0)
+                return new List<RecommendedEquipmentItem>();
+        }
+
         // ── Fetch products from DB ───────────────────────────────────────
 
         var folderNormLower = aiFolder.Trim().ToLowerInvariant();
