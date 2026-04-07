@@ -292,6 +292,8 @@ public sealed class ChatController : Controller
         HttpContext.Session.Remove("Draft:FollowUpAvSubmitted");
         HttpContext.Session.Remove("Draft:EventEndDate");
         HttpContext.Session.Remove("Draft:WantsOperator");
+        HttpContext.Session.Remove("Draft:WantsRehearsalOperator");
+        HttpContext.Session.Remove("Draft:RehearsalOperator");
         HttpContext.Session.Remove("Draft:BuiltInProjector");
         HttpContext.Session.Remove("Draft:BuiltInScreen");
         HttpContext.Session.Remove("Draft:BuiltInSpeakers");
@@ -341,6 +343,8 @@ public sealed class ChatController : Controller
         "Draft:EventType",
         "Draft:SetupStyle",
         "Draft:WantsOperator",
+        "Draft:WantsRehearsalOperator",
+        "Draft:RehearsalOperator",
         "Draft:SetupTime",
         "Draft:RehearsalTime",
         "Draft:StartTime",
@@ -4308,6 +4312,7 @@ View Signed Quote
         public string StartTime { get; set; } = "";
         public string EndTime { get; set; } = "";
         public string PackupTime { get; set; } = "";
+        public string WantsRehearsalOperator { get; set; } = "no";
         public string WantsOperator { get; set; } = "no";
     }
 
@@ -4380,6 +4385,7 @@ View Signed Quote
         submission.PackupTime = GetDecodedValue(data, "packup");
         if (string.IsNullOrWhiteSpace(submission.PackupTime))
             submission.PackupTime = submission.EndTime;
+        submission.WantsRehearsalOperator = GetDecodedValue(data, "wantsRehearsalOperator");
         submission.WantsOperator = GetDecodedValue(data, "wantsOperator");
         return !string.IsNullOrWhiteSpace(submission.EventType)
                && !string.IsNullOrWhiteSpace(submission.SetupTime)
@@ -4639,6 +4645,8 @@ View Signed Quote
         }
 
         submission.SetupStyle = HttpContext.Session.GetString("Draft:SetupStyle") ?? submission.SetupStyle;
+        HttpContext.Session.SetString("Draft:WantsRehearsalOperator", submission.WantsRehearsalOperator);
+        HttpContext.Session.SetString("Draft:RehearsalOperator", submission.WantsRehearsalOperator);
         HttpContext.Session.SetString("Draft:WantsOperator", submission.WantsOperator);
 
         var dateStr = HttpContext.Session.GetString("Draft:EventDate") ?? "";
@@ -4975,7 +4983,7 @@ View Signed Quote
 
     private static string BuildEventDetailsSyntheticMessage(EventDetailsFormSubmission s) =>
         $"Event details provided: event type {s.EventType}; setup style {s.SetupStyle}; " +
-        $"operator {s.WantsOperator}; schedule setup {s.SetupTime}, rehearsal {s.RehearsalTime}, " +
+        $"rehearsal operator {s.WantsRehearsalOperator}; operator {s.WantsOperator}; schedule setup {s.SetupTime}, rehearsal {s.RehearsalTime}, " +
         $"start {s.StartTime}, end {s.EndTime}.";
 
     private static string BuildBaseAvSyntheticMessage(BaseAvFormSubmission s) =>
@@ -5292,6 +5300,7 @@ View Signed Quote
                 title = "Event details",
                 submitLabel = "Next",
                 eventType = HttpContext.Session.GetString("Draft:EventType") ?? "",
+                wantsRehearsalOperator = HttpContext.Session.GetString("Draft:WantsRehearsalOperator") ?? "",
                 wantsOperator = HttpContext.Session.GetString("Draft:WantsOperator") ?? "",
                 minDate = todayIso,
                 schedule = new

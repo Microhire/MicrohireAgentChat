@@ -309,6 +309,89 @@ public sealed partial class AgentToolHandlerService
                attendees > 0;
     }
 
+    internal static bool HasExplicitRehearsalOperatorConfirmation(IEnumerable<DisplayMessage> messages)
+    {
+        var ordered = (messages ?? Enumerable.Empty<DisplayMessage>()).ToList();
+        if (ordered.Count == 0) return false;
+
+        var userMessages = ordered
+            .Where(m => string.Equals(m.Role, "user", StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        foreach (var userMsg in userMessages)
+        {
+            var text = string.Join(" ", userMsg.Parts ?? Enumerable.Empty<string>());
+            if (string.IsNullOrWhiteSpace(text)) continue;
+
+            if (Regex.IsMatch(text,
+                @"\b(operator\s+for\s+(the\s+)?rehearsal|rehearsal\s+operator|operator\s+during\s+rehearsal)\b",
+                RegexOptions.IgnoreCase))
+                return true;
+        }
+
+        for (int i = 0; i < ordered.Count - 1; i++)
+        {
+            var current = ordered[i];
+            if (!string.Equals(current.Role, "assistant", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var assistantText = string.Join(" ", current.Parts ?? Enumerable.Empty<string>());
+            if (string.IsNullOrWhiteSpace(assistantText))
+                continue;
+
+            var asksRehearsalOperatorQuestion =
+                Regex.IsMatch(assistantText, @"\boperator\b", RegexOptions.IgnoreCase) &&
+                Regex.IsMatch(assistantText, @"\brehearsal\b", RegexOptions.IgnoreCase) &&
+                assistantText.Contains("?", StringComparison.Ordinal);
+            if (!asksRehearsalOperatorQuestion)
+                continue;
+
+            var nextUser = ordered.Skip(i + 1).FirstOrDefault(m => string.Equals(m.Role, "user", StringComparison.OrdinalIgnoreCase));
+            if (nextUser == null)
+                continue;
+
+            var reply = string.Join(" ", nextUser.Parts ?? Enumerable.Empty<string>()).Trim();
+            if (IsLikelyAffirmativeReply(reply))
+                return true;
+        }
+
+        return false;
+    }
+
+    internal static bool HasExplicitRehearsalOperatorDeclined(IEnumerable<DisplayMessage> messages)
+    {
+        var ordered = (messages ?? Enumerable.Empty<DisplayMessage>()).ToList();
+        if (ordered.Count == 0) return false;
+
+        for (int i = 0; i < ordered.Count - 1; i++)
+        {
+            var current = ordered[i];
+            if (!string.Equals(current.Role, "assistant", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            var assistantText = string.Join(" ", current.Parts ?? Enumerable.Empty<string>());
+            if (string.IsNullOrWhiteSpace(assistantText))
+                continue;
+
+            var asksRehearsalOperatorQuestion =
+                Regex.IsMatch(assistantText, @"\boperator\b", RegexOptions.IgnoreCase) &&
+                Regex.IsMatch(assistantText, @"\brehearsal\b", RegexOptions.IgnoreCase) &&
+                assistantText.Contains("?", StringComparison.Ordinal);
+            if (!asksRehearsalOperatorQuestion)
+                continue;
+
+            var nextUser = ordered.Skip(i + 1).FirstOrDefault(m => string.Equals(m.Role, "user", StringComparison.OrdinalIgnoreCase));
+            if (nextUser == null)
+                continue;
+
+            var reply = string.Join(" ", nextUser.Parts ?? Enumerable.Empty<string>()).Trim();
+            if (Regex.IsMatch(reply, @"\b(no|not needed|none|nah|no thanks|don't need|do not need)\b", RegexOptions.IgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
+
     internal static bool HasExplicitVideoConferenceConfirmation(IEnumerable<DisplayMessage> messages)
     {
         var ordered = (messages ?? Enumerable.Empty<DisplayMessage>()).ToList();

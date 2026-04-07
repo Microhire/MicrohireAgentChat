@@ -694,6 +694,7 @@ else
                                             var eventDetailsCardClass = eventDetailsSubmitted ? "isla-form-card isla-event-details-form isla-form-submitted" : "isla-form-card isla-event-details-form";
                                             var eventType = uiEl.TryGetProperty("eventType", out var etp) ? etp.GetString() : "";
                                             var wantsOp = uiEl.TryGetProperty("wantsOperator", out var woEl) ? woEl.GetString() : "";
+                                            var wantsRehOp = uiEl.TryGetProperty("wantsRehearsalOperator", out var wroEl) ? wroEl.GetString() : "";
                                             var setupDefault = "07:00";
                                             var rehearsalDefault = "09:30";
                                             var startDefault = "10:00";
@@ -724,7 +725,22 @@ else
                                                     <div class="isla-form-field"><label>Start</label><input type="time" value="@startDefault" step="1800" data-ed-start-time @(eventDetailsSubmitted ? "disabled" : null) /></div>
                                                     <div class="isla-form-field"><label>End</label><input type="time" value="@endDefault" step="1800" data-ed-end-time @(eventDetailsSubmitted ? "disabled" : null) /></div>
                                                 </div>
-                                                <div class="isla-form-field">
+                                                <div class="isla-form-field" style="margin: 8px 0;">
+                                                    <label class="isla-form-question">Would you like an operator for your rehearsal?</label>
+                                                    <div class="isla-form-actions" style="margin-top:.35rem">
+                                                        @if (string.Equals(wantsRehOp, "yes", StringComparison.OrdinalIgnoreCase))
+                                                        {
+                                                            <label class="isla-form-checkbox" style="display:inline-flex;margin-right:1rem"><input type="radio" name="ed-reh-op" value="yes" data-ed-rehearsal-operator checked @(eventDetailsSubmitted ? "disabled" : null) /> Yes</label>
+                                                            <label class="isla-form-checkbox" style="display:inline-flex"><input type="radio" name="ed-reh-op" value="no" data-ed-rehearsal-operator @(eventDetailsSubmitted ? "disabled" : null) /> No</label>
+                                                        }
+                                                        else
+                                                        {
+                                                            <label class="isla-form-checkbox" style="display:inline-flex;margin-right:1rem"><input type="radio" name="ed-reh-op" value="yes" data-ed-rehearsal-operator @(eventDetailsSubmitted ? "disabled" : null) /> Yes</label>
+                                                            <label class="isla-form-checkbox" style="display:inline-flex"><input type="radio" name="ed-reh-op" value="no" data-ed-rehearsal-operator checked @(eventDetailsSubmitted ? "disabled" : null) /> No</label>
+                                                        }
+                                                    </div>
+                                                </div>
+                                                <div class="isla-form-field" style="margin: 8px 0;">
                                                     <label class="isla-form-question">Would you like an operator throughout your event?</label>
                                                     <div class="isla-form-actions" style="margin-top:.35rem">
                                                         @if (string.Equals(wantsOp, "yes", StringComparison.OrdinalIgnoreCase))
@@ -2068,10 +2084,11 @@ else
     const rehearsalTime=(form.querySelector('[data-ed-rehearsal-time]')?.value||'').trim();
     const startTime=(form.querySelector('[data-ed-start-time]')?.value||'').trim();
     const endTime=(form.querySelector('[data-ed-end-time]')?.value||'').trim();
+    const wantsRehOp=form.querySelector('[data-ed-rehearsal-operator]:checked')?.value==='yes'?'yes':'no';
     const wantsOp=form.querySelector('[data-ed-operator]:checked')?.value==='yes'?'yes':'no';
     if(!eventType || !startTime || !endTime){ showFormError(err,'Please complete event type and schedule.'); return; }
     showFormError(err,'');
-    postChat(`EventDetails: eventType=${encodeField(eventType)}; setup=${encodeField(setupTime)}; rehearsal=${encodeField(rehearsalTime)}; start=${encodeField(startTime)}; end=${encodeField(endTime)}; wantsOperator=${encodeField(wantsOp)}`,btn);
+    postChat(`EventDetails: eventType=${encodeField(eventType)}; setup=${encodeField(setupTime)}; rehearsal=${encodeField(rehearsalTime)}; start=${encodeField(startTime)}; end=${encodeField(endTime)}; wantsRehearsalOperator=${encodeField(wantsRehOp)}; wantsOperator=${encodeField(wantsOp)}`,btn);
   },{passive:false});
 
   document.addEventListener('click',(ev)=>{

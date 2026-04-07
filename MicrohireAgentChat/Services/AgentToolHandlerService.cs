@@ -1411,6 +1411,30 @@ public sealed partial class AgentToolHandlerService
             });
         // #endregion
 
+        // Rehearsal operator guard: ask whether the customer wants an operator for their rehearsal.
+        var sessionRehearsalOp = (session?.GetString("Draft:RehearsalOperator") ?? "").Trim().ToLowerInvariant();
+        var rehearsalOperatorConfirmed = sessionRehearsalOp == "yes"
+            || HasExplicitRehearsalOperatorConfirmation(conversationMessages);
+        var rehearsalOperatorDeclined = sessionRehearsalOp == "no"
+            || HasExplicitRehearsalOperatorDeclined(conversationMessages);
+        if (!rehearsalOperatorConfirmed && !rehearsalOperatorDeclined)
+        {
+            return JsonSerializer.Serialize(new
+            {
+                error = "Cannot show quote summary - rehearsal operator preference not yet confirmed",
+                missingFields = new[] { "rehearsal operator preference" },
+                instruction = "Do NOT call recommend_equipment_for_event again in this response. Ask exactly one question: 'Would you like an operator for your rehearsal?' Wait for the user's explicit yes/no answer, then call recommend_equipment_for_event again."
+            });
+        }
+        if (rehearsalOperatorConfirmed)
+        {
+            session?.SetString("Draft:RehearsalOperator", "yes");
+        }
+        else if (rehearsalOperatorDeclined)
+        {
+            session?.SetString("Draft:RehearsalOperator", "no");
+        }
+
         var includesVideoConferenceUnit = requestedEquipmentTypes.Contains("video_conference_unit")
                                           || requestedEquipmentTypes.Contains("video conference unit");
         var sessionVc = (session?.GetString("Draft:VideoConference") ?? "").Trim().ToLowerInvariant();
@@ -1815,7 +1839,29 @@ public sealed partial class AgentToolHandlerService
                 technicianCoverage.Packdown
             }));
         }
-        
+
+        // Add rehearsal labour (task code 7) when the customer confirmed they want an operator for rehearsal.
+        if (rehearsalOperatorConfirmed && !recommendations.LaborItems.Any(l => IsRehearsalLaborTask(l.Task)))
+        {
+            var operateTemplate = recommendations.LaborItems.FirstOrDefault(l => IsOperateLaborTask(l.Task));
+            var productCode = operateTemplate?.ProductCode ?? "AVTECH";
+            var description = operateTemplate?.Description ?? "AV Technician";
+            recommendations.LaborItems.Add(new RecommendedLaborItem
+            {
+                ProductCode = productCode,
+                Description = description,
+                Task = "Rehearsal",
+                Quantity = 1,
+                Hours = 0,
+                Minutes = 30,
+                RecommendationReason = "Customer confirmed they would like an operator for their rehearsal."
+            });
+            recommendations.LaborItems = recommendations.LaborItems
+                .OrderBy(GetLaborTaskSortOrder)
+                .ThenBy(l => l.Description, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
         // IMPORTANT: If no recommendations returned but equipment was requested, log and handle gracefully
         if (recommendations.Items.Count == 0 && eventContext.EquipmentRequests.Count > 0)
         {
