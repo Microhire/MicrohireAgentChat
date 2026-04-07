@@ -3083,32 +3083,35 @@ public sealed class ChatController : Controller
             return;
         }
         
-        // Also check for existing quote files on disk (in case session was lost)
+        // Disk fallback is for session-expiry resilience only.
+        // If session still has equipment data, QuoteComplete was deliberately cleared
+        // (e.g. Edit Quote) — skip the fallback and regenerate fresh.
+        var sessionHasEquipment = !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:SelectedEquipment"));
         var quotesDir = QuoteFilesPaths.GetPhysicalQuotesDirectory(_env);
-        if (Directory.Exists(quotesDir))
+        if (!sessionHasEquipment && Directory.Exists(quotesDir))
         {
             var existingQuoteFiles = Directory.GetFiles(quotesDir, $"Quote-{bookingNo}-*.html")
                 .OrderByDescending(f => System.IO.File.GetCreationTimeUtc(f))
                 .ToList();
-            
+
             if (existingQuoteFiles.Any())
             {
                 var mostRecentQuote = existingQuoteFiles.First();
                 var quoteAge = DateTime.UtcNow - System.IO.File.GetCreationTimeUtc(mostRecentQuote);
-                
+
                 // If quote is less than 1 hour old, reuse it
                 if (quoteAge.TotalHours < 1)
                 {
                     var reusedQuoteUrl = $"/files/quotes/{Path.GetFileName(mostRecentQuote)}";
-                    
+
                     // Update session with existing quote
                     HttpContext.Session.SetString("Draft:QuoteUrl", reusedQuoteUrl);
                     HttpContext.Session.SetString("Draft:QuoteComplete", "1");
                     HttpContext.Session.SetString("Draft:QuoteTimestamp", DateTime.UtcNow.ToString("O"));
-                    
-                    _logger.LogInformation("Found existing quote file for booking {BookingNo} (age: {Age}), reusing: {QuoteUrl}", 
+
+                    _logger.LogInformation("Found existing quote file for booking {BookingNo} (age: {Age}), reusing: {QuoteUrl}",
                         bookingNo, quoteAge, reusedQuoteUrl);
-                    
+
                     // Add success message with existing quote
                     var reusedQuoteMessage = BuildQuoteReadyMessage(bookingNo, reusedQuoteUrl);
                     await AddAssistantMessageAndPersistAsync(msgList, reusedQuoteMessage, ct);
@@ -3897,8 +3900,8 @@ public sealed class ChatController : Controller
             HttpContext.Session.Remove("Draft:QuoteComplete");
             HttpContext.Session.Remove("Draft:QuoteUrl");
             HttpContext.Session.Remove("Draft:QuoteAccepted");
-            HttpContext.Session.Remove("Draft:BookingNo");
-            HttpContext.Session.Remove("Draft:ShowedBookingNo");
+            // Keep Draft:BookingNo and Draft:ShowedBookingNo so the existing booking
+            // is updated (not recreated) when the user re-generates the quote.
             HttpContext.Session.Remove("Draft:PersistedSummaryKey");
             HttpContext.Session.Remove(AwaitingQuoteReviewPromptKey);
             HttpContext.Session.Remove(QuoteReviewPromptShownKey);
