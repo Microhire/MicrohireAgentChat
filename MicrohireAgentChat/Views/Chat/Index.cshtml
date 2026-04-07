@@ -1222,6 +1222,29 @@
             });
           }
 
+          // ----- EDIT QUOTE (re-open all forms) -----
+          messagesWrap.addEventListener('click', async function(e) {
+            const btn = e.target.closest('.isla-quote-edit-btn');
+            if (!btn) return;
+            btn.disabled = true;
+            try {
+              const res = await fetch('@Url.Action("EditQuotePartial", "Chat")', {
+                method: 'POST',
+                headers: { 'RequestVerificationToken': getCsrfToken() }
+              });
+              if (!res.ok) throw new Error('Edit failed');
+              const html = await res.text();
+              messagesWrap.innerHTML = html;
+              hydrateUiBlocks(messagesWrap);
+              updateProgressBar();
+              scrollToBottom();
+              input.focus();
+            } catch (err) {
+              console.error(err);
+              btn.disabled = false;
+            }
+          });
+
           // ----- DEV MODE: Conversation Replay -----
           const startReplayBtn = document.getElementById('startReplayBtn');
           const nextReplayBtn = document.getElementById('nextReplayBtn');

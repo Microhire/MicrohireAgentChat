@@ -3875,6 +3875,87 @@ public sealed class ChatController : Controller
         }
     }
 
+    /// <summary>
+    /// Resets all form-submission and quote flags so every wizard form becomes editable again,
+    /// while keeping the user's previously entered data (venue, room, dates, event type, schedule,
+    /// AV preferences, etc.) so the forms prefill with the latest input.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult EditQuotePartial()
+    {
+        try
+        {
+            // Clear form-submitted flags
+            HttpContext.Session.Remove("Draft:VenueConfirmSubmitted");
+            HttpContext.Session.Remove("Draft:EventFormSubmitted");
+            HttpContext.Session.Remove("Draft:BaseAvSubmitted");
+            HttpContext.Session.Remove("Draft:BaseAvSubmittedForThread");
+            HttpContext.Session.Remove("Draft:FollowUpAvSubmitted");
+
+            // Clear quote state
+            HttpContext.Session.Remove("Draft:QuoteComplete");
+            HttpContext.Session.Remove("Draft:QuoteUrl");
+            HttpContext.Session.Remove("Draft:QuoteAccepted");
+            HttpContext.Session.Remove("Draft:BookingNo");
+            HttpContext.Session.Remove("Draft:ShowedBookingNo");
+            HttpContext.Session.Remove("Draft:PersistedSummaryKey");
+            HttpContext.Session.Remove(AwaitingQuoteReviewPromptKey);
+            HttpContext.Session.Remove(QuoteReviewPromptShownKey);
+
+            // Clear AV selection/equipment state (will be rebuilt on re-submission)
+            HttpContext.Session.Remove("Draft:SelectedEquipment");
+            HttpContext.Session.Remove("Draft:SelectedLabor");
+            HttpContext.Session.Remove("Draft:TotalDayRate");
+            HttpContext.Session.Remove("Draft:ProjectorArea");
+            HttpContext.Session.Remove("Draft:ProjectorAreas");
+            HttpContext.Session.Remove(ProjectorPromptShownKey);
+            HttpContext.Session.Remove(ProjectorPromptThreadIdKey);
+            HttpContext.Session.Remove(ProjectorAreaCapturedKey);
+            HttpContext.Session.Remove(ProjectorAreaThreadIdKey);
+            HttpContext.Session.Remove("Draft:LaptopOwnershipAnswered");
+            HttpContext.Session.Remove("Draft:NeedsProvidedLaptop");
+            HttpContext.Session.Remove("Draft:LaptopPreference");
+
+            // Re-render with forms in editable state
+            var threadId = _chat.EnsureThreadId(HttpContext.Session);
+            var (_, messages) = _chat.GetTranscript(threadId);
+            var msgList = messages is List<DisplayMessage> list ? list : messages.ToList();
+
+            // Remove quote-related messages so the user can focus on editing the forms
+            msgList.RemoveAll(m =>
+            {
+                if (!string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase))
+                    return false;
+                var raw = string.Join("\n", (m.Parts ?? new List<string>()).Select(p => p ?? string.Empty))
+                    .ToLowerInvariant();
+                // "Great news! I have successfully generated your quote..." + Quote Ready UI
+                if (raw.Contains("generated your quote") && (raw.Contains("\"quoteurl\"") || raw.Contains("\"quote_url\"")))
+                    return true;
+                // "Would you like to proceed and accept this quote?"
+                if (raw.Contains("would you like to proceed and accept this quote"))
+                    return true;
+                return false;
+            });
+
+            EnsureStructuredFormsInChat(msgList);
+            RedactPricesForUiInPlace(msgList);
+
+            ViewData["ShowQuoteCta"] = "0";
+            ViewData["QuoteComplete"] = false;
+            SetScheduleTimesInViewData();
+            ViewData["ProgressStep"] = DetermineProgressStep(msgList);
+
+            return PartialView("_Messages", msgList);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed handling edit quote request");
+            Response.StatusCode = 500;
+            return Content("Unable to reset forms for editing.");
+        }
+    }
+
     // ---- helpers ------------------------------------------------------------
 
     private static bool TryCaptureTimeSelection(string text, out TimeSpan start, out TimeSpan end)
