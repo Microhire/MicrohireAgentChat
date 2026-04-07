@@ -589,7 +589,8 @@ public sealed partial class AgentToolHandlerService
         if (taskNorm.Contains("operate") || taskNorm.Contains("operator") || taskNorm.Contains("support"))
             return coverage.Operate;
         if (taskNorm.Contains("pack"))
-            return coverage.Packdown;
+            // return coverage.Packdown;
+            return true; // Always include Packdown regardless of coverage preference
 
         return coverage.Operate;
     }
@@ -633,7 +634,8 @@ public sealed partial class AgentToolHandlerService
                     reasonSuffix: "Added rehearsal coverage because the customer requested technician support for this stage."));
             }
 
-            if (coverage.Packdown && !filtered.Any(l => IsPackdownLaborTask(l.Task)))
+            // if (coverage.Packdown && !filtered.Any(l => IsPackdownLaborTask(l.Task)))
+            if (!filtered.Any(l => IsPackdownLaborTask(l.Task)))
             {
                 filtered.Add(CloneLaborForStage(
                     operateTemplate,

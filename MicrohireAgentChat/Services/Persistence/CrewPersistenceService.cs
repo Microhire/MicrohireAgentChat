@@ -126,7 +126,7 @@ public sealed class CrewPersistenceService
             var startTime = taskCode switch
             {
                 3 => showStart ?? rehearsalTime ?? setupTime,
-                7 => rehearsalTime ?? setupTime ?? showStart,
+                // 7 => rehearsalTime ?? setupTime ?? showStart,
                 4 => packupTime ?? showEnd ?? rehearsalTime ?? setupTime ?? showStart,
                 _ => setupTime ?? showStart
             };
@@ -369,7 +369,7 @@ public sealed class CrewPersistenceService
         return normalized switch
         {
             "setup" or "su" => (byte)2,
-            "testconnect" or "testandconnect" or "tc" => (byte)7,
+            "testconnect" or "testandconnect" or "tc" => (byte)15,
             "rehearsal" or "reh" => (byte)7,
             "technicalsupport" or "operate" or "operator" or "technicianonsite" or "op" => (byte)3,
             "packdown" or "packup" or "pd" => (byte)4,
