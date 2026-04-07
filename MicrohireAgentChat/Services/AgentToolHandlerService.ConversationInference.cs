@@ -764,8 +764,7 @@ public sealed partial class AgentToolHandlerService
     private static bool IsRehearsalLaborTask(string? task)
     {
         var normalized = task ?? "";
-        return normalized.Contains("rehearsal", StringComparison.OrdinalIgnoreCase) ||
-               normalized.Contains("test", StringComparison.OrdinalIgnoreCase);
+        return normalized.Contains("rehearsal", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsOperateLaborTask(string? task)
@@ -778,6 +777,9 @@ public sealed partial class AgentToolHandlerService
 
     private static bool IsPackdownLaborTask(string? task)
         => (task ?? "").Contains("pack", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsTestLaborTask(string? task)
+        => (task ?? "").Contains("test", StringComparison.OrdinalIgnoreCase);
 
     private static int GetLaborTaskSortOrder(RecommendedLaborItem labor)
     {

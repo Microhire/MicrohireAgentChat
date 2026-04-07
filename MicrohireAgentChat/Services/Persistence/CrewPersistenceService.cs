@@ -126,7 +126,7 @@ public sealed class CrewPersistenceService
             var startTime = taskCode switch
             {
                 3 => showStart ?? rehearsalTime ?? setupTime,
-                // 7 => rehearsalTime ?? setupTime ?? showStart,
+                7 => rehearsalTime ?? setupTime ?? showStart,
                 4 => packupTime ?? showEnd ?? rehearsalTime ?? setupTime ?? showStart,
                 _ => setupTime ?? showStart
             };
