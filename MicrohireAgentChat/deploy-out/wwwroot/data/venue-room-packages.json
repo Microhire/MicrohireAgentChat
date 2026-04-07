@@ -52,16 +52,12 @@
     },
     "Elevate": {
       "aiFolder": "WSBELEV",
-      "independentItems": ["ELEVIND"],
-      "baseEquipment": ["Inbuilt projector", "Inbuilt screen", "Inbuilt speakers"],
-      "audio": ["ELEVCSS", "ELEVSCSS"],
-      "vision": ["ELEVPROJ"],
-      "av": ["ELEVAVP", "ELEVSAVP"]
+      "baseEquipment": ["Inbuilt projector and screen", "Inbuilt speakers"]
     },
     "Thrive Boardroom": {
       "aiFolder": "WSBTHRV",
       "independentItems": ["THRVIND"],
-      "baseEquipment": ["Projector", "Screen", "Ceiling speakers (PC Audio only)"],
+      "baseEquipment": ["Inbuilt projector and screen", "Inbuilt speakers"],
       "audio": ["THRVCSS"],
       "vision": ["THRVPROJ"],
       "av": ["THRVAVP"]

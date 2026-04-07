@@ -128,7 +128,7 @@ public sealed partial class BookingPersistenceService
             var projectorAreas = GetFact(facts, "projector_areas");
             var projectionNeeded = FactsRequireProjectorPlacement(facts);
             venueRoom = MergeProjectorAreasIntoVenueRoom(venueRoom, projectorAreas, projectorArea, projectionNeeded);
-            var eventType = GetFact(facts, "event_type");
+            var eventType = "Conference / Event"; // always default – user's description goes to showName
             var showName = GetFact(facts, "show_name") ?? GetFact(facts, "event_type");
             var salesperson = GetFact(facts, "salesperson") ?? _rpDefaults.Salesperson;
             var attendees = ParseInt(GetFact(facts, "expected_attendees"));
@@ -257,7 +257,7 @@ public sealed partial class BookingPersistenceService
                 if (showEndTime.HasValue) existing.ShowEndTime = ToHHmmString(showEndTime);
 
                 if (!string.IsNullOrWhiteSpace(venueRoom)) existing.VenueRoom = Trunc(venueRoom, VenueRoomMaxLength);
-                if (!string.IsNullOrWhiteSpace(eventType)) existing.EventType = Trunc(eventType, EventTypeMaxLength);
+                existing.EventType = Trunc(eventType, EventTypeMaxLength); // always "Conference / Event"
                 if (!string.IsNullOrWhiteSpace(showName)) existing.showName = Trunc(showName, ShowNameMaxLength);
                 if (!string.IsNullOrWhiteSpace(salesperson)) existing.Salesperson = Trunc(salesperson, SalespersonMaxLength);
                 if (!string.IsNullOrWhiteSpace(statusFact))
@@ -339,7 +339,7 @@ public sealed partial class BookingPersistenceService
         var projectorAreas = GetFact(facts, "projector_areas");
         var projectionNeeded = FactsRequireProjectorPlacement(facts);
         venueRoom = MergeProjectorAreasIntoVenueRoom(venueRoom, projectorAreas, projectorArea, projectionNeeded);
-        var eventType = GetFact(facts, "event_type");
+        var eventType = "Conference / Event"; // always default – user's description goes to showName
         var showName = GetFact(facts, "show_name") ?? GetFact(facts, "event_type");
         var salesperson = GetFact(facts, "salesperson") ?? _rpDefaults.Salesperson;
         var attendees = ParseInt(GetFact(facts, "expected_attendees"));

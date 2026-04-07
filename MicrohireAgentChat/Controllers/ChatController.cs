@@ -5379,6 +5379,7 @@ View Signed Quote
         _ = int.TryParse(HttpContext.Session.GetString("Draft:PresenterCount"), out presenters);
         var laptopQty = 0;
         _ = int.TryParse(HttpContext.Session.GetString("Draft:LaptopQty"), out laptopQty);
+        var roomName = HttpContext.Session.GetString("Draft:RoomName") ?? "";
         var payload = new
         {
             ui = new
@@ -5388,6 +5389,7 @@ View Signed Quote
                 submitLabel = "Generate quote",
                 presenterCount = presenters,
                 laptopQty,
+                roomName,
                 micType = HttpContext.Session.GetString("Draft:MicType") ?? "",
                 micQty = HttpContext.Session.GetString("Draft:MicQty") ?? "0",
                 lectern = HttpContext.Session.GetString("Draft:Lectern") ?? "",

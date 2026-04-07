@@ -876,6 +876,8 @@ else
                                             if (uiEl.TryGetProperty("presenterCount", out var pcEl) && pcEl.TryGetInt32(out var pci)) pc = pci;
                                             var lq = 0;
                                             if (uiEl.TryGetProperty("laptopQty", out var lqEl) && lqEl.TryGetInt32(out var lqi)) lq = lqi;
+                                            var fuRoomName = uiEl.TryGetProperty("roomName", out var rnEl) ? (rnEl.GetString() ?? "") : "";
+                                            var isThrive = fuRoomName.Contains("Thrive", StringComparison.OrdinalIgnoreCase);
                                             var micTypeRaw = uiEl.TryGetProperty("micType", out var micTypeEl) ? (micTypeEl.GetString() ?? "") : "";
                                             var micIsLapel = string.Equals(micTypeRaw, "lapel", StringComparison.OrdinalIgnoreCase);
                                             var lecRaw = uiEl.TryGetProperty("lectern", out var lecEl) ? (lecEl.GetString() ?? "none") : "none";
@@ -894,13 +896,14 @@ else
                                             var switcherLabel = lq > 1
                                                 ? $"Do you need to seamlessly switch between the {lq} laptops?"
                                                 : "Do you need to seamlessly switch between the laptops?";
-                                            <div class="@followUpCardClass" data-follow-up-av-form data-fu-presenters="@pc" data-fu-laptops="@lq" data-form-submitted="@(followUpSubmitted ? "1" : "0")">
+                                            var showPresenterBlock = pc > 0 && !isThrive;
+                                            <div class="@followUpCardClass" data-follow-up-av-form data-fu-presenters="@pc" data-fu-laptops="@lq" data-fu-room="@fuRoomName" data-form-submitted="@(followUpSubmitted ? "1" : "0")">
                                                 @if (followUpSubmitted)
                                                 {
                                                     <div class="isla-form-status">Confirmed</div>
                                                 }
                                                 <div class="isla-form-title">@(uiEl.TryGetProperty("title", out var ft) ? ft.GetString() : "Follow-up")</div>
-                                                <div data-fu-block-presenters style="display:@(pc > 0 ? "block" : "none")">
+                                                <div data-fu-block-presenters style="display:@(showPresenterBlock ? "block" : "none")">
                                                     <div class="isla-form-field isla-fu-mic-row">
                                                         <div class="isla-fu-mic-row-inner">
                                                             <div class="isla-fu-mic-type">
@@ -933,13 +936,6 @@ else
                                                             <label class="isla-form-checkbox"><input type="radio" name="fu-fb" value="no" data-fu-foldback @(!fbYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> No</label>
                                                         </div>
                                                     </div>
-                                                    <div class="isla-form-field isla-fu-field">
-                                                        <label class="isla-base-av-sentence-label isla-fu-question-label">Remote wireless presenter</label>
-                                                        <div class="isla-fu-yesno-btns isla-fu-yesno-caps">
-                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-rw" value="yes" data-fu-rwp @(rwpYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> Yes</label>
-                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-rw" value="no" data-fu-rwp @(!rwpYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> No</label>
-                                                        </div>
-                                                    </div>
                                                 </div>
                                                 <div class="isla-form-field isla-fu-field" data-fu-switcher-wrap style="display:none">
                                                     <label class="isla-base-av-sentence-label isla-fu-question-label" data-fu-switcher-label>@switcherLabel</label>
@@ -953,6 +949,13 @@ else
                                                     <div class="isla-fu-yesno-btns isla-fu-yesno-caps">
                                                         <label class="isla-form-checkbox"><input type="radio" name="fu-st" value="yes" data-fu-stage @(stYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> Yes</label>
                                                         <label class="isla-form-checkbox"><input type="radio" name="fu-st" value="no" data-fu-stage @(!stYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> No</label>
+                                                    </div>
+                                                </div>
+                                                <div class="isla-form-field isla-fu-field">
+                                                    <label class="isla-base-av-sentence-label isla-fu-question-label">Remote wireless presenter</label>
+                                                    <div class="isla-fu-yesno-btns isla-fu-yesno-caps">
+                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-rw" value="yes" data-fu-rwp @(rwpYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> Yes</label>
+                                                        <label class="isla-form-checkbox"><input type="radio" name="fu-rw" value="no" data-fu-rwp @(!rwpYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> No</label>
                                                     </div>
                                                 </div>
                                                 <div class="isla-form-field isla-fu-field">
@@ -2012,13 +2015,16 @@ else
     root.querySelectorAll('[data-follow-up-av-form]').forEach(form=>{
       const pc=parseInt(form.getAttribute('data-fu-presenters')||'0',10)||0;
       const lq=parseInt(form.getAttribute('data-fu-laptops')||'0',10)||0;
+      const fuRoom=(form.getAttribute('data-fu-room')||'').toLowerCase();
+      const isThrive=fuRoom.indexOf('thrive')>=0;
       const block=form.querySelector('[data-fu-block-presenters]');
-      if(block) block.style.display=pc>0?'block':'none';
+      if(block) block.style.display=(pc>0&&!isThrive)?'block':'none';
       const swWrap=form.querySelector('[data-fu-switcher-wrap]');
       const lbl=form.querySelector('[data-fu-switcher-label]');
       if(lbl&&lq>1) lbl.textContent='Do you need to seamlessly switch between the '+lq+' laptops?';
-      if(swWrap) swWrap.style.display=lq>1?'block':'none';
+      if(swWrap) swWrap.style.display=(lq>1&&!isThrive)?'block':'none';
       function syncStage(){
+        if(isThrive) return;
         const sw=form.querySelector('[data-fu-switcher]:checked')?.value||'no';
         const lec=(form.querySelector('input[data-fu-lectern]:checked')?.value||'none');
         const stWrap=form.querySelector('[data-fu-stage-wrap]');

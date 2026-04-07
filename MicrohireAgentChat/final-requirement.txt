@@ -1,0 +1,402 @@
+None selected 
+
+Skip to content
+Using Intent Mail with screen readers
+Thrive
+
+5 of 17
+Fwd: Microhire Technical Session
+Inbox
+AI Overview
+Dhan forwarded technical details from Nick regarding building the AI Bot for Equipments and Labor.
+The forwarded information details labor codes, task definitions, and specific equipment/setup requirements for Ballroom and Elevate packages.
+Dhan asked Nithila to review the client reference material and ask any necessary clarification questions.
+By Gemini; there may be mistakes. Learn more
+
+Dhan Manalo <dhan@intent.do>
+Attachments
+Fri, Feb 13, 9:40 AM
+to me, Jenny
+
+Hi Nith,
+
+Please see the information below from the Client as your reference in building the technical part of the AI Bot (Equipments and Labor). Please let me know if you have any questions or clarifications.
+
+---------- Forwarded message ---------
+From: Nick Reilly <nick.reilly@microhire.com>
+Date: Fri, Feb 13, 2026 at 10:47 AM
+Subject: RE: Microhire Technical Session
+To: jenny <jenny@intent.do>, Dhan Manalo <dhan@intent.do>, Jamie Hughes <Jamie.Hughes@microhire.com>
+Cc: Doug Miller <Doug.Miller@microhire.com>
+
+
+Attached a plan noting projector locations you can use this for now, we can make a nicer one later.
+
+ 
+
+Labour Product codes
+
+AVTECH = Audio Visual Technician – Jack of all trades
+
+AXTECH = Specialised Audio Technician
+
+VXTECH = Specialised Vision Technician
+
+LXTECH = Specialised Lighting Technician
+
+ 
+
+Labour Task
+
+SU = Setup
+
+T&C = Test & Connect
+Reh = Rehearsal
+
+Op = Operate
+
+PD = Pack Down
+
+
+
+Once there is an operator the equipment inc laptops etc is assumed at the operator’s desk. We will need to ask the client if they want a laptop anything at stage.
+
+Laptop @ stage = 2 x SDICROSS
+These boxes extend the HDMI signal via a long SDI cable from the lectern to the operator’s desk so that they can switch between the laptops
+ 
+
+ 
+
+Ballroom
+
+If selling WSBBDPRO, WSBBSPRO, WSBNSPRO, WSBSSPRO, WSBFBALL, WSBALLAU or any combination of these
+
+Labour min:
+
+AVTECH
+30 mins SU
+30 mins T&C
+30 mins PD
+ 
+
+Alignment of package to floorplan attached
+
+WSBSSPRO = A
+
+WSBNSPRO = D
+
+WSBBSPRO = B, C, E or F
+
+WSBBDPRO = B & C or E & F
+
+ 
+
+Package
+
+WSBBDPRO, WSBBSPRO, WSBNSPRO, WSBSSPRO
+
+Projector & Screen
+ 
+
+Questions/Accessories
+
+Are you bringing your own laptop or do you need one?
+Own laptop
+We will provide a HDMI connection to the projector. Do you need any adaptors?
+Typically, we just need a USBC adaptor – USBCMX2
+More than 1 laptop at a time will require a switcher so we would need to ask, do you want to be able to seamlessly switch between the 2 laptops?
+Yes – We would suggest an operator
+V1HD = 4 inputs so max 4 laptops
+Add 1 hr for AVTECH Setup
+AVTECH T&C = VXTECH Reh 30mins
+VXTECH Op from show start to show end
+Would you like a remote mouse/wireless presenter?
+LOGISPOT
+Would you like a flipchart?
+NATFLIPC
+Add to min labour AVTECH 15mins setup per FC
+Flipchart with paper and markers
+Does your presentation have any audio, video etc?
+WSBELSAD or WBELAUD depending on whether they are in Elevate ½ or Elevate (Combined) respectively
+Would you like a foldback monitor so the presenter doesn’t have to turn around and look at the screen?
+LCD40 + NATFLSTD + SDICROSS x 2
+ 
+
+WSBFBALL or WSBALLAU
+
+Ceiling Speakers
+
+ 
+
+Questions/Accessories
+
+Would you like a Lectern?
+LECT1
+With a microphone?
+SHURE418
+Add to min labour AVTECH 15mins setup & PD
+Do you require any wireless microphones?
+Handheld or Lapel?
+How Many?
+QLXD2SK x how many they want
+This package includes both and handheld and a lapel as it is a kit but we would need to “comment” in the job what they have asked for
+Add to min labour AVTECH 15mins setup & PD
+Note on microphones once there is more than 1 in this room we need to add a mixer.
+MIXER06 = 6ch so 6 microphones
+More than 2 microphones ask the question do you want an operator?
+YES
+AVTECH T&C = AXTECH Reh 30mins
+AXTECH Op from show start to show end
+ 
+
+**If you end up with a MIXER06 and a V1HD then you would just need an AVTECH for the duration of the event.**
+
+ 
+
+Elevate
+
+If selling WSBELPRO & WSBELSAD or WBELAUD or any combination of those 3
+
+Labour min:
+
+AVTECH
+30 mins SU
+30 mins T&C
+30 mins PD
+ 
+
+Package
+
+WSBELPRO
+
+Projector & Screen
+ 
+
+Questions/Accessories
+
+Are you bringing your own laptop or do you need one?
+Own laptop
+We will provide a HDMI connection to the projector. Do you need any adaptors?
+Typically, we just need a USBC adaptor – USBCMX2
+More than 1 laptop at a time will require a switcher so we would need to ask, do you want to be able to seamlessly switch between the 2 laptops?
+Yes – We would suggest an operator
+V1HD = 4 inputs so max 4 laptops
+Add 1 hr for AVTECH Setup
+AVTECH T&C = VXTECH Reh 30mins
+VXTECH Op from show start to show end
+Would you like a remote mouse/wireless presenter?
+LOGISPOT
+Are you holding a video conference? Using Teams/Zoom etc?
+LOG4kCAM
+Add to min labour AVTECH 15mins SU, 15mins T&C, 15 mins PD
+Video Conference Unit
+Would you like a flipchart?
+NATFLIPC
+Add to min labour AVTECH 15mins setup per FC
+Flipchart with paper and markers
+Does your presentation have any audio, video etc?
+WSBELSAD or WBELAUD depending on whether they are in Elevate ½ or Elevate (Combined) respectively
+ 
+
+WSBELSAD or WBELAUD
+
+Ceiling Speakers
+ 
+
+Questions/Accessories
+
+Would you like a Lectern?
+LECT1
+With a microphone?
+SHURE418
+Add to min labour AVTECH 15mins setup & PD
+Do you require any wireless microphones?
+Handheld or Lapel?
+How Many?
+QLXD2SK x how many they want
+This package includes both and handheld and a lapel as it is a kit but we would need to “comment” in the job what they have asked for
+Add to min labour AVTECH 15mins setup & PD
+Note on microphones once there is more than 1 in this room we need to add a mixer.
+MIXER06 = 6ch so 6 microphones
+More than 2 microphones ask the question do you want an operator?
+YES
+AVTECH T&C = AXTECH Reh 30mins
+AXTECH Op from show start to show end
+ 
+
+**If you end up with a MIXER06 and a V1HD then you would just need an AVTECH for the duration of the event.**
+
+ 
+
+Thrive
+
+If only selling the package
+
+Labour min:
+
+AVTECH
+15 mins SU
+15 mins T&C
+ 
+
+Package
+
+WSBTHAV
+
+Projector & Screen & ceiling speakers (PC Audio ONLY)
+ 
+
+Questions/Accessories
+
+Are you bringing your own laptop or do you need one?
+Own laptop
+We will provide a HDMI connection to the projector. Do you need any adaptors?
+Typically, we just need a USBC adaptor – USBCMX2
+Would you like a remote mouse/wireless presenter?
+LOGISPOT
+Are you holding a video conference? Using Teams/Zoom etc?
+LOG4kCAM
+Add to min labour AVTECH 15mins SU, 15mins T&C, 15 mins PD
+Video Conference Unit
+Would you like a flipchart?
+NATFLIPC
+Add to min labour AVTECH 15mins setup per FC
+Flipchart with paper and markers
+ 
+
+Let me know if you need any further clarification.
+
+ 
+
+ 
+
+static.png
+
+ 
+
+Nick Reilly
+General Manager | Infrastructure & Projects
+
+ 
+
+T
+
+M
+
+E
+
+A
+
++61 7 3736 1233
+
++61 437 116 233
+
+Nick.Reilly@microhire.com 
+
+Unit 1, 30 Gardens Drive, Willawong, Queensland 4110
+
+Microhire
+
+ 
+
+microhire.com
+
+YouTube
+
+Facebook
+
+Instagram
+
+X
+
+LinkedIn
+
+Confidentiality Notice: This email and any attachments may contain confidential or privileged information. If you are not the intended recipient, any use, disclosure, or copying is prohibited. If you have received this email in error, please notify the sender and delete the message. While this email has been checked for viruses, no liability is accepted for any loss or damage caused by its contents. For details on how we manage your privacy, please refer to our Privacy Policy: www.microhire.com.
+
+ 
+
+-----Original Appointment-----
+From: Jenny Junkeer <jenny@intent.do>
+Sent: Monday, 9 February 2026 5:38 PM
+To: Jenny Junkeer; Dhan Manalo; Nick Reilly; Jamie Hughes
+Subject: Microhire Technical Session
+When: Friday, 13 February 2026 12:00 PM-1:00 PM Australia/Melbourne.
+Where: https://us02web.zoom.us/j/5949065604?omn=83631861599&jst=3
+
+ 
+
+Microhire Technical Session
+
+──────────Jenny Junkeer is inviting you to a scheduled Zoom meeting.Join Zoom Meetinghttps://us02web.zoom.us/j/5949065604?omn=83631861599Meeting ID: 594 906 5604---One tap mobile+61370182005,,59490656
+
+ 
+
+ 
+
+
+──────────
+
+Jenny Junkeer is inviting you to a scheduled Zoom meeting.
+Join Zoom Meeting
+https://us02web.zoom.us/j/5949065604?omn=83631861599
+
+Meeting ID: 594 906 5604
+
+---
+
+One tap mobile
++61370182005,,5949065604# Australia
++61731853730,,5949065604# Australia
+
+Join instructions
+https://us02web.zoom.us/meetings/83631861599/invitations?signature=aI6VETOZ4Y2WpGSjQ35XT8MWyCuo5fgZ2VOUvafWILI
+
+
+
+──────────
+
+When
+Friday 13 Feb 2026 ⋅ 12pm – 1pm (Australian Eastern Time - Melbourne)
+
+Location
+https://us02web.zoom.us/j/5949065604?omn=83631861599&jst=3
+View map
+
+Guests
+Jenny Junkeer- organiser
+
+Dhan Manalo
+
+nick.reilly@microhire.com
+
+jamie.hughes@microhire.com
+
+View all guest info
+
+Reply for nick.reilly@microhire.com
+
+Yes
+
+No
+
+Maybe
+
+
+More options
+
+
+Invitation from Google Calendar
+
+You are receiving this email because you are an attendee of the event.
+
+Forwarding this invitation could allow any recipient to send a response to the organiser, be added to the guest list, invite others regardless of their own invitation status or modify your RSVP. Learn more
+
+ 
+
+
+
+--
+Best Regards,
+Dhan
+ One attachment
+  •  Scanned by Gmail

@@ -823,21 +823,13 @@ public sealed partial class SmartEquipmentRecommendationService
             isLapel = !isHandheld;
         }
 
-        string[] searchTerms = isHandheld
-            ? new[] { "handheld", "wireless handheld", "hand held" }
-            : new[] { "lapel", "lavalier", "beltpack", "clip" };
+        // QLXD2SK is a package containing both handheld (SHQLXD2K) and lapel (QLXD2K52) as components.
+        // Always use QLXD2SK regardless of mic type — 1 package per mic needed.
+        const string packageCode = "QLXD2SK";
 
-        var aiCodes = await GetAiCatalogCodesAsync(ct);
-        var products = await _db.TblInvmas
+        var product = await _db.TblInvmas
             .AsNoTracking()
-            .Where(p => aiCodes.Count == 0 || aiCodes.Contains((p.product_code ?? "").Trim()))
-            .Where(p => (p.category ?? "").Trim() == "W/MIC")
-            .Where(p =>
-                !(p.descriptionv6 ?? "").ToLower().Contains("receiver") &&
-                !(p.descriptionv6 ?? "").ToLower().Contains("charger") &&
-                !(p.descriptionv6 ?? "").ToLower().Contains("antenna") &&
-                !(p.descriptionv6 ?? "").ToLower().Contains("cable") &&
-                !(p.descriptionv6 ?? "").ToLower().Contains("discontinued"))
+            .Where(p => (p.product_code ?? "").Trim() == packageCode)
             .Select(p => new
             {
                 p.product_code,
@@ -846,62 +838,34 @@ public sealed partial class SmartEquipmentRecommendationService
                 p.category,
                 p.PictureFileName
             })
-            .Take(50)
-            .ToListAsync(ct);
+            .FirstOrDefaultAsync(ct);
 
-        var productCodes = products.Select(p => (p.product_code ?? "").Trim()).ToList();
-        var pricing = await _db.TblRatetbls
+        var priceInfo = await _db.TblRatetbls
             .AsNoTracking()
-            .Where(r => r.TableNo == 0 && productCodes.Contains((r.product_code ?? "").Trim()))
-            .Select(r => new { Code = (r.product_code ?? "").Trim(), r.rate_1st_day, r.rate_extra_days })
-            .ToListAsync(ct);
+            .Where(r => r.TableNo == 0 && (r.product_code ?? "").Trim() == packageCode)
+            .Select(r => new { r.rate_1st_day, r.rate_extra_days })
+            .FirstOrDefaultAsync(ct);
 
-        var priceLookup = pricing.ToDictionary(p => p.Code, p => p, StringComparer.OrdinalIgnoreCase);
-
-        var ranked = products
-            .Select(p =>
-            {
-                var code = (p.product_code ?? "").Trim();
-                var desc = (p.descriptionv6 ?? "").ToLower();
-                var hasPrice = priceLookup.TryGetValue(code, out var priceInfo);
-                var rate = hasPrice ? (priceInfo?.rate_1st_day ?? 0) : 0;
-
-                int score = 0;
-                if (searchTerms.Any(t => desc.Contains(t.ToLower()))) score += 30;
-                if (isHandheld && (desc.Contains("handheld") || desc.Contains("hand held"))) score += 20;
-                if (isLapel && (desc.Contains("lapel") || desc.Contains("lavalier") || desc.Contains("beltpack"))) score += 20;
-                if (desc.Contains("shure")) score += 10;
-                if (desc.Contains("wireless")) score += 5;
-                if (rate > 0) score += 50;
-
-                return new { Product = p, Score = score, Rate = rate, PriceInfo = priceInfo };
-            })
-            .Where(x => x.Rate > 0)
-            .OrderByDescending(x => x.Score)
-            .ThenBy(x => x.Rate)
-            .FirstOrDefault();
-
-        if (ranked != null)
+        if (product != null)
         {
             var micTypeName = isHandheld ? "Handheld" : "Lapel";
-            var productCode = (ranked.Product.product_code ?? "").Trim();
-            var components = await GetPackageComponentsAsync(productCode, ct);
-            var desc = (ranked.Product.descriptionv6 ?? ranked.Product.PrintedDesc ?? "").Trim();
+            var components = await GetPackageComponentsAsync(packageCode, ct);
+            var desc = (product.descriptionv6 ?? product.PrintedDesc ?? "").Trim();
 
             items.Add(new RecommendedEquipmentItem
             {
-                ProductCode = productCode,
+                ProductCode = packageCode,
                 Description = desc,
-                Category = ranked.Product.category,
+                Category = product.category,
                 Quantity = quantity,
-                UnitPrice = ranked.Rate,
-                ExtraDayRate = ranked.PriceInfo?.rate_extra_days ?? 0,
-                PictureFileName = ranked.Product.PictureFileName,
+                UnitPrice = priceInfo?.rate_1st_day ?? 0,
+                ExtraDayRate = priceInfo?.rate_extra_days ?? 0,
+                PictureFileName = product.PictureFileName,
                 IsPackage = components.Count > 0,
                 Components = components,
                 RecommendationReason = $"{micTypeName} wireless microphone - ideal for {context.EventType} with presenters who " +
                     (isHandheld ? "share microphones or host Q&A sessions" : "need hands-free mobility during presentations"),
-                Comment = (isHandheld || isLapel) ? $"Client requested: {micTypeName}" : null
+                Comment = micTypeName.ToUpper()
             });
         }
 

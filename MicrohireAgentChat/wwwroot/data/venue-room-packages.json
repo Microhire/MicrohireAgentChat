@@ -57,7 +57,7 @@
     "Thrive Boardroom": {
       "aiFolder": "WSBTHRV",
       "independentItems": ["THRVIND"],
-      "baseEquipment": ["Projector", "Screen", "Ceiling speakers (PC Audio only)"],
+      "baseEquipment": ["Inbuilt projector and screen", "Inbuilt speakers"],
       "audio": ["THRVCSS"],
       "vision": ["THRVPROJ"],
       "av": ["THRVAVP"]

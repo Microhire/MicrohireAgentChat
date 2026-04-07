@@ -47,24 +47,13 @@
   {
     "type": "bundle",
     "key": "wireless_mic_bundle",
+    "comment": "QLXD2SK is a package containing both SHQLXD2K (handheld) and QLXD2K52 (lapel) as components. Always use QLXD2SK regardless of mic type - 1 per mic needed.",
     "bundleItems": [
       {
         "product_code": "QLXD2SK",
-        "comment": "SINGLE Radio Mic Receiver - Shure QLXD4 K52",
+        "comment": "SINGLE Radio Mic Kit - Shure QLXD4 K52 (package includes handheld & lapel components)",
         "qtyFrom": "useDriverQty",
         "driverKey": "wireless_mic_count"
-      },
-      {
-        "product_code": "SHQLXD2K",
-        "comment": "Wireless Handheld Mic - Shure QLXD2 K52",
-        "qtyFrom": "useDriverQty",
-        "driverKey": "wireless_mic_count"
-      },
-      {
-        "product_code": "QLXD2K52",
-        "comment": "Wireless Lapel Mic - Shure QLXD2 K52",
-        "qtyFrom": "optionalFixed",
-        "literalQty": 0
       }
     ]
   },

@@ -1,0 +1,614 @@
+time_h], [t].[ret_time_m], [t].[retail_value], [t].[return_to_locn], [t].[sale_of_asset], [t].[sales_amount], [t].[sales_discount_rate], [t].[sales_percent_disc], [t].[sales_tax_no], [t].[same_address], [t].[setupTimeV61], [t].[showName], [t].[showStartTime], [t].[status], [t].[sundry_total], [t].[tax1], [t].[transferNo], [t].[un_disc_amount]
+      FROM [tblbookings] AS [t]
+      WHERE [t].[booking_no] = @__bookingNo_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (10ms) [Parameters=[@__ToLower_0='lamb kirkland inc' (Size = 120) (DbType = AnsiString)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[Address_l1V6], [t].[CustCDate], [t].[Customer_code], [t].[iLink_ContactID], [t].[OrganisationV6]
+      FROM [tblcust] AS [t]
+      WHERE [t].[OrganisationV6] IS NOT NULL AND LOWER([t].[OrganisationV6]) = @__ToLower_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@__orgId_0='25017' (Precision = 10)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[Customer_code]
+      FROM [tblcust] AS [t]
+      WHERE [t].[ID] = @__orgId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (20ms) [Parameters=[@__e_0='nith+yoo3wva9@intent.do' (Size = 80)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[Active], [t].[Cell], [t].[Contactname], [t].[CreateDate], [t].[CustCodeLink], [t].[Email], [t].[firstname], [t].[LastAttempt], [t].[LastContact], [t].[LastUpdate], [t].[MidName], [t].[Phone1], [t].[position], [t].[surname]
+      FROM [tblContact] AS [t]
+      WHERE [t].[Email] IS NOT NULL AND LOWER([t].[Email]) = @__e_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@__orgId_0='25017' (Precision = 10), @__contactId_1='31582' (Nullable = true) (Precision = 18) (Scale = 2)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [tblcust] AS [t]
+              WHERE [t].[ID] = @__orgId_0 AND [t].[iLink_ContactID] = @__contactId_1) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@__orgId_0='25017' (Precision = 10)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[Customer_code]
+      FROM [tblcust] AS [t]
+      WHERE [t].[ID] = @__orgId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__code_0='C25017' (Size = 30) (DbType = AnsiString), @__contactId_1='31582' (Nullable = true) (Precision = 10)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [tblLinkCustContact] AS [t]
+              WHERE [t].[Customer_Code] = @__code_0 AND [t].[ContactID] = @__contactId_1) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: MicrohireAgentChat.Services.Persistence.ContactResolutionService[0]
+      Reusing existing linked contact: ID=31582
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@__customerCode_0='C25017' (Size = 30) (DbType = AnsiString), @__contactId_1='31582' (Nullable = true) (Precision = 10)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [tblLinkCustContact] AS [t]
+              WHERE [t].[Customer_Code] = @__customerCode_0 AND [t].[ContactID] = @__contactId_1) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[@__bookingNo_0='C2501700001' (Size = 35)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[BookingProgressStatus], [t].[ConfirmedBy], [t].[ConfirmedDocRef], [t].[ContactID], [t].[CustCode], [t].[CustID], [t].[EntryDate], [t].[EventType], [t].[From_locn], [t].[HourBooked], [t].[Item_cnt], [t].[MinBooked], [t].[OrganizationV6], [t].[RehDate], [t].[RehearsalTime], [t].[SDate], [t].[Salesperson], [t].[SecBooked], [t].[SetDate], [t].[ShowEdate], [t].[ShowEndTime], [t].[ShowSDate], [t].[StrikeTime], [t].[Tax2], [t].[TaxAuthority1], [t].[TaxAuthority2], [t].[Trans_to_locn], [t].[VenueID], [t].[VenueRoom], [t].[bBookingIsComplete], [t].[booking_no], [t].[booking_type_v32], [t].[contact_nameV6], [t].[currencyStr], [t].[dDate], [t].[days_charged_v51], [t].[days_using], [t].[del_time_h], [t].[del_time_m], [t].[delivery], [t].[delivery_address_exist], [t].[delivery_time], [t].[delivery_viav71], [t].[deposit_quoted_v50], [t].[discount_rate], [t].[division], [t].[docs_produced], [t].[event_code], [t].[expAttendees], [t].[hire_price], [t].[insurance_type], [t].[insurance_v5], [t].[invoice_no], [t].[invoiced], [t].[labour], [t].[last_modified_by], [t].[order_date], [t].[order_no], [t].[payment_type], [t].[percent_disc], [t].[perm_casual], [t].[pickup_time], [t].[pickup_viaV71], [t].[price_quoted], [t].[pricing_scheme_used], [t].[rDate], [t].[ret_time_h], [t].[ret_time_m], [t].[retail_value], [t].[return_to_locn], [t].[sale_of_asset], [t].[sales_amount], [t].[sales_discount_rate], [t].[sales_percent_disc], [t].[sales_tax_no], [t].[same_address], [t].[setupTimeV61], [t].[showName], [t].[showStartTime], [t].[status], [t].[sundry_total], [t].[tax1], [t].[transferNo], [t].[un_disc_amount]
+      FROM [tblbookings] AS [t]
+      WHERE [t].[booking_no] = @__bookingNo_0
+info: MicrohireAgentChat.Services.Persistence.ItemPersistenceService[0]
+      Inserting 5 equipment items for booking C2501700001
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (22ms) [Parameters=[@__bookingNo_0='C2501700001' (Size = 35)], CommandType='Text', CommandTimeout='30']
+      SELECT [t].[ID], [t].[AddedAtCheckout], [t].[AssignTo], [t].[AssignType], [t].[AvailRecFlag], [t].[BeforeDiscountAmount], [t].[bit_field_v41], [t].[BookDate], [t].[booking_id], [t].[booking_no_v32], [t].[Comment_desc_v42], [t].[CostPrice], [t].[DayWeekRate], [t].[days_using], [t].[del_time_hour], [t].[del_time_min], [t].[FirstDate], [t].[From_locn], [t].[GroupSeqNo], [t].[heading_no], [t].[InRack], [t].[item_type], [t].[Logi_GroupSeqNo], [t].[Logi_HeadingNo], [t].[Logi_Seq_No], [t].[Logi_Sub_Seq_no], [t].[NodeCollapsed], [t].[PDate], [t].[PTimeH], [t].[PTimeM], [t].[PackageLevel], [t].[ParentCode], [t].[prep_on], [t].[price], [t].[product_code_v42], [t].[QtyAvailable], [t].[QtyCheckedOut], [t].[QtyReserved], [t].[QtyReturned], [t].[QtyShort], [t].[QuickTurnAroundQty], [t].[RetnDate], [t].[return_time_hour], [t].[return_time_min], [t].[return_to_locn], [t].[seq_no], [t].[sub_hire_qtyV61], [t].[SubRentalLinkID], [t].[sub_seq_no], [t].[TechPay], [t].[techRateorDaysCharged], [t].[TimeBookedH], [t].[TimeBookedM], [t].[TimeBookedS], [t].[trans_qty], [t].[Trans_to_locn], [t].[trans_type_v41], [t].[Undisc_amt], [t].[unitRate], [t].[View_client], [t].[View_Logi]
+      FROM [tblItemtran] AS [t]
+      WHERE [t].[booking_no_v32] = @__bookingNo_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[@__bookingNo_0='C2501700001' (Size = 35)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID]
+      FROM [tblbookings] AS [t]
+      WHERE [t].[booking_no] = @__bookingNo_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (15ms) [Parameters=[@__productCode_0='THRVAVP' (Size = 450)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[product_code], [t].[descriptionv6], [t].[PrintedDesc]
+      FROM [tblInvmas] AS [t]
+      WHERE LTRIM(RTRIM([t].[product_code])) = @__productCode_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (46ms) [Parameters=[@__trimmedCode_0='THRVAVP' (Size = 30)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[rate_1st_day]
+      FROM [tblRatetbl] AS [t]
+      WHERE [t].[ProductCode] IS NOT NULL AND LTRIM(RTRIM([t].[ProductCode])) = @__trimmedCode_0 AND [t].[tableNo] = CAST(0 AS tinyint)
+info: MicrohireAgentChat.Services.Persistence.ItemPersistenceService[0]
+      Added item: THRVAVP x 1 @ $425
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (19ms) [Parameters=[@__packageCode_0='THRVAVP' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+      SELECT [v].[product_code] AS [ComponentCode], [v].[qty_v5] AS [Quantity], [v].[sub_seq_no] AS [SubSeqNo]
+      FROM [vwProdsComponents] AS [v]
+      WHERE LTRIM(RTRIM([v].[parent_code])) = @__packageCode_0 AND ([v].[variable_part] IS NULL OR [v].[variable_part] = CAST(0 AS tinyint))
+      ORDER BY [v].[sub_seq_no]
+info: MicrohireAgentChat.Services.Persistence.ItemPersistenceService[0]
+      Adding 2 components for package THRVAVP
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (11ms) [Parameters=[@__comp_Item1_0='VACSPKR' (Size = 450)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[descriptionv6], [t].[PrintedDesc]
+      FROM [tblInvmas] AS [t]
+      WHERE LTRIM(RTRIM([t].[product_code])) = @__comp_Item1_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@__comp_Item1_0='EB1450UI' (Size = 450)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[descriptionv6], [t].[PrintedDesc]
+      FROM [tblInvmas] AS [t]
+      WHERE LTRIM(RTRIM([t].[product_code])) = @__comp_Item1_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[@__productCode_0='NATFLIPC' (Size = 450)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[product_code], [t].[descriptionv6], [t].[PrintedDesc]
+      FROM [tblInvmas] AS [t]
+      WHERE LTRIM(RTRIM([t].[product_code])) = @__productCode_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (25ms) [Parameters=[@__trimmedCode_0='NATFLIPC' (Size = 30)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[rate_1st_day]
+      FROM [tblRatetbl] AS [t]
+      WHERE [t].[ProductCode] IS NOT NULL AND LTRIM(RTRIM([t].[ProductCode])) = @__trimmedCode_0 AND [t].[tableNo] = CAST(0 AS tinyint)
+info: MicrohireAgentChat.Services.Persistence.ItemPersistenceService[0]
+      Added item: NATFLIPC x 1 @ $76
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[@__packageCode_0='NATFLIPC' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+      SELECT [v].[product_code] AS [ComponentCode], [v].[qty_v5] AS [Quantity], [v].[sub_seq_no] AS [SubSeqNo]
+      FROM [vwProdsComponents] AS [v]
+      WHERE LTRIM(RTRIM([v].[parent_code])) = @__packageCode_0 AND ([v].[variable_part] IS NULL OR [v].[variable_part] = CAST(0 AS tinyint))
+      ORDER BY [v].[sub_seq_no]
+info: MicrohireAgentChat.Services.Persistence.ItemPersistenceService[0]
+      Adding 3 components for package NATFLIPC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[@__comp_Item1_0='FLIPCH' (Size = 450)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[descriptionv6], [t].[PrintedDesc]
+      FROM [tblInvmas] AS [t]
+      WHERE LTRIM(RTRIM([t].[product_code])) = @__comp_Item1_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[@__comp_Item1_0='FLIPPAD' (Size = 450)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[descriptionv6], [t].[PrintedDesc]
+      FROM [tblInvmas] AS [t]
+      WHERE LTRIM(RTRIM([t].[product_code])) = @__comp_Item1_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[@__comp_Item1_0='WBMARKER' (Size = 450)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[descriptionv6], [t].[PrintedDesc]
+      FROM [tblInvmas] AS [t]
+      WHERE LTRIM(RTRIM([t].[product_code])) = @__comp_Item1_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[@__productCode_0='13MBP-L2' (Size = 450)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[product_code], [t].[descriptionv6], [t].[PrintedDesc]
+      FROM [tblInvmas] AS [t]
+      WHERE LTRIM(RTRIM([t].[product_code])) = @__productCode_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@__trimmedCode_0='13MBP-L2' (Size = 30)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[rate_1st_day]
+      FROM [tblRatetbl] AS [t]
+      WHERE [t].[ProductCode] IS NOT NULL AND LTRIM(RTRIM([t].[ProductCode])) = @__trimmedCode_0 AND [t].[tableNo] = CAST(0 AS tinyint)
+info: MicrohireAgentChat.Services.Persistence.ItemPersistenceService[0]
+      Added item: 13MBP-L2 x 3 @ $146.60000000009313
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[@__packageCode_0='13MBP-L2' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+      SELECT [v].[product_code] AS [ComponentCode], [v].[qty_v5] AS [Quantity], [v].[sub_seq_no] AS [SubSeqNo]
+      FROM [vwProdsComponents] AS [v]
+      WHERE LTRIM(RTRIM([v].[parent_code])) = @__packageCode_0 AND ([v].[variable_part] IS NULL OR [v].[variable_part] = CAST(0 AS tinyint))
+      ORDER BY [v].[sub_seq_no]
+info: MicrohireAgentChat.Services.Persistence.ItemPersistenceService[0]
+      Adding 4 components for package 13MBP-L2
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[@__comp_Item1_0='13MBPPL2' (Size = 450)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[descriptionv6], [t].[PrintedDesc]
+      FROM [tblInvmas] AS [t]
+      WHERE LTRIM(RTRIM([t].[product_code])) = @__comp_Item1_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[@__comp_Item1_0='SOFTCASE' (Size = 450)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[descriptionv6], [t].[PrintedDesc]
+      FROM [tblInvmas] AS [t]
+      WHERE LTRIM(RTRIM([t].[product_code])) = @__comp_Item1_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[@__comp_Item1_0='PC-MOUSE' (Size = 450)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[descriptionv6], [t].[PrintedDesc]
+      FROM [tblInvmas] AS [t]
+      WHERE LTRIM(RTRIM([t].[product_code])) = @__comp_Item1_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[@__comp_Item1_0='MAGSAFE2' (Size = 450)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[descriptionv6], [t].[PrintedDesc]
+      FROM [tblInvmas] AS [t]
+      WHERE LTRIM(RTRIM([t].[product_code])) = @__comp_Item1_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[@__productCode_0='LOGISPOT' (Size = 450)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[product_code], [t].[descriptionv6], [t].[PrintedDesc]
+      FROM [tblInvmas] AS [t]
+      WHERE LTRIM(RTRIM([t].[product_code])) = @__productCode_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (21ms) [Parameters=[@__trimmedCode_0='LOGISPOT' (Size = 30)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[rate_1st_day]
+      FROM [tblRatetbl] AS [t]
+      WHERE [t].[ProductCode] IS NOT NULL AND LTRIM(RTRIM([t].[ProductCode])) = @__trimmedCode_0 AND [t].[tableNo] = CAST(0 AS tinyint)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (47ms) [Parameters=[@__productCode_0='LOGISPOT' (Size = 450)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[category], [t].[groupFld]
+      FROM [tblInvmas] AS [t]
+      WHERE LTRIM(RTRIM([t].[product_code])) = @__productCode_0
+info: MicrohireAgentChat.Services.Persistence.ItemPersistenceService[0]
+      Component LOGISPOT has category: PADVNC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (16ms) [Parameters=[@__productCode_0='LOGISPOT' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+      SELECT [v].[parent_code] AS [ParentCode], [v].[SelectComp], [v].[variable_part] AS [VariablePart]
+      FROM [vwProdsComponents] AS [v]
+      WHERE LTRIM(RTRIM([v].[product_code])) = @__productCode_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (26ms) [Parameters=[@__trimmedParent_0='WBIND' (Size = 450)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[descriptionv6], [t].[category]
+      FROM [tblInvmas] AS [t]
+      WHERE LTRIM(RTRIM([t].[product_code])) = @__trimmedParent_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (14ms) [Parameters=[@__trimmedParent_0='THRVIND' (Size = 450)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[descriptionv6], [t].[category]
+      FROM [tblInvmas] AS [t]
+      WHERE LTRIM(RTRIM([t].[product_code])) = @__trimmedParent_0
+info: MicrohireAgentChat.Services.Persistence.ItemPersistenceService[0]
+      Added item: LOGISPOT x 1 @ $70.6
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[@__productCode_0='LOG4KCAM' (Size = 450)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[product_code], [t].[descriptionv6], [t].[PrintedDesc]
+      FROM [tblInvmas] AS [t]
+      WHERE LTRIM(RTRIM([t].[product_code])) = @__productCode_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (21ms) [Parameters=[@__trimmedCode_0='LOG4KCAM' (Size = 30)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[rate_1st_day]
+      FROM [tblRatetbl] AS [t]
+      WHERE [t].[ProductCode] IS NOT NULL AND LTRIM(RTRIM([t].[ProductCode])) = @__trimmedCode_0 AND [t].[tableNo] = CAST(0 AS tinyint)
+info: MicrohireAgentChat.Services.Persistence.ItemPersistenceService[0]
+      Added item: LOG4KCAM x 1 @ $130.30000000004657
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[@__packageCode_0='LOG4KCAM' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+      SELECT [v].[product_code] AS [ComponentCode], [v].[qty_v5] AS [Quantity], [v].[sub_seq_no] AS [SubSeqNo]
+      FROM [vwProdsComponents] AS [v]
+      WHERE LTRIM(RTRIM([v].[parent_code])) = @__packageCode_0 AND ([v].[variable_part] IS NULL OR [v].[variable_part] = CAST(0 AS tinyint))
+      ORDER BY [v].[sub_seq_no]
+info: MicrohireAgentChat.Services.Persistence.ItemPersistenceService[0]
+      Adding 1 components for package LOG4KCAM
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (8ms) [Parameters=[@__comp_Item1_0='CONFREM' (Size = 450)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[descriptionv6], [t].[PrintedDesc]
+      FROM [tblInvmas] AS [t]
+      WHERE LTRIM(RTRIM([t].[product_code])) = @__comp_Item1_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (494ms) [Parameters=[@p0=NULL (DbType = Boolean), @p1=NULL (Size = 4000), @p2='0' (Size = 1), @p3='False', @p4=NULL (DbType = Double), @p5=NULL (DbType = Byte), @p6=NULL (DbType = DateTime2), @p7='81026' (Nullable = true), @p8='C2501700001' (Nullable = false) (Size = 35), @p9='Thrive AV Package' (Size = 70), @p10=NULL (DbType = Double), @p11=NULL (DbType = Double), @p12=NULL (DbType = Int32), @p13=NULL (DbType = Byte), @p14=NULL (DbType = Byte), @p15=NULL (DbType = DateTime2), @p16='20' (Nullable = true), @p17=NULL (DbType = Int32), @p18='1' (Nullable = true) (Size = 1), @p19=NULL (DbType = Boolean), @p20='1' (Nullable = true) (Size = 1), @p21=NULL (DbType = Int32), @p22=NULL (DbType = Int32), @p23=NULL (DbType = Int32), @p24=NULL (DbType = Int32), @p25=NULL (DbType = Boolean), @p26=NULL (DbType = DateTime2), @p27=NULL (DbType = Byte), @p28=NULL (DbType = Byte), @p29=NULL (DbType = Int16), @p30=NULL (Size = 30), @p31=NULL (DbType = Boolean), @p32='425' (Nullable = true), @p33='THRVAVP' (Size = 30), @p34=NULL (DbType = Int32), @p35=NULL (Precision = 19) (DbType = Decimal), @p36=NULL (DbType = Int32), @p37=NULL (Precision = 19) (DbType = Decimal), @p38='0', @p39=NULL (DbType = Double), @p40=NULL (DbType = DateTime2), @p41=NULL (DbType = Byte), @p42=NULL (DbType = Byte), @p43='20' (Nullable = true), @p44='1' (Nullable = true) (Precision = 19), @p45=NULL (Precision = 19) (DbType = Decimal), @p46='0', @p47='0' (Nullable = true), @p48=NULL (DbType = Double), @p49=NULL (DbType = Double), @p50=NULL (DbType = Byte), @p51=NULL (DbType = Byte), @p52=NULL (DbType = Byte), @p53='1' (Nullable = true) (Precision = 19), @p54='20' (Nullable = true), @p55='2' (Nullable = true) (Size = 1), @p56=NULL (DbType = Double), @p57='425' (Nullable = true), @p58=NULL (DbType = Boolean), @p59=NULL (DbType = Boolean), @p60=NULL (DbType = Boolean), @p61=NULL (Size = 4000), @p62='0' (Size = 1), @p63='False', @p64=NULL (DbType = Double), @p65=NULL (DbType = Byte), @p66=NULL (DbType = DateTime2), @p67='81026' (Nullable = true), @p68='C2501700001' (Nullable = false) (Size = 35), @p69='Venue Installed Ceiling LoudSpeaker' (Size = 70), @p70=NULL (DbType = Double), @p71=NULL (DbType = Double), @p72=NULL (DbType = Int32), @p73=NULL (DbType = Byte), @p74=NULL (DbType = Byte), @p75=NULL (DbType = DateTime2), @p76='20' (Nullable = true), @p77=NULL (DbType = Int32), @p78='1' (Nullable = true) (Size = 1), @p79=NULL (DbType = Boolean), @p80='2' (Nullable = true) (Size = 1), @p81=NULL (DbType = Int32), @p82=NULL (DbType = Int32), @p83=NULL (DbType = Int32), @p84=NULL (DbType = Int32), @p85=NULL (DbType = Boolean), @p86=NULL (DbType = DateTime2), @p87=NULL (DbType = Byte), @p88=NULL (DbType = Byte), @p89=NULL (DbType = Int16), @p90='THRVAVP' (Size = 30), @p91=NULL (DbType = Boolean), @p92='0' (Nullable = true), @p93='VACSPKR' (Size = 30), @p94=NULL (DbType = Int32), @p95=NULL (Precision = 19) (DbType = Decimal), @p96=NULL (DbType = Int32), @p97=NULL (Precision = 19) (DbType = Decimal), @p98='0', @p99=NULL (DbType = Double), @p100=NULL (DbType = DateTime2), @p101=NULL (DbType = Byte), @p102=NULL (DbType = Byte), @p103='20' (Nullable = true), @p104='1' (Nullable = true) (Precision = 19), @p105=NULL (Precision = 19) (DbType = Decimal), @p106='0', @p107='1' (Nullable = true), @p108=NULL (DbType = Double), @p109=NULL (DbType = Double), @p110=NULL (DbType = Byte), @p111=NULL (DbType = Byte), @p112=NULL (DbType = Byte), @p113='1' (Nullable = true) (Precision = 19), @p114='20' (Nullable = true), @p115='2' (Nullable = true) (Size = 1), @p116=NULL (DbType = Double), @p117='0' (Nullable = true), @p118=NULL (DbType = Boolean), @p119=NULL (DbType = Boolean), @p120=NULL (DbType = Boolean), @p121=NULL (Size = 4000), @p122='0' (Size = 1), @p123='False', @p124=NULL (DbType = Double), @p125=NULL (DbType = Byte), @p126=NULL (DbType = DateTime2), @p127='81026' (Nullable = true), @p128='C2501700001' (Nullable = false) (Size = 35), @p129='Epson Interactive Projector 3800 ANSI' (Size = 70), @p130=NULL (DbType = Double), @p131=NULL (DbType = Double), @p132=NULL (DbType = Int32), @p133=NULL (DbType = Byte), @p134=NULL (DbType = Byte), @p135=NULL (DbType = DateTime2), @p136='20' (Nullable = true), @p137=NULL (DbType = Int32), @p138='1' (Nullable = true) (Size = 1), @p139=NULL (DbType = Boolean), @p140='2' (Nullable = true) (Size = 1), @p141=NULL (DbType = Int32), @p142=NULL (DbType = Int32), @p143=NULL (DbType = Int32), @p144=NULL (DbType = Int32), @p145=NULL (DbType = Boolean), @p146=NULL (DbType = DateTime2), @p147=NULL (DbType = Byte), @p148=NULL (DbType = Byte), @p149=NULL (DbType = Int16), @p150='THRVAVP' (Size = 30), @p151=NULL (DbType = Boolean), @p152='0' (Nullable = true), @p153='EB1450UI' (Size = 30), @p154=NULL (DbType = Int32), @p155=NULL (Precision = 19) (DbType = Decimal), @p156=NULL (DbType = Int32), @p157=NULL (Precision = 19) (DbType = Decimal), @p158='0', @p159=NULL (DbType = Double), @p160=NULL (DbType = DateTime2), @p161=NULL (DbType = Byte), @p162=NULL (DbType = Byte), @p163='20' (Nullable = true), @p164='1' (Nullable = true) (Precision = 19), @p165=NULL (Precision = 19) (DbType = Decimal), @p166='0', @p167='2' (Nullable = true), @p168=NULL (DbType = Double), @p169=NULL (DbType = Double), @p170=NULL (DbType = Byte), @p171=NULL (DbType = Byte), @p172=NULL (DbType = Byte), @p173='1' (Nullable = true) (Precision = 19), @p174='20' (Nullable = true), @p175='2' (Nullable = true) (Size = 1), @p176=NULL (DbType = Double), @p177='0' (Nullable = true), @p178=NULL (DbType = Boolean), @p179=NULL (DbType = Boolean), @p180=NULL (DbType = Boolean), @p181=NULL (Size = 4000), @p182='0' (Size = 1), @p183='False', @p184=NULL (DbType = Double), @p185=NULL (DbType = Byte), @p186=NULL (DbType = DateTime2), @p187='81026' (Nullable = true), @p188='C2501700001' (Nullable = false) (Size = 35), @p189='Flipchart with Paper & Markers' (Size = 70), @p190=NULL (DbType = Double), @p191=NULL (DbType = Double), @p192=NULL (DbType = Int32), @p193=NULL (DbType = Byte), @p194=NULL (DbType = Byte), @p195=NULL (DbType = DateTime2), @p196='20' (Nullable = true), @p197=NULL (DbType = Int32), @p198='1' (Nullable = true) (Size = 1), @p199=NULL (DbType = Boolean), @p200='1' (Nullable = true) (Size = 1), @p201=NULL (DbType = Int32), @p202=NULL (DbType = Int32), @p203=NULL (DbType = Int32), @p204=NULL (DbType = Int32), @p205=NULL (DbType = Boolean), @p206=NULL (DbType = DateTime2), @p207=NULL (DbType = Byte), @p208=NULL (DbType = Byte), @p209=NULL (DbType = Int16), @p210=NULL (Size = 30), @p211=NULL (DbType = Boolean), @p212='76' (Nullable = true), @p213='NATFLIPC' (Size = 30), @p214=NULL (DbType = Int32), @p215=NULL (Precision = 19) (DbType = Decimal), @p216=NULL (DbType = Int32), @p217=NULL (Precision = 19) (DbType = Decimal), @p218='0', @p219=NULL (DbType = Double), @p220=NULL (DbType = DateTime2), @p221=NULL (DbType = Byte), @p222=NULL (DbType = Byte), @p223='20' (Nullable = true), @p224='2' (Nullable = true) (Precision = 19), @p225=NULL (Precision = 19) (DbType = Decimal), @p226='0', @p227='0' (Nullable = true), @p228=NULL (DbType = Double), @p229=NULL (DbType = Double), @p230=NULL (DbType = Byte), @p231=NULL (DbType = Byte), @p232=NULL (DbType = Byte), @p233='1' (Nullable = true) (Precision = 19), @p234='20' (Nullable = true), @p235='2' (Nullable = true) (Size = 1), @p236=NULL (DbType = Double), @p237='76' (Nullable = true), @p238=NULL (DbType = Boolean), @p239=NULL (DbType = Boolean), @p240=NULL (DbType = Boolean), @p241=NULL (Size = 4000), @p242='0' (Size = 1), @p243='False', @p244=NULL (DbType = Double), @p245=NULL (DbType = Byte), @p246=NULL (DbType = DateTime2), @p247='81026' (Nullable = true), @p248='C2501700001' (Nullable = false) (Size = 35), @p249='Flipchart' (Size = 70), @p250=NULL (DbType = Double), @p251=NULL (DbType = Double), @p252=NULL (DbType = Int32), @p253=NULL (DbType = Byte), @p254=NULL (DbType = Byte), @p255=NULL (DbType = DateTime2), @p256='20' (Nullable = true), @p257=NULL (DbType = Int32), @p258='1' (Nullable = true) (Size = 1), @p259=NULL (DbType = Boolean), @p260='2' (Nullable = true) (Size = 1), @p261=NULL (DbType = Int32), @p262=NULL (DbType = Int32), @p263=NULL (DbType = Int32), @p264=NULL (DbType = Int32), @p265=NULL (DbType = Boolean), @p266=NULL (DbType = DateTime2), @p267=NULL (DbType = Byte), @p268=NULL (DbType = Byte), @p269=NULL (DbType = Int16), @p270='NATFLIPC' (Size = 30), @p271=NULL (DbType = Boolean), @p272='0' (Nullable = true), @p273='FLIPCH' (Size = 30), @p274=NULL (DbType = Int32), @p275=NULL (Precision = 19) (DbType = Decimal), @p276=NULL (DbType = Int32), @p277=NULL (Precision = 19) (DbType = Decimal), @p278='0', @p279=NULL (DbType = Double), @p280=NULL (DbType = DateTime2), @p281=NULL (DbType = Byte), @p282=NULL (DbType = Byte), @p283='20' (Nullable = true), @p284='2' (Nullable = true) (Precision = 19), @p285=NULL (Precision = 19) (DbType = Decimal), @p286='0', @p287='1' (Nullable = true), @p288=NULL (DbType = Double), @p289=NULL (DbType = Double), @p290=NULL (DbType = Byte), @p291=NULL (DbType = Byte), @p292=NULL (DbType = Byte), @p293='1' (Nullable = true) (Precision = 19), @p294='20' (Nullable = true), @p295='2' (Nullable = true) (Size = 1), @p296=NULL (DbType = Double), @p297='0' (Nullable = true), @p298=NULL (DbType = Boolean), @p299=NULL (DbType = Boolean), @p300=NULL (DbType = Boolean), @p301=NULL (Size = 4000), @p302='0' (Size = 1), @p303='False', @p304=NULL (DbType = Double), @p305=NULL (DbType = Byte), @p306=NULL (DbType = DateTime2), @p307='81026' (Nullable = true), @p308='C2501700001' (Nullable = false) (Size = 35), @p309='Flipchart Pad' (Size = 70), @p310=NULL (DbType = Double), @p311=NULL (DbType = Double), @p312=NULL (DbType = Int32), @p313=NULL (DbType = Byte), @p314=NULL (DbType = Byte), @p315=NULL (DbType = DateTime2), @p316='20' (Nullable = true), @p317=NULL (DbType = Int32), @p318='1' (Nullable = true) (Size = 1), @p319=NULL (DbType = Boolean), @p320='2' (Nullable = true) (Size = 1), @p321=NULL (DbType = Int32), @p322=NULL (DbType = Int32), @p323=NULL (DbType = Int32), @p324=NULL (DbType = Int32), @p325=NULL (DbType = Boolean), @p326=NULL (DbType = DateTime2), @p327=NULL (DbType = Byte), @p328=NULL (DbType = Byte), @p329=NULL (DbType = Int16), @p330='NATFLIPC' (Size = 30), @p331=NULL (DbType = Boolean), @p332='0' (Nullable = true), @p333='FLIPPAD' (Size = 30), @p334=NULL (DbType = Int32), @p335=NULL (Precision = 19) (DbType = Decimal), @p336=NULL (DbType = Int32), @p337=NULL (Precision = 19) (DbType = Decimal), @p338='0', @p339=NULL (DbType = Double), @p340=NULL (DbType = DateTime2), @p341=NULL (DbType = Byte), @p342=NULL (DbType = Byte), @p343='20' (Nullable = true), @p344='2' (Nullable = true) (Precision = 19), @p345=NULL (Precision = 19) (DbType = Decimal), @p346='0', @p347='2' (Nullable = true), @p348=NULL (DbType = Double), @p349=NULL (DbType = Double), @p350=NULL (DbType = Byte), @p351=NULL (DbType = Byte), @p352=NULL (DbType = Byte), @p353='1' (Nullable = true) (Precision = 19), @p354='20' (Nullable = true), @p355='2' (Nullable = true) (Size = 1), @p356=NULL (DbType = Double), @p357='0' (Nullable = true), @p358=NULL (DbType = Boolean), @p359=NULL (DbType = Boolean), @p360=NULL (DbType = Boolean), @p361=NULL (Size = 4000), @p362='0' (Size = 1), @p363='False', @p364=NULL (DbType = Double), @p365=NULL (DbType = Byte), @p366=NULL (DbType = DateTime2), @p367='81026' (Nullable = true), @p368='C2501700001' (Nullable = false) (Size = 35), @p369='Whiteboard Marker (Pack)' (Size = 70), @p370=NULL (DbType = Double), @p371=NULL (DbType = Double), @p372=NULL (DbType = Int32), @p373=NULL (DbType = Byte), @p374=NULL (DbType = Byte), @p375=NULL (DbType = DateTime2), @p376='20' (Nullable = true), @p377=NULL (DbType = Int32), @p378='1' (Nullable = true) (Size = 1), @p379=NULL (DbType = Boolean), @p380='2' (Nullable = true) (Size = 1), @p381=NULL (DbType = Int32), @p382=NULL (DbType = Int32), @p383=NULL (DbType = Int32), @p384=NULL (DbType = Int32), @p385=NULL (DbType = Boolean), @p386=NULL (DbType = DateTime2), @p387=NULL (DbType = Byte), @p388=NULL (DbType = Byte), @p389=NULL (DbType = Int16), @p390='NATFLIPC' (Size = 30), @p391=NULL (DbType = Boolean), @p392='0' (Nullable = true), @p393='WBMARKER' (Size = 30), @p394=NULL (DbType = Int32), @p395=NULL (Precision = 19) (DbType = Decimal), @p396=NULL (DbType = Int32), @p397=NULL (Precision = 19) (DbType = Decimal), @p398='0', @p399=NULL (DbType = Double), @p400=NULL (DbType = DateTime2), @p401=NULL (DbType = Byte), @p402=NULL (DbType = Byte), @p403='20' (Nullable = true), @p404='2' (Nullable = true) (Precision = 19), @p405=NULL (Precision = 19) (DbType = Decimal), @p406='0', @p407='3' (Nullable = true), @p408=NULL (DbType = Double), @p409=NULL (DbType = Double), @p410=NULL (DbType = Byte), @p411=NULL (DbType = Byte), @p412=NULL (DbType = Byte), @p413='1' (Nullable = true) (Precision = 19), @p414='20' (Nullable = true), @p415='2' (Nullable = true) (Size = 1), @p416=NULL (DbType = Double), @p417='0' (Nullable = true), @p418=NULL (DbType = Boolean), @p419=NULL (DbType = Boolean), @p420=NULL (DbType = Boolean), @p421=NULL (Size = 4000), @p422='0' (Size = 1), @p423='False', @p424=NULL (DbType = Double), @p425=NULL (DbType = Byte), @p426=NULL (DbType = DateTime2), @p427='81026' (Nullable = true), @p428='C2501700001' (Nullable = false) (Size = 35), @p429='Macbook Pro 13" - Show Laptop - PCIe' (Size = 70), @p430=NULL (DbType = Double), @p431=NULL (DbType = Double), @p432=NULL (DbType = Int32), @p433=NULL (DbType = Byte), @p434=NULL (DbType = Byte), @p435=NULL (DbType = DateTime2), @p436='20' (Nullable = true), @p437=NULL (DbType = Int32), @p438='1' (Nullable = true) (Size = 1), @p439=NULL (DbType = Boolean), @p440='1' (Nullable = true) (Size = 1), @p441=NULL (DbType = Int32), @p442=NULL (DbType = Int32), @p443=NULL (DbType = Int32), @p444=NULL (DbType = Int32), @p445=NULL (DbType = Boolean), @p446=NULL (DbType = DateTime2), @p447=NULL (DbType = Byte), @p448=NULL (DbType = Byte), @p449=NULL (DbType = Int16), @p450=NULL (Size = 30), @p451=NULL (DbType = Boolean), @p452='439.8000000002794' (Nullable = true), @p453='13MBP-L2' (Size = 30), @p454=NULL (DbType = Int32), @p455=NULL (Precision = 19) (DbType = Decimal), @p456=NULL (DbType = Int32), @p457=NULL (Precision = 19) (DbType = Decimal), @p458='0', @p459=NULL (DbType = Double), @p460=NULL (DbType = DateTime2), @p461=NULL (DbType = Byte), @p462=NULL (DbType = Byte), @p463='20' (Nullable = true), @p464='3' (Nullable = true) (Precision = 19), @p465=NULL (Precision = 19) (DbType = Decimal), @p466='0', @p467='0' (Nullable = true), @p468=NULL (DbType = Double), @p469=NULL (DbType = Double), @p470=NULL (DbType = Byte), @p471=NULL (DbType = Byte), @p472=NULL (DbType = Byte), @p473='3' (Nullable = true) (Precision = 19), @p474='20' (Nullable = true), @p475='2' (Nullable = true) (Size = 1), @p476=NULL (DbType = Double), @p477='146.60000000009313' (Nullable = true), @p478=NULL (DbType = Boolean), @p479=NULL (DbType = Boolean), @p480=NULL (DbType = Boolean), @p481=NULL (Size = 4000), @p482='0' (Size = 1), @p483='False', @p484=NULL (DbType = Double), @p485=NULL (DbType = Byte), @p486=NULL (DbType = DateTime2), @p487='81026' (Nullable = true), @p488='C2501700001' (Nullable = false) (Size = 35), @p489='Macbook Pro 13" - Show Laptop L2 - PCIe' (Size = 70), @p490=NULL (DbType = Double), @p491=NULL (DbType = Double), @p492=NULL (DbType = Int32), @p493=NULL (DbType = Byte), @p494=NULL (DbType = Byte), @p495=NULL (DbType = DateTime2), @p496='20' (Nullable = true), @p497=NULL (DbType = Int32), @p498='1' (Nullable = true) (Size = 1), @p499=NULL (DbType = Boolean), @p500='2' (Nullable = true) (Size = 1), @p501=NULL (DbType = Int32), @p502=NULL (DbType = Int32), @p503=NULL (DbType = Int32), @p504=NULL (DbType = Int32), @p505=NULL (DbType = Boolean), @p506=NULL (DbType = DateTime2), @p507=NULL (DbType = Byte), @p508=NULL (DbType = Byte), @p509=NULL (DbType = Int16), @p510='13MBP-L2' (Size = 30), @p511=NULL (DbType = Boolean), @p512='0' (Nullable = true), @p513='13MBPPL2' (Size = 30), @p514=NULL (DbType = Int32), @p515=NULL (Precision = 19) (DbType = Decimal), @p516=NULL (DbType = Int32), @p517=NULL (Precision = 19) (DbType = Decimal), @p518='0', @p519=NULL (DbType = Double), @p520=NULL (DbType = DateTime2), @p521=NULL (DbType = Byte), @p522=NULL (DbType = Byte), @p523='20' (Nullable = true), @p524='3' (Nullable = true) (Precision = 19), @p525=NULL (Precision = 19) (DbType = Decimal), @p526='0', @p527='1' (Nullable = true), @p528=NULL (DbType = Double), @p529=NULL (DbType = Double), @p530=NULL (DbType = Byte), @p531=NULL (DbType = Byte), @p532=NULL (DbType = Byte), @p533='3' (Nullable = true) (Precision = 19), @p534='20' (Nullable = true), @p535='2' (Nullable = true) (Size = 1), @p536=NULL (DbType = Double), @p537='0' (Nullable = true), @p538=NULL (DbType = Boolean), @p539=NULL (DbType = Boolean), @p540=NULL (DbType = Boolean), @p541=NULL (Size = 4000), @p542='0' (Size = 1), @p543='False', @p544=NULL (DbType = Double), @p545=NULL (DbType = Byte), @p546=NULL (DbType = DateTime2), @p547='81026' (Nullable = true), @p548='C2501700001' (Nullable = false) (Size = 35), @p549='Laptop Soft Carry Case' (Size = 70), @p550=NULL (DbType = Double), @p551=NULL (DbType = Double), @p552=NULL (DbType = Int32), @p553=NULL (DbType = Byte), @p554=NULL (DbType = Byte), @p555=NULL (DbType = DateTime2), @p556='20' (Nullable = true), @p557=NULL (DbType = Int32), @p558='1' (Nullable = true) (Size = 1), @p559=NULL (DbType = Boolean), @p560='2' (Nullable = true) (Size = 1), @p561=NULL (DbType = Int32), @p562=NULL (DbType = Int32), @p563=NULL (DbType = Int32), @p564=NULL (DbType = Int32), @p565=NULL (DbType = Boolean), @p566=NULL (DbType = DateTime2), @p567=NULL (DbType = Byte), @p568=NULL (DbType = Byte), @p569=NULL (DbType = Int16), @p570='13MBP-L2' (Size = 30), @p571=NULL (DbType = Boolean), @p572='0' (Nullable = true), @p573='SOFTCASE' (Size = 30), @p574=NULL (DbType = Int32), @p575=NULL (Precision = 19) (DbType = Decimal), @p576=NULL (DbType = Int32), @p577=NULL (Precision = 19) (DbType = Decimal), @p578='0', @p579=NULL (DbType = Double), @p580=NULL (DbType = DateTime2), @p581=NULL (DbType = Byte), @p582=NULL (DbType = Byte), @p583='20' (Nullable = true), @p584='3' (Nullable = true) (Precision = 19), @p585=NULL (Precision = 19) (DbType = Decimal), @p586='0', @p587='2' (Nullable = true), @p588=NULL (DbType = Double), @p589=NULL (DbType = Double), @p590=NULL (DbType = Byte), @p591=NULL (DbType = Byte), @p592=NULL (DbType = Byte), @p593='3' (Nullable = true) (Precision = 19), @p594='20' (Nullable = true), @p595='2' (Nullable = true) (Size = 1), @p596=NULL (DbType = Double), @p597='0' (Nullable = true), @p598=NULL (DbType = Boolean), @p599=NULL (DbType = Boolean), @p600=NULL (DbType = Boolean), @p601=NULL (Size = 4000), @p602='0' (Size = 1), @p603='False', @p604=NULL (DbType = Double), @p605=NULL (DbType = Byte), @p606=NULL (DbType = DateTime2), @p607='81026' (Nullable = true), @p608='C2501700001' (Nullable = false) (Size = 35), @p609='Optical Mouse - USB' (Size = 70), @p610=NULL (DbType = Double), @p611=NULL (DbType = Double), @p612=NULL (DbType = Int32), @p613=NULL (DbType = Byte), @p614=NULL (DbType = Byte), @p615=NULL (DbType = DateTime2), @p616='20' (Nullable = true), @p617=NULL (DbType = Int32), @p618='1' (Nullable = true) (Size = 1), @p619=NULL (DbType = Boolean), @p620='2' (Nullable = true) (Size = 1), @p621=NULL (DbType = Int32), @p622=NULL (DbType = Int32), @p623=NULL (DbType = Int32), @p624=NULL (DbType = Int32), @p625=NULL (DbType = Boolean), @p626=NULL (DbType = DateTime2), @p627=NULL (DbType = Byte), @p628=NULL (DbType = Byte), @p629=NULL (DbType = Int16), @p630='13MBP-L2' (Size = 30), @p631=NULL (DbType = Boolean), @p632='0' (Nullable = true), @p633='PC-MOUSE' (Size = 30), @p634=NULL (DbType = Int32), @p635=NULL (Precision = 19) (DbType = Decimal), @p636=NULL (DbType = Int32), @p637=NULL (Precision = 19) (DbType = Decimal), @p638='0', @p639=NULL (DbType = Double), @p640=NULL (DbType = DateTime2), @p641=NULL (DbType = Byte), @p642=NULL (DbType = Byte), @p643='20' (Nullable = true), @p644='3' (Nullable = true) (Precision = 19), @p645=NULL (Precision = 19) (DbType = Decimal), @p646='0', @p647='3' (Nullable = true), @p648=NULL (DbType = Double), @p649=NULL (DbType = Double), @p650=NULL (DbType = Byte), @p651=NULL (DbType = Byte), @p652=NULL (DbType = Byte), @p653='3' (Nullable = true) (Precision = 19), @p654='20' (Nullable = true), @p655='2' (Nullable = true) (Size = 1), @p656=NULL (DbType = Double), @p657='0' (Nullable = true), @p658=NULL (DbType = Boolean), @p659=NULL (DbType = Boolean), @p660=NULL (DbType = Boolean), @p661=NULL (Size = 4000), @p662='0' (Size = 1), @p663='False', @p664=NULL (DbType = Double), @p665=NULL (DbType = Byte), @p666=NULL (DbType = DateTime2), @p667='81026' (Nullable = true), @p668='C2501700001' (Nullable = false) (Size = 35), @p669='MagSafe 2 Power Adapter' (Size = 70), @p670=NULL (DbType = Double), @p671=NULL (DbType = Double), @p672=NULL (DbType = Int32), @p673=NULL (DbType = Byte), @p674=NULL (DbType = Byte), @p675=NULL (DbType = DateTime2), @p676='20' (Nullable = true), @p677=NULL (DbType = Int32), @p678='1' (Nullable = true) (Size = 1), @p679=NULL (DbType = Boolean), @p680='2' (Nullable = true) (Size = 1), @p681=NULL (DbType = Int32), @p682=NULL (DbType = Int32), @p683=NULL (DbType = Int32), @p684=NULL (DbType = Int32), @p685=NULL (DbType = Boolean), @p686=NULL (DbType = DateTime2), @p687=NULL (DbType = Byte), @p688=NULL (DbType = Byte), @p689=NULL (DbType = Int16), @p690='13MBP-L2' (Size = 30), @p691=NULL (DbType = Boolean), @p692='0' (Nullable = true), @p693='MAGSAFE2' (Size = 30), @p694=NULL (DbType = Int32), @p695=NULL (Precision = 19) (DbType = Decimal), @p696=NULL (DbType = Int32), @p697=NULL (Precision = 19) (DbType = Decimal), @p698='0', @p699=NULL (DbType = Double), @p700=NULL (DbType = DateTime2), @p701=NULL (DbType = Byte), @p702=NULL (DbType = Byte), @p703='20' (Nullable = true), @p704='3' (Nullable = true) (Precision = 19), @p705=NULL (Precision = 19) (DbType = Decimal), @p706='0', @p707='4' (Nullable = true), @p708=NULL (DbType = Double), @p709=NULL (DbType = Double), @p710=NULL (DbType = Byte), @p711=NULL (DbType = Byte), @p712=NULL (DbType = Byte), @p713='3' (Nullable = true) (Precision = 19), @p714='20' (Nullable = true), @p715='2' (Nullable = true) (Size = 1), @p716=NULL (DbType = Double), @p717='0' (Nullable = true), @p718=NULL (DbType = Boolean), @p719=NULL (DbType = Boolean), @p720=NULL (DbType = Boolean), @p721=NULL (Size = 4000), @p722='0' (Size = 1), @p723='False', @p724=NULL (DbType = Double), @p725=NULL (DbType = Byte), @p726=NULL (DbType = DateTime2), @p727='81026' (Nullable = true), @p728='C2501700001' (Nullable = false) (Size = 35), @p729='Logitech Spotlight Wireless Presenter' (Size = 70), @p730=NULL (DbType = Double), @p731=NULL (DbType = Double), @p732=NULL (DbType = Int32), @p733=NULL (DbType = Byte), @p734=NULL (DbType = Byte), @p735=NULL (DbType = DateTime2), @p736='20' (Nullable = true), @p737=NULL (DbType = Int32), @p738='1' (Nullable = true) (Size = 1), @p739=NULL (DbType = Boolean), @p740='0' (Nullable = true) (Size = 1), @p741=NULL (DbType = Int32), @p742=NULL (DbType = Int32), @p743=NULL (DbType = Int32), @p744=NULL (DbType = Int32), @p745=NULL (DbType = Boolean), @p746=NULL (DbType = DateTime2), @p747=NULL (DbType = Byte), @p748=NULL (DbType = Byte), @p749=NULL (DbType = Int16), @p750=NULL (Size = 30), @p751=NULL (DbType = Boolean), @p752='70.6' (Nullable = true), @p753='LOGISPOT' (Size = 30), @p754=NULL (DbType = Int32), @p755=NULL (Precision = 19) (DbType = Decimal), @p756=NULL (DbType = Int32), @p757=NULL (Precision = 19) (DbType = Decimal), @p758='0', @p759=NULL (DbType = Double), @p760=NULL (DbType = DateTime2), @p761=NULL (DbType = Byte), @p762=NULL (DbType = Byte), @p763='20' (Nullable = true), @p764='4' (Nullable = true) (Precision = 19), @p765=NULL (Precision = 19) (DbType = Decimal), @p766='0', @p767='0' (Nullable = true), @p768=NULL (DbType = Double), @p769=NULL (DbType = Double), @p770=NULL (DbType = Byte), @p771=NULL (DbType = Byte), @p772=NULL (DbType = Byte), @p773='1' (Nullable = true) (Precision = 19), @p774='20' (Nullable = true), @p775='2' (Nullable = true) (Size = 1), @p776=NULL (DbType = Double), @p777='70.6' (Nullable = true), @p778=NULL (DbType = Boolean), @p779=NULL (DbType = Boolean), @p780=NULL (DbType = Boolean), @p781=NULL (Size = 4000), @p782='0' (Size = 1), @p783='False', @p784=NULL (DbType = Double), @p785=NULL (DbType = Byte), @p786=NULL (DbType = DateTime2), @p787='81026' (Nullable = true), @p788='C2501700001' (Nullable = false) (Size = 35), @p789='Logitech Meetup 4k Conference Cam' (Size = 70), @p790=NULL (DbType = Double), @p791=NULL (DbType = Double), @p792=NULL (DbType = Int32), @p793=NULL (DbType = Byte), @p794=NULL (DbType = Byte), @p795=NULL (DbType = DateTime2), @p796='20' (Nullable = true), @p797=NULL (DbType = Int32), @p798='1' (Nullable = true) (Size = 1), @p799=NULL (DbType = Boolean), @p800='1' (Nullable = true) (Size = 1), @p801=NULL (DbType = Int32), @p802=NULL (DbType = Int32), @p803=NULL (DbType = Int32), @p804=NULL (DbType = Int32), @p805=NULL (DbType = Boolean), @p806=NULL (DbType = DateTime2), @p807=NULL (DbType = Byte), @p808=NULL (DbType = Byte), @p809=NULL (DbType = Int16), @p810=NULL (Size = 30), @p811=NULL (DbType = Boolean), @p812='130.30000000004657' (Nullable = true), @p813='LOG4KCAM' (Size = 30), @p814=NULL (DbType = Int32), @p815=NULL (Precision = 19) (DbType = Decimal), @p816=NULL (DbType = Int32), @p817=NULL (Precision = 19) (DbType = Decimal), @p818='0', @p819=NULL (DbType = Double), @p820=NULL (DbType = DateTime2), @p821=NULL (DbType = Byte), @p822=NULL (DbType = Byte), @p823='20' (Nullable = true), @p824='5' (Nullable = true) (Precision = 19), @p825=NULL (Precision = 19) (DbType = Decimal), @p826='0', @p827='0' (Nullable = true), @p828=NULL (DbType = Double), @p829=NULL (DbType = Double), @p830=NULL (DbType = Byte), @p831=NULL (DbType = Byte), @p832=NULL (DbType = Byte), @p833='1' (Nullable = true) (Precision = 19), @p834='20' (Nullable = true), @p835='2' (Nullable = true) (Size = 1), @p836=NULL (DbType = Double), @p837='130.30000000004657' (Nullable = true), @p838=NULL (DbType = Boolean), @p839=NULL (DbType = Boolean), @p840=NULL (DbType = Boolean), @p841=NULL (Size = 4000), @p842='0' (Size = 1), @p843='False', @p844=NULL (DbType = Double), @p845=NULL (DbType = Byte), @p846=NULL (DbType = DateTime2), @p847='81026' (Nullable = true), @p848='C2501700001' (Nullable = false) (Size = 35), @p849='Conference Cam Remote' (Size = 70), @p850=NULL (DbType = Double), @p851=NULL (DbType = Double), @p852=NULL (DbType = Int32), @p853=NULL (DbType = Byte), @p854=NULL (DbType = Byte), @p855=NULL (DbType = DateTime2), @p856='20' (Nullable = true), @p857=NULL (DbType = Int32), @p858='1' (Nullable = true) (Size = 1), @p859=NULL (DbType = Boolean), @p860='2' (Nullable = true) (Size = 1), @p861=NULL (DbType = Int32), @p862=NULL (DbType = Int32), @p863=NULL (DbType = Int32), @p864=NULL (DbType = Int32), @p865=NULL (DbType = Boolean), @p866=NULL (DbType = DateTime2), @p867=NULL (DbType = Byte), @p868=NULL (DbType = Byte), @p869=NULL (DbType = Int16), @p870='LOG4KCAM' (Size = 30), @p871=NULL (DbType = Boolean), @p872='0' (Nullable = true), @p873='CONFREM' (Size = 30), @p874=NULL (DbType = Int32), @p875=NULL (Precision = 19) (DbType = Decimal), @p876=NULL (DbType = Int32), @p877=NULL (Precision = 19) (DbType = Decimal), @p878='0', @p879=NULL (DbType = Double), @p880=NULL (DbType = DateTime2), @p881=NULL (DbType = Byte), @p882=NULL (DbType = Byte), @p883='20' (Nullable = true), @p884='5' (Nullable = true) (Precision = 19), @p885=NULL (Precision = 19) (DbType = Decimal), @p886='0', @p887='1' (Nullable = true), @p888=NULL (DbType = Double), @p889=NULL (DbType = Double), @p890=NULL (DbType = Byte), @p891=NULL (DbType = Byte), @p892=NULL (DbType = Byte), @p893='1' (Nullable = true) (Precision = 19), @p894='20' (Nullable = true), @p895='2' (Nullable = true) (Size = 1), @p896=NULL (DbType = Double), @p897='0' (Nullable = true), @p898=NULL (DbType = Boolean), @p899=NULL (DbType = Boolean)], CommandType='Text', CommandTimeout='30']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      MERGE [tblItemtran] USING (
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16, @p17, @p18, @p19, @p20, @p21, @p22, @p23, @p24, @p25, @p26, @p27, @p28, @p29, @p30, @p31, @p32, @p33, @p34, @p35, @p36, @p37, @p38, @p39, @p40, @p41, @p42, @p43, @p44, @p45, @p46, @p47, @p48, @p49, @p50, @p51, @p52, @p53, @p54, @p55, @p56, @p57, @p58, @p59, 0),
+      (@p60, @p61, @p62, @p63, @p64, @p65, @p66, @p67, @p68, @p69, @p70, @p71, @p72, @p73, @p74, @p75, @p76, @p77, @p78, @p79, @p80, @p81, @p82, @p83, @p84, @p85, @p86, @p87, @p88, @p89, @p90, @p91, @p92, @p93, @p94, @p95, @p96, @p97, @p98, @p99, @p100, @p101, @p102, @p103, @p104, @p105, @p106, @p107, @p108, @p109, @p110, @p111, @p112, @p113, @p114, @p115, @p116, @p117, @p118, @p119, 1),
+      (@p120, @p121, @p122, @p123, @p124, @p125, @p126, @p127, @p128, @p129, @p130, @p131, @p132, @p133, @p134, @p135, @p136, @p137, @p138, @p139, @p140, @p141, @p142, @p143, @p144, @p145, @p146, @p147, @p148, @p149, @p150, @p151, @p152, @p153, @p154, @p155, @p156, @p157, @p158, @p159, @p160, @p161, @p162, @p163, @p164, @p165, @p166, @p167, @p168, @p169, @p170, @p171, @p172, @p173, @p174, @p175, @p176, @p177, @p178, @p179, 2),
+      (@p180, @p181, @p182, @p183, @p184, @p185, @p186, @p187, @p188, @p189, @p190, @p191, @p192, @p193, @p194, @p195, @p196, @p197, @p198, @p199, @p200, @p201, @p202, @p203, @p204, @p205, @p206, @p207, @p208, @p209, @p210, @p211, @p212, @p213, @p214, @p215, @p216, @p217, @p218, @p219, @p220, @p221, @p222, @p223, @p224, @p225, @p226, @p227, @p228, @p229, @p230, @p231, @p232, @p233, @p234, @p235, @p236, @p237, @p238, @p239, 3),
+      (@p240, @p241, @p242, @p243, @p244, @p245, @p246, @p247, @p248, @p249, @p250, @p251, @p252, @p253, @p254, @p255, @p256, @p257, @p258, @p259, @p260, @p261, @p262, @p263, @p264, @p265, @p266, @p267, @p268, @p269, @p270, @p271, @p272, @p273, @p274, @p275, @p276, @p277, @p278, @p279, @p280, @p281, @p282, @p283, @p284, @p285, @p286, @p287, @p288, @p289, @p290, @p291, @p292, @p293, @p294, @p295, @p296, @p297, @p298, @p299, 4),
+      (@p300, @p301, @p302, @p303, @p304, @p305, @p306, @p307, @p308, @p309, @p310, @p311, @p312, @p313, @p314, @p315, @p316, @p317, @p318, @p319, @p320, @p321, @p322, @p323, @p324, @p325, @p326, @p327, @p328, @p329, @p330, @p331, @p332, @p333, @p334, @p335, @p336, @p337, @p338, @p339, @p340, @p341, @p342, @p343, @p344, @p345, @p346, @p347, @p348, @p349, @p350, @p351, @p352, @p353, @p354, @p355, @p356, @p357, @p358, @p359, 5),
+      (@p360, @p361, @p362, @p363, @p364, @p365, @p366, @p367, @p368, @p369, @p370, @p371, @p372, @p373, @p374, @p375, @p376, @p377, @p378, @p379, @p380, @p381, @p382, @p383, @p384, @p385, @p386, @p387, @p388, @p389, @p390, @p391, @p392, @p393, @p394, @p395, @p396, @p397, @p398, @p399, @p400, @p401, @p402, @p403, @p404, @p405, @p406, @p407, @p408, @p409, @p410, @p411, @p412, @p413, @p414, @p415, @p416, @p417, @p418, @p419, 6),
+      (@p420, @p421, @p422, @p423, @p424, @p425, @p426, @p427, @p428, @p429, @p430, @p431, @p432, @p433, @p434, @p435, @p436, @p437, @p438, @p439, @p440, @p441, @p442, @p443, @p444, @p445, @p446, @p447, @p448, @p449, @p450, @p451, @p452, @p453, @p454, @p455, @p456, @p457, @p458, @p459, @p460, @p461, @p462, @p463, @p464, @p465, @p466, @p467, @p468, @p469, @p470, @p471, @p472, @p473, @p474, @p475, @p476, @p477, @p478, @p479, 7),
+      (@p480, @p481, @p482, @p483, @p484, @p485, @p486, @p487, @p488, @p489, @p490, @p491, @p492, @p493, @p494, @p495, @p496, @p497, @p498, @p499, @p500, @p501, @p502, @p503, @p504, @p505, @p506, @p507, @p508, @p509, @p510, @p511, @p512, @p513, @p514, @p515, @p516, @p517, @p518, @p519, @p520, @p521, @p522, @p523, @p524, @p525, @p526, @p527, @p528, @p529, @p530, @p531, @p532, @p533, @p534, @p535, @p536, @p537, @p538, @p539, 8),
+      (@p540, @p541, @p542, @p543, @p544, @p545, @p546, @p547, @p548, @p549, @p550, @p551, @p552, @p553, @p554, @p555, @p556, @p557, @p558, @p559, @p560, @p561, @p562, @p563, @p564, @p565, @p566, @p567, @p568, @p569, @p570, @p571, @p572, @p573, @p574, @p575, @p576, @p577, @p578, @p579, @p580, @p581, @p582, @p583, @p584, @p585, @p586, @p587, @p588, @p589, @p590, @p591, @p592, @p593, @p594, @p595, @p596, @p597, @p598, @p599, 9),
+      (@p600, @p601, @p602, @p603, @p604, @p605, @p606, @p607, @p608, @p609, @p610, @p611, @p612, @p613, @p614, @p615, @p616, @p617, @p618, @p619, @p620, @p621, @p622, @p623, @p624, @p625, @p626, @p627, @p628, @p629, @p630, @p631, @p632, @p633, @p634, @p635, @p636, @p637, @p638, @p639, @p640, @p641, @p642, @p643, @p644, @p645, @p646, @p647, @p648, @p649, @p650, @p651, @p652, @p653, @p654, @p655, @p656, @p657, @p658, @p659, 10),
+      (@p660, @p661, @p662, @p663, @p664, @p665, @p666, @p667, @p668, @p669, @p670, @p671, @p672, @p673, @p674, @p675, @p676, @p677, @p678, @p679, @p680, @p681, @p682, @p683, @p684, @p685, @p686, @p687, @p688, @p689, @p690, @p691, @p692, @p693, @p694, @p695, @p696, @p697, @p698, @p699, @p700, @p701, @p702, @p703, @p704, @p705, @p706, @p707, @p708, @p709, @p710, @p711, @p712, @p713, @p714, @p715, @p716, @p717, @p718, @p719, 11),
+      (@p720, @p721, @p722, @p723, @p724, @p725, @p726, @p727, @p728, @p729, @p730, @p731, @p732, @p733, @p734, @p735, @p736, @p737, @p738, @p739, @p740, @p741, @p742, @p743, @p744, @p745, @p746, @p747, @p748, @p749, @p750, @p751, @p752, @p753, @p754, @p755, @p756, @p757, @p758, @p759, @p760, @p761, @p762, @p763, @p764, @p765, @p766, @p767, @p768, @p769, @p770, @p771, @p772, @p773, @p774, @p775, @p776, @p777, @p778, @p779, 12),
+      (@p780, @p781, @p782, @p783, @p784, @p785, @p786, @p787, @p788, @p789, @p790, @p791, @p792, @p793, @p794, @p795, @p796, @p797, @p798, @p799, @p800, @p801, @p802, @p803, @p804, @p805, @p806, @p807, @p808, @p809, @p810, @p811, @p812, @p813, @p814, @p815, @p816, @p817, @p818, @p819, @p820, @p821, @p822, @p823, @p824, @p825, @p826, @p827, @p828, @p829, @p830, @p831, @p832, @p833, @p834, @p835, @p836, @p837, @p838, @p839, 13),
+      (@p840, @p841, @p842, @p843, @p844, @p845, @p846, @p847, @p848, @p849, @p850, @p851, @p852, @p853, @p854, @p855, @p856, @p857, @p858, @p859, @p860, @p861, @p862, @p863, @p864, @p865, @p866, @p867, @p868, @p869, @p870, @p871, @p872, @p873, @p874, @p875, @p876, @p877, @p878, @p879, @p880, @p881, @p882, @p883, @p884, @p885, @p886, @p887, @p888, @p889, @p890, @p891, @p892, @p893, @p894, @p895, @p896, @p897, @p898, @p899, 14)) AS i ([AddedAtCheckout], [AssignTo], [AssignType], [AvailRecFlag], [BeforeDiscountAmount], [bit_field_v41], [BookDate], [booking_id], [booking_no_v32], [Comment_desc_v42], [CostPrice], [DayWeekRate], [days_using], [del_time_hour], [del_time_min], [FirstDate], [From_locn], [GroupSeqNo], [heading_no], [InRack], [item_type], [Logi_GroupSeqNo], [Logi_HeadingNo], [Logi_Seq_No], [Logi_Sub_Seq_no], [NodeCollapsed], [PDate], [PTimeH], [PTimeM], [PackageLevel], [ParentCode], [prep_on], [price], [product_code_v42], [QtyAvailable], [QtyCheckedOut], [QtyReserved], [QtyReturned], [QtyShort], [QuickTurnAroundQty], [RetnDate], [return_time_hour], [return_time_min], [return_to_locn], [seq_no], [sub_hire_qtyV61], [SubRentalLinkID], [sub_seq_no], [TechPay], [techRateorDaysCharged], [TimeBookedH], [TimeBookedM], [TimeBookedS], [trans_qty], [Trans_to_locn], [trans_type_v41], [Undisc_amt], [unitRate], [View_client], [View_Logi], _Position) ON 1=0
+      WHEN NOT MATCHED THEN
+      INSERT ([AddedAtCheckout], [AssignTo], [AssignType], [AvailRecFlag], [BeforeDiscountAmount], [bit_field_v41], [BookDate], [booking_id], [booking_no_v32], [Comment_desc_v42], [CostPrice], [DayWeekRate], [days_using], [del_time_hour], [del_time_min], [FirstDate], [From_locn], [GroupSeqNo], [heading_no], [InRack], [item_type], [Logi_GroupSeqNo], [Logi_HeadingNo], [Logi_Seq_No], [Logi_Sub_Seq_no], [NodeCollapsed], [PDate], [PTimeH], [PTimeM], [PackageLevel], [ParentCode], [prep_on], [price], [product_code_v42], [QtyAvailable], [QtyCheckedOut], [QtyReserved], [QtyReturned], [QtyShort], [QuickTurnAroundQty], [RetnDate], [return_time_hour], [return_time_min], [return_to_locn], [seq_no], [sub_hire_qtyV61], [SubRentalLinkID], [sub_seq_no], [TechPay], [techRateorDaysCharged], [TimeBookedH], [TimeBookedM], [TimeBookedS], [trans_qty], [Trans_to_locn], [trans_type_v41], [Undisc_amt], [unitRate], [View_client], [View_Logi])
+      VALUES (i.[AddedAtCheckout], i.[AssignTo], i.[AssignType], i.[AvailRecFlag], i.[BeforeDiscountAmount], i.[bit_field_v41], i.[BookDate], i.[booking_id], i.[booking_no_v32], i.[Comment_desc_v42], i.[CostPrice], i.[DayWeekRate], i.[days_using], i.[del_time_hour], i.[del_time_min], i.[FirstDate], i.[From_locn], i.[GroupSeqNo], i.[heading_no], i.[InRack], i.[item_type], i.[Logi_GroupSeqNo], i.[Logi_HeadingNo], i.[Logi_Seq_No], i.[Logi_Sub_Seq_no], i.[NodeCollapsed], i.[PDate], i.[PTimeH], i.[PTimeM], i.[PackageLevel], i.[ParentCode], i.[prep_on], i.[price], i.[product_code_v42], i.[QtyAvailable], i.[QtyCheckedOut], i.[QtyReserved], i.[QtyReturned], i.[QtyShort], i.[QuickTurnAroundQty], i.[RetnDate], i.[return_time_hour], i.[return_time_min], i.[return_to_locn], i.[seq_no], i.[sub_hire_qtyV61], i.[SubRentalLinkID], i.[sub_seq_no], i.[TechPay], i.[techRateorDaysCharged], i.[TimeBookedH], i.[TimeBookedM], i.[TimeBookedS], i.[trans_qty], i.[Trans_to_locn], i.[trans_type_v41], i.[Undisc_amt], i.[unitRate], i.[View_client], i.[View_Logi])
+      OUTPUT INSERTED.[ID], i._Position;
+info: MicrohireAgentChat.Services.Persistence.ItemPersistenceService[0]
+      Successfully saved equipment items for booking C2501700001
+info: MicrohireAgentChat.Controllers.ChatController[0]
+      Synced session equipment to booking C2501700001 before quote generation
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[@__bookingNo_0='C2501700001' (Size = 35)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[BookingProgressStatus], [t].[ConfirmedBy], [t].[ConfirmedDocRef], [t].[ContactID], [t].[CustCode], [t].[CustID], [t].[EntryDate], [t].[EventType], [t].[From_locn], [t].[HourBooked], [t].[Item_cnt], [t].[MinBooked], [t].[OrganizationV6], [t].[RehDate], [t].[RehearsalTime], [t].[SDate], [t].[Salesperson], [t].[SecBooked], [t].[SetDate], [t].[ShowEdate], [t].[ShowEndTime], [t].[ShowSDate], [t].[StrikeTime], [t].[Tax2], [t].[TaxAuthority1], [t].[TaxAuthority2], [t].[Trans_to_locn], [t].[VenueID], [t].[VenueRoom], [t].[bBookingIsComplete], [t].[booking_no], [t].[booking_type_v32], [t].[contact_nameV6], [t].[currencyStr], [t].[dDate], [t].[days_charged_v51], [t].[days_using], [t].[del_time_h], [t].[del_time_m], [t].[delivery], [t].[delivery_address_exist], [t].[delivery_time], [t].[delivery_viav71], [t].[deposit_quoted_v50], [t].[discount_rate], [t].[division], [t].[docs_produced], [t].[event_code], [t].[expAttendees], [t].[hire_price], [t].[insurance_type], [t].[insurance_v5], [t].[invoice_no], [t].[invoiced], [t].[labour], [t].[last_modified_by], [t].[order_date], [t].[order_no], [t].[payment_type], [t].[percent_disc], [t].[perm_casual], [t].[pickup_time], [t].[pickup_viaV71], [t].[price_quoted], [t].[pricing_scheme_used], [t].[rDate], [t].[ret_time_h], [t].[ret_time_m], [t].[retail_value], [t].[return_to_locn], [t].[sale_of_asset], [t].[sales_amount], [t].[sales_discount_rate], [t].[sales_percent_disc], [t].[sales_tax_no], [t].[same_address], [t].[setupTimeV61], [t].[showName], [t].[showStartTime], [t].[status], [t].[sundry_total], [t].[tax1], [t].[transferNo], [t].[un_disc_amount]
+      FROM [tblbookings] AS [t]
+      WHERE [t].[booking_no] = @__bookingNo_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (16ms) [Parameters=[@__bookingNo_0='C2501700001' (Size = 35)], CommandType='Text', CommandTimeout='30']
+      SELECT [t].[ID], [t].[booking_no_v32], [t].[CustomRate], [t].[del_time_hour], [t].[del_time_min], [t].[DoubleTime], [t].[FirstDate], [t].[GroupSeqNo], [t].[heading_no], [t].[HourOrDay], [t].[HourlyRateID], [t].[hours], [t].[MeetTechOnSite], [t].[Minutes], [t].[OverTime], [t].[person], [t].[price], [t].[product_code_v42], [t].[rate_selected], [t].[RetnDate], [t].[return_time_hour], [t].[return_time_min], [t].[seq_no], [t].[ShortTurnaround], [t].[StraightTime], [t].[sub_seq_no], [t].[task], [t].[TechIsConfirmed], [t].[TechPay], [t].[TechRate], [t].[techrateIsHourorDay], [t].[trans_qty], [t].[unitRate], [t].[UnpaidHours], [t].[UnpaidMins], [t].[UseCustomRate]
+      FROM [TblCrew] AS [t]
+      WHERE [t].[booking_no_v32] = @__bookingNo_0
+warn: Microsoft.EntityFrameworkCore.Query[10103]
+      The query uses the 'First'/'FirstOrDefault' operator without 'OrderBy' and filter operators. This may lead to unpredictable results.
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (29ms) [Parameters=[p0='AVTECH' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[Value]
+      FROM (
+      
+                              SELECT TOP 1 CAST(r.Labour_rate AS decimal(18, 4)) AS [Value]
+                              FROM tblInvmas_Labour_Rates r
+                              INNER JOIN tblInvmas i ON r.tblinvmasID = i.ID
+                              WHERE LTRIM(RTRIM(i.product_code)) = @p0
+                                AND r.Locn = 20
+                                AND r.IsDefault = 1
+                              ORDER BY r.rate_no
+      ) AS [t]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (9ms) [Parameters=[p0='AVTECH' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[Value]
+      FROM (
+      
+                              SELECT TOP 1 CAST(r.Labour_rate AS decimal(18, 4)) AS [Value]
+                              FROM tblInvmas_Labour_Rates r
+                              INNER JOIN tblInvmas i ON r.tblinvmasID = i.ID
+                              WHERE LTRIM(RTRIM(i.product_code)) = @p0
+                                AND r.Locn = 20
+                                AND r.IsDefault = 1
+                              ORDER BY r.rate_no
+      ) AS [t]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[p0='VXTECH' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[Value]
+      FROM (
+      
+                              SELECT TOP 1 CAST(r.Labour_rate AS decimal(18, 4)) AS [Value]
+                              FROM tblInvmas_Labour_Rates r
+                              INNER JOIN tblInvmas i ON r.tblinvmasID = i.ID
+                              WHERE LTRIM(RTRIM(i.product_code)) = @p0
+                                AND r.Locn = 20
+                                AND r.IsDefault = 1
+                              ORDER BY r.rate_no
+      ) AS [t]
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (78ms) [Parameters=[@p0='C2501700001' (Nullable = false) (Size = 35), @p1=NULL (DbType = Double), @p2='7' (Nullable = true) (Size = 1), @p3='0' (Nullable = true) (Size = 1), @p4=NULL (DbType = Double), @p5='2026-12-01T07:00:00.0000000' (Nullable = true), @p6=NULL (DbType = Int32), @p7='0' (Nullable = true) (Size = 1), @p8=NULL (Size = 4000), @p9='0' (Precision = 10), @p10='1' (Nullable = true) (Size = 1), @p11='False', @p12='0' (Nullable = true) (Size = 1), @p13=NULL (DbType = Double), @p14=NULL (Size = 30) (DbType = StringFixedLength), @p15='110' (Nullable = true), @p16='AVTECH' (Size = 30), @p17=NULL (DbType = Byte), @p18='2026-12-01T08:00:00.0000000' (Nullable = true), @p19='8' (Nullable = true) (Size = 1), @p20='0' (Nullable = true) (Size = 1), @p21='65530' (Nullable = true) (Precision = 19), @p22=NULL (DbType = Boolean), @p23='1' (Nullable = true), @p24='0' (Nullable = true), @p25='2' (Nullable = true) (Size = 1), @p26='False', @p27=NULL (DbType = Double), @p28=NULL (DbType = Double), @p29='H' (Size = 1) (DbType = StringFixedLength), @p30='1' (Nullable = true), @p31='110' (Nullable = true), @p32='0' (Nullable = true), @p33='0' (Nullable = true), @p34=NULL (DbType = Boolean), @p35='C2501700001' (Nullable = false) (Size = 35), @p36=NULL (DbType = Double), @p37='9' (Nullable = true) (Size = 1), @p38='30' (Nullable = true) (Size = 1), @p39=NULL (DbType = Double), @p40='2026-12-01T09:30:00.0000000' (Nullable = true), @p41=NULL (DbType = Int32), @p42='0' (Nullable = true) (Size = 1), @p43=NULL (Size = 4000), @p44='0' (Precision = 10), @p45='0' (Nullable = true) (Size = 1), @p46='False', @p47='45' (Nullable = true) (Size = 1), @p48=NULL (DbType = Double), @p49=NULL (Size = 30) (DbType = StringFixedLength), @p50='82.5' (Nullable = true), @p51='AVTECH' (Size = 30), @p52=NULL (DbType = Byte), @p53='2026-12-01T10:15:00.0000000' (Nullable = true), @p54='10' (Nullable = true) (Size = 1), @p55='15' (Nullable = true) (Size = 1), @p56='65531' (Nullable = true) (Precision = 19), @p57=NULL (DbType = Boolean), @p58='0.75' (Nullable = true), @p59='0' (Nullable = true), @p60='7' (Nullable = true) (Size = 1), @p61='False', @p62=NULL (DbType = Double), @p63=NULL (DbType = Double), @p64='H' (Size = 1) (DbType = StringFixedLength), @p65='1' (Nullable = true), @p66='110' (Nullable = true), @p67='0' (Nullable = true), @p68='0' (Nullable = true), @p69=NULL (DbType = Boolean), @p70='C2501700001' (Nullable = false) (Size = 35), @p71=NULL (DbType = Double), @p72='10' (Nullable = true) (Size = 1), @p73='0' (Nullable = true) (Size = 1), @p74=NULL (DbType = Double), @p75='2026-12-01T10:00:00.0000000' (Nullable = true), @p76=NULL (DbType = Int32), @p77='0' (Nullable = true) (Size = 1), @p78=NULL (Size = 4000), @p79='0' (Precision = 10), @p80='6' (Nullable = true) (Size = 1), @p81='False', @p82='0' (Nullable = true) (Size = 1), @p83=NULL (DbType = Double), @p84=NULL (Size = 30) (DbType = StringFixedLength), @p85='660' (Nullable = true), @p86='VXTECH' (Size = 30), @p87=NULL (DbType = Byte), @p88='2026-12-01T16:00:00.0000000' (Nullable = true), @p89='16' (Nullable = true) (Size = 1), @p90='0' (Nullable = true) (Size = 1), @p91='65532' (Nullable = true) (Precision = 19), @p92=NULL (DbType = Boolean), @p93='6' (Nullable = true), @p94='0' (Nullable = true), @p95='3' (Nullable = true) (Size = 1), @p96='False', @p97=NULL (DbType = Double), @p98=NULL (DbType = Double), @p99='H' (Size = 1) (DbType = StringFixedLength), @p100='1' (Nullable = true), @p101='110' (Nullable = true), @p102='0' (Nullable = true), @p103='0' (Nullable = true), @p104=NULL (DbType = Boolean)], CommandType='Text', CommandTimeout='30']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      MERGE [TblCrew] USING (
+      VALUES (@p0, @p1, @p2, @p3, @p4, @p5, @p6, @p7, @p8, @p9, @p10, @p11, @p12, @p13, @p14, @p15, @p16, @p17, @p18, @p19, @p20, @p21, @p22, @p23, @p24, @p25, @p26, @p27, @p28, @p29, @p30, @p31, @p32, @p33, @p34, 0),
+      (@p35, @p36, @p37, @p38, @p39, @p40, @p41, @p42, @p43, @p44, @p45, @p46, @p47, @p48, @p49, @p50, @p51, @p52, @p53, @p54, @p55, @p56, @p57, @p58, @p59, @p60, @p61, @p62, @p63, @p64, @p65, @p66, @p67, @p68, @p69, 1),
+      (@p70, @p71, @p72, @p73, @p74, @p75, @p76, @p77, @p78, @p79, @p80, @p81, @p82, @p83, @p84, @p85, @p86, @p87, @p88, @p89, @p90, @p91, @p92, @p93, @p94, @p95, @p96, @p97, @p98, @p99, @p100, @p101, @p102, @p103, @p104, 2)) AS i ([booking_no_v32], [CustomRate], [del_time_hour], [del_time_min], [DoubleTime], [FirstDate], [GroupSeqNo], [heading_no], [HourOrDay], [HourlyRateID], [hours], [MeetTechOnSite], [Minutes], [OverTime], [person], [price], [product_code_v42], [rate_selected], [RetnDate], [return_time_hour], [return_time_min], [seq_no], [ShortTurnaround], [StraightTime], [sub_seq_no], [task], [TechIsConfirmed], [TechPay], [TechRate], [techrateIsHourorDay], [trans_qty], [unitRate], [UnpaidHours], [UnpaidMins], [UseCustomRate], _Position) ON 1=0
+      WHEN NOT MATCHED THEN
+      INSERT ([booking_no_v32], [CustomRate], [del_time_hour], [del_time_min], [DoubleTime], [FirstDate], [GroupSeqNo], [heading_no], [HourOrDay], [HourlyRateID], [hours], [MeetTechOnSite], [Minutes], [OverTime], [person], [price], [product_code_v42], [rate_selected], [RetnDate], [return_time_hour], [return_time_min], [seq_no], [ShortTurnaround], [StraightTime], [sub_seq_no], [task], [TechIsConfirmed], [TechPay], [TechRate], [techrateIsHourorDay], [trans_qty], [unitRate], [UnpaidHours], [UnpaidMins], [UseCustomRate])
+      VALUES (i.[booking_no_v32], i.[CustomRate], i.[del_time_hour], i.[del_time_min], i.[DoubleTime], i.[FirstDate], i.[GroupSeqNo], i.[heading_no], i.[HourOrDay], i.[HourlyRateID], i.[hours], i.[MeetTechOnSite], i.[Minutes], i.[OverTime], i.[person], i.[price], i.[product_code_v42], i.[rate_selected], i.[RetnDate], i.[return_time_hour], i.[return_time_min], i.[seq_no], i.[ShortTurnaround], i.[StraightTime], i.[sub_seq_no], i.[task], i.[TechIsConfirmed], i.[TechPay], i.[TechRate], i.[techrateIsHourorDay], i.[trans_qty], i.[unitRate], i.[UnpaidHours], i.[UnpaidMins], i.[UseCustomRate])
+      OUTPUT INSERTED.[ID], i._Position;
+info: MicrohireAgentChat.Services.Persistence.BookingPersistenceService[0]
+      [QUOTE GEN] Synced 3 labor items to booking C2501700001
+info: MicrohireAgentChat.Controllers.ChatController[0]
+      Starting HTML quote generation for booking C2501700001
+info: MicrohireAgentChat.Services.HtmlQuoteGenerationService[0]
+      [QUOTE GEN] trace=a65449562eb1 phase=start booking=C2501700001 utc=2026-04-07T06:11:11.2669410Z contentRoot=/Users/nitwit-watson/INTENT/repos/MicrohireAgentChat/MicrohireAgentChat
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (13ms) [Parameters=[@__8__locals1_bookingNo_0='C2501700001' (Size = 35)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[BookingProgressStatus], [t].[ConfirmedBy], [t].[ConfirmedDocRef], [t].[ContactID], [t].[CustCode], [t].[CustID], [t].[EntryDate], [t].[EventType], [t].[From_locn], [t].[HourBooked], [t].[Item_cnt], [t].[MinBooked], [t].[OrganizationV6], [t].[RehDate], [t].[RehearsalTime], [t].[SDate], [t].[Salesperson], [t].[SecBooked], [t].[SetDate], [t].[ShowEdate], [t].[ShowEndTime], [t].[ShowSDate], [t].[StrikeTime], [t].[Tax2], [t].[TaxAuthority1], [t].[TaxAuthority2], [t].[Trans_to_locn], [t].[VenueID], [t].[VenueRoom], [t].[bBookingIsComplete], [t].[booking_no], [t].[booking_type_v32], [t].[contact_nameV6], [t].[currencyStr], [t].[dDate], [t].[days_charged_v51], [t].[days_using], [t].[del_time_h], [t].[del_time_m], [t].[delivery], [t].[delivery_address_exist], [t].[delivery_time], [t].[delivery_viav71], [t].[deposit_quoted_v50], [t].[discount_rate], [t].[division], [t].[docs_produced], [t].[event_code], [t].[expAttendees], [t].[hire_price], [t].[insurance_type], [t].[insurance_v5], [t].[invoice_no], [t].[invoiced], [t].[labour], [t].[last_modified_by], [t].[order_date], [t].[order_no], [t].[payment_type], [t].[percent_disc], [t].[perm_casual], [t].[pickup_time], [t].[pickup_viaV71], [t].[price_quoted], [t].[pricing_scheme_used], [t].[rDate], [t].[ret_time_h], [t].[ret_time_m], [t].[retail_value], [t].[return_to_locn], [t].[sale_of_asset], [t].[sales_amount], [t].[sales_discount_rate], [t].[sales_percent_disc], [t].[sales_tax_no], [t].[same_address], [t].[setupTimeV61], [t].[showName], [t].[showStartTime], [t].[status], [t].[sundry_total], [t].[tax1], [t].[transferNo], [t].[un_disc_amount]
+      FROM [tblbookings] AS [t]
+      WHERE [t].[booking_no] = @__8__locals1_bookingNo_0
+info: MicrohireAgentChat.Services.HtmlQuoteGenerationService[0]
+      [QUOTE GEN] trace=a65449562eb1 phase=booking_loaded booking=C2501700001 contactId=31582 custId=25017 venueId=16 eventDate=12/01/2026 00:00:00
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (8ms) [Parameters=[@__p_0='16' (Precision = 10)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[Address1], [t].[Address2], [t].[BookingNo], [t].[CellAreaCode], [t].[CellCountryCode], [t].[CellDigits], [t].[City], [t].[ContactID], [t].[ContactName], [t].[Country], [t].[DefaultFolder], [t].[FaxAreaCode], [t].[FaxCountryCode], [t].[FaxDigits], [t].[Phone1AreaCode], [t].[Phone1CountryCode], [t].[Phone1Digits], [t].[Phone1Ext], [t].[Phone2AreaCode], [t].[Phone2CountryCode], [t].[Phone2Digits], [t].[Phone2Ext], [t].[State], [t].[Type], [t].[VenueName], [t].[VenueNickname], [t].[VenueTextType], [t].[WebPage], [t].[ZipCode]
+      FROM [tblVenues] AS [t]
+      WHERE [t].[ID] = @__p_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[@__booking_ContactID_Value_0='31582' (Precision = 10)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[Active], [t].[Cell], [t].[Contactname], [t].[CreateDate], [t].[CustCodeLink], [t].[Email], [t].[firstname], [t].[LastAttempt], [t].[LastContact], [t].[LastUpdate], [t].[MidName], [t].[Phone1], [t].[position], [t].[surname]
+      FROM [tblContact] AS [t]
+      WHERE [t].[ID] = @__booking_ContactID_Value_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@__booking_CustID_Value_0='25017' (Precision = 10)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[Address_l1V6], [t].[CustCDate], [t].[Customer_code], [t].[iLink_ContactID], [t].[OrganisationV6]
+      FROM [tblcust] AS [t]
+      WHERE [t].[ID] = @__booking_CustID_Value_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6,284ms) [Parameters=[@__8__locals1_bookingNo_0='C2501700001' (Size = 35), @__bookingIdAsInt_Value_1='81026' (Nullable = true)], CommandType='Text', CommandTimeout='30']
+      SELECT [t].[ID], [t].[AddedAtCheckout], [t].[AssignTo], [t].[AssignType], [t].[AvailRecFlag], [t].[BeforeDiscountAmount], [t].[bit_field_v41], [t].[BookDate], [t].[booking_id], [t].[booking_no_v32], [t].[Comment_desc_v42], [t].[CostPrice], [t].[DayWeekRate], [t].[days_using], [t].[del_time_hour], [t].[del_time_min], [t].[FirstDate], [t].[From_locn], [t].[GroupSeqNo], [t].[heading_no], [t].[InRack], [t].[item_type], [t].[Logi_GroupSeqNo], [t].[Logi_HeadingNo], [t].[Logi_Seq_No], [t].[Logi_Sub_Seq_no], [t].[NodeCollapsed], [t].[PDate], [t].[PTimeH], [t].[PTimeM], [t].[PackageLevel], [t].[ParentCode], [t].[prep_on], [t].[price], [t].[product_code_v42], [t].[QtyAvailable], [t].[QtyCheckedOut], [t].[QtyReserved], [t].[QtyReturned], [t].[QtyShort], [t].[QuickTurnAroundQty], [t].[RetnDate], [t].[return_time_hour], [t].[return_time_min], [t].[return_to_locn], [t].[seq_no], [t].[sub_hire_qtyV61], [t].[SubRentalLinkID], [t].[sub_seq_no], [t].[TechPay], [t].[techRateorDaysCharged], [t].[TimeBookedH], [t].[TimeBookedM], [t].[TimeBookedS], [t].[trans_qty], [t].[Trans_to_locn], [t].[trans_type_v41], [t].[Undisc_amt], [t].[unitRate], [t].[View_client], [t].[View_Logi]
+      FROM [tblItemtran] AS [t]
+      WHERE [t].[booking_no_v32] = @__8__locals1_bookingNo_0 OR [t].[booking_id] = @__bookingIdAsInt_Value_1
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (20ms) [Parameters=[@__8__locals1_bookingNo_0='C2501700001' (Size = 35)], CommandType='Text', CommandTimeout='30']
+      SELECT [t].[ID], [t].[booking_no_v32], [t].[CustomRate], [t].[del_time_hour], [t].[del_time_min], [t].[DoubleTime], [t].[FirstDate], [t].[GroupSeqNo], [t].[heading_no], [t].[HourOrDay], [t].[HourlyRateID], [t].[hours], [t].[MeetTechOnSite], [t].[Minutes], [t].[OverTime], [t].[person], [t].[price], [t].[product_code_v42], [t].[rate_selected], [t].[RetnDate], [t].[return_time_hour], [t].[return_time_min], [t].[seq_no], [t].[ShortTurnaround], [t].[StraightTime], [t].[sub_seq_no], [t].[task], [t].[TechIsConfirmed], [t].[TechPay], [t].[TechRate], [t].[techrateIsHourorDay], [t].[trans_qty], [t].[unitRate], [t].[UnpaidHours], [t].[UnpaidMins], [t].[UseCustomRate]
+      FROM [TblCrew] AS [t]
+      WHERE [t].[booking_no_v32] = @__8__locals1_bookingNo_0
+      ORDER BY [t].[task], [t].[seq_no]
+info: MicrohireAgentChat.Services.HtmlQuoteGenerationService[0]
+      [QUOTE GEN] trace=a65449562eb1 phase=itemtrans_loaded booking=C2501700001 itemCount=15 distinctProductCodes=15
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (23ms) [Parameters=[@__productCodes_0='["THRVAVP                       ","VACSPKR                       ","EB1450UI                      ","NATFLIPC                      ","FLIPCH                        ","FLIPPAD                       ","WBMARKER                      ","13MBP-L2                      ","13MBPPL2                      ","SOFTCASE                      ","PC-MOUSE                      ","MAGSAFE2                      ","LOGISPOT                      ","LOG4KCAM                      ","CONFREM                       "]' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+      SELECT [t].[product_code], [t].[IsInTrashCan], [t].[on_hand], [t].[PictureFileName], [t].[PrintedDesc], [t].[product_Config], [t].[product_type_v41], [t].[SubCategory], [t].[category], [t].[cost_price], [t].[descriptionv6], [t].[groupFld], [t].[retail_price], [t].[trade_price], [t].[wholesale_price]
+      FROM [tblInvmas] AS [t]
+      WHERE [t].[product_code] IN (
+          SELECT [p].[value]
+          FROM OPENJSON(@__productCodes_0) WITH ([value] nvarchar(450) '$') AS [p]
+      )
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (28ms) [Parameters=[@__productCodes_0='["THRVAVP                       ","VACSPKR                       ","EB1450UI                      ","NATFLIPC                      ","FLIPCH                        ","FLIPPAD                       ","WBMARKER                      ","13MBP-L2                      ","13MBPPL2                      ","SOFTCASE                      ","PC-MOUSE                      ","MAGSAFE2                      ","LOGISPOT                      ","LOG4KCAM                      ","CONFREM                       "]' (Size = 4000)], CommandType='Text', CommandTimeout='30']
+      SELECT [t].[ID], [t].[DayWeekRate], [t].[MinimumRental], [t].[Rate2ndWeek], [t].[Rate3rdDay], [t].[Rate3rdWeek], [t].[Rate4thDay], [t].[RateAdditionalMonth], [t].[RatePreLight], [t].[RatePrep], [t].[RateWrap], [t].[ReplacementValue], [t].[tableNo], [t].[damage_waiver_rate], [t].[deposit], [t].[half_day], [t].[hourly_rate], [t].[ProductCode], [t].[rate_1st_day], [t].[rate_extra_days], [t].[rate_long_term], [t].[rate_week]
+      FROM [tblRatetbl] AS [t]
+      WHERE [t].[ProductCode] IN (
+          SELECT [p].[value]
+          FROM OPENJSON(@__productCodes_0) WITH ([value] nvarchar(30) '$') AS [p]
+      ) AND [t].[tableNo] = CAST(0 AS tinyint)
+info: MicrohireAgentChat.Services.HtmlQuoteGenerationService[0]
+      [QUOTE GEN] trace=a65449562eb1 phase=crew_loaded booking=C2501700001 crewRows=3
+info: MicrohireAgentChat.Services.HtmlQuoteGenerationService[0]
+      [QUOTE GEN] trace=a65449562eb1 phase=build_quote_data booking=C2501700001 sessionVenueOverride=True sessionContactOverride=True sessionOrgOverride=True
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@__bookingNo_0='C2501700001' (Size = 35)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[BookingProgressStatus], [t].[ConfirmedBy], [t].[ConfirmedDocRef], [t].[ContactID], [t].[CustCode], [t].[CustID], [t].[EntryDate], [t].[EventType], [t].[From_locn], [t].[HourBooked], [t].[Item_cnt], [t].[MinBooked], [t].[OrganizationV6], [t].[RehDate], [t].[RehearsalTime], [t].[SDate], [t].[Salesperson], [t].[SecBooked], [t].[SetDate], [t].[ShowEdate], [t].[ShowEndTime], [t].[ShowSDate], [t].[StrikeTime], [t].[Tax2], [t].[TaxAuthority1], [t].[TaxAuthority2], [t].[Trans_to_locn], [t].[VenueID], [t].[VenueRoom], [t].[bBookingIsComplete], [t].[booking_no], [t].[booking_type_v32], [t].[contact_nameV6], [t].[currencyStr], [t].[dDate], [t].[days_charged_v51], [t].[days_using], [t].[del_time_h], [t].[del_time_m], [t].[delivery], [t].[delivery_address_exist], [t].[delivery_time], [t].[delivery_viav71], [t].[deposit_quoted_v50], [t].[discount_rate], [t].[division], [t].[docs_produced], [t].[event_code], [t].[expAttendees], [t].[hire_price], [t].[insurance_type], [t].[insurance_v5], [t].[invoice_no], [t].[invoiced], [t].[labour], [t].[last_modified_by], [t].[order_date], [t].[order_no], [t].[payment_type], [t].[percent_disc], [t].[perm_casual], [t].[pickup_time], [t].[pickup_viaV71], [t].[price_quoted], [t].[pricing_scheme_used], [t].[rDate], [t].[ret_time_h], [t].[ret_time_m], [t].[retail_value], [t].[return_to_locn], [t].[sale_of_asset], [t].[sales_amount], [t].[sales_discount_rate], [t].[sales_percent_disc], [t].[sales_tax_no], [t].[same_address], [t].[setupTimeV61], [t].[showName], [t].[showStartTime], [t].[status], [t].[sundry_total], [t].[tax1], [t].[transferNo], [t].[un_disc_amount]
+      FROM [tblbookings] AS [t]
+      WHERE [t].[booking_no] = @__bookingNo_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (23ms) [Parameters=[@p6='81026' (Precision = 10), @p0='210.8370000000326' (Nullable = true), @p1='1141.700000000326' (Nullable = true), @p2='1' (Nullable = true) (Size = 1), @p3='114.17' (Nullable = true), @p4='852.5' (Nullable = true), @p5='2319.2070000003587' (Nullable = true)], CommandType='Text', CommandTimeout='30']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      UPDATE [tblbookings] SET [Tax2] = @p0, [hire_price] = @p1, [insurance_type] = @p2, [insurance_v5] = @p3, [labour] = @p4, [price_quoted] = @p5
+      OUTPUT 1
+      WHERE [ID] = @p6;
+info: MicrohireAgentChat.Services.HtmlQuoteGenerationService[0]
+      [QUOTE GEN] trace=a65449562eb1 phase=html_string_done booking=C2501700001 ms=5 htmlChars=35522
+info: MicrohireAgentChat.Services.HtmlQuoteGenerationService[0]
+      [QUOTE GEN] trace=a65449562eb1 phase=write_html_prepare booking=C2501700001 outDir=/Users/nitwit-watson/INTENT/repos/MicrohireAgentChat/MicrohireAgentChat/wwwroot/files/quotes fileName=Quote-C2501700001-20260407061117.html
+info: MicrohireAgentChat.Services.HtmlQuoteGenerationService[0]
+      [QUOTE GEN] trace=a65449562eb1 phase=html_written booking=C2501700001 ms=1 bytes=35522 path=/Users/nitwit-watson/INTENT/repos/MicrohireAgentChat/MicrohireAgentChat/wwwroot/files/quotes/Quote-C2501700001-20260407061117.html
+info: MicrohireAgentChat.Services.HtmlQuoteGenerationService[0]
+      [QUOTE GEN] trace=a65449562eb1 phase=success_html_returned booking=C2501700001 htmlFile=Quote-C2501700001-20260407061117.html htmlChars=35522 publicUrlPath=/files/quotes/Quote-C2501700001-20260407061117.html
+info: MicrohireAgentChat.Controllers.ChatController[0]
+      HTML quote generation completed for booking C2501700001, success: True
+info: MicrohireAgentChat.Controllers.ChatController[0]
+      HTML quote generated for booking C2501700001: /files/quotes/Quote-C2501700001-20260407061117.html. State synchronized.
+info: MicrohireAgentChat.Controllers.ChatController[0]
+      Success message added to msgList. Total messages: 12. Quote URL: /files/quotes/Quote-C2501700001-20260407061117.html
+info: MicrohireAgentChat.Controllers.ChatController[0]
+      [QUOTE FLOW] Decision point: UserText='AV extras provided: presenters 3; speakers 0; wire', LooksLikeConsent=False, WasQuoteGenerationPrompt=False, IsExplicitCreateQuote=False, IsConsentToSummary=False, IsQuoteAccepted=False, ExistingBookingNo=C2501700001, QuoteComplete=True, ExistingQuoteUrl=/files/quotes/Quote-C2501700001-20260407061117.html
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (7ms) [Parameters=[@__bookingNo_0='C2501700001' (Size = 35) (DbType = AnsiString)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[bookingNo], [t].[line_no], [t].[NoteType], [t].[OperatorID], [t].[text_line]
+      FROM [tblbooknote] AS [t]
+      WHERE [t].[bookingNo] = @__bookingNo_0 AND [t].[NoteType] = CAST(1 AS tinyint)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@__bookingNo_0='C2501700001' (Size = 35) (DbType = AnsiString), @___rpDefaults_OperatorId_1='260' (Nullable = true) (Precision = 10)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[bookingNo], [t].[line_no], [t].[NoteType], [t].[OperatorID], [t].[text_line]
+      FROM [tblbooknote] AS [t]
+      WHERE [t].[bookingNo] = @__bookingNo_0 AND [t].[NoteType] = CAST(0 AS tinyint) AND [t].[OperatorID] = @___rpDefaults_OperatorId_1 AND [t].[text_line] IS NOT NULL AND ([t].[text_line] LIKE 'Agent:%' OR [t].[text_line] LIKE 'User:%')
+      ORDER BY [t].[ID] DESC
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@p1='178968' (Precision = 10), @p0='Agent: Hello, my name is Isla from Microhire. I'm here to help you plan AV equipment hire and quotes for your event.
+      
+      Agent: Review your venue, room, and event dates in the form below.
+      
+      {"ui":{"type":"venueConfirmForm","title":"Confirm your event","submitLabel":"Continue","attendees":"7","startDate":"2026-12-01","endDate":"2026-12-01","minDate":"2026-04-07","venueLabel":"Westin Brisbane","roomOptions":[{"id":"westin-ballroom","label":"Westin Ballroom"},{"id":"westin-ballroom-1","label":"Westin Ballroom 1"},{"id":"westin-ballroom-2","label":"Westin Ballroom 2"},{"id":"elevate","label":"Elevate"},{"id":"elevate-1","label":"Elevate 1"},{"id":"elevate-2","label":"Elevate 2"},{"id":"thrive-boardroom","label":"Thrive Boardroom"}],"selectedRoomSlug":"thrive-boardroom"}}
+      
+      Agent: Please tell me more about your event.
+      
+      {"ui":{"type":"eventDetailsForm","title":"Event details","submitLabel":"Next","eventType":"boardmeetingT","wantsOperator":"yes","minDate":"2026-04-07","schedule":{"setup":"07:00","rehearsal":"09:30","start":"10:00","end":"16:00","packup":"16:00","stepMinutes":30}}}
+      
+      Agent: Please review the included equipment for this room and confirm the options below.
+      
+      {"ui":{"type":"baseAvForm","submitted":true,"title":"Base AV package for Thrive Boardroom","submitLabel":"Next","roomName":"Thrive Boardroom","baseEquipment":["Inbuilt projector and screen","Inbuilt speakers"],"showProjectorPlacement":false,"floorPlanUrl":"","projectorPlacement":"","placementOptions":[{"id":"A","label":"A"},{"id":"B","label":"B"},{"id":"C","label":"C"},{"id":"D","label":"D"},{"id":"E","label":"E"},{"id":"F","label":"F"},{"id":"B\u002BC","label":"B\u002BC"},{"id":"E\u002BF","label":"E\u002BF"}],"presenters":"3","flipchart":"yes","laptopMode":"mac","laptopQty":"3","adapterOwnLaptops":"yes"}}
+      
+      Agent: Thanks for confirming the base AV package. I have a few follow-up questions.
+      
+      {"ui":{"type":"followUpAvForm","title":"Follow-up AV","submitLabel":"Generate quote","presenterCount":3,"laptopQty":3,"micType":"handheld","micQty":"3","lectern":"lectern-only","foldbackMonitor":"no","wirelessPresenter":"yes","laptopSwitcher":"no","stageLaptop":"no","videoConference":"yes"}}
+      
+      User: Email confirmed for enquiry: nith+yoo3wva9@intent.do. Continue with venue and event details already captured from the sales team.
+      
+      User: Venue confirm: venue Westin Brisbane; start 2026-12-01; end 2026-12-01; attendees 7.
+      
+      User: Event details provided: event type boardmeetingT; setup style Boardroom; operator yes; schedule setup 07:00, rehearsal 09:30, start 10:00, end 16:00.
+      
+      User: Base AV provided: built-in projector True; screen True; speakers True; placement ; presenters 3; flipchart yes; laptop mode mac; laptop qty 3; adapter for own laptops yes.
+      
+      User: AV extras provided: presenters 3; speakers 0; wireless clicker no; audio video recording no; technician from 10:00 to 16:00; whole event coverage yes. Follow-up: mic handheld qty 3; lectern lectern-only; foldback no; wireless presenter yes; laptop switcher no; stage laptop no; video conference yes.
+      
+      Agent: Great news! I have successfully generated your quote for booking C2501700001.
+      
+      {"ui":{"quoteUrl":"/files/quotes/Quote-C2501700001-20260407061117.html","bookingNo":"C2501700001","isHtml":true}}
+      
+      Agent: Would you like to proceed and accept this quote?
+      
+      Selecting "Accept Quote" will notify Microhire to finalize the details.' (Size = 8000) (DbType = AnsiString), @p3='178969' (Precision = 10), @p2='Agent: Hello, my name is Isla from Microhire. I'm here to help you plan AV equipment hire and quotes for your event.
+      
+      Agent: Review your venue, room, and event dates in the form below.
+      
+      {"ui":{"type":"venueConfirmForm","title":"Confirm your event","submitLabel":"Continue","attendees":"7","startDate":"2026-12-01","endDate":"2026-12-01","minDate":"2026-04-07","venueLabel":"Westin Brisbane","roomOptions":[{"id":"westin-ballroom","label":"Westin Ballroom"},{"id":"westin-ballroom-1","label":"Westin Ballroom 1"},{"id":"westin-ballroom-2","label":"Westin Ballroom 2"},{"id":"elevate","label":"Elevate"},{"id":"elevate-1","label":"Elevate 1"},{"id":"elevate-2","label":"Elevate 2"},{"id":"thrive-boardroom","label":"Thrive Boardroom"}],"selectedRoomSlug":"thrive-boardroom"}}
+      
+      Agent: Please tell me more about your event.
+      
+      {"ui":{"type":"eventDetailsForm","title":"Event details","submitLabel":"Next","eventType":"boardmeetingT","wantsOperator":"yes","minDate":"2026-04-07","schedule":{"setup":"07:00","rehearsal":"09:30","start":"10:00","end":"16:00","packup":"16:00","stepMinutes":30}}}
+      
+      Agent: Please review the included equipment for this room and confirm the options below.
+      
+      {"ui":{"type":"baseAvForm","submitted":true,"title":"Base AV package for Thrive Boardroom","submitLabel":"Next","roomName":"Thrive Boardroom","baseEquipment":["Inbuilt projector and screen","Inbuilt speakers"],"showProjectorPlacement":false,"floorPlanUrl":"","projectorPlacement":"","placementOptions":[{"id":"A","label":"A"},{"id":"B","label":"B"},{"id":"C","label":"C"},{"id":"D","label":"D"},{"id":"E","label":"E"},{"id":"F","label":"F"},{"id":"B\u002BC","label":"B\u002BC"},{"id":"E\u002BF","label":"E\u002BF"}],"presenters":"3","flipchart":"yes","laptopMode":"mac","laptopQty":"3","adapterOwnLaptops":"yes"}}
+      
+      Agent: Thanks for confirming the base AV package. I have a few follow-up questions.
+      
+      {"ui":{"type":"followUpAvForm","title":"Follow-up AV","submitLabel":"Generate quote","presenterCount":3,"laptopQty":3,"micType":"handheld","micQty":"3","lectern":"lectern-only","foldbackMonitor":"no","wirelessPresenter":"yes","laptopSwitcher":"no","stageLaptop":"no","videoConference":"yes"}}
+      
+      User: Email confirmed for enquiry: nith+yoo3wva9@intent.do. Continue with venue and event details already captured from the sales team.
+      
+      User: Venue confirm: venue Westin Brisbane; start 2026-12-01; end 2026-12-01; attendees 7.
+      
+      User: Event details provided: event type boardmeetingT; setup style Boardroom; operator yes; schedule setup 07:00, rehearsal 09:30, start 10:00, end 16:00.
+      
+      User: Base AV provided: built-in projector True; screen True; speakers True; placement ; presenters 3; flipchart yes; laptop mode mac; laptop qty 3; adapter for own laptops yes.
+      
+      User: AV extras provided: presenters 3; speakers 0; wireless clicker no; audio video recording no; technician from 10:00 to 16:00; whole event coverage yes. Follow-up: mic handheld qty 3; lectern lectern-only; foldback no; wireless presenter yes; laptop switcher no; stage laptop no; video conference yes.
+      
+      Agent: Great news! I have successfully generated your quote for booking C2501700001.
+      
+      {"ui":{"quoteUrl":"/files/quotes/Quote-C2501700001-20260407061117.html","bookingNo":"C2501700001","isHtml":true}}
+      
+      Agent: Would you like to proceed and accept this quote?
+      
+      Selecting "Accept Quote" will notify Microhire to finalize the details.' (Size = 8000) (DbType = AnsiString)], CommandType='Text', CommandTimeout='30']
+      SET NOCOUNT ON;
+      UPDATE [tblbooknote] SET [text_line] = @p0
+      OUTPUT 1
+      WHERE [ID] = @p1;
+      UPDATE [tblbooknote] SET [text_line] = @p2
+      OUTPUT 1
+      WHERE [ID] = @p3;
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@__bookingNo_0='C2501700001' (Size = 35)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[BookingProgressStatus], [t].[ConfirmedBy], [t].[ConfirmedDocRef], [t].[ContactID], [t].[CustCode], [t].[CustID], [t].[EntryDate], [t].[EventType], [t].[From_locn], [t].[HourBooked], [t].[Item_cnt], [t].[MinBooked], [t].[OrganizationV6], [t].[RehDate], [t].[RehearsalTime], [t].[SDate], [t].[Salesperson], [t].[SecBooked], [t].[SetDate], [t].[ShowEdate], [t].[ShowEndTime], [t].[ShowSDate], [t].[StrikeTime], [t].[Tax2], [t].[TaxAuthority1], [t].[TaxAuthority2], [t].[Trans_to_locn], [t].[VenueID], [t].[VenueRoom], [t].[bBookingIsComplete], [t].[booking_no], [t].[booking_type_v32], [t].[contact_nameV6], [t].[currencyStr], [t].[dDate], [t].[days_charged_v51], [t].[days_using], [t].[del_time_h], [t].[del_time_m], [t].[delivery], [t].[delivery_address_exist], [t].[delivery_time], [t].[delivery_viav71], [t].[deposit_quoted_v50], [t].[discount_rate], [t].[division], [t].[docs_produced], [t].[event_code], [t].[expAttendees], [t].[hire_price], [t].[insurance_type], [t].[insurance_v5], [t].[invoice_no], [t].[invoiced], [t].[labour], [t].[last_modified_by], [t].[order_date], [t].[order_no], [t].[payment_type], [t].[percent_disc], [t].[perm_casual], [t].[pickup_time], [t].[pickup_viaV71], [t].[price_quoted], [t].[pricing_scheme_used], [t].[rDate], [t].[ret_time_h], [t].[ret_time_m], [t].[retail_value], [t].[return_to_locn], [t].[sale_of_asset], [t].[sales_amount], [t].[sales_discount_rate], [t].[sales_percent_disc], [t].[sales_tax_no], [t].[same_address], [t].[setupTimeV61], [t].[showName], [t].[showStartTime], [t].[status], [t].[sundry_total], [t].[tax1], [t].[transferNo], [t].[un_disc_amount]
+      FROM [tblbookings] AS [t]
+      WHERE [t].[booking_no] = @__bookingNo_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (74ms) [Parameters=[@__normalizedVenue_0_contains='%the westin brisbane%' (Size = 100)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID]
+      FROM [tblVenues] AS [t]
+      WHERE [t].[VenueName] IS NOT NULL AND LOWER([t].[VenueName]) LIKE @__normalizedVenue_0_contains ESCAPE N'\'
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@__bookingNo_0='C2501700001' (Size = 35)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[BookingProgressStatus], [t].[ConfirmedBy], [t].[ConfirmedDocRef], [t].[ContactID], [t].[CustCode], [t].[CustID], [t].[EntryDate], [t].[EventType], [t].[From_locn], [t].[HourBooked], [t].[Item_cnt], [t].[MinBooked], [t].[OrganizationV6], [t].[RehDate], [t].[RehearsalTime], [t].[SDate], [t].[Salesperson], [t].[SecBooked], [t].[SetDate], [t].[ShowEdate], [t].[ShowEndTime], [t].[ShowSDate], [t].[StrikeTime], [t].[Tax2], [t].[TaxAuthority1], [t].[TaxAuthority2], [t].[Trans_to_locn], [t].[VenueID], [t].[VenueRoom], [t].[bBookingIsComplete], [t].[booking_no], [t].[booking_type_v32], [t].[contact_nameV6], [t].[currencyStr], [t].[dDate], [t].[days_charged_v51], [t].[days_using], [t].[del_time_h], [t].[del_time_m], [t].[delivery], [t].[delivery_address_exist], [t].[delivery_time], [t].[delivery_viav71], [t].[deposit_quoted_v50], [t].[discount_rate], [t].[division], [t].[docs_produced], [t].[event_code], [t].[expAttendees], [t].[hire_price], [t].[insurance_type], [t].[insurance_v5], [t].[invoice_no], [t].[invoiced], [t].[labour], [t].[last_modified_by], [t].[order_date], [t].[order_no], [t].[payment_type], [t].[percent_disc], [t].[perm_casual], [t].[pickup_time], [t].[pickup_viaV71], [t].[price_quoted], [t].[pricing_scheme_used], [t].[rDate], [t].[ret_time_h], [t].[ret_time_m], [t].[retail_value], [t].[return_to_locn], [t].[sale_of_asset], [t].[sales_amount], [t].[sales_discount_rate], [t].[sales_percent_disc], [t].[sales_tax_no], [t].[same_address], [t].[setupTimeV61], [t].[showName], [t].[showStartTime], [t].[status], [t].[sundry_total], [t].[tax1], [t].[transferNo], [t].[un_disc_amount]
+      FROM [tblbookings] AS [t]
+      WHERE [t].[booking_no] = @__bookingNo_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (8ms) [Parameters=[@__ToLower_0='lamb kirkland inc' (Size = 120) (DbType = AnsiString)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[Address_l1V6], [t].[CustCDate], [t].[Customer_code], [t].[iLink_ContactID], [t].[OrganisationV6]
+      FROM [tblcust] AS [t]
+      WHERE [t].[OrganisationV6] IS NOT NULL AND LOWER([t].[OrganisationV6]) = @__ToLower_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (3ms) [Parameters=[@__orgId_0='25017' (Precision = 10)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[Customer_code]
+      FROM [tblcust] AS [t]
+      WHERE [t].[ID] = @__orgId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (19ms) [Parameters=[@__e_0='nith+yoo3wva9@intent.do' (Size = 80)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[Active], [t].[Cell], [t].[Contactname], [t].[CreateDate], [t].[CustCodeLink], [t].[Email], [t].[firstname], [t].[LastAttempt], [t].[LastContact], [t].[LastUpdate], [t].[MidName], [t].[Phone1], [t].[position], [t].[surname]
+      FROM [tblContact] AS [t]
+      WHERE [t].[Email] IS NOT NULL AND LOWER([t].[Email]) = @__e_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@__orgId_0='25017' (Precision = 10), @__contactId_1='31582' (Nullable = true) (Precision = 18) (Scale = 2)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [tblcust] AS [t]
+              WHERE [t].[ID] = @__orgId_0 AND [t].[iLink_ContactID] = @__contactId_1) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (6ms) [Parameters=[@__orgId_0='25017' (Precision = 10)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[Customer_code]
+      FROM [tblcust] AS [t]
+      WHERE [t].[ID] = @__orgId_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (8ms) [Parameters=[@__code_0='C25017' (Size = 30) (DbType = AnsiString), @__contactId_1='31582' (Nullable = true) (Precision = 10)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [tblLinkCustContact] AS [t]
+              WHERE [t].[Customer_Code] = @__code_0 AND [t].[ContactID] = @__contactId_1) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: MicrohireAgentChat.Services.Persistence.ContactResolutionService[0]
+      Reusing existing linked contact: ID=31582
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@__customerCode_0='C25017' (Size = 30) (DbType = AnsiString), @__contactId_1='31582' (Nullable = true) (Precision = 10)], CommandType='Text', CommandTimeout='30']
+      SELECT CASE
+          WHEN EXISTS (
+              SELECT 1
+              FROM [tblLinkCustContact] AS [t]
+              WHERE [t].[Customer_Code] = @__customerCode_0 AND [t].[ContactID] = @__contactId_1) THEN CAST(1 AS bit)
+          ELSE CAST(0 AS bit)
+      END
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@__bookingNo_0='C2501700001' (Size = 35)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[BookingProgressStatus], [t].[ConfirmedBy], [t].[ConfirmedDocRef], [t].[ContactID], [t].[CustCode], [t].[CustID], [t].[EntryDate], [t].[EventType], [t].[From_locn], [t].[HourBooked], [t].[Item_cnt], [t].[MinBooked], [t].[OrganizationV6], [t].[RehDate], [t].[RehearsalTime], [t].[SDate], [t].[Salesperson], [t].[SecBooked], [t].[SetDate], [t].[ShowEdate], [t].[ShowEndTime], [t].[ShowSDate], [t].[StrikeTime], [t].[Tax2], [t].[TaxAuthority1], [t].[TaxAuthority2], [t].[Trans_to_locn], [t].[VenueID], [t].[VenueRoom], [t].[bBookingIsComplete], [t].[booking_no], [t].[booking_type_v32], [t].[contact_nameV6], [t].[currencyStr], [t].[dDate], [t].[days_charged_v51], [t].[days_using], [t].[del_time_h], [t].[del_time_m], [t].[delivery], [t].[delivery_address_exist], [t].[delivery_time], [t].[delivery_viav71], [t].[deposit_quoted_v50], [t].[discount_rate], [t].[division], [t].[docs_produced], [t].[event_code], [t].[expAttendees], [t].[hire_price], [t].[insurance_type], [t].[insurance_v5], [t].[invoice_no], [t].[invoiced], [t].[labour], [t].[last_modified_by], [t].[order_date], [t].[order_no], [t].[payment_type], [t].[percent_disc], [t].[perm_casual], [t].[pickup_time], [t].[pickup_viaV71], [t].[price_quoted], [t].[pricing_scheme_used], [t].[rDate], [t].[ret_time_h], [t].[ret_time_m], [t].[retail_value], [t].[return_to_locn], [t].[sale_of_asset], [t].[sales_amount], [t].[sales_discount_rate], [t].[sales_percent_disc], [t].[sales_tax_no], [t].[same_address], [t].[setupTimeV61], [t].[showName], [t].[showStartTime], [t].[status], [t].[sundry_total], [t].[tax1], [t].[transferNo], [t].[un_disc_amount]
+      FROM [tblbookings] AS [t]
+      WHERE [t].[booking_no] = @__bookingNo_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (4ms) [Parameters=[@__bookingNo_0='C2501700001' (Size = 35) (DbType = AnsiString)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[bookingNo], [t].[line_no], [t].[NoteType], [t].[OperatorID], [t].[text_line]
+      FROM [tblbooknote] AS [t]
+      WHERE [t].[bookingNo] = @__bookingNo_0 AND [t].[NoteType] = CAST(1 AS tinyint)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (5ms) [Parameters=[@__bookingNo_0='C2501700001' (Size = 35) (DbType = AnsiString), @___rpDefaults_OperatorId_1='260' (Nullable = true) (Precision = 10)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [t].[ID], [t].[bookingNo], [t].[line_no], [t].[NoteType], [t].[OperatorID], [t].[text_line]
+      FROM [tblbooknote] AS [t]
+      WHERE [t].[bookingNo] = @__bookingNo_0 AND [t].[NoteType] = CAST(0 AS tinyint) AND [t].[OperatorID] = @___rpDefaults_OperatorId_1 AND [t].[text_line] IS NOT NULL AND ([t].[text_line] LIKE 'Agent:%' OR [t].[text_line] LIKE 'User:%')
+      ORDER BY [t].[ID] DESC
+info: MicrohireAgentChat.Controllers.ChatController[0]
+      Returning 12 messages to view. Last message role: assistant
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (138ms) [Parameters=[@__userKey_0='?' (Size = 200)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [a].[Id], [a].[CreatedUtc], [a].[DraftStateJson], [a].[Email], [a].[LastSeenUtc], [a].[ThreadId], [a].[UserKey]
+      FROM [dbo].[AgentThreads] AS [a]
+      WHERE [a].[UserKey] = @__userKey_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (147ms) [Parameters=[@p6='?' (DbType = Int32), @p0='?' (DbType = DateTime2), @p1='?' (Size = -1), @p2='?' (Size = 200), @p3='?' (DbType = DateTime2), @p4='?' (Size = 200), @p5='?' (Size = 200)], CommandType='Text', CommandTimeout='30']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      UPDATE [dbo].[AgentThreads] SET [CreatedUtc] = @p0, [DraftStateJson] = @p1, [Email] = @p2, [LastSeenUtc] = @p3, [ThreadId] = @p4, [UserKey] = @p5
+      OUTPUT 1
+      WHERE [Id] = @p6;
+info: MicrohireAgentChat.Services.ChatSessionPersistenceService[0]
+      Persisted draft state for nith+yoo3wva9@intent.do (UserKey: 74d50fb2-1115-035e-0437-5998e43ed53f)
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (138ms) [Parameters=[@__userKey_0='?' (Size = 200)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [a].[ThreadId]
+      FROM [dbo].[AgentThreads] AS [a]
+      WHERE [a].[UserKey] = @__userKey_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (138ms) [Parameters=[@__key_0='?' (Size = 200)], CommandType='Text', CommandTimeout='30']
+      SELECT TOP(1) [a].[Id], [a].[CreatedUtc], [a].[DraftStateJson], [a].[Email], [a].[LastSeenUtc], [a].[ThreadId], [a].[UserKey]
+      FROM [dbo].[AgentThreads] AS [a]
+      WHERE [a].[UserKey] = @__key_0
+info: Microsoft.EntityFrameworkCore.Database.Command[20101]
+      Executed DbCommand (140ms) [Parameters=[@p1='?' (DbType = Int32), @p0='?' (DbType = DateTime2)], CommandType='Text', CommandTimeout='30']
+      SET IMPLICIT_TRANSACTIONS OFF;
+      SET NOCOUNT ON;
+      UPDATE [dbo].[AgentThreads] SET [LastSeenUtc] = @p0
+      OUTPUT 1
+      WHERE [Id] = @p1;

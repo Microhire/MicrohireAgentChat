@@ -432,6 +432,19 @@ public sealed partial class SmartEquipmentRecommendationService
                         if (!string.IsNullOrWhiteSpace(val))
                             folders.Add(val.Trim());
                     }
+                    // Also discover products from independentItems folders (THRVIND, ELEVIND, WBIND etc.)
+                    if (prop.NameEquals("independentItems") && prop.Value.ValueKind == JsonValueKind.Array)
+                    {
+                        foreach (var arrItem in prop.Value.EnumerateArray())
+                        {
+                            if (arrItem.ValueKind == JsonValueKind.String)
+                            {
+                                var val = arrItem.GetString();
+                                if (!string.IsNullOrWhiteSpace(val))
+                                    folders.Add(val.Trim());
+                            }
+                        }
+                    }
                     CollectAiFolderValues(prop.Value, folders);
                 }
                 break;

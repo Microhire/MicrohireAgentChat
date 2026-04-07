@@ -132,7 +132,9 @@ public sealed partial class ItemPersistenceService
         foreach (var pi in parentInfos.Where(p => p.ParentCode != null))
         {
             var trimmedParent = pi.ParentCode!.Trim();
-            if (string.Equals(trimmedParent, "ELEVIND", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(trimmedParent, "ELEVIND", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(trimmedParent, "THRVIND", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(trimmedParent, "WBIND", StringComparison.OrdinalIgnoreCase))
                 continue;
             
             // Get parent details

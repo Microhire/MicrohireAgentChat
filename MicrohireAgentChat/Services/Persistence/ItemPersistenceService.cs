@@ -129,7 +129,9 @@ public sealed partial class ItemPersistenceService
                 }
 
                 // Prevent known placeholder/meta item from being persisted into quotes.
-                if (string.Equals(productCode, "ELEVIND", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(productCode, "ELEVIND", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(productCode, "THRVIND", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(productCode, "WBIND", StringComparison.OrdinalIgnoreCase))
                 {
                     _logger.LogInformation("Skipping blocked product code {ProductCode}", productCode);
                     continue;
@@ -155,7 +157,7 @@ public sealed partial class ItemPersistenceService
                 }
                 if (!string.IsNullOrWhiteSpace(item.Comment))
                 {
-                    var commentSuffix = $" (Client: {item.Comment})";
+                    var commentSuffix = $" (Client requested: {item.Comment})";
                     description = (description + commentSuffix).Length <= 70
                         ? description + commentSuffix
                         : description.Substring(0, Math.Max(0, 70 - commentSuffix.Length)) + commentSuffix;

@@ -299,12 +299,18 @@ public sealed partial class BookingPersistenceService
             { booking.RehearsalTime = padded; changed = true; }
         }
 
-        var eventType = session.GetString("Draft:EventType");
-        if (!string.IsNullOrWhiteSpace(eventType))
+        var eventName = session.GetString("Draft:EventType"); // user's event description
+        if (!string.IsNullOrWhiteSpace(eventName))
         {
-            var truncated = Trunc(eventType, EventTypeMaxLength);
-            if (!string.Equals(booking.EventType, truncated, StringComparison.Ordinal))
-            { booking.EventType = truncated; changed = true; }
+            // User's event description → showName; EventType always "Conference / Event"
+            var truncatedShowName = Trunc(eventName, ShowNameMaxLength);
+            if (!string.Equals(booking.showName, truncatedShowName, StringComparison.Ordinal))
+            { booking.showName = truncatedShowName; changed = true; }
+
+            const string defaultEventType = "Conference / Event";
+            var truncatedEventType = Trunc(defaultEventType, EventTypeMaxLength);
+            if (!string.Equals(booking.EventType, truncatedEventType, StringComparison.Ordinal))
+            { booking.EventType = truncatedEventType; changed = true; }
         }
 
         if (changed)
