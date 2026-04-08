@@ -341,7 +341,8 @@ namespace MicrohireAgentChat.Services
             }
 
             var sanitized = SuppressDuplicateLaptopQuestions(list, pipeline);
-            return (threadId, sanitized);
+            var deduped = KeepOnlyLatestQuoteReady(sanitized);
+            return (threadId, deduped);
         }
 
         private IEnumerable<DisplayMessage> SuppressDuplicateLaptopQuestions(IEnumerable<DisplayMessage> messages, MarkdownPipeline pipeline)
@@ -439,6 +440,37 @@ namespace MicrohireAgentChat.Services
             }
 
             return filtered;
+        }
+
+        /// <summary>
+        /// When a quote is edited and regenerated, the thread contains multiple quote-ready
+        /// messages. Keep only the last one so the UI shows only the newest quote.
+        /// </summary>
+        private IEnumerable<DisplayMessage> KeepOnlyLatestQuoteReady(IEnumerable<DisplayMessage> messages)
+        {
+            var msgList = messages is List<DisplayMessage> list ? list : messages.ToList();
+
+            // Find all indices of quote-ready assistant messages
+            var quoteReadyIndices = new List<int>();
+            for (int i = 0; i < msgList.Count; i++)
+            {
+                var m = msgList[i];
+                if (!string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase))
+                    continue;
+                var raw = string.Join("\n", (m.Parts ?? new List<string>()).Select(p => p ?? string.Empty))
+                    .ToLowerInvariant();
+                if (raw.Contains("\"quoteurl\"") || raw.Contains("\"quote_url\""))
+                    quoteReadyIndices.Add(i);
+            }
+
+            // If 0 or 1 quote-ready messages, nothing to deduplicate
+            if (quoteReadyIndices.Count <= 1)
+                return msgList;
+
+            // Remove all but the last quote-ready message
+            var toRemove = new HashSet<int>(quoteReadyIndices.Take(quoteReadyIndices.Count - 1));
+            _logger.LogInformation("[QUOTE_DEDUPE] Removing {Count} older quote-ready messages, keeping latest", toRemove.Count);
+            return msgList.Where((_, idx) => !toRemove.Contains(idx)).ToList();
         }
 
         private static bool LooksLikeLaptopOwnershipQuestion(string text)

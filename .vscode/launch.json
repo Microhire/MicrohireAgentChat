@@ -5,8 +5,7 @@
       "name": "C#: MicrohireAgentChat Debug",
       "type": "dotnet",
       "request": "launch",
-      "projectPath": "${workspaceFolder}/MicrohireAgentChat/MicrohireAgentChat.csproj",
-      "preLaunchTask": "switch-to-dotnet-8"
+      "projectPath": "${workspaceFolder}/MicrohireAgentChat/MicrohireAgentChat.csproj"
     }
   ]
 }

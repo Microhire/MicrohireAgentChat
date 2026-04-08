@@ -2098,6 +2098,20 @@ public sealed class ChatController : Controller
                 var bookingNo = HttpContext.Session.GetString("Draft:BookingNo");
                 if (!string.IsNullOrWhiteSpace(bookingNo))
                 {
+                    // Check whether a digital signature file exists for this booking
+                    var sigFile = Path.Combine(QuoteFilesPaths.GetPhysicalQuotesDirectory(_env), $"Quote-{bookingNo}-signature.json");
+                    var hasSignatureFile = System.IO.File.Exists(sigFile);
+
+                    if (!hasSignatureFile)
+                    {
+                        // No digital signature on file — redirect user to the proper signing flow
+                        _logger.LogInformation("[QUOTE FLOW] Text acceptance for booking {BookingNo} but no signature file found. Showing acceptance CTA instead.", bookingNo);
+                        AppendQuoteReviewPromptImmediately(msgList);
+                        SetScheduleTimesInViewData();
+                        ViewData["ProgressStep"] = DetermineProgressStep(msgList);
+                        return PartialView("_Messages", msgList);
+                    }
+
                     var booking = await _bookingDb.TblBookings.FirstOrDefaultAsync(b => b.booking_no == bookingNo, ct);
                     if (booking != null)
                     {
@@ -2106,7 +2120,7 @@ public sealed class ChatController : Controller
                         _logger.LogInformation("Updated booking {BookingNo} status to Heavy Pencil (text fallback)", bookingNo);
                     }
 
-                    try 
+                    try
                     {
                         await _chat.SendInternalFollowupAsync(bookingNo, "Quote accepted by user (text consent) - status updated to Heavy Pencil.", ct);
                     }
@@ -3087,32 +3101,35 @@ public sealed class ChatController : Controller
             return;
         }
         
-        // Also check for existing quote files on disk (in case session was lost)
+        // Disk fallback is for session-expiry resilience only.
+        // If session still has equipment data, QuoteComplete was deliberately cleared
+        // (e.g. Edit Quote) — skip the fallback and regenerate fresh.
+        var sessionHasEquipment = !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:SelectedEquipment"));
         var quotesDir = QuoteFilesPaths.GetPhysicalQuotesDirectory(_env);
-        if (Directory.Exists(quotesDir))
+        if (!sessionHasEquipment && Directory.Exists(quotesDir))
         {
             var existingQuoteFiles = Directory.GetFiles(quotesDir, $"Quote-{bookingNo}-*.html")
                 .OrderByDescending(f => System.IO.File.GetCreationTimeUtc(f))
                 .ToList();
-            
+
             if (existingQuoteFiles.Any())
             {
                 var mostRecentQuote = existingQuoteFiles.First();
                 var quoteAge = DateTime.UtcNow - System.IO.File.GetCreationTimeUtc(mostRecentQuote);
-                
+
                 // If quote is less than 1 hour old, reuse it
                 if (quoteAge.TotalHours < 1)
                 {
                     var reusedQuoteUrl = $"/files/quotes/{Path.GetFileName(mostRecentQuote)}";
-                    
+
                     // Update session with existing quote
                     HttpContext.Session.SetString("Draft:QuoteUrl", reusedQuoteUrl);
                     HttpContext.Session.SetString("Draft:QuoteComplete", "1");
                     HttpContext.Session.SetString("Draft:QuoteTimestamp", DateTime.UtcNow.ToString("O"));
-                    
-                    _logger.LogInformation("Found existing quote file for booking {BookingNo} (age: {Age}), reusing: {QuoteUrl}", 
+
+                    _logger.LogInformation("Found existing quote file for booking {BookingNo} (age: {Age}), reusing: {QuoteUrl}",
                         bookingNo, quoteAge, reusedQuoteUrl);
-                    
+
                     // Add success message with existing quote
                     var reusedQuoteMessage = BuildQuoteReadyMessage(bookingNo, reusedQuoteUrl);
                     await AddAssistantMessageAndPersistAsync(msgList, reusedQuoteMessage, ct);
@@ -3876,6 +3893,87 @@ public sealed class ChatController : Controller
         {
             Response.StatusCode = 500;
             return Content(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// Resets all form-submission and quote flags so every wizard form becomes editable again,
+    /// while keeping the user's previously entered data (venue, room, dates, event type, schedule,
+    /// AV preferences, etc.) so the forms prefill with the latest input.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public IActionResult EditQuotePartial()
+    {
+        try
+        {
+            // Clear form-submitted flags
+            HttpContext.Session.Remove("Draft:VenueConfirmSubmitted");
+            HttpContext.Session.Remove("Draft:EventFormSubmitted");
+            HttpContext.Session.Remove("Draft:BaseAvSubmitted");
+            HttpContext.Session.Remove("Draft:BaseAvSubmittedForThread");
+            HttpContext.Session.Remove("Draft:FollowUpAvSubmitted");
+
+            // Clear quote state
+            HttpContext.Session.Remove("Draft:QuoteComplete");
+            HttpContext.Session.Remove("Draft:QuoteUrl");
+            HttpContext.Session.Remove("Draft:QuoteAccepted");
+            // Keep Draft:BookingNo and Draft:ShowedBookingNo so the existing booking
+            // is updated (not recreated) when the user re-generates the quote.
+            HttpContext.Session.Remove("Draft:PersistedSummaryKey");
+            HttpContext.Session.Remove(AwaitingQuoteReviewPromptKey);
+            HttpContext.Session.Remove(QuoteReviewPromptShownKey);
+
+            // Clear AV selection/equipment state (will be rebuilt on re-submission)
+            HttpContext.Session.Remove("Draft:SelectedEquipment");
+            HttpContext.Session.Remove("Draft:SelectedLabor");
+            HttpContext.Session.Remove("Draft:TotalDayRate");
+            HttpContext.Session.Remove("Draft:ProjectorArea");
+            HttpContext.Session.Remove("Draft:ProjectorAreas");
+            HttpContext.Session.Remove(ProjectorPromptShownKey);
+            HttpContext.Session.Remove(ProjectorPromptThreadIdKey);
+            HttpContext.Session.Remove(ProjectorAreaCapturedKey);
+            HttpContext.Session.Remove(ProjectorAreaThreadIdKey);
+            HttpContext.Session.Remove("Draft:LaptopOwnershipAnswered");
+            HttpContext.Session.Remove("Draft:NeedsProvidedLaptop");
+            HttpContext.Session.Remove("Draft:LaptopPreference");
+
+            // Re-render with forms in editable state
+            var threadId = _chat.EnsureThreadId(HttpContext.Session);
+            var (_, messages) = _chat.GetTranscript(threadId);
+            var msgList = messages is List<DisplayMessage> list ? list : messages.ToList();
+
+            // Remove quote-related messages so the user can focus on editing the forms
+            msgList.RemoveAll(m =>
+            {
+                if (!string.Equals(m.Role, "assistant", StringComparison.OrdinalIgnoreCase))
+                    return false;
+                var raw = string.Join("\n", (m.Parts ?? new List<string>()).Select(p => p ?? string.Empty))
+                    .ToLowerInvariant();
+                // "Great news! I have successfully generated your quote..." + Quote Ready UI
+                if (raw.Contains("generated your quote") && (raw.Contains("\"quoteurl\"") || raw.Contains("\"quote_url\"")))
+                    return true;
+                // "Would you like to proceed and accept this quote?"
+                if (raw.Contains("would you like to proceed and accept this quote"))
+                    return true;
+                return false;
+            });
+
+            EnsureStructuredFormsInChat(msgList);
+            RedactPricesForUiInPlace(msgList);
+
+            ViewData["ShowQuoteCta"] = "0";
+            ViewData["QuoteComplete"] = false;
+            SetScheduleTimesInViewData();
+            ViewData["ProgressStep"] = DetermineProgressStep(msgList);
+
+            return PartialView("_Messages", msgList);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed handling edit quote request");
+            Response.StatusCode = 500;
+            return Content("Unable to reset forms for editing.");
         }
     }
 
@@ -5018,11 +5116,31 @@ View Signed Quote
 
         var followUpAvSubmitted = HttpContext.Session.GetString("Draft:FollowUpAvSubmitted") == "1";
 
+        // When the wizard is incomplete (quote not generated yet), strip any leftover
+        // "Quote Ready" messages from a previous run so they don't render prematurely
+        // (e.g. after Edit Quote resets the form flags but the Azure transcript still
+        // contains the old quote-success message).
+        if (HttpContext.Session.GetString("Draft:QuoteComplete") != "1")
+        {
+            messages.RemoveAll(m =>
+            {
+                if (!IsAssistantMessageRole(m.Role)) return false;
+                var raw = string.Join("\n", (m.Parts ?? new List<string>()).Select(p => p ?? string.Empty))
+                    .ToLowerInvariant();
+                if (raw.Contains("\"quoteurl\"") || raw.Contains("\"quote_url\""))
+                    return true;
+                if (raw.Contains("generated your quote") && (raw.Contains("quote ready") || raw.Contains("view quote")))
+                    return true;
+                return false;
+            });
+        }
+
         var entrySource = HttpContext.Session.GetString("Draft:EntrySource") ?? "general";
         var emailGateComplete = HttpContext.Session.GetString("Draft:EmailGateCompleted") == "1";
         var needManualContact = HttpContext.Session.GetString("Draft:NeedManualContact") == "1";
         var contactFormSubmitted = HttpContext.Session.GetString("Draft:ContactFormSubmitted") == "1";
         var venueConfirmSubmitted = HttpContext.Session.GetString("Draft:VenueConfirmSubmitted") == "1";
+        var eventFormSubmitted = HttpContext.Session.GetString("Draft:EventFormSubmitted") == "1";
         var baseAvSubmitted = HttpContext.Session.GetString("Draft:BaseAvSubmitted") == "1";
 
         // Lead links: after email verification, show venue wizard even if org/name are missing on the lead row.
@@ -5123,7 +5241,7 @@ View Signed Quote
         }
         else index++;
 
-        if (!hasEventCoreDraft)
+        if (!hasEventCoreDraft || !eventFormSubmitted)
             return;
 
         // 6) Base AV package — always inject when missing from thread, embedding per-form submitted state
