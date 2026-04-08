@@ -250,14 +250,31 @@ namespace MicrohireAgentChat.Services
         public async Task EnsureGreetingAsync(ISession session, string greeting, CancellationToken ct)
         {
             var threadId = EnsureThreadId(session);
-            var hasAny = AgentsClient.Messages.GetMessages(threadId).Any();
-            if (!hasAny)
+            var gate = GetThreadGate(threadId);
+            await gate.WaitAsync(ct);
+            try
             {
-                AgentsClient.Messages.CreateMessage(threadId, Azure.AI.Agents.Persistent.MessageRole.Agent, greeting);
+                // Check whether the greeting already exists anywhere in the thread
+                // (not just "any message") to avoid adding a duplicate greeting or
+                // skipping it when non-greeting messages were added first.
+                var hasGreeting = AgentsClient.Messages.GetMessages(threadId)
+                    .Any(m => IsAssistantRole(m.Role.ToString())
+                        && m.ContentItems
+                            .OfType<Azure.AI.Agents.Persistent.MessageTextContent>()
+                            .Any(t => (t.Text ?? string.Empty)
+                                .StartsWith("Hello, my name is Isla from Microhire", StringComparison.OrdinalIgnoreCase)));
+
+                if (!hasGreeting)
+                {
+                    AgentsClient.Messages.CreateMessage(threadId, Azure.AI.Agents.Persistent.MessageRole.Agent, greeting);
+                }
+            }
+            finally
+            {
+                gate.Release();
             }
 
             session.SetInt32(SessionKeyGreeted, 1);
-            await Task.CompletedTask;
         }
 
         /// <summary>
@@ -283,7 +300,24 @@ namespace MicrohireAgentChat.Services
             var list = new List<DisplayMessage>();
             var messages = AgentsClient.Messages.GetMessages(threadId);
 
-            foreach (var m in messages.OrderBy(m => m.CreatedAt))
+            foreach (var m in messages
+                .OrderBy(m =>
+                {
+                    // Pin the greeting message to the top regardless of its Azure timestamp.
+                    // EnsureGreetingAsync can create the greeting after other messages already
+                    // exist on the thread (e.g. session restore), giving it a later CreatedAt
+                    // which would otherwise sort it to the end and confuse users.
+                    if (IsAssistantRole(m.Role.ToString()))
+                    {
+                        var text = string.Join(" ", m.ContentItems
+                            .OfType<Azure.AI.Agents.Persistent.MessageTextContent>()
+                            .Select(t => t.Text ?? string.Empty));
+                        if (text.StartsWith("Hello, my name is Isla from Microhire", StringComparison.OrdinalIgnoreCase))
+                            return 0;
+                    }
+                    return 1;
+                })
+                .ThenBy(m => m.CreatedAt))
             {
                 var parts = m.ContentItems
                     .OfType<Azure.AI.Agents.Persistent.MessageTextContent>()
