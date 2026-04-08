@@ -583,6 +583,7 @@ public partial class HtmlQuoteGenerationService
             3 => "Operate",
             4 => "Pack Down",
             7 => "Rehearsal",
+            15 => "Test & Connect",
             _ => "Setup"
         };
     }
