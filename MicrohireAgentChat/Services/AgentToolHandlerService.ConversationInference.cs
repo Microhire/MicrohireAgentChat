@@ -324,7 +324,7 @@ public sealed partial class AgentToolHandlerService
             if (string.IsNullOrWhiteSpace(text)) continue;
 
             if (Regex.IsMatch(text,
-                @"\b(operator\s+for\s+(the\s+)?rehearsal|rehearsal\s+operator|operator\s+during\s+rehearsal)\b",
+                @"\b(operator\s+for\s+(the\s+)?rehearsal|rehearsal\s+operator|operator\s+during\s+rehearsal)\b(?!\s*(no|not|none|nah)\b)",
                 RegexOptions.IgnoreCase))
                 return true;
         }
