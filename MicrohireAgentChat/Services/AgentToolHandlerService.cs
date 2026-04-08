@@ -1413,10 +1413,19 @@ public sealed partial class AgentToolHandlerService
 
         // Rehearsal operator guard: ask whether the customer wants an operator for their rehearsal.
         var sessionRehearsalOp = (session?.GetString("Draft:RehearsalOperator") ?? "").Trim().ToLowerInvariant();
-        var rehearsalOperatorConfirmed = sessionRehearsalOp == "yes"
-            || HasExplicitRehearsalOperatorConfirmation(conversationMessages);
-        var rehearsalOperatorDeclined = sessionRehearsalOp == "no"
-            || HasExplicitRehearsalOperatorDeclined(conversationMessages);
+        bool rehearsalOperatorConfirmed;
+        bool rehearsalOperatorDeclined;
+        if (sessionRehearsalOp == "yes" || sessionRehearsalOp == "no")
+        {
+            // Wizard/session answer is authoritative — do not override with transcript parsing.
+            rehearsalOperatorConfirmed = sessionRehearsalOp == "yes";
+            rehearsalOperatorDeclined = sessionRehearsalOp == "no";
+        }
+        else
+        {
+            rehearsalOperatorConfirmed = HasExplicitRehearsalOperatorConfirmation(conversationMessages);
+            rehearsalOperatorDeclined = HasExplicitRehearsalOperatorDeclined(conversationMessages);
+        }
         if (!rehearsalOperatorConfirmed && !rehearsalOperatorDeclined)
         {
             return JsonSerializer.Serialize(new
