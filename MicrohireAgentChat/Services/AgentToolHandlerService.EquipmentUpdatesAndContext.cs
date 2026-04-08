@@ -313,6 +313,35 @@ public sealed partial class AgentToolHandlerService
             }
         }
 
+        // Apply rehearsal operator preference (mirrors recommend_equipment_for_event logic).
+        var sessionRehearsalOp = (session.GetString("Draft:RehearsalOperator") ?? "").Trim().ToLowerInvariant();
+        if (sessionRehearsalOp == "yes" && !laborItems.Any(l => IsRehearsalLaborTask(l.Task)))
+        {
+            var operateTemplate = laborItems.FirstOrDefault(l => IsOperateLaborTask(l.Task));
+            var productCode = operateTemplate?.ProductCode ?? "AVTECH";
+            var description = operateTemplate?.Description ?? "AV Technician";
+            laborItems.Add(new RecommendedLaborItem
+            {
+                ProductCode = productCode,
+                Description = description,
+                Task = "Rehearsal",
+                Quantity = 1,
+                Hours = 0,
+                Minutes = 30,
+                RecommendationReason = "Customer confirmed they would like an operator for their rehearsal."
+            });
+            laborItems = laborItems
+                .OrderBy(GetLaborTaskSortOrder)
+                .ThenBy(l => l.Description, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+        else if (sessionRehearsalOp == "no")
+        {
+            laborItems = laborItems
+                .Where(l => !IsRehearsalLaborTask(l.Task))
+                .ToList();
+        }
+
         var projectorAreasForSummary = GetNormalizedProjectorAreas(session.GetString("Draft:ProjectorAreas"));
         if (projectorAreasForSummary.Count == 0)
             projectorAreasForSummary = GetNormalizedProjectorAreas(session.GetString("Draft:ProjectorArea"));
