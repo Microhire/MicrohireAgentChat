@@ -657,7 +657,7 @@ public sealed partial class AgentToolHandlerService
         return new TechnicianCoveragePreference(false, false, false, false, false, false);
     }
 
-    private static bool ShouldIncludeLaborTaskForCoverage(string? task, TechnicianCoveragePreference coverage)
+    private static bool ShouldIncludeLaborTaskForCoverage(string? task, TechnicianCoveragePreference coverage, string? roomName = null)
     {
         if (coverage.NoTechnicianSupport)
             return false;
@@ -672,15 +672,15 @@ public sealed partial class AgentToolHandlerService
         if (taskNorm.Contains("operate") || taskNorm.Contains("operator") || taskNorm.Contains("support"))
             return coverage.Operate;
         if (taskNorm.Contains("pack"))
-            // return coverage.Packdown;
-            return true; // Always include Packdown regardless of coverage preference
+            return coverage.Packdown || IsDefaultPackdownRoom(roomName);
 
         return coverage.Operate;
     }
 
     private static List<RecommendedLaborItem> ApplyTechnicianCoveragePreference(
         IEnumerable<RecommendedLaborItem> laborItems,
-        TechnicianCoveragePreference coverage)
+        TechnicianCoveragePreference coverage,
+        string? roomName = null)
     {
         var source = (laborItems ?? Enumerable.Empty<RecommendedLaborItem>()).ToList();
         if (source.Count == 0)
@@ -691,7 +691,7 @@ public sealed partial class AgentToolHandlerService
             return source;
 
         var filtered = source
-            .Where(l => ShouldIncludeLaborTaskForCoverage(l.Task, coverage))
+            .Where(l => ShouldIncludeLaborTaskForCoverage(l.Task, coverage, roomName))
             .ToList();
 
         var operateTemplate = source.FirstOrDefault(l => IsOperateLaborTask(l.Task));
@@ -717,8 +717,8 @@ public sealed partial class AgentToolHandlerService
                     reasonSuffix: "Added rehearsal coverage because the customer requested technician support for this stage."));
             }
 
-            // if (coverage.Packdown && !filtered.Any(l => IsPackdownLaborTask(l.Task)))
-            if (!filtered.Any(l => IsPackdownLaborTask(l.Task)))
+            var packdownRequired = coverage.Packdown || IsDefaultPackdownRoom(roomName);
+            if (packdownRequired && !filtered.Any(l => IsPackdownLaborTask(l.Task)))
             {
                 filtered.Add(CloneLaborForStage(
                     operateTemplate,
@@ -777,6 +777,15 @@ public sealed partial class AgentToolHandlerService
 
     private static bool IsPackdownLaborTask(string? task)
         => (task ?? "").Contains("pack", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsDefaultPackdownRoom(string? roomName)
+    {
+        if (string.IsNullOrWhiteSpace(roomName)) return false;
+        var r = roomName.Trim();
+        return r.Contains("Elevate", StringComparison.OrdinalIgnoreCase)
+            || r.Contains("Thrive", StringComparison.OrdinalIgnoreCase)
+            || r.Contains("Ballroom", StringComparison.OrdinalIgnoreCase);
+    }
 
     private static bool IsTestLaborTask(string? task)
         => (task ?? "").Contains("test", StringComparison.OrdinalIgnoreCase);

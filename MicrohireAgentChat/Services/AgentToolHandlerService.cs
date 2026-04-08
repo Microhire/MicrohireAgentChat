@@ -1826,7 +1826,7 @@ public sealed partial class AgentToolHandlerService
         }
         else if (technicianCoverage.HasPreference)
         {
-            recommendations.LaborItems = ApplyTechnicianCoveragePreference(recommendations.LaborItems, technicianCoverage);
+            recommendations.LaborItems = ApplyTechnicianCoveragePreference(recommendations.LaborItems, technicianCoverage, eventContext.RoomName);
         }
         if (session != null && technicianCoverage.HasPreference)
         {
