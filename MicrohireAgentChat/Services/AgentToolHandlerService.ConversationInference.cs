@@ -478,7 +478,8 @@ public sealed partial class AgentToolHandlerService
                 HasPreference: true,
                 NoTechnicianSupport: noTech,
                 Setup:     root.TryGetProperty("Setup",     out var sp) && sp.ValueKind == JsonValueKind.True,
-                Rehearsal: root.TryGetProperty("Rehearsal", out var rp) && rp.ValueKind == JsonValueKind.True,
+                // Rehearsal is intentionally always false here – controlled by the rehearsal operator confirmation flow.
+                Rehearsal: false,
                 Operate:   root.TryGetProperty("Operate",   out var op) && op.ValueKind == JsonValueKind.True,
                 Packdown:  root.TryGetProperty("Packdown",  out var pp) && pp.ValueKind == JsonValueKind.True
             );
@@ -501,12 +502,14 @@ public sealed partial class AgentToolHandlerService
 
         var whole = session.GetString("Draft:TechWholeEvent") ?? "";
         if (string.Equals(whole, "yes", StringComparison.OrdinalIgnoreCase))
-            return new TechnicianCoveragePreference(true, false, true, true, true, true);
+            // Rehearsal excluded – controlled by the rehearsal operator confirmation flow.
+            return new TechnicianCoveragePreference(true, false, true, false, true, true);
 
         var ts = session.GetString("Draft:TechStartTime") ?? "";
         var te = session.GetString("Draft:TechEndTime") ?? "";
         if (!string.IsNullOrWhiteSpace(ts) && !string.IsNullOrWhiteSpace(te))
-            return new TechnicianCoveragePreference(true, false, true, true, true, true);
+            // Rehearsal excluded – controlled by the rehearsal operator confirmation flow.
+            return new TechnicianCoveragePreference(true, false, true, false, true, true);
 
         if (string.Equals(whole, "no", StringComparison.OrdinalIgnoreCase))
             return null;
@@ -551,11 +554,16 @@ public sealed partial class AgentToolHandlerService
 
             if (allStages)
             {
-                return new TechnicianCoveragePreference(true, false, true, true, true, true);
+                // Rehearsal is intentionally excluded here – it is controlled solely by the
+                // "Would you like an operator for your rehearsal?" confirmation flow.
+                return new TechnicianCoveragePreference(true, false, true, false, true, true);
             }
 
             var foundSetup = Regex.IsMatch(normalized, @"\b(setup|set up|bump in)\b");
-            var foundRehearsal = Regex.IsMatch(normalized, @"\b(rehearsal|test\s*&\s*connect|test and connect|soundcheck)\b");
+            // Rehearsal is intentionally not extracted here – it is controlled solely by the
+            // "Would you like an operator for your rehearsal?" confirmation flow.
+            // var foundRehearsal = Regex.IsMatch(normalized, @"\b(rehearsal|test\s*&\s*connect|test and connect|soundcheck)\b");
+            var foundRehearsal = false;
             var foundOperate = Regex.IsMatch(normalized, @"\b(operate|operation|operator|during the event|during event|live support|show support|run the event)\b");
             var foundPackdown = Regex.IsMatch(normalized, @"\b(pack\s*down|packdown|pack\s*up|packup|bump out)\b");
 
@@ -599,7 +607,8 @@ public sealed partial class AgentToolHandlerService
 
             var reply = string.Join(" ", nextUser.Parts ?? Enumerable.Empty<string>()).Trim();
             if (IsLikelyAffirmativeReply(reply))
-                return new TechnicianCoveragePreference(true, false, true, true, true, true);
+                // Rehearsal excluded – controlled by the rehearsal operator confirmation flow.
+                return new TechnicianCoveragePreference(true, false, true, false, true, true);
 
             if (Regex.IsMatch(reply, @"\b(no|not needed|none)\b", RegexOptions.IgnoreCase))
                 return new TechnicianCoveragePreference(true, true, false, false, false, false);
@@ -635,7 +644,8 @@ public sealed partial class AgentToolHandlerService
                 continue;
 
             if (IsLikelyAffirmativeReply(reply))
-                return new TechnicianCoveragePreference(true, false, true, true, true, true);
+                // Rehearsal excluded – controlled by the rehearsal operator confirmation flow.
+                return new TechnicianCoveragePreference(true, false, true, false, true, true);
 
             if (Regex.IsMatch(reply, @"\b(no|not needed|none)\b", RegexOptions.IgnoreCase))
                 return new TechnicianCoveragePreference(true, true, false, false, false, false);
@@ -643,14 +653,14 @@ public sealed partial class AgentToolHandlerService
             var normalizedReply = Regex.Replace(reply.ToLowerInvariant(), @"\s+", " ");
             if (Regex.IsMatch(normalizedReply,
                 @"\b(entire event|whole event|all day|full event|whole duration|whole time|full duration|entire duration|for the duration)\b"))
-                return new TechnicianCoveragePreference(true, false, true, true, true, true);
+                // Rehearsal excluded – controlled by the rehearsal operator confirmation flow.
+                return new TechnicianCoveragePreference(true, false, true, false, true, true);
 
-            if (Regex.IsMatch(normalizedReply, @"\b(setup|set up|bump in)\b")
-                || Regex.IsMatch(normalizedReply, @"\brehearsal\b"))
+            if (Regex.IsMatch(normalizedReply, @"\b(setup|set up|bump in)\b"))
             {
                 var includeSetup = Regex.IsMatch(normalizedReply, @"\b(setup|set up|bump in)\b");
-                var includeRehearsal = Regex.IsMatch(normalizedReply, @"\brehearsal\b");
-                return new TechnicianCoveragePreference(true, false, includeSetup, includeRehearsal, false, false);
+                // Rehearsal excluded – controlled by the rehearsal operator confirmation flow.
+                return new TechnicianCoveragePreference(true, false, includeSetup, false, false, false);
             }
         }
 
