@@ -28,7 +28,7 @@
       "microphoneOperatorThreshold": 2,
       "baselineSetupMinutes": 15,
       "baselineTcMinutes": 15,
-      "baselinePackdownMinutes": 0,
+      "baselinePackdownMinutes": 30,
       "supportsOperatorEscalation": false
     }
   ],
