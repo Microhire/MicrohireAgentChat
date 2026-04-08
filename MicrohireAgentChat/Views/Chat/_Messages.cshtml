@@ -776,6 +776,12 @@ else
                                             var lapMode = uiEl.TryGetProperty("laptopMode", out var lmEl) ? lmEl.GetString() : "none";
                                             var lapQty = uiEl.TryGetProperty("laptopQty", out var lqEl) ? lqEl.GetString() : "0";
                                             var adCur = uiEl.TryGetProperty("adapterOwnLaptops", out var adEl) ? adEl.GetString() : "no";
+                                            var biProjVal = uiEl.TryGetProperty("builtInProjector", out var biProjEl) ? (biProjEl.GetString() ?? "yes") : "yes";
+                                            var biScreenVal = uiEl.TryGetProperty("builtInScreen", out var biScreenEl) ? (biScreenEl.GetString() ?? "yes") : "yes";
+                                            var biSpkVal = uiEl.TryGetProperty("builtInSpeakers", out var biSpkEl) ? (biSpkEl.GetString() ?? "yes") : "yes";
+                                            var biProjChecked = string.Equals(biProjVal, "yes", StringComparison.OrdinalIgnoreCase);
+                                            var biScreenChecked = string.Equals(biScreenVal, "yes", StringComparison.OrdinalIgnoreCase);
+                                            var biSpkChecked = string.Equals(biSpkVal, "yes", StringComparison.OrdinalIgnoreCase);
                                             var baseEquipList = new List<string>();
                                             if (uiEl.TryGetProperty("baseEquipment", out var beEl) && beEl.ValueKind == JsonValueKind.Array)
                                             {
@@ -811,23 +817,24 @@ else
                                                             var hasSpk = labelLower.Contains("speaker");
                                                             if (hasProj && hasScreen)
                                                             {
-                                                                <label class="isla-form-checkbox"><input type="checkbox" data-ba-projscreen checked @dis /> @label</label>
+                                                                var chk = (biProjChecked && biScreenChecked) ? "checked" : null;
+                                                                <label class="isla-form-checkbox"><input type="checkbox" data-ba-projscreen @chk @dis /> @label</label>
                                                             }
                                                             else if (hasProj)
                                                             {
-                                                                <label class="isla-form-checkbox"><input type="checkbox" data-ba-proj checked @dis /> @label</label>
+                                                                <label class="isla-form-checkbox"><input type="checkbox" data-ba-proj @(biProjChecked ? "checked" : null) @dis /> @label</label>
                                                             }
                                                             else if (hasScreen)
                                                             {
-                                                                <label class="isla-form-checkbox"><input type="checkbox" data-ba-screen checked @dis /> @label</label>
+                                                                <label class="isla-form-checkbox"><input type="checkbox" data-ba-screen @(biScreenChecked ? "checked" : null) @dis /> @label</label>
                                                             }
                                                             else if (hasSpk)
                                                             {
-                                                                <label class="isla-form-checkbox"><input type="checkbox" data-ba-spk checked @dis /> @label</label>
+                                                                <label class="isla-form-checkbox"><input type="checkbox" data-ba-spk @(biSpkChecked ? "checked" : null) @dis /> @label</label>
                                                             }
                                                             else
                                                             {
-                                                                <label class="isla-form-checkbox"><input type="checkbox" data-ba-spk checked @dis /> @label</label>
+                                                                <label class="isla-form-checkbox"><input type="checkbox" data-ba-spk @(biSpkChecked ? "checked" : null) @dis /> @label</label>
                                                             }
                                                         }
                                                     </div>

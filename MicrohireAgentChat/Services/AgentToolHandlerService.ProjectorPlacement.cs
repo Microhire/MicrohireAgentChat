@@ -28,6 +28,9 @@ public sealed partial class AgentToolHandlerService
     {
         var type = (equipmentType ?? "").Trim().ToLowerInvariant();
         if (string.IsNullOrWhiteSpace(type)) return false;
+        // Preserve base AV package selectors ("audio", "av") — they map to room packages (e.g. THRVCSS).
+        if (type is "audio" or "av" or "base av" or "base_av")
+            return false;
         return type.Contains("speaker")
             || type.Contains("audio")
             || type.Contains("microphone")

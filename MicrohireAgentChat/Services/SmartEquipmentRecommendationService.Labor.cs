@@ -28,13 +28,20 @@ public sealed partial class SmartEquipmentRecommendationService
         var speakerStyle = ResolveSpeakerStylePreference(context);
         var prefersExternalSpeakers = speakerStyle is "external" or "portable";
 
-        // Check if speakers are already in the recommendation (SPEAKER category or WSB room-specific packages)
+        // Check if speakers/audio packages are already in the recommendation.
+        // Match on SPEAKER category, known audio package codes, or description keywords.
+        // Do NOT match on broad category "WSB" as it also catches vision/projection packages.
+        var audioPackageCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "WSBELSAD", "WSBELAUD", "WBELAUD", "WSBALLAU", "WBFBCSS", "WBSBCSS",
+            "ELEVCSS", "ELEVSCSS", "ELEVAVP", "ELEVSAVP", "THRVCSS", "THRVAVP", "WSBFPAUD", "WSBFPAVP"
+        };
         var hasSpeakers = result.Items.Any(i =>
             (i.Category ?? "").Trim().Equals("SPEAKER", StringComparison.OrdinalIgnoreCase) ||
-            (i.Category ?? "").Trim().Equals("WSB", StringComparison.OrdinalIgnoreCase) ||
+            audioPackageCodes.Contains((i.ProductCode ?? "").Trim()) ||
             (i.Description ?? "").ToLower().Contains("speaker") ||
-            (i.Description ?? "").ToLower().Contains("pa system") ||
-            (i.Description ?? "").ToLower().Contains("audio"));
+            (i.Description ?? "").ToLower().Contains("ceiling speaker") ||
+            (i.Description ?? "").ToLower().Contains("pa system"));
 
         if (hasSpeakers)
         {
@@ -481,18 +488,33 @@ public sealed partial class SmartEquipmentRecommendationService
             : roomRule.BaselineLaborCode.Trim().ToUpperInvariant();
         var baselineDescription = ResolveLaborDescription(baselineCode);
 
-        AddLabor(result, baselineDescription, "Room package baseline labor: setup.", productCode: baselineCode, task: "Setup", minutes: 30);
-        AddLabor(result, baselineDescription, "Room package baseline labor: test and connect.", productCode: baselineCode, task: "Test & Connect", minutes: 30);
-        AddLabor(result, baselineDescription, "Room package baseline labor: pack down.", productCode: baselineCode, task: "Packdown", minutes: 30);
+        var baseSetup = roomRule.BaselineSetupMinutes;
+        var baseTc = roomRule.BaselineTcMinutes;
+        var basePd = roomRule.BaselinePackdownMinutes;
 
-        if (hasSwitcher)
+        if (baseSetup > 0)
+            AddLabor(result, baselineDescription, "Room package baseline labor: setup.", productCode: baselineCode, task: "Setup", minutes: baseSetup);
+        if (baseTc > 0)
+            AddLabor(result, baselineDescription, "Room package baseline labor: test and connect.", productCode: baselineCode, task: "Test & Connect", minutes: baseTc);
+        if (basePd > 0)
+            AddLabor(result, baselineDescription, "Room package baseline labor: pack down.", productCode: baselineCode, task: "Packdown", minutes: basePd);
+
+        if (hasSwitcher && roomRule.SupportsOperatorEscalation)
         {
+            // V1HD: +1hr AVTECH Setup
             AddLabor(result, baselineDescription, "V1HD switcher requires additional setup.", productCode: baselineCode, task: "Setup", minutes: 60);
-            AddLabor(result, baselineDescription, "V1HD switcher requires additional test and connect.", productCode: baselineCode, task: "Test & Connect", minutes: 30);
+
+            // V1HD: AVTECH T&C is replaced by VXTECH Rehearsal 30mins
+            // Remove the baseline T&C since it becomes a VXTECH rehearsal
+            var baselineTc = result.LaborItems.FirstOrDefault(l =>
+                string.Equals(l.ProductCode, baselineCode, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(l.Task, "Test & Connect", StringComparison.OrdinalIgnoreCase));
+            if (baselineTc != null)
+                result.LaborItems.Remove(baselineTc);
 
             var visionCode = string.IsNullOrWhiteSpace(roomRule.VisionSpecialistCode) ? "VXTECH" : roomRule.VisionSpecialistCode.Trim().ToUpperInvariant();
             var visionDesc = ResolveLaborDescription(visionCode);
-            AddLabor(result, visionDesc, "V1HD switcher requires specialist rehearsal.", productCode: visionCode, task: "Rehearsal", minutes: 30);
+            AddLabor(result, visionDesc, "V1HD switcher: AVTECH T&C replaced by VXTECH rehearsal.", productCode: visionCode, task: "Rehearsal", minutes: 30);
             AddLabor(result, visionDesc, "V1HD switcher requires specialist operation from show start to end.", productCode: visionCode, task: "Operate");
         }
 
@@ -514,39 +536,56 @@ public sealed partial class SmartEquipmentRecommendationService
             AddLabor(result, baselineDescription, "Lectern/microphone requires additional pack down.", productCode: baselineCode, task: "Packdown", minutes: 15);
         }
 
-        var threshold = roomRule.MicrophoneOperatorThreshold <= 0 ? 2 : roomRule.MicrophoneOperatorThreshold;
-        if (micCount > threshold)
+        // Wireless microphones: +15 mins setup & pack down per spec
+        if (micCount > 0)
         {
-            var audioCode = string.IsNullOrWhiteSpace(roomRule.AudioSpecialistCode) ? "AXTECH" : roomRule.AudioSpecialistCode.Trim().ToUpperInvariant();
-            var audioDesc = ResolveLaborDescription(audioCode);
-            AddLabor(result, audioDesc, "Multiple microphones require audio rehearsal support.", productCode: audioCode, task: "Rehearsal", minutes: 30);
-            AddLabor(result, audioDesc, "Multiple microphones require audio operator from show start to end.", productCode: audioCode, task: "Operate");
+            AddLabor(result, baselineDescription, "Wireless microphone(s) require additional setup.", productCode: baselineCode, task: "Setup", minutes: 15);
+            AddLabor(result, baselineDescription, "Wireless microphone(s) require additional pack down.", productCode: baselineCode, task: "Packdown", minutes: 15);
         }
 
-        var hasOperator = result.LaborItems.Any(l =>
-            string.Equals(l.Task, "Operate", StringComparison.OrdinalIgnoreCase));
-
-        if (!hasOperator && (context.IsContentHeavy || context.NumberOfPresentations > 1))
+        if (roomRule.SupportsOperatorEscalation)
         {
-            var visionCode = string.IsNullOrWhiteSpace(roomRule.VisionSpecialistCode) ? "VXTECH" : roomRule.VisionSpecialistCode.Trim().ToUpperInvariant();
-            var visionDesc = ResolveLaborDescription(visionCode);
-            AddLabor(result, visionDesc, "Multiple presenters or content-heavy event requires operator from show start to end.", productCode: visionCode, task: "Operate");
-        }
+            var threshold = roomRule.MicrophoneOperatorThreshold <= 0 ? 2 : roomRule.MicrophoneOperatorThreshold;
+            if (micCount > threshold)
+            {
+                // >2 mics: AVTECH T&C is replaced by AXTECH Rehearsal 30mins
+                var baselineTcForMics = result.LaborItems.FirstOrDefault(l =>
+                    string.Equals(l.ProductCode, baselineCode, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(l.Task, "Test & Connect", StringComparison.OrdinalIgnoreCase));
+                if (baselineTcForMics != null)
+                    result.LaborItems.Remove(baselineTcForMics);
 
-        if (context.NeedsHeavyStreaming || (context.NeedsStreaming && context.NeedsRecording))
-        {
-            if (!result.LaborItems.Any(l => l.ProductCode == "VXTECH" && string.Equals(l.Task, "Operate", StringComparison.OrdinalIgnoreCase)))
+                var audioCode = string.IsNullOrWhiteSpace(roomRule.AudioSpecialistCode) ? "AXTECH" : roomRule.AudioSpecialistCode.Trim().ToUpperInvariant();
+                var audioDesc = ResolveLaborDescription(audioCode);
+                AddLabor(result, audioDesc, "More than 2 microphones: AVTECH T&C replaced by AXTECH rehearsal.", productCode: audioCode, task: "Rehearsal", minutes: 30);
+                AddLabor(result, audioDesc, "More than 2 microphones require audio operator from show start to end.", productCode: audioCode, task: "Operate");
+            }
+
+            var hasOperator = result.LaborItems.Any(l =>
+                string.Equals(l.Task, "Operate", StringComparison.OrdinalIgnoreCase));
+
+            if (!hasOperator && (context.IsContentHeavy || context.NumberOfPresentations > 1))
             {
                 var visionCode = string.IsNullOrWhiteSpace(roomRule.VisionSpecialistCode) ? "VXTECH" : roomRule.VisionSpecialistCode.Trim().ToUpperInvariant();
                 var visionDesc = ResolveLaborDescription(visionCode);
-                AddLabor(result, visionDesc, "Streaming with recording requires specialist operator.", productCode: visionCode, task: "Operate");
+                AddLabor(result, visionDesc, "Multiple presenters or content-heavy event requires operator from show start to end.", productCode: visionCode, task: "Operate");
             }
-        }
-        else if (context.NeedsStreaming)
-        {
-            if (!result.LaborItems.Any(l => string.Equals(l.Task, "Operate", StringComparison.OrdinalIgnoreCase)))
+
+            if (context.NeedsHeavyStreaming || (context.NeedsStreaming && context.NeedsRecording))
             {
-                AddLabor(result, baselineDescription, "Live streaming requires operator support.", productCode: baselineCode, task: "Operate");
+                if (!result.LaborItems.Any(l => l.ProductCode == "VXTECH" && string.Equals(l.Task, "Operate", StringComparison.OrdinalIgnoreCase)))
+                {
+                    var visionCode = string.IsNullOrWhiteSpace(roomRule.VisionSpecialistCode) ? "VXTECH" : roomRule.VisionSpecialistCode.Trim().ToUpperInvariant();
+                    var visionDesc = ResolveLaborDescription(visionCode);
+                    AddLabor(result, visionDesc, "Streaming with recording requires specialist operator.", productCode: visionCode, task: "Operate");
+                }
+            }
+            else if (context.NeedsStreaming)
+            {
+                if (!result.LaborItems.Any(l => string.Equals(l.Task, "Operate", StringComparison.OrdinalIgnoreCase)))
+                {
+                    AddLabor(result, baselineDescription, "Live streaming requires operator support.", productCode: baselineCode, task: "Operate");
+                }
             }
         }
 

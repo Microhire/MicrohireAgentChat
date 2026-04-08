@@ -52,7 +52,10 @@
     },
     "Elevate": {
       "aiFolder": "WSBELEV",
-      "baseEquipment": ["Inbuilt projector and screen", "Inbuilt speakers"]
+      "baseEquipment": ["Inbuilt projector and screen", "Inbuilt speakers"],
+      "vision": ["ELEVPROJ"],
+      "audio": ["ELEVCSS", "ELEVSCSS"],
+      "av": ["ELEVAVP", "ELEVSAVP"]
     },
     "Thrive Boardroom": {
       "aiFolder": "WSBTHRV",
