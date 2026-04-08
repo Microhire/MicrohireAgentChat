@@ -3,11 +3,12 @@
     "Westin Ballroom": {
       "aiFolder": "WSBBALL",
       "independentItems": ["WBIND"],
-      "baseEquipment": ["Inbuilt projector", "Inbuilt screen", "Inbuilt speakers"],
+      "baseEquipment": [],
       "audio": ["WBFBCSS", "WBSBCSS"],
       "vision": ["WBDPROJ", "WBSPROJ", "WBSNPROJ", "WBSSPROJ"],
       "av": ["WBAVP", "WBSAVP"],
       "projectorPlacementOptions": [
+        { "id": "none", "label": "No projector needed" },
         { "id": "A", "label": "Area A — front left zone" },
         { "id": "B", "label": "Area B — front centre-left" },
         { "id": "C", "label": "Area C — centre / ceiling mount zone" },
@@ -22,32 +23,29 @@
     "Westin Ballroom 1": {
       "aiFolder": "WSBBALL",
       "independentItems": ["WBIND"],
-      "baseEquipment": ["Inbuilt projector", "Inbuilt screen", "Inbuilt speakers"],
-      "audio": ["WBFBCSS", "WBSBCSS"],
-      "vision": ["WBDPROJ", "WBSPROJ", "WBSNPROJ", "WBSSPROJ"],
-      "av": ["WBAVP", "WBSAVP"],
+      "baseEquipment": [],
+      "audio": ["WBSBCSS"],
+      "vision": ["WBSPROJ", "WBSNPROJ", "WBSSPROJ"],
+      "av": ["WBSAVP"],
       "projectorPlacementOptions": [
+        { "id": "none", "label": "No projector needed" },
         { "id": "E", "label": "Area E — stage / front centre (Ballroom 1)" },
         { "id": "D", "label": "Area D — mid room (Ballroom 1)" },
-        { "id": "C", "label": "Area C — rear / ceiling zone (Ballroom 1)" },
-        { "id": "E+D", "label": "Dual projection — E + D (Ballroom 1)" },
-        { "id": "D+C", "label": "Dual projection — D + C (Ballroom 1 depth coverage)" }
+        { "id": "C", "label": "Area C — rear / ceiling zone (Ballroom 1)" }
       ]
     },
     "Westin Ballroom 2": {
       "aiFolder": "WSBBALL",
       "independentItems": ["WBIND"],
-      "baseEquipment": ["Inbuilt projector", "Inbuilt screen", "Inbuilt speakers"],
-      "audio": ["WBFBCSS", "WBSBCSS"],
-      "vision": ["WBDPROJ", "WBSPROJ", "WBSNPROJ", "WBSSPROJ"],
-      "av": ["WBAVP", "WBSAVP"],
+      "baseEquipment": [],
+      "audio": ["WBSBCSS"],
+      "vision": ["WBSPROJ", "WBSNPROJ", "WBSSPROJ"],
+      "av": ["WBSAVP"],
       "projectorPlacementOptions": [
+        { "id": "none", "label": "No projector needed" },
         { "id": "A", "label": "Area A — front left (Ballroom 2)" },
         { "id": "F", "label": "Area F — front right (Ballroom 2)" },
-        { "id": "B", "label": "Area B — centre front (Ballroom 2)" },
-        { "id": "A+F", "label": "Dual projection — A + F (Ballroom 2 full front span)" },
-        { "id": "A+B", "label": "Dual projection — A + B (left + centre)" },
-        { "id": "B+F", "label": "Dual projection — B + F (centre + right)" }
+        { "id": "B", "label": "Area B — centre front (Ballroom 2)" }
       ]
     },
     "Elevate": {

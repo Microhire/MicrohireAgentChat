@@ -659,6 +659,46 @@ public sealed partial class SmartEquipmentRecommendationService
                 return new List<RecommendedEquipmentItem>();
         }
 
+        // Westin Ballroom vision package routing based on projector placement area:
+        // - Area A -> WBSSPROJ (south, 10k lumen)
+        // - Area D -> WBSNPROJ (north, 12k lumen)
+        // - Area B, C, E, or F -> WBSPROJ (standard single, 6k lumen)
+        // - Dual (2+ areas) -> WBDPROJ (dual, 2x 6k lumen)
+        // - "none" -> no vision package
+        if ((equipmentType.Contains("projector", StringComparison.OrdinalIgnoreCase) ||
+             equipmentType.Contains("vision", StringComparison.OrdinalIgnoreCase) ||
+             equipmentType.Contains("screen", StringComparison.OrdinalIgnoreCase)) &&
+            roomNorm.Contains("ballroom"))
+        {
+            var areas = context.ProjectorAreas?.Where(a => !string.IsNullOrWhiteSpace(a)).ToList() ?? new List<string>();
+
+            // "none" means user declined projection
+            if (areas.Any(a => string.Equals(a.Trim(), "none", StringComparison.OrdinalIgnoreCase)))
+                return new List<RecommendedEquipmentItem>();
+
+            if (areas.Count >= 2)
+            {
+                packageCodes = packageCodes.Where(c => string.Equals(c, "WBDPROJ", StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+            else if (areas.Count == 1)
+            {
+                var area = areas[0].Trim().ToUpperInvariant();
+                var targetCode = area switch
+                {
+                    "A" => "WBSSPROJ",
+                    "D" => "WBSNPROJ",
+                    "B" or "C" or "E" or "F" => "WBSPROJ",
+                    _ => null
+                };
+                if (targetCode != null)
+                    packageCodes = packageCodes.Where(c => string.Equals(c, targetCode, StringComparison.OrdinalIgnoreCase)).ToList();
+            }
+            // If no areas specified, fall through to the generic heuristic below (line ~740)
+
+            if (packageCodes.Count == 0)
+                return new List<RecommendedEquipmentItem>();
+        }
+
         // Elevate audio package routing:
         // - Full Elevate -> ELEVCSS (8 speakers)
         // - Elevate 1/2 -> ELEVSCSS (4 speakers)

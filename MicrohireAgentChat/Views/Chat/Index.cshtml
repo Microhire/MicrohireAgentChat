@@ -1156,10 +1156,20 @@
             const form = forms.length ? forms[forms.length - 1] : null;
             if (!form) return '';
             const combinedPS = form.querySelector('[data-ba-projscreen]');
-            const bp = combinedPS ? (combinedPS.checked ? 'yes' : 'no') : (form.querySelector('[data-ba-proj]')?.checked ? 'yes' : 'no');
-            const bs = combinedPS ? (combinedPS.checked ? 'yes' : 'no') : (form.querySelector('[data-ba-screen]')?.checked ? 'yes' : 'no');
-            const bsp = form.querySelector('[data-ba-spk]')?.checked ? 'yes' : 'no';
             const pl = (form.querySelector('[data-ba-placement]')?.value || '').trim();
+            // Ballroom mode: no checkboxes exist — derive flags from placement selection
+            const isBallroomMode = !combinedPS && !form.querySelector('[data-ba-proj]') && !form.querySelector('[data-ba-spk]') && form.querySelector('[data-ba-placement]');
+            let bp, bs, bsp;
+            if (isBallroomMode) {
+              const noProj = pl.toLowerCase() === 'none';
+              bp = noProj ? 'no' : 'yes';
+              bs = noProj ? 'no' : 'yes';
+              bsp = 'yes'; // ballroom always has speakers available
+            } else {
+              bp = combinedPS ? (combinedPS.checked ? 'yes' : 'no') : (form.querySelector('[data-ba-proj]')?.checked ? 'yes' : 'no');
+              bs = combinedPS ? (combinedPS.checked ? 'yes' : 'no') : (form.querySelector('[data-ba-screen]')?.checked ? 'yes' : 'no');
+              bsp = form.querySelector('[data-ba-spk]')?.checked ? 'yes' : 'no';
+            }
             const pr = (form.querySelector('[data-ba-presenters]')?.value || '0').trim();
             const fc = form.querySelector('[data-ba-flip]:checked')?.value || 'no';
             const lapChecked = form.querySelector('[data-ba-laptop-mode]:checked');

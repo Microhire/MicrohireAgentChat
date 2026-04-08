@@ -2299,6 +2299,24 @@ public sealed class ChatController : Controller
                 var draftProjectorAreas = ParseProjectorAreas(HttpContext.Session.GetString("Draft:ProjectorAreas"));
                 if (draftProjectorAreas.Count == 0)
                     draftProjectorAreas = ParseProjectorAreas(HttpContext.Session.GetString("Draft:ProjectorArea"));
+                // Recovery: Draft:ProjectorAreas may be lost between requests; re-parse from placement choice
+                if (draftProjectorAreas.Count == 0
+                    && string.Equals(HttpContext.Session.GetString("Draft:BaseAvSubmitted"), "1", StringComparison.Ordinal))
+                {
+                    var pc = HttpContext.Session.GetString("Draft:ProjectorPlacementChoice");
+                    if (!string.IsNullOrEmpty(pc) && !string.Equals(pc, "none", StringComparison.OrdinalIgnoreCase))
+                    {
+                        var roomForParse = HttpContext.Session.GetString("Draft:RoomName");
+                        draftProjectorAreas = ParseProjectorPlacementToAllowedAreas(pc, roomForParse);
+                        if (draftProjectorAreas.Count > 0)
+                        {
+                            HttpContext.Session.SetString("Draft:ProjectorAreas", string.Join(",", draftProjectorAreas));
+                            HttpContext.Session.SetString("Draft:ProjectorArea", draftProjectorAreas[0]);
+                            _logger.LogInformation("[PROJECTOR_AREA_RECOVERY] Recovered areas [{Areas}] from PlacementChoice={Choice} (HandleSmartEquipment)",
+                                string.Join(",", draftProjectorAreas), pc);
+                        }
+                    }
+                }
                 var summaryReqJson = HttpContext.Session.GetString("Draft:SummaryEquipmentRequests") ?? string.Empty;
                 var selectedEquipmentJsonForArea = HttpContext.Session.GetString("Draft:SelectedEquipment") ?? string.Empty;
 
@@ -2833,6 +2851,23 @@ public sealed class ChatController : Controller
         var draftProjectorAreas = ParseProjectorAreas(HttpContext.Session.GetString("Draft:ProjectorAreas"));
         if (draftProjectorAreas.Count == 0)
             draftProjectorAreas = ParseProjectorAreas(HttpContext.Session.GetString("Draft:ProjectorArea"));
+        // Recovery: Draft:ProjectorAreas may be lost between requests; re-parse from placement choice
+        if (draftProjectorAreas.Count == 0
+            && string.Equals(HttpContext.Session.GetString("Draft:BaseAvSubmitted"), "1", StringComparison.Ordinal))
+        {
+            var pc = HttpContext.Session.GetString("Draft:ProjectorPlacementChoice");
+            if (!string.IsNullOrEmpty(pc) && !string.Equals(pc, "none", StringComparison.OrdinalIgnoreCase))
+            {
+                draftProjectorAreas = ParseProjectorPlacementToAllowedAreas(pc, draftRoomName);
+                if (draftProjectorAreas.Count > 0)
+                {
+                    HttpContext.Session.SetString("Draft:ProjectorAreas", string.Join(",", draftProjectorAreas));
+                    HttpContext.Session.SetString("Draft:ProjectorArea", draftProjectorAreas[0]);
+                    _logger.LogInformation("[PROJECTOR_AREA_RECOVERY] Recovered areas [{Areas}] from PlacementChoice={Choice} (FollowUpAv)",
+                        string.Join(",", draftProjectorAreas), pc);
+                }
+            }
+        }
         var summaryReqJson = HttpContext.Session.GetString("Draft:SummaryEquipmentRequests") ?? string.Empty;
         var selectedEquipmentJsonForArea = HttpContext.Session.GetString("Draft:SelectedEquipment") ?? string.Empty;
 
@@ -2877,14 +2912,18 @@ public sealed class ChatController : Controller
             HttpContext.Session.GetString(ProjectorAreaCapturedKey) == "1" &&
             HttpContext.Session.GetString(ProjectorAreaThreadIdKey) == threadId;
 
-        if (!promptAlreadyShown && !areaAlreadyCapturedInSession)
+        // Base AV wizard submission is authoritative — skip the stale-session guard entirely.
+        var baseAvSubmittedForQuote = string.Equals(HttpContext.Session.GetString("Draft:BaseAvSubmitted"), "1", StringComparison.Ordinal)
+            && validSelectedAreas.Count > 0;
+
+        if (!baseAvSubmittedForQuote && !promptAlreadyShown && !areaAlreadyCapturedInSession)
         {
             SyncProjectorPromptMarkers(msgList, threadId);
             promptAlreadyShown = HttpContext.Session.GetString(ProjectorPromptShownKey) == "1" &&
                                 HttpContext.Session.GetString(ProjectorPromptThreadIdKey) == threadId;
         }
 
-        if (!promptAlreadyShown && !areaAlreadyCapturedInSession)
+        if (!baseAvSubmittedForQuote && !promptAlreadyShown && !areaAlreadyCapturedInSession)
             validSelectedAreas.Clear();
 
         var allowSingleBaseAvFullBallroomFv = isWestinBallroomFamily
@@ -4780,6 +4819,15 @@ View Signed Quote
         HttpContext.Session.SetString("Draft:CombinedProjectorScreen", hasCombinedPS ? "1" : "0");
 
         HttpContext.Session.SetString("Draft:ProjectorPlacementChoice", s.ProjectorPlacement);
+
+        // Ballroom: when placement is "none", user declined projection — override projector/screen flags.
+        if (string.Equals(s.ProjectorPlacement?.Trim(), "none", StringComparison.OrdinalIgnoreCase)
+            && IsDraftWestinBallroomFamily(venue, room))
+        {
+            HttpContext.Session.SetString("Draft:BuiltInProjector", "no");
+            HttpContext.Session.SetString("Draft:BuiltInScreen", "no");
+        }
+
         HttpContext.Session.SetString("Draft:PresenterCount", s.Presenters.ToString(CultureInfo.InvariantCulture));
         HttpContext.Session.SetString("Draft:SpeakerCount", "0");
         HttpContext.Session.SetString("Draft:Flipchart", s.Flipchart);
@@ -4798,14 +4846,25 @@ View Signed Quote
 
         var roomForPlacement = HttpContext.Session.GetString("Draft:RoomName");
         var placementAreas = ParseProjectorPlacementToAllowedAreas(s.ProjectorPlacement, roomForPlacement);
+        var threadId = HttpContext.Session.GetString("AgentThreadId") ?? "";
         if (placementAreas.Count > 0)
         {
             HttpContext.Session.SetString("Draft:ProjectorAreas", string.Join(",", placementAreas));
             HttpContext.Session.SetString("Draft:ProjectorArea", placementAreas[0]);
+            // Mark projector area as captured so stale-session guards in both
+            // AgentToolHandlerService and TryFollowUpAvQuotePipelineAsync trust these values.
+            HttpContext.Session.SetString(ProjectorAreaCapturedKey, "1");
+            HttpContext.Session.SetString(ProjectorAreaThreadIdKey, threadId);
+            HttpContext.Session.SetString(ProjectorPromptShownKey, "1");
+            HttpContext.Session.SetString(ProjectorPromptThreadIdKey, threadId);
         }
         else if (!string.IsNullOrWhiteSpace(s.ProjectorPlacement))
         {
             HttpContext.Session.SetString("Draft:ProjectorArea", s.ProjectorPlacement.Trim());
+            HttpContext.Session.SetString(ProjectorAreaCapturedKey, "1");
+            HttpContext.Session.SetString(ProjectorAreaThreadIdKey, threadId);
+            HttpContext.Session.SetString(ProjectorPromptShownKey, "1");
+            HttpContext.Session.SetString(ProjectorPromptThreadIdKey, threadId);
         }
 
         var mode = (s.LaptopMode ?? "").ToLowerInvariant();
@@ -5487,6 +5546,7 @@ View Signed Quote
                 roomName = room,
                 baseEquipment,
                 showProjectorPlacement = showPlacement,
+                ballroomMode = showPlacement,
                 floorPlanUrl,
                 projectorPlacement = HttpContext.Session.GetString("Draft:ProjectorPlacementChoice") ?? "",
                 placementOptions = placementFromJson ?? GetProjectorPlacementOptionsFallback(room),

@@ -791,6 +791,7 @@ else
                                             var biProjChecked = string.Equals(biProjVal, "yes", StringComparison.OrdinalIgnoreCase);
                                             var biScreenChecked = string.Equals(biScreenVal, "yes", StringComparison.OrdinalIgnoreCase);
                                             var biSpkChecked = string.Equals(biSpkVal, "yes", StringComparison.OrdinalIgnoreCase);
+                                            var isBallroomMode = uiEl.TryGetProperty("ballroomMode", out var bmEl) && bmEl.ValueKind == JsonValueKind.True;
                                             var baseEquipList = new List<string>();
                                             if (uiEl.TryGetProperty("baseEquipment", out var beEl) && beEl.ValueKind == JsonValueKind.Array)
                                             {
@@ -802,7 +803,7 @@ else
                                                         baseEquipList.Add(bl.Trim());
                                                 }
                                             }
-                                            if (baseEquipList.Count == 0)
+                                            if (baseEquipList.Count == 0 && !isBallroomMode)
                                             {
                                                 baseEquipList.Add("Inbuilt projector");
                                                 baseEquipList.Add("Inbuilt screen");
@@ -815,50 +816,26 @@ else
                                                 }
                                                 <div class="isla-form-title">@title</div>
                                                 <div class="isla-base-av-top-row">
-                                                    <div class="isla-base-av-checks">
-                                                        @for (var bi = 0; bi < baseEquipList.Count; bi++)
-                                                        {
-                                                            var label = baseEquipList[bi];
-                                                            var labelLower = label.ToLowerInvariant();
-                                                            var dis = baseAvSubmitted ? "disabled" : null;
-                                                            var hasProj = labelLower.Contains("projector");
-                                                            var hasScreen = labelLower.Contains("screen");
-                                                            var hasSpk = labelLower.Contains("speaker");
-                                                            if (hasProj && hasScreen)
-                                                            {
-                                                                var chk = (biProjChecked && biScreenChecked) ? "checked" : null;
-                                                                <label class="isla-form-checkbox"><input type="checkbox" data-ba-projscreen @chk @dis /> @label</label>
-                                                            }
-                                                            else if (hasProj)
-                                                            {
-                                                                <label class="isla-form-checkbox"><input type="checkbox" data-ba-proj @(biProjChecked ? "checked" : null) @dis /> @label</label>
-                                                            }
-                                                            else if (hasScreen)
-                                                            {
-                                                                <label class="isla-form-checkbox"><input type="checkbox" data-ba-screen @(biScreenChecked ? "checked" : null) @dis /> @label</label>
-                                                            }
-                                                            else if (hasSpk)
-                                                            {
-                                                                <label class="isla-form-checkbox"><input type="checkbox" data-ba-spk @(biSpkChecked ? "checked" : null) @dis /> @label</label>
-                                                            }
-                                                            else
-                                                            {
-                                                                <label class="isla-form-checkbox"><input type="checkbox" data-ba-spk @(biSpkChecked ? "checked" : null) @dis /> @label</label>
-                                                            }
-                                                        }
-                                                    </div>
-                                                    @if (showPl)
+                                                    @if (isBallroomMode)
                                                     {
-                                                        <div class="isla-form-field isla-base-av-placement" data-ba-pl-wrap>
+                                                        @* Ballroom: show floor plan inline with projector placement dropdown — no checkboxes *@
+                                                        <div class="isla-base-av-checks">
                                                             @if (!string.IsNullOrWhiteSpace(floorPlanUrl))
                                                             {
-                                                                <button type="button" class="isla-floorplan-open" data-ba-floorplan-open data-floorplan-src="@floorPlanUrl" aria-haspopup="dialog" @(baseAvSubmitted ? "disabled" : null)>View floor plan</button>
+                                                                <div class="chat-inline-image" style="margin-bottom:.75rem">
+                                                                    <div class="chat-inline-image-frame">
+                                                                        <img src="@floorPlanUrl" alt="Westin Ballroom floor plan — projector placement areas" loading="lazy" />
+                                                                    </div>
+                                                                </div>
                                                             }
+                                                            <p style="font-size:.9rem;color:#4b5563;margin:0 0 .5rem 0">Select a projector placement area from the floor plan, or choose "No projector needed" if you only require audio.</p>
+                                                        </div>
+                                                        <div class="isla-form-field isla-base-av-placement" data-ba-pl-wrap>
                                                             <label class="isla-form-field-label">Projector placement</label>
                                                             <select data-ba-placement @(baseAvSubmitted ? "disabled" : null)>
-                                                                @if (uiEl.TryGetProperty("placementOptions", out var plOpts) && plOpts.ValueKind == JsonValueKind.Array)
+                                                                @if (uiEl.TryGetProperty("placementOptions", out var plOptsBr) && plOptsBr.ValueKind == JsonValueKind.Array)
                                                                 {
-                                                                    foreach (var o in plOpts.EnumerateArray())
+                                                                    foreach (var o in plOptsBr.EnumerateArray())
                                                                     {
                                                                         var oid = o.TryGetProperty("id", out var ido) ? ido.GetString() : "";
                                                                         var olb = o.TryGetProperty("label", out var lbo) ? lbo.GetString() : oid;
@@ -875,6 +852,71 @@ else
                                                                 }
                                                             </select>
                                                         </div>
+                                                    }
+                                                    else
+                                                    {
+                                                        @* Non-ballroom: standard checkboxes for base equipment *@
+                                                        <div class="isla-base-av-checks">
+                                                            @for (var bi = 0; bi < baseEquipList.Count; bi++)
+                                                            {
+                                                                var label = baseEquipList[bi];
+                                                                var labelLower = label.ToLowerInvariant();
+                                                                var dis = baseAvSubmitted ? "disabled" : null;
+                                                                var hasProj = labelLower.Contains("projector");
+                                                                var hasScreen = labelLower.Contains("screen");
+                                                                var hasSpk = labelLower.Contains("speaker");
+                                                                if (hasProj && hasScreen)
+                                                                {
+                                                                    var chk = (biProjChecked && biScreenChecked) ? "checked" : null;
+                                                                    <label class="isla-form-checkbox"><input type="checkbox" data-ba-projscreen @chk @dis /> @label</label>
+                                                                }
+                                                                else if (hasProj)
+                                                                {
+                                                                    <label class="isla-form-checkbox"><input type="checkbox" data-ba-proj @(biProjChecked ? "checked" : null) @dis /> @label</label>
+                                                                }
+                                                                else if (hasScreen)
+                                                                {
+                                                                    <label class="isla-form-checkbox"><input type="checkbox" data-ba-screen @(biScreenChecked ? "checked" : null) @dis /> @label</label>
+                                                                }
+                                                                else if (hasSpk)
+                                                                {
+                                                                    <label class="isla-form-checkbox"><input type="checkbox" data-ba-spk @(biSpkChecked ? "checked" : null) @dis /> @label</label>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <label class="isla-form-checkbox"><input type="checkbox" data-ba-spk @(biSpkChecked ? "checked" : null) @dis /> @label</label>
+                                                                }
+                                                            }
+                                                        </div>
+                                                        @if (showPl)
+                                                        {
+                                                            <div class="isla-form-field isla-base-av-placement" data-ba-pl-wrap>
+                                                                @if (!string.IsNullOrWhiteSpace(floorPlanUrl))
+                                                                {
+                                                                    <button type="button" class="isla-floorplan-open" data-ba-floorplan-open data-floorplan-src="@floorPlanUrl" aria-haspopup="dialog" @(baseAvSubmitted ? "disabled" : null)>View floor plan</button>
+                                                                }
+                                                                <label class="isla-form-field-label">Projector placement</label>
+                                                                <select data-ba-placement @(baseAvSubmitted ? "disabled" : null)>
+                                                                    @if (uiEl.TryGetProperty("placementOptions", out var plOpts) && plOpts.ValueKind == JsonValueKind.Array)
+                                                                    {
+                                                                        foreach (var o in plOpts.EnumerateArray())
+                                                                        {
+                                                                            var oid = o.TryGetProperty("id", out var ido) ? ido.GetString() : "";
+                                                                            var olb = o.TryGetProperty("label", out var lbo) ? lbo.GetString() : oid;
+                                                                            var sel = string.Equals(oid, placementCur, StringComparison.Ordinal);
+                                                                            if (sel)
+                                                                            {
+                                                                                <option value="@oid" selected>@olb</option>
+                                                                            }
+                                                                            else
+                                                                            {
+                                                                                <option value="@oid">@olb</option>
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                </select>
+                                                            </div>
+                                                        }
                                                     }
                                                 </div>
                                                 <div class="isla-form-field isla-base-av-presenters"><label class="isla-form-question">Number of presenters</label><input type="number" min="0" max="99" step="1" value="@presenters" data-ba-presenters aria-label="Number of presenters" @(baseAvSubmitted ? "disabled" : null) /></div>
