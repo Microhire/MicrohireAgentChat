@@ -3,7 +3,14 @@
     {
       "roomKey": "ballroom",
       "roomContains": ["ballroom"],
-      "packageCodes": ["WBDPROJ", "WBSPROJ", "WBSNPROJ", "WBSSPROJ", "WBFBCSS", "WBSBCSS"],
+      "packageCodes": [
+        "WBDPROJ",
+        "WBSPROJ",
+        "WBSNPROJ",
+        "WBSSPROJ",
+        "WBFBCSS",
+        "WBSBCSS"
+      ],
       "baselineLaborCode": "AVTECH",
       "visionSpecialistCode": "VXTECH",
       "audioSpecialistCode": "AXTECH",
@@ -12,7 +19,13 @@
     {
       "roomKey": "elevate",
       "roomContains": ["elevate"],
-      "packageCodes": ["ELEVPROJ", "ELEVAVP", "ELEVSAVP", "ELEVCSS", "ELEVSCSS"],
+      "packageCodes": [
+        "ELEVPROJ",
+        "ELEVAVP",
+        "ELEVSAVP",
+        "ELEVCSS",
+        "ELEVSCSS"
+      ],
       "baselineLaborCode": "AVTECH",
       "visionSpecialistCode": "VXTECH",
       "audioSpecialistCode": "AXTECH",
@@ -26,8 +39,8 @@
       "visionSpecialistCode": "VXTECH",
       "audioSpecialistCode": "AXTECH",
       "microphoneOperatorThreshold": 2,
-      "baselineSetupMinutes": 15,
-      "baselineTcMinutes": 15,
+      "baselineSetupMinutes": 30,
+      "baselineTcMinutes": 30,
       "baselinePackdownMinutes": 30,
       "supportsOperatorEscalation": false
     }
