@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microhire Quote - aa</title>
+    <style>
+        :root {
+            --microhire-red: #ca1a20;
+            --microhire-red-dark: #a8151a;
+            --microhire-red-darker: #7f1d1d;
+            --microhire-accent: #ca1a20;
+            --text-dark: #1a1a1a;
+            --text-gray: #4a4a4a;
+            --text-light: #6b6b6b;
+            --bg-light: #f5f5f5;
+            --white: #ffffff;
+            /* System stack avoids Google Fonts + NetworkIdle hangs in headless PDF on Azure */
+            --font-body: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            --font-heading: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-body);
+            background: #2a2a2a;
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        .page-container { max-width: 850px; margin: 0 auto; padding: 20px; }
+
+        .page {
+            background: var(--white);
+            width: 100%;
+            min-height: 1100px;
+            margin-bottom: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Cover Page */
+        .cover-page { background: var(--microhire-red); display: flex; flex-direction: column; }
+        .cover-main { flex: 1; min-height: 900px; position: relative; padding: 40px; display: flex; flex-direction: column; }
+        .cover-shape-1 { position: absolute; top: 0; left: 0; width: 50%; height: 70%; background: var(--microhire-red-dark); clip-path: polygon(0 0, 100% 0, 50% 100%, 0 100%); }
+        .cover-shape-2 { position: absolute; top: 20%; right: 0; width: 55%; height: 80%; background: var(--microhire-red-darker); clip-path: polygon(40% 0, 100% 0, 100% 100%, 0 100%); }
+        .cover-logo { position: relative; z-index: 10; text-align: right; margin-bottom: auto; }
+        .cover-logo-text { font-family: var(--font-heading); font-weight: 800; font-size: 48px; color: var(--white); letter-spacing: 2px; }
+        .cover-logo-text span { color: var(--white); font-weight: 300; }
+        .cover-tagline { font-family: var(--font-heading); font-size: 11px; color: var(--white); letter-spacing: 4px; text-transform: uppercase; opacity: 0.9; }
+        .cover-title { position: relative; z-index: 10; margin-top: auto; padding-bottom: 40px; }
+        .cover-title h1 { font-family: var(--font-heading); font-weight: 300; font-size: clamp(32px, 5vw, 52px); color: var(--white); line-height: 1.2; }
+        .cover-footer { background: var(--white); padding: 30px 40px; display: flex; justify-content: space-between; align-items: flex-end; }
+        .cover-date { font-family: var(--font-heading); font-weight: 600; font-size: 18px; color: var(--microhire-red); }
+        .cover-ref { font-family: var(--font-heading); font-weight: 500; font-size: 14px; color: var(--microhire-red); margin-top: 5px; }
+        .cover-venue-logo { text-align: right; }
+        .venue-name { font-family: var(--font-heading); font-weight: 700; font-size: 20px; color: var(--text-dark); letter-spacing: 2px; }
+        .venue-location { font-family: var(--font-heading); font-size: 11px; color: var(--text-gray); letter-spacing: 3px; text-transform: uppercase; }
+
+        /* Overview Page */
+        .overview-page { padding: 0; display: flex; flex-direction: column; }
+        .page-header { padding: 35px 45px 25px; border-bottom: 3px solid var(--microhire-red); }
+        .page-section-title { font-family: var(--font-heading); font-weight: 700; font-size: 14px; color: var(--microhire-red-darker); letter-spacing: 1px; margin-bottom: 8px; }
+        .page-event-title { font-family: var(--font-heading); font-weight: 700; font-size: clamp(18px, 3vw, 24px); color: var(--microhire-red); display: flex; align-items: center; gap: 12px; }
+        .page-event-title::before { content: ''; width: 0; height: 0; border-top: 10px solid transparent; border-bottom: 10px solid transparent; border-left: 16px solid var(--microhire-red); }
+        .page-content { flex: 1; padding: 30px 45px; display: flex; flex-direction: column; }
+        .contact-block { margin-bottom: 25px; }
+        .contact-name { font-weight: 700; font-size: 15px; color: var(--text-dark); }
+        .contact-company { font-weight: 400; font-size: 14px; color: var(--text-dark); }
+        .contact-details { font-size: 13px; color: var(--text-gray); margin-top: 4px; }
+        .greeting { font-size: 14px; color: var(--text-dark); margin: 20px 0 15px; }
+        .intro-text { font-size: 13px; color: var(--text-gray); line-height: 1.7; text-align: justify; margin-bottom: 25px; }
+        .details-table { margin-bottom: 25px; }
+        .detail-row { display: flex; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .detail-row:last-child { border-bottom: none; }
+        .detail-label { font-family: var(--font-heading); font-weight: 600; font-size: 11px; color: var(--microhire-red); text-transform: uppercase; letter-spacing: 0.5px; width: 180px; flex-shrink: 0; }
+        .detail-value { font-size: 13px; color: var(--text-dark); }
+        .section-divider { height: 1px; background: linear-gradient(90deg, var(--microhire-red) 0%, transparent 100%); margin: 20px 0; opacity: 0.3; }
+        .manager-section { margin-bottom: 25px; }
+        .manager-section .detail-row { border-bottom: none; padding: 5px 0; }
+        .schedule-intro { font-size: 12px; font-style: italic; color: var(--text-gray); margin-bottom: 15px; }
+        .schedule-table { width: 100%; }
+        .schedule-row { display: flex; padding: 6px 0; }
+        .schedule-label { font-family: var(--font-heading); font-weight: 600; font-size: 11px; color: var(--microhire-red); text-transform: uppercase; width: 130px; flex-shrink: 0; }
+        .schedule-date { font-size: 13px; color: var(--text-dark); width: 220px; }
+        .schedule-time { font-size: 13px; color: var(--text-gray); }
+        .page-footer { padding: 20px 45px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #eee; margin-top: auto; }
+        .footer-logo { display: flex; align-items: center; gap: 8px; }
+        .footer-logo-icon { width: 40px; height: 40px; background: var(--microhire-red); border-radius: 50%; display: flex; align-items: center; justify-content: center; position: relative; }
+        .footer-logo-icon::after { content: 'M'; color: white; font-family: var(--font-heading); font-weight: 800; font-size: 16px; }
+        .footer-ref { font-size: 11px; color: var(--text-light); }
+        .footer-page-info { font-size: 11px; color: var(--text-light); }
+
+        /* Equipment Page */
+        .equipment-table { width: 100%; margin-bottom: 20px; }
+        .equipment-header { display: flex; padding: 12px 0; border-bottom: 2px solid var(--microhire-red); margin-bottom: 15px; }
+        .equipment-header-desc { font-family: var(--font-heading); font-weight: 600; font-size: 12px; color: var(--microhire-red); flex: 1; }
+        .equipment-header-qty { font-family: var(--font-heading); font-weight: 600; font-size: 12px; color: var(--microhire-red); width: 80px; text-align: center; }
+        .room-header { margin-bottom: 20px; }
+        .room-name { font-weight: 700; font-size: 14px; color: var(--text-dark); }
+        .room-times { font-style: italic; font-size: 12px; color: var(--text-gray); margin-top: 4px; }
+        .equipment-category-header { font-style: italic; font-weight: 700; font-size: 14px; color: var(--text-dark); margin: 20px 0 10px; }
+        .equipment-section { margin-bottom: 20px; }
+        .equipment-category { font-style: italic; font-weight: 600; font-size: 13px; color: var(--text-dark); margin-bottom: 8px; }
+        .equipment-subcategory { font-style: italic; text-decoration: underline; font-size: 13px; color: var(--text-dark); margin-bottom: 8px; }
+        .equipment-group-title { font-style: italic; font-size: 12px; color: var(--text-gray); margin-bottom: 5px; }
+        .equipment-row { display: flex; padding: 4px 0; align-items: center; }
+        .equipment-item { flex: 1; font-size: 13px; color: var(--text-dark); }
+        .equipment-item.main { font-weight: 600; }
+        .equipment-item.component { margin-left: 15px; font-style: italic; color: var(--text-gray); }
+        .equipment-qty { width: 80px; text-align: center; font-size: 13px; color: var(--text-dark); }
+        .equipment-note { font-style: italic; font-size: 13px; color: var(--text-dark); margin: 15px 0 15px 15px; }
+        .section-total { display: flex; justify-content: flex-end; padding: 15px 0; margin-top: 10px; border-top: 1px solid #eee; }
+        .section-total-label { font-family: var(--font-heading); font-weight: 600; font-size: 13px; color: var(--text-dark); margin-right: 30px; }
+        .section-total-amount { font-family: var(--font-heading); font-weight: 700; font-size: 14px; color: var(--text-dark); }
+
+        /* Labour/Technical Services Page */
+        .labour-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        .labour-table th { font-family: var(--font-heading); font-weight: 600; font-size: 11px; color: var(--microhire-red); text-transform: uppercase; text-align: left; padding: 10px 8px; border-bottom: 2px solid var(--microhire-red); }
+        .labour-table td { font-size: 12px; color: var(--text-dark); padding: 8px; border-bottom: 1px solid #eee; }
+        .labour-total { margin-top: 20px; }
+
+        /* Budget Summary Page */
+        .budget-table { max-width: 350px; margin-bottom: 30px; }
+        .budget-row { display: flex; justify-content: space-between; padding: 6px 0; }
+        .budget-label { font-size: 13px; color: var(--text-dark); }
+        .budget-value { font-size: 13px; color: var(--text-dark); text-align: right; }
+        .budget-divider .budget-value { color: var(--text-gray); }
+        .budget-total { font-weight: 700; }
+        .budget-total .budget-label, .budget-total .budget-value { font-size: 14px; }
+
+        .closing-text { font-size: 12px; color: var(--text-gray); line-height: 1.7; margin-bottom: 30px; }
+        .closing-text p { margin-bottom: 12px; }
+        .closing-text strong { color: var(--text-dark); }
+
+        .manager-signature { margin-top: 30px; }
+        .manager-name { font-family: var(--font-heading); font-weight: 700; font-size: 16px; color: var(--text-dark); margin-bottom: 5px; }
+        .manager-name span { font-weight: 400; font-size: 13px; margin-left: 10px; }
+        .manager-company { font-size: 13px; color: var(--text-dark); margin-bottom: 3px; }
+        .manager-address { font-size: 12px; color: var(--text-gray); margin-bottom: 10px; }
+        .manager-contact { font-size: 12px; color: var(--text-dark); line-height: 1.8; }
+        .manager-contact .label { color: var(--microhire-red); font-weight: 600; margin-right: 10px; }
+
+        /* Confirmation Page */
+        .confirmation-page .confirmation-text { font-size: 12px; color: var(--text-gray); line-height: 1.7; margin-bottom: 30px; }
+        .confirmation-page .confirmation-text p { margin-bottom: 12px; }
+        .confirmation-page .confirmation-text a { color: var(--microhire-red); }
+        .confirmation-details { margin-bottom: 30px; }
+        .payment-details { margin-bottom: 30px; padding-top: 20px; border-top: 1px solid #e0e0e0; }
+        .payment-title { font-family: var(--font-heading); font-weight: 700; font-size: 12px; color: var(--microhire-red); text-transform: uppercase; margin-bottom: 15px; }
+        .confirmation-row { display: flex; margin-bottom: 10px; }
+        .confirmation-label { font-family: var(--font-heading); font-weight: 600; font-size: 11px; color: var(--microhire-red); text-transform: uppercase; width: 150px; }
+        .confirmation-value { font-size: 13px; color: var(--text-dark); }
+        
+        .signature-section { margin-top: 30px; }
+        .signature-row { display: flex; gap: 30px; margin-bottom: 25px; }
+        .signature-field { flex: 1; }
+        .signature-field.full-width { flex: 1 1 100%; }
+        .signature-field label { font-family: var(--font-heading); font-weight: 600; font-size: 11px; color: var(--text-gray); text-transform: uppercase; display: block; margin-bottom: 8px; }
+        .signature-line { border-bottom: 1px solid var(--text-dark); height: 30px; }
+        .signature-box { height: 80px; border: 1px solid var(--text-dark); border-radius: 4px; }
+
+        @media print {
+            body { background: white; }
+            .page-container { padding: 0; }
+            .page { box-shadow: none; margin-bottom: 0; page-break-after: always; }
+            .page:last-child { page-break-after: avoid; }
+        }
+
+        @media (max-width: 600px) {
+            .page-container { padding: 10px; }
+            .cover-main { padding: 25px; }
+            .cover-footer { padding: 20px 25px; }
+            .page-header, .page-content, .page-footer { padding-left: 25px; padding-right: 25px; }
+            .detail-label, .schedule-label { width: 120px; }
+        }</style>
+</head>
+<body>
+    <div class="page-container">
+
+        <!-- PAGE 1: COVER -->
+        <div class="page cover-page">
+            <div class="cover-main">
+                <div class="cover-shape-1"></div>
+                <div class="cover-shape-2"></div>
+                
+                <div class="cover-logo">
+                    <div class="cover-logo-text"><span>M</span>icrohire.</div>
+                    <div class="cover-tagline">Events That Inspire</div>
+                </div>
+                
+                <div class="cover-title">
+                    <h1>aa</h1>
+                </div>
+            </div>
+            
+            <div class="cover-footer">
+                <div class="cover-info">
+                    <div class="cover-date">17 APRIL 2026</div>
+                    <div class="cover-ref">C1491600013 - 001</div>
+                </div>
+                <div class="cover-venue-logo">
+                    <div class="venue-name">WESTIN BRISBANE</div>
+                    <div class="venue-location">Brisbane</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE 2: OVERVIEW -->
+        <div class="page overview-page">
+            <div class="page-header">
+                <div class="page-section-title">OVERVIEW</div>
+                <div class="page-event-title">AA</div>
+            </div>
+            
+            <div class="page-content">
+                <div class="contact-block">
+                    <div class="contact-name">yape yape</div>
+                    <div class="contact-company">testorg intent24f3a</div>
+                    <div class="contact-details">
+                        brisbane                                          <br>
+                        123131
+                    </div>
+                </div>
+                
+                <div class="greeting">Dear yape,</div>
+                
+                <p class="intro-text">
+                    Thank you for the opportunity to present our audio-visual production services for your upcoming event at Westin Brisbane. We are pleased to provide our proposal in the following pages, based on the information we have received and our recommendations for a seamless and successful event. Our team are committed to achieving your event objectives and welcome the opportunity to discuss your requirements and any budget parameters in further detail. If you have any questions or need further information, please do not hesitate to contact me on the details below. Thank you again and we look forward to speaking to you soon.
+                </p>
+                
+                <div class="details-table">
+                    <div class="detail-row">
+                        <div class="detail-label">Location</div>
+                        <div class="detail-value">Westin Brisbane</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Address</div>
+                        <div class="detail-value">111 Mary Street, Brisbane City, Queensland 4000, Australia</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Room</div>
+                        <div class="detail-value">Thrive</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Date</div>
+                        <div class="detail-value">Friday 17 April 2026</div>
+                    </div>
+                </div>
+                
+                <div class="section-divider"></div>
+                
+                <div class="manager-section">
+                    <div class="detail-row">
+                        <div class="detail-label">Event Account Manager</div>
+                        <div class="detail-value">JEJ</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Mobile Number</div>
+                        <div class="detail-value">+61 420 838 716</div>
+                    </div>
+                    <div class="detail-row">
+                        <div class="detail-label">Email</div>
+                        <div class="detail-value">Doug.Miller@microhire.com</div>
+                    </div>
+                </div>
+                
+                <p class="schedule-intro">Please confirm the following dates and times are accurate:</p>
+                
+                <div class="schedule-table">
+                    <div class="schedule-row">
+                        <div class="schedule-label">Setup By</div>
+                        <div class="schedule-date">Friday 17 April 2026</div>
+                        <div class="schedule-time">Time: 07:00</div>
+                    </div>
+                    <div class="schedule-row">
+                        <div class="schedule-label">Rehearsal</div>
+                        <div class="schedule-date">Friday 17 April 2026</div>
+                        <div class="schedule-time">Time: 09:30</div>
+                    </div>
+                    <div class="schedule-row">
+                        <div class="schedule-label">Event Start</div>
+                        <div class="schedule-date">Friday 17 April 2026</div>
+                        <div class="schedule-time">Time: 10:00</div>
+                    </div>
+                    <div class="schedule-row">
+                        <div class="schedule-label">Event End</div>
+                        <div class="schedule-date">Friday 17 April 2026</div>
+                        <div class="schedule-time">Time: 16:00</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="page-footer">
+                <div class="footer-logo">
+                    <div class="footer-logo-icon"></div>
+                </div>
+                <div class="footer-ref">Ref No: C1491600013 - 001</div>
+                <div class="footer-page-info">Microhire | aa 2</div>
+            </div>
+        </div>
+
+        <!-- PAGE 3: EQUIPMENT & SERVICES -->
+        <div class="page overview-page">
+            <div class="page-header">
+                <div class="page-section-title">EQUIPMENT & SERVICES</div>
+                <div class="page-event-title">AA</div>
+            </div>
+            
+            <div class="page-content">
+                <div class="equipment-header">
+                    <div class="equipment-header-desc">Description</div>
+                    <div class="equipment-header-qty">Qty.</div>
+                </div>
+
+                <div class="room-header">
+                    <div class="room-name">Thrive</div>
+                </div>
+                
+                
+                    <div class="equipment-row">
+                        <div class="equipment-item ">Logitech Spotlight Wireless Presenter</div>
+                        <div class="equipment-qty">1</div>
+                    </div>
+
+                <div class="section-total">
+                    <div class="section-total-label"></div>
+                    <div class="section-total-amount">Rp71</div>
+                </div>
+
+            </div>
+            
+            <div class="page-footer">
+                <div class="footer-logo">
+                    <div class="footer-logo-icon"></div>
+                </div>
+                <div class="footer-ref">Ref No: C1491600013 - 001</div>
+                <div class="footer-page-info">Microhire | aa 2</div>
+            </div>
+        </div>
+
+        <!-- PAGE 4: TECHNICAL SERVICES -->
+        <div class="page overview-page">
+            <div class="page-header">
+                <div class="page-section-title">TECHNICAL SERVICES</div>
+                <div class="page-event-title">AA</div>
+            </div>
+            
+            <div class="page-content">
+                <table class="labour-table">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th>Task</th>
+                            <th>Qty</th>
+                            <th>Start Date/Time</th>
+                            <th>Finish</th>
+                            <th>Hrs</th>
+                            <th>Total ($)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        
+                    <tr>
+                        <td>AV Technician</td>
+                        <td>Setup</td>
+                        <td>1</td>
+                        <td>17 April 2026 07.00</td>
+                        <td>17 April 2026 08.00</td>
+                        <td>01:00</td>
+                        <td>Rp110</td>
+                    </tr>
+
+                    <tr>
+                        <td>AV Technician</td>
+                        <td>Operate</td>
+                        <td>1</td>
+                        <td>17 April 2026 10.00</td>
+                        <td>17 April 2026 16.00</td>
+                        <td>06:00</td>
+                        <td>Rp660</td>
+                    </tr>
+
+                    <tr>
+                        <td>AV Technician</td>
+                        <td>Pack Down</td>
+                        <td>1</td>
+                        <td>17 April 2026 16.00</td>
+                        <td>17 April 2026 17.00</td>
+                        <td>01:00</td>
+                        <td>Rp110</td>
+                    </tr>
+
+                    <tr>
+                        <td>AV Technician</td>
+                        <td>Rehearsal</td>
+                        <td>1</td>
+                        <td>17 April 2026 09.30</td>
+                        <td>17 April 2026 10.00</td>
+                        <td>00:30</td>
+                        <td>Rp55</td>
+                    </tr>
+
+                    </tbody>
+                </table>
+                
+                <div class="section-total labour-total">
+                    <div class="section-total-label">Labour Total</div>
+                    <div class="section-total-amount">Rp935</div>
+                </div>
+            </div>
+            
+            <div class="page-footer">
+                <div class="footer-logo">
+                    <div class="footer-logo-icon"></div>
+                </div>
+                <div class="footer-ref">Ref No: C1491600013 - 001</div>
+                <div class="footer-page-info">Microhire | aa 3</div>
+            </div>
+        </div>
+
+        <!-- PAGE 5: BUDGET SUMMARY -->
+        <div class="page overview-page">
+            <div class="page-header">
+                <div class="page-section-title">BUDGET SUMMARY</div>
+                <div class="page-event-title">AA</div>
+            </div>
+            
+            <div class="page-content">
+                <div class="budget-table">
+                    <div class="budget-row">
+                        <div class="budget-label">Rental Equipment</div>
+                        <div class="budget-value">Rp71</div>
+                    </div>
+                    <div class="budget-row">
+                        <div class="budget-label">Labour</div>
+                        <div class="budget-value">Rp935</div>
+                    </div>
+                    <div class="budget-row">
+                        <div class="budget-label">Service Charge</div>
+                        <div class="budget-value">Rp7</div>
+                    </div>
+                    <div class="budget-row budget-divider">
+                        <div class="budget-label"></div>
+                        <div class="budget-value">----------------------</div>
+                    </div>
+                    <div class="budget-row">
+                        <div class="budget-label">Sub Total (ex GST)</div>
+                        <div class="budget-value">Rp1.013</div>
+                    </div>
+                    <div class="budget-row">
+                        <div class="budget-label">GST</div>
+                        <div class="budget-value">Rp101</div>
+                    </div>
+                    <div class="budget-row budget-divider">
+                        <div class="budget-label"></div>
+                        <div class="budget-value">----------------------</div>
+                    </div>
+                    <div class="budget-row budget-total">
+                        <div class="budget-label">Total</div>
+                        <div class="budget-value">Rp1.114</div>
+                    </div>
+                </div>
+                
+                <div class="closing-text">
+                    <p>The team at Microhire look forward to working with you to make every aspect of your event a success. To ensure that your event receives the best possible equipment and technical personnel, please confirm that all details are correct including dates, timing and quantities. Note that our pricing is <strong>valid until FRI 8 MAY 2026</strong> and our resources are subject to availability at the time of booking.</p>
+                    <p>Please confirm your acceptance of the proposal and its inclusions by returning a signed copy of the Confirmation of Services page, so we can proceed with your requirements.</p>
+                    <p>However, if you wish to discuss any additions or updates regarding our proposal, please do not hesitate to contact me on the details below.</p>
+                    <p>We look forward to working with you on a seamless and successful event.</p>
+                </div>
+                
+                <div class="manager-signature">
+                    <div class="manager-name">JEJ <span>Event Staging Manager</span></div>
+                    <div class="manager-company"><strong>Microhire</strong> | Westin Brisbane</div>
+                    <div class="manager-address">Microhire @ 111 Mary St, Brisbane City QLD 4000</div>
+                    <div class="manager-contact">
+                        <span class="label">M</span> +61 420 838 716<br>
+                        <span class="label">T</span><br>
+                        <span class="label">E</span> Doug.Miller@microhire.com
+                    </div>
+                </div>
+            </div>
+            
+            <div class="page-footer">
+                <div class="footer-logo">
+                    <div class="footer-logo-icon"></div>
+                </div>
+                <div class="footer-ref">Ref No: C1491600013 - 001</div>
+                <div class="footer-page-info">Microhire | aa 4</div>
+            </div>
+        </div>
+
+        <!-- PAGE 6: CONFIRMATION OF SERVICES -->
+        <div class="page overview-page confirmation-page">
+            <div class="page-header">
+                <div class="page-section-title">CONFIRMATION OF SERVICES</div>
+                <div class="page-event-title">AA</div>
+            </div>
+            
+            <div class="page-content">
+                <div class="confirmation-text">
+                    <p>On behalf of testorg intent24f3a, I accept this proposal and wish to proceed with the details that are confirmed to be correct.</p>
+                    <p>Upon request, any additions or amendments will be updated to this proposal accordingly.</p>
+                    <p>We understand that equipment and personnel are not allocated until this document is signed and returned.</p>
+                    <p>This proposal and billing details are subject to Microhire's terms and conditions.<br>
+                    <a href="https://www.microhire.com.au/terms-conditions/" target="_blank">https://www.microhire.com.au/terms-conditions/</a></p>
+                </div>
+                
+                <div class="confirmation-details">
+                    <div class="confirmation-row">
+                        <div class="confirmation-label">Reference Number</div>
+                        <div class="confirmation-value">C1491600013 - 001</div>
+                    </div>
+                    <div class="confirmation-row">
+                        <div class="confirmation-label">Total Quotation</div>
+                        <div class="confirmation-value">Rp1.114 inc GST</div>
+                    </div>
+                </div>
+
+                <div class="payment-details">
+                    <div class="payment-title">Payment Details</div>
+                    <div class="confirmation-row">
+                        <div class="confirmation-label">Account Name</div>
+                        <div class="confirmation-value">Microhire Pty Ltd</div>
+                    </div>
+                    <div class="confirmation-row">
+                        <div class="confirmation-label">BSB</div>
+                        <div class="confirmation-value">064-000</div>
+                    </div>
+                    <div class="confirmation-row">
+                        <div class="confirmation-label">Account Number</div>
+                        <div class="confirmation-value">1527 3541</div>
+                    </div>
+                    <div class="confirmation-row">
+                        <div class="confirmation-label">Reference</div>
+                        <div class="confirmation-value">C1491600013</div>
+                    </div>
+                </div>
+                
+                <div class="signature-section">
+                    <div class="signature-row">
+                        <div class="signature-field">
+                            <label>Full Name</label>
+                            <div class="signature-line" style="border-bottom:1px solid #333;height:30px;line-height:30px;font-size:13px;color:#222;padding-left:4px">yape yape</div>
+                        </div>
+                        <div class="signature-field">
+                            <label>Date</label>
+                            <div class="signature-line" style="border-bottom:1px solid #333;height:30px;line-height:30px;font-size:13px;color:#222;padding-left:4px">08 April 2026</div>
+                        </div>
+                    </div>
+                    <div class="signature-row">
+                        <div class="signature-field">
+                            <label>Title / Position</label>
+                            <div class="signature-line" style="border-bottom:1px solid #333;height:30px;line-height:30px;font-size:13px;color:#222;padding-left:4px"></div>
+                        </div>
+                        <div class="signature-field">
+                            <label>Purchase Order (if applicable)</label>
+                            <div class="signature-line" style="border-bottom:1px solid #333;height:30px;line-height:30px;font-size:13px;color:#222;padding-left:4px"></div>
+                        </div>
+                    </div>
+                    <div class="signature-row">
+                        <div class="signature-field full-width">
+                            <label>Signature</label>
+                            <div class="signature-line signature-box" style="border:1px solid #333;border-radius:4px;height:80px;padding:4px;display:flex;align-items:center"><img src="data:image/png;base64,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" style="max-width:100%;max-height:72px" alt="Signature" /></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="page-footer">
+                <div class="footer-logo">
+                    <div class="footer-logo-icon"></div>
+                </div>
+                <div class="footer-ref">Ref No: C1491600013 - 001</div>
+                <div class="footer-page-info">Microhire | aa 5</div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

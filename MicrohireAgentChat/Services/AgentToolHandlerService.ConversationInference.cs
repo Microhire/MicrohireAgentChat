@@ -677,8 +677,10 @@ public sealed partial class AgentToolHandlerService
         var taskNorm = (task ?? "").Trim().ToLowerInvariant();
         if (taskNorm.Contains("setup"))
             return coverage.Setup;
-        if (taskNorm.Contains("rehearsal") || taskNorm.Contains("test"))
+        if (taskNorm.Contains("rehearsal"))
             return coverage.Rehearsal;
+        if (taskNorm.Contains("test"))
+            return true; // "Test & Connect" is always included by default as a baseline task
         if (taskNorm.Contains("operate") || taskNorm.Contains("operator") || taskNorm.Contains("support"))
             return coverage.Operate;
         if (taskNorm.Contains("pack"))
