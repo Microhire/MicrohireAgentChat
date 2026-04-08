@@ -189,12 +189,23 @@ public partial class HtmlQuoteGenerationService
         {
             foreach (var item in section.Items)
             {
-                var itemClass = item.IsComponent ? "component" : "";
-                equipmentHtml.AppendLine($@"
+                // Hide individualised component items (italic) from the PDF
+                // var itemClass = item.IsComponent ? "component" : "";
+                // equipmentHtml.AppendLine($@"
+                //     <div class=""equipment-row"">
+                //         <div class=""equipment-item {itemClass}"">{HttpUtility.HtmlEncode(item.Description)}</div>
+                //         <div class=""equipment-qty"">{(item.Quantity > 0 ? item.Quantity : 1)}</div>
+                //     </div>");
+
+                // Only render non-component (non-individualised) items
+                if (!item.IsComponent)
+                {
+                    equipmentHtml.AppendLine($@"
                     <div class=""equipment-row"">
-                        <div class=""equipment-item {itemClass}"">{HttpUtility.HtmlEncode(item.Description)}</div>
+                        <div class=""equipment-item"">{HttpUtility.HtmlEncode(item.Description)}</div>
                         <div class=""equipment-qty"">{(item.Quantity > 0 ? item.Quantity : 1)}</div>
                     </div>");
+                }
             }
         }
 
