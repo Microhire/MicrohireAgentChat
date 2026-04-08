@@ -1433,9 +1433,6 @@ public sealed partial class AgentToolHandlerService
         else if (rehearsalOperatorDeclined)
         {
             session?.SetString("Draft:RehearsalOperator", "no");
-            // Remove any rehearsal labour items that the AI may have included,
-            // since the customer explicitly declined a rehearsal operator.
-            recommendations.LaborItems.RemoveAll(l => IsRehearsalLaborTask(l.Task));
         }
 
         var includesVideoConferenceUnit = requestedEquipmentTypes.Contains("video_conference_unit")
@@ -1862,6 +1859,13 @@ public sealed partial class AgentToolHandlerService
             recommendations.LaborItems = recommendations.LaborItems
                 .OrderBy(GetLaborTaskSortOrder)
                 .ThenBy(l => l.Description, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+        // Remove any rehearsal labour items when the customer explicitly declined a rehearsal operator.
+        else if (rehearsalOperatorDeclined)
+        {
+            recommendations.LaborItems = recommendations.LaborItems
+                .Where(l => !IsRehearsalLaborTask(l.Task))
                 .ToList();
         }
 
