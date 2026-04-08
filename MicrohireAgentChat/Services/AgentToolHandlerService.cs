@@ -1359,6 +1359,16 @@ public sealed partial class AgentToolHandlerService
                 .SelectMany(m => m.Parts ?? Enumerable.Empty<string>()));
         var mentionsZoomOrTeams = Regex.IsMatch(userConversationTextForEquipmentSignals, @"\b(zoom|teams|video\s+conference|video\s+conferencing|virtual\s+call)\b", RegexOptions.IgnoreCase);
         var mentionsProjectionNeed = ConversationIndicatesProjectionNeed(userConversationTextForEquipmentSignals);
+
+        // If the base AV wizard was submitted and the user explicitly chose "no projector" (placement = "none"
+        // and builtInProjector = "no"), do not infer projection need from conversation text — the conversation
+        // contains keywords like "projector" and "screen" from the form data itself, not from user intent.
+        var wizardDeclinedProjection = string.Equals(session?.GetString("Draft:BaseAvSubmitted"), "1", StringComparison.Ordinal)
+            && string.Equals(session?.GetString("Draft:ProjectorPlacementChoice"), "none", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(session?.GetString("Draft:BuiltInProjector"), "no", StringComparison.OrdinalIgnoreCase);
+        if (wizardDeclinedProjection)
+            mentionsProjectionNeed = false;
+
         var userExplicitCamera = Regex.IsMatch(userConversationTextForEquipmentSignals, @"\b(camera|webcam|ptz)\b", RegexOptions.IgnoreCase);
         var userExplicitMicrophone = Regex.IsMatch(userConversationTextForEquipmentSignals, @"\b(microphone|mic|lapel|handheld)\b", RegexOptions.IgnoreCase);
         var userExplicitSpeaker = Regex.IsMatch(userConversationTextForEquipmentSignals, @"\b(speaker|speakers|audio playback|pa)\b", RegexOptions.IgnoreCase);
@@ -1594,6 +1604,30 @@ public sealed partial class AgentToolHandlerService
             if (projectorAreas.Count == 0)
                 projectorAreas = GetNormalizedProjectorAreas(session?.GetString("Draft:ProjectorArea"));
 
+            // Recovery: Draft:ProjectorAreas may be lost between requests even though
+            // Draft:ProjectorPlacementChoice survives (it's in SessionKeysPreservedWhenResettingChatProgress).
+            // Re-parse areas from the raw placement choice when base AV was submitted.
+            if (projectorAreas.Count == 0
+                && string.Equals(session?.GetString("Draft:BaseAvSubmitted"), "1", StringComparison.Ordinal))
+            {
+                var placementChoice = session?.GetString("Draft:ProjectorPlacementChoice");
+                if (!string.IsNullOrEmpty(placementChoice) && !string.Equals(placementChoice, "none", StringComparison.OrdinalIgnoreCase))
+                {
+                    var recovered = GetNormalizedProjectorAreas(placementChoice);
+                    if (recovered.Count > 0)
+                    {
+                        projectorAreas = recovered;
+                        if (session != null)
+                        {
+                            session.SetString("Draft:ProjectorAreas", string.Join(",", projectorAreas));
+                            session.SetString("Draft:ProjectorArea", projectorAreas[0]);
+                        }
+                        _logger.LogInformation("[PROJECTOR_AREA_RECOVERY] Recovered areas [{Areas}] from PlacementChoice={Choice}",
+                            string.Join(",", projectorAreas), placementChoice);
+                    }
+                }
+            }
+
             // Fallback: if session was not persisted (edge-case request boundary), recover projector
             // areas from the conversation. Safe because we only inspect the user message that directly
             // followed the floor plan prompt — no risk of false positives from unrelated text.
@@ -1614,15 +1648,22 @@ public sealed partial class AgentToolHandlerService
                 }
             }
 
+            // Base AV wizard submission is authoritative — skip the stale-session guard entirely.
+            var baseAvSubmittedVal = session?.GetString("Draft:BaseAvSubmitted");
+            var baseAvPlacement = string.Equals(baseAvSubmittedVal, "1", StringComparison.Ordinal)
+                && projectorAreas.Count > 0;
+
+            _logger.LogInformation("[PROJECTOR_AREA_CHECK] baseAvSubmitted={BAS} areas=[{Areas}] hasPrompt={HP} promptShown={PS} captured={Cap} threadId={TID} capturedThreadId={CTid}",
+                baseAvSubmittedVal, string.Join(",", projectorAreas),
+                hasProjectorAreaPromptInConversation, projectorPromptShownForThread, projectorSelectionCapturedForThread,
+                threadId, session?.GetString("Draft:ProjectorAreaThreadId"));
+
             // Guard against stale session carry-over: if this thread has never shown the floor plan prompt,
             // force re-collection from the user instead of silently reusing old projector areas.
             // Exception: Base AV wizard captured placement into session — treat as authoritative.
-            if (!hasProjectorAreaPromptInConversation && !projectorPromptShownForThread && !projectorSelectionCapturedForThread)
+            if (!baseAvPlacement && !hasProjectorAreaPromptInConversation && !projectorPromptShownForThread && !projectorSelectionCapturedForThread)
             {
-                var baseAvPlacement = string.Equals(session?.GetString("Draft:BaseAvSubmitted"), "1", StringComparison.Ordinal)
-                    && !string.IsNullOrWhiteSpace(session?.GetString("Draft:ProjectorArea"));
-                if (!baseAvPlacement)
-                    projectorAreas.Clear();
+                projectorAreas.Clear();
             }
         }
         else if (projectionNeeded)
@@ -2122,11 +2163,54 @@ public sealed partial class AgentToolHandlerService
         var inbuiltScreen = string.Equals(session.GetString("Draft:BuiltInScreen"), "yes", StringComparison.OrdinalIgnoreCase);
         var inbuiltAudio = string.Equals(session.GetString("Draft:BuiltInSpeakers"), "yes", StringComparison.OrdinalIgnoreCase);
 
-        // Map "Inbuilt" combinations to specific types to help recommendation logic prioritize combined packages
+        // Map "Inbuilt" combinations to specific types to help recommendation logic prioritize combined packages.
+        // For Westin Ballroom rooms, dynamically decide whether to use the combined AV package or
+        // separate vision + audio packages based on what the user actually needs. The combined AV
+        // packages (WBAVP = 2 projectors + 16 speakers, WBSAVP = 1 projector + 8 speakers) should
+        // only be used when their contents exactly match the requirement.
+        var isBallroomRoom = IsWestinBallroomFamilyRoom(eventContext.VenueName, eventContext.RoomName);
+        var ballroomPlacement = session.GetString("Draft:ProjectorPlacementChoice")?.Trim();
+        var ballroomAreaCount = GetNormalizedProjectorAreas(session.GetString("Draft:ProjectorAreas")).Count;
+        if (ballroomAreaCount == 0 && !string.IsNullOrEmpty(ballroomPlacement))
+            ballroomAreaCount = GetNormalizedProjectorAreas(ballroomPlacement).Count;
+
+        var ballroomNeedsNoProjection = isBallroomRoom
+            && string.Equals(ballroomPlacement, "none", StringComparison.OrdinalIgnoreCase);
+
+        // Determine whether combined AV package is appropriate for ballroom rooms.
+        var isFullBallroom = isBallroomRoom
+            && !((eventContext.RoomName ?? "").Contains("1", StringComparison.Ordinal)
+              || (eventContext.RoomName ?? "").Contains("2", StringComparison.Ordinal));
+        // Half ballrooms (Ballroom 1/2) with a specific area selection need separate vision + audio
+        // packages so the area-to-package mapping (e.g. D -> WBSNPROJ north, A -> WBSSPROJ south) is honoured.
+        // The combined AV package (WBSAVP) always uses the standard 6k projector, ignoring area routing.
+        var isHalfBallroom = isBallroomRoom && !isFullBallroom;
+        var halfBallroomHasAreaSelection = isHalfBallroom
+            && !string.IsNullOrEmpty(ballroomPlacement)
+            && !string.Equals(ballroomPlacement, "none", StringComparison.OrdinalIgnoreCase);
+        var useSeparateBallroomPackages = isBallroomRoom
+            && (ballroomNeedsNoProjection                              // no projection → audio only
+                || (isFullBallroom && ballroomAreaCount == 1)          // full ballroom, 1 projector → AV pkg has 2, too many
+                || halfBallroomHasAreaSelection);                      // half ballroom with area → need area-routed vision pkg
+
         if (inbuiltProj && inbuiltScreen && inbuiltAudio)
         {
-            if (!HasAnyEquipmentType(requests, t => t is "av" or "base av" or "base_av"))
-                EnsureEquipmentRequest(requests, "av", 1);
+            if (useSeparateBallroomPackages)
+            {
+                // Add vision + audio as separate requests so the correct single-projector
+                // vision package and full-room audio package are selected independently.
+                if (!ballroomNeedsNoProjection
+                    && !HasAnyEquipmentType(requests, t => t is "vision" or "projector" or "screen" or "display" or "av"))
+                    EnsureEquipmentRequest(requests, "vision", 1);
+
+                if (!HasAnyEquipmentType(requests, t => t is "audio" or "speaker" or "av"))
+                    EnsureEquipmentRequest(requests, "audio", 1);
+            }
+            else
+            {
+                if (!HasAnyEquipmentType(requests, t => t is "av" or "base av" or "base_av"))
+                    EnsureEquipmentRequest(requests, "av", 1);
+            }
         }
         else
         {
@@ -2141,7 +2225,11 @@ public sealed partial class AgentToolHandlerService
         // unchecking means "no projection needed at all" — do NOT add external projector/screen.
         var combinedPS = string.Equals(session.GetString("Draft:CombinedProjectorScreen"), "1", StringComparison.Ordinal);
 
-        if (!combinedPS)
+        // Ballroom "none" placement: user explicitly declined projection — treat same as combined unchecked.
+        var ballroomDeclinedProjection = IsWestinBallroomFamilyRoom(eventContext.VenueName, eventContext.RoomName)
+            && string.Equals(session.GetString("Draft:ProjectorPlacementChoice")?.Trim(), "none", StringComparison.OrdinalIgnoreCase);
+
+        if (!combinedPS && !ballroomDeclinedProjection)
         {
             // Standard checks for external items (when inbuilt is NOT selected but requested/needed)
             if (!inbuiltProj && !HasAnyEquipmentType(requests, t => t.Contains("projector", StringComparison.OrdinalIgnoreCase) || t == "av" || t == "vision"))
@@ -2151,7 +2239,7 @@ public sealed partial class AgentToolHandlerService
                 EnsureEquipmentRequest(requests, "screen", 1);
         }
 
-        if (combinedPS && !inbuiltProj)
+        if ((combinedPS && !inbuiltProj) || ballroomDeclinedProjection)
             eventContext.UserDeclinedProjection = true;
 
         // Do NOT auto-add speakers when inbuilt audio was not checked — the user made a deliberate

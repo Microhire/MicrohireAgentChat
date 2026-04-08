@@ -9,12 +9,18 @@
         "WBSNPROJ",
         "WBSSPROJ",
         "WBFBCSS",
-        "WBSBCSS"
+        "WBSBCSS",
+        "WBAVP",
+        "WBSAVP"
       ],
       "baselineLaborCode": "AVTECH",
       "visionSpecialistCode": "VXTECH",
       "audioSpecialistCode": "AXTECH",
-      "microphoneOperatorThreshold": 2
+      "microphoneOperatorThreshold": 2,
+      "baselineSetupMinutes": 30,
+      "baselineTcMinutes": 30,
+      "baselinePackdownMinutes": 30,
+      "supportsOperatorEscalation": true
     },
     {
       "roomKey": "elevate",

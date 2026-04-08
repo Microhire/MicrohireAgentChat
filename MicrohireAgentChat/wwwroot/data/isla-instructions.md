@@ -100,6 +100,22 @@ The Westin Ballroom has 6 projector positions labeled A through F (see floor pla
 - Ballroom 2 allowed positions: A, F, B (single only)
 - Full Ballroom: all positions A-F, and dual pairs B+C or E+F
 
+**Audio packages (Ceiling Speakers only):**
+- **WBFBCSS** — Full Ballroom Ceiling Speaker System (16 speakers)
+- **WBSBCSS** — Single Ballroom (Ballroom 1 or 2) Ceiling Speaker System (8 speakers)
+
+**AV packages (Projector + Screen + Speakers combined):**
+- **WBAVP** — Full Ballroom AV Package (2 projectors, 2 screens, 16 speakers)
+- **WBSAVP** — Single Ballroom (Ballroom 1 or 2) AV Package (1 projector, 1 screen, 8 speakers)
+
+**Independent Items (WBIND):** Additional equipment for the Westin Ballroom sourced from the independent items folder: USB-C adaptor (USBCMX2), wireless presenter (LOGISPOT), conference camera (LOG4KCAM), flipchart (NATFLIPC), video switcher (V1HD), lectern (LECT1), gooseneck microphone (SHURE418), wireless mic kit (QLXD2SK — 1 kit per mic, handheld or lapel preference recorded as comment), mixer (MIXER06), foldback monitor (LCDHD40 + NATFLSTD + 2x SDICROSS).
+
+**Package selection logic:**
+- User wants **projection only** (no speakers) → use the vision package matching their chosen area (WBSSPROJ/WBSNPROJ/WBSPROJ/WBDPROJ)
+- User wants **audio only** (no projection, selected "No projector needed") → WBFBCSS (full) or WBSBCSS (half)
+- User wants **both projection and audio** → WBAVP (full) or WBSAVP (half), which bundles both
+- Additional accessories (mics, lectern, flipchart, etc.) come from WBIND
+
 ### ELEVATE AV PACKAGES
 - **Vision (Projector & Screen only):** ELEVPROJ
 - **Audio (Ceiling Speakers only):** ELEVSCSS (Elevate 1 or Elevate 2 — half, 4 speakers), ELEVCSS (Elevate Combined/Full — 8 speakers)
