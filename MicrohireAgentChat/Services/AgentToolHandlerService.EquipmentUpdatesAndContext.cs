@@ -342,29 +342,40 @@ public sealed partial class AgentToolHandlerService
                 .ToList();
         }
 
-        // Apply microphone operator preference: when confirmed, add AXTECH Rehearsal (30 min) + AXTECH Operate.
+        // Apply microphone operator preference: when confirmed, add Rehearsal (30 min) + Operate.
+        // If V1HD switcher is also present, use AVTECH instead of AXTECH (combo rule).
         var sessionMicOp = (session.GetString("Draft:MicrophoneOperator") ?? "").Trim().ToLowerInvariant();
         if (sessionMicOp == "yes")
         {
-            var audioCode = "AXTECH";
-            var audioDesc = "Audio Technician";
+            var hasSwitcherInEquipment = currentItems.Any(i =>
+                string.Equals((i.ProductCode ?? "").Trim(), "V1HD", StringComparison.OrdinalIgnoreCase));
+            var techCode = hasSwitcherInEquipment ? "AVTECH" : "AXTECH";
+            var techDesc = hasSwitcherInEquipment ? "AV Technician" : "Audio Technician";
 
-            // Remove baseline AVTECH Test & Connect (replaced by AXTECH Rehearsal)
+            // Remove baseline AVTECH Test & Connect (replaced by Rehearsal)
             var baselineTc = laborItems.FirstOrDefault(l =>
                 string.Equals(l.ProductCode, "AVTECH", StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(l.Task, "Test & Connect", StringComparison.OrdinalIgnoreCase));
             if (baselineTc != null)
                 laborItems.Remove(baselineTc);
 
-            // Add AXTECH Rehearsal 30 mins if not already present
+            // When combo (mic + switcher), also remove any VXTECH Rehearsal/Operate that was added by V1HD alone
+            if (hasSwitcherInEquipment)
+            {
+                laborItems.RemoveAll(l =>
+                    string.Equals(l.ProductCode, "VXTECH", StringComparison.OrdinalIgnoreCase) &&
+                    (IsRehearsalLaborTask(l.Task) || IsOperateLaborTask(l.Task)));
+            }
+
+            // Add Rehearsal 30 mins if not already present
             if (!laborItems.Any(l =>
-                string.Equals(l.ProductCode, audioCode, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(l.ProductCode, techCode, StringComparison.OrdinalIgnoreCase) &&
                 IsRehearsalLaborTask(l.Task)))
             {
                 laborItems.Add(new RecommendedLaborItem
                 {
-                    ProductCode = audioCode,
-                    Description = audioDesc,
+                    ProductCode = techCode,
+                    Description = techDesc,
                     Task = "Rehearsal",
                     Quantity = 1,
                     Hours = 0,
@@ -373,15 +384,15 @@ public sealed partial class AgentToolHandlerService
                 });
             }
 
-            // Add AXTECH Operate (event duration) if not already present
+            // Add Operate (event duration) if not already present
             if (!laborItems.Any(l =>
-                string.Equals(l.ProductCode, audioCode, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(l.ProductCode, techCode, StringComparison.OrdinalIgnoreCase) &&
                 IsOperateLaborTask(l.Task)))
             {
                 laborItems.Add(new RecommendedLaborItem
                 {
-                    ProductCode = audioCode,
-                    Description = audioDesc,
+                    ProductCode = techCode,
+                    Description = techDesc,
                     Task = "Operate",
                     Quantity = 1,
                     Hours = 0,

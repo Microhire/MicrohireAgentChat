@@ -499,23 +499,36 @@ public sealed partial class SmartEquipmentRecommendationService
         if (basePd > 0)
             AddLabor(result, baselineDescription, "Room package baseline labor: pack down.", productCode: baselineCode, task: "Packdown", minutes: basePd);
 
+        // Determine mic operator escalation threshold
+        var micThreshold = roomRule.MicrophoneOperatorThreshold <= 0 ? 2 : roomRule.MicrophoneOperatorThreshold;
+        var needsMicOperator = micCount > micThreshold;
+
         if (hasSwitcher && roomRule.SupportsOperatorEscalation)
         {
             // V1HD: +1hr AVTECH Setup
             AddLabor(result, baselineDescription, "V1HD switcher requires additional setup.", productCode: baselineCode, task: "Setup", minutes: 60);
 
-            // V1HD: AVTECH T&C is replaced by VXTECH Rehearsal 30mins
-            // Remove the baseline T&C since it becomes a VXTECH rehearsal
+            // Remove baseline T&C — replaced by Rehearsal below
             var baselineTc = result.LaborItems.FirstOrDefault(l =>
                 string.Equals(l.ProductCode, baselineCode, StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(l.Task, "Test & Connect", StringComparison.OrdinalIgnoreCase));
             if (baselineTc != null)
                 result.LaborItems.Remove(baselineTc);
 
-            var visionCode = string.IsNullOrWhiteSpace(roomRule.VisionSpecialistCode) ? "VXTECH" : roomRule.VisionSpecialistCode.Trim().ToUpperInvariant();
-            var visionDesc = ResolveLaborDescription(visionCode);
-            AddLabor(result, visionDesc, "V1HD switcher: AVTECH T&C replaced by VXTECH rehearsal.", productCode: visionCode, task: "Rehearsal", minutes: 30);
-            AddLabor(result, visionDesc, "V1HD switcher requires specialist operation from show start to end.", productCode: visionCode, task: "Operate");
+            if (needsMicOperator)
+            {
+                // Both mic operator AND switcher → use AVTECH for Rehearsal + Operate
+                AddLabor(result, baselineDescription, "V1HD switcher with microphone operator: AVTECH rehearsal.", productCode: baselineCode, task: "Rehearsal", minutes: 30);
+                AddLabor(result, baselineDescription, "V1HD switcher with microphone operator: AVTECH operates from show start to end.", productCode: baselineCode, task: "Operate");
+            }
+            else
+            {
+                // V1HD only → VXTECH Rehearsal + Operate
+                var visionCode = string.IsNullOrWhiteSpace(roomRule.VisionSpecialistCode) ? "VXTECH" : roomRule.VisionSpecialistCode.Trim().ToUpperInvariant();
+                var visionDesc = ResolveLaborDescription(visionCode);
+                AddLabor(result, visionDesc, "V1HD switcher: AVTECH T&C replaced by VXTECH rehearsal.", productCode: visionCode, task: "Rehearsal", minutes: 30);
+                AddLabor(result, visionDesc, "V1HD switcher requires specialist operation from show start to end.", productCode: visionCode, task: "Operate");
+            }
         }
 
         if (flipchartCount > 0)
@@ -545,6 +558,21 @@ public sealed partial class SmartEquipmentRecommendationService
 
         if (roomRule.SupportsOperatorEscalation)
         {
+            // Mic operator escalation — only when switcher is NOT also present (combo handled above)
+            if (needsMicOperator && !hasSwitcher)
+            {
+                var baselineTcForMics = result.LaborItems.FirstOrDefault(l =>
+                    string.Equals(l.ProductCode, baselineCode, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(l.Task, "Test & Connect", StringComparison.OrdinalIgnoreCase));
+                if (baselineTcForMics != null)
+                    result.LaborItems.Remove(baselineTcForMics);
+
+                var audioCode = string.IsNullOrWhiteSpace(roomRule.AudioSpecialistCode) ? "AXTECH" : roomRule.AudioSpecialistCode.Trim().ToUpperInvariant();
+                var audioDesc = ResolveLaborDescription(audioCode);
+                AddLabor(result, audioDesc, "More than 2 microphones: AVTECH T&C replaced by AXTECH rehearsal.", productCode: audioCode, task: "Rehearsal", minutes: 30);
+                AddLabor(result, audioDesc, "More than 2 microphones require audio operator from show start to end.", productCode: audioCode, task: "Operate");
+            }
+
             var hasOperator = result.LaborItems.Any(l =>
                 string.Equals(l.Task, "Operate", StringComparison.OrdinalIgnoreCase));
 

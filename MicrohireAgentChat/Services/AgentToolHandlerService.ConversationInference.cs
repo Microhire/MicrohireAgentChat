@@ -790,6 +790,22 @@ public sealed partial class AgentToolHandlerService
             .ToList();
 
         var operateTemplate = source.FirstOrDefault(l => IsOperateLaborTask(l.Task));
+
+        // "Would you like an operator throughout your event?" = Yes → always use AVTECH for Operate.
+        if (coverage.Operate && !filtered.Any(l => IsOperateLaborTask(l.Task)))
+        {
+            filtered.Add(new RecommendedLaborItem
+            {
+                ProductCode = "AVTECH",
+                Description = "AV Technician",
+                Task = "Operate",
+                Quantity = 1,
+                Hours = 0,
+                Minutes = 0,
+                RecommendationReason = "Customer requested operator throughout event."
+            });
+        }
+
         if (operateTemplate != null)
         {
             if (coverage.Setup && !filtered.Any(l => IsSetupLaborTask(l.Task)))
