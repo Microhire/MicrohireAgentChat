@@ -993,13 +993,15 @@
 
               let html = textRes;
               let continueNeeded = false;
-              if (parsed && typeof parsed === 'object' && parsed.continueNeeded) {
+              if (parsed && typeof parsed === 'object') {
                 const fragment = parsed.html != null ? parsed.html : parsed.Html;
-                if (!fragment || typeof fragment !== 'string') {
-                  throw new Error('Incomplete server response');
+                if (parsed.continueNeeded && fragment && typeof fragment === 'string') {
+                  html = fragment;
+                  continueNeeded = true;
+                } else if (parsed.success && fragment && typeof fragment === 'string') {
+                  // Server returned JSON {success:true, html:"..."} without continueNeeded
+                  html = fragment;
                 }
-                html = fragment;
-                continueNeeded = true;
               }
 
               if (!html || typeof html !== 'string' || !html.trim()) {

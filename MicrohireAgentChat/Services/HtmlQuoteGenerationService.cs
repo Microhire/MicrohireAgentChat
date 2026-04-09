@@ -15,15 +15,18 @@ namespace MicrohireAgentChat.Services;
 public partial class HtmlQuoteGenerationService
 {
     private readonly BookingDbContext _db;
+    private readonly IDbContextFactory<BookingDbContext> _dbFactory;
     private readonly IWebHostEnvironment _env;
     private readonly ILogger<HtmlQuoteGenerationService> _logger;
 
     public HtmlQuoteGenerationService(
         BookingDbContext db,
+        IDbContextFactory<BookingDbContext> dbFactory,
         IWebHostEnvironment env,
         ILogger<HtmlQuoteGenerationService> logger)
     {
         _db = db;
+        _dbFactory = dbFactory;
         _env = env;
         _logger = logger;
     }
@@ -43,10 +46,13 @@ public partial class HtmlQuoteGenerationService
             startTime,
             _env.ContentRootPath);
 
+        // Use a fresh DbContext from the factory to avoid "disposed object" errors
+        // when earlier operations in the same request scope left the shared context broken.
+        await using var db = await _dbFactory.CreateDbContextAsync(ct);
         try
         {
             // 1. Load booking with related data
-            var booking = await _db.TblBookings
+            var booking = await db.TblBookings
                 .AsNoTracking()
                 .FirstOrDefaultAsync(b => b.booking_no == bookingNo, ct);
 
@@ -77,7 +83,7 @@ public partial class HtmlQuoteGenerationService
             }
 
             TblVenue? venue = booking.VenueID > 0
-                ? await _db.TblVenues.AsNoTracking().FirstOrDefaultAsync(v => v.ID == booking.VenueID, ct).ConfigureAwait(false)
+                ? await db.TblVenues.AsNoTracking().FirstOrDefaultAsync(v => v.ID == booking.VenueID, ct).ConfigureAwait(false)
                 : null;
 
             // If session has a venue name that doesn't match the loaded venue, try to find the correct one
@@ -85,7 +91,7 @@ public partial class HtmlQuoteGenerationService
             if (!string.IsNullOrWhiteSpace(sessionVenueNameForLookup) && venue != null &&
                 VenueNamesMismatch(sessionVenueNameForLookup, venue.VenueName))
             {
-                var correctVenue = await _db.TblVenues
+                var correctVenue = await db.TblVenues
                     .AsNoTracking()
                     .FirstOrDefaultAsync(v => v.VenueName != null &&
                         v.VenueName.ToLower().Contains(sessionVenueNameForLookup.ToLower()), ct)
@@ -99,27 +105,27 @@ public partial class HtmlQuoteGenerationService
             }
 
             TblContact? contact = booking.ContactID.HasValue
-                ? await _db.Contacts.AsNoTracking().FirstOrDefaultAsync(c => c.Id == booking.ContactID.Value, ct).ConfigureAwait(false)
+                ? await db.Contacts.AsNoTracking().FirstOrDefaultAsync(c => c.Id == booking.ContactID.Value, ct).ConfigureAwait(false)
                 : null;
 
             TblCust? organization = booking.CustID.HasValue
-                ? await _db.TblCusts.AsNoTracking().FirstOrDefaultAsync(c => c.ID == booking.CustID.Value, ct).ConfigureAwait(false)
+                ? await db.TblCusts.AsNoTracking().FirstOrDefaultAsync(c => c.ID == booking.CustID.Value, ct).ConfigureAwait(false)
                 : null;
 
-            var items = await _db.TblItemtrans
+            var items = await db.TblItemtrans
                 .AsNoTracking()
                 .Where(i => i.BookingNoV32 == bookingNo || (bookingIdAsInt.HasValue && i.BookingId == bookingIdAsInt.Value))
                 .ToListAsync(ct)
                 .ConfigureAwait(false);
 
-            var crewRows = await _db.TblCrews
+            var crewRows = await db.TblCrews
                 .AsNoTracking()
                 .Where(c => c.BookingNoV32 == bookingNo)
                 .OrderBy(c => c.Task).ThenBy(c => c.SeqNo)
                 .ToListAsync(ct)
                 .ConfigureAwait(false);
 
-            // 6. Load inventory master + rate table (sequential — same DbContext).
+            // 6. Load inventory master + rate table (sequential — fresh DbContext from factory).
             var productCodes = items.Select(i => i.ProductCodeV42).Where(p => !string.IsNullOrEmpty(p)).Distinct().ToList();
             _logger.LogInformation(
                 "[QUOTE GEN] trace={Trace} phase=itemtrans_loaded booking={BookingNo} itemCount={ItemCount} distinctProductCodes={CodeCount}",
@@ -129,7 +135,7 @@ public partial class HtmlQuoteGenerationService
                 productCodes.Count);
 
             var inventoryItemsList = productCodes.Count > 0
-                ? await _db.TblInvmas
+                ? await db.TblInvmas
                     .AsNoTracking()
                     .Where(inv => productCodes.Contains(inv.product_code))
                     .ToListAsync(ct)
@@ -140,7 +146,7 @@ public partial class HtmlQuoteGenerationService
                 .ToDictionary(g => g.Key, g => g.First());
 
             var rateItemsList = productCodes.Count > 0
-                ? await _db.TblRatetbls
+                ? await db.TblRatetbls
                     .AsNoTracking()
                     .Where(r => productCodes.Contains(r.product_code) && r.TableNo == 0)
                     .ToListAsync(ct)

@@ -759,6 +759,7 @@ public sealed class ChatController : Controller
             });
             // #endregion
             EnsureStructuredFormsInChat(msgList);
+            EnsureQuoteReadyCardInMessages(msgList);
             // #region agent log
             Debug105ef6("H4", "ChatController.Index:afterForms", "Messages after EnsureStructuredFormsInChat", new Dictionary<string, object?>
             {
@@ -819,6 +820,7 @@ public sealed class ChatController : Controller
             }
 
             EnsureStructuredFormsInChat(msgList);
+            EnsureQuoteReadyCardInMessages(msgList);
             RedactPricesForUiInPlace(msgList);
             ViewData["DevModeEnabled"] = _devOptions.Enabled;
             ViewData["IsDevelopment"] = _env.IsDevelopment();
@@ -995,6 +997,7 @@ public sealed class ChatController : Controller
                 _logger.LogWarning("[CHAT_FLOW] ContinuePartial completed without assistant delta for thread {ThreadId}. Skipping fallback injection to avoid error-loop message.", threadId);
             }
             EnsureStructuredFormsInChat(msgList);
+            EnsureQuoteReadyCardInMessages(msgList);
             EnsureImmediateQuoteReviewPromptAfterQuoteSuccess(msgList);
             RedactPricesForUiInPlace(msgList);
             SetScheduleTimesInViewData();
@@ -1015,6 +1018,7 @@ public sealed class ChatController : Controller
                 var msgList = messages.ToList();
                 await AddAssistantMessageAndPersistAsync(msgList, BuildTransientFailureFallbackMessage(), ct);
                 EnsureStructuredFormsInChat(msgList);
+                EnsureQuoteReadyCardInMessages(msgList);
                 RedactPricesForUiInPlace(msgList);
                 SetScheduleTimesInViewData();
                 ViewData["ShowQuoteCta"] = WasLastAssistantASummaryAsk(msgList) ? "1" : "0";
@@ -1057,7 +1061,11 @@ public sealed class ChatController : Controller
                 (text.Contains("download link") && text.Contains("once it's ready")) ||
                 text.Contains("could you please try sending your message again") ||
                 text.Contains("our team will follow up with you shortly to resolve this") ||
-                text.Contains("our team will follow up with you to help complete your booking"))
+                text.Contains("our team will follow up with you to help complete your booking") ||
+                text.Contains("being finalized now") ||
+                text.Contains("being finalised now") ||
+                (text.Contains("let's proceed with generating") && text.Contains("quote")) ||
+                (text.Contains("i'm now finalising") && text.Contains("everything")))
             {
                 return true;
             }
@@ -1485,6 +1493,7 @@ public sealed class ChatController : Controller
 
             var msgList = messages is List<DisplayMessage> ml ? ml : messages.ToList();
             SyncProjectorPromptMarkers(msgList, threadId);
+            EnsureQuoteReadyCardInMessages(msgList);
             EnsureImmediateQuoteReviewPromptAfterQuoteSuccess(msgList);
             RedactPricesForUiInPlace(msgList);
             SetScheduleTimesInViewData();
@@ -1732,12 +1741,13 @@ public sealed class ChatController : Controller
                         var (_, restoredMessages) = _chat.GetTranscript(restoredThreadId);
                         var restoredList = restoredMessages.ToList();
                         EnsureStructuredFormsInChat(restoredList);
+                        EnsureQuoteReadyCardInMessages(restoredList);
                         RedactPricesForUiInPlace(restoredList);
                         ViewData["QuoteAccepted"] = HttpContext.Session.GetString("Draft:QuoteAccepted") ?? "0";
                         SetScheduleTimesInViewData();
                         ViewData["ProgressStep"] = DetermineProgressStep(restoredList);
                         var restoredHtml = await RenderPartialViewToStringAsync("_Messages", restoredList);
-                        return Json(new { success = true, html = restoredHtml });
+                        return Content(restoredHtml, "text/html");
                     }
                     catch (Exception ex)
                     {
@@ -1965,15 +1975,21 @@ public sealed class ChatController : Controller
                     }
                     else
                     {
-                        _logger.LogWarning("[FollowUpAv] RecommendEquipmentFromWizardSessionAsync failed: {Err}; falling back to agent", rec.ErrorMessage);
-                        _logger.LogInformation("[CHAT_FLOW] Starting SendAsync for text: {Text}", text.Length > 50 ? text.Substring(0, 50) + "..." : text);
-                        sendResult = await WithChatOperationTimeoutAsync(
-                            "SendPartial.SendAsync",
-                            opCt => WithRateLimitRetry(
-                                () => _chat.SendAsync(HttpContext.Session, text, opCt),
-                                opCt),
-                            ct);
-                        _logger.LogInformation("[CHAT_FLOW] SendAsync completed in {Duration}s", (DateTime.UtcNow - sendStart).TotalSeconds);
+                        // Equipment recommendation failed, but session already has base AV equipment
+                        // from the earlier wizard step. Still use the server-side quote path to avoid
+                        // the AI agent generating verbose/confusing text.
+                        _logger.LogWarning("[FollowUpAv] RecommendEquipmentFromWizardSessionAsync failed: {Err}; using server-side quote path (not AI agent)", rec.ErrorMessage);
+                        await _chat.AppendUserMessageAsync(HttpContext.Session, text, ct);
+                        var (_, mlFallback) = _chat.GetTranscript(threadId);
+                        var msgListFallback = mlFallback is List<DisplayMessage> lf ? lf : mlFallback.ToList();
+                        var followUpFallback = await TryFollowUpAvQuotePipelineAsync(msgListFallback, threadId, ct);
+                        if (followUpFallback != null)
+                        {
+                            return followUpFallback;
+                        }
+
+                        (_, mlFallback) = _chat.GetTranscript(threadId);
+                        sendResult = new SendAsyncResult(mlFallback, false);
                     }
                 }
                 else if (emailFormThisRequest || venueConfirmThisRequest || eventDetailsThisRequest || baseAvThisRequest)
@@ -2022,6 +2038,7 @@ public sealed class ChatController : Controller
                 var partialList = sendResult.Messages.ToList();
                 SyncProjectorPromptMarkers(partialList, threadId);
                 EnsureStructuredFormsInChat(partialList);
+                EnsureQuoteReadyCardInMessages(partialList);
                 EnsureImmediateQuoteReviewPromptAfterQuoteSuccess(partialList);
                 RedactPricesForUiInPlace(partialList);
                 SetScheduleTimesInViewData();
@@ -2045,6 +2062,7 @@ public sealed class ChatController : Controller
                 await AddAssistantMessageAndPersistAsync(msgList, BuildTransientFailureFallbackMessage(), ct);
                 EnsureStructuredFormsInChat(msgList);
             }
+            EnsureQuoteReadyCardInMessages(msgList);
             EnsureImmediateQuoteReviewPromptAfterQuoteSuccess(msgList);
 
             // If the last AI message contains confusing quote language, we'll handle it in the consent logic
@@ -2206,6 +2224,7 @@ public sealed class ChatController : Controller
                     if (!string.IsNullOrEmpty(summaryKey))
                         HttpContext.Session.SetString("Draft:PersistedSummaryKey", summaryKey);
 
+                    EnsureQuoteReadyCardInMessages(msgList);
                     RedactPricesForUiInPlace(msgList);
                     ViewData["ShowQuoteCta"] = WasLastAssistantASummaryAsk(msgList) ? "1" : "0";
                     ViewData["QuoteAccepted"] = HttpContext.Session.GetString("Draft:QuoteAccepted") ?? "0";
@@ -2591,37 +2610,43 @@ public sealed class ChatController : Controller
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in SendPartial for text: {Text}", text?.Substring(0, Math.Min(100, text?.Length ?? 0)));
-            
+
             // Even on error, try to return the current transcript so user's message is preserved
             try
             {
                 var threadId = _chat.EnsureThreadId(HttpContext.Session);
                 var (_, messages) = _chat.GetTranscript(threadId);
                 var msgList = messages.ToList();
-                
-                // Only add error message if we haven't already added a success/quote message in this request
-                // and if the last message isn't already a quote/success message
-                var hasQuote = msgList.Any(m => m.Role == "assistant" && (m.FullText?.Contains("successfully generated your quote") == true || m.Html?.Contains("btn-primary") == true));
-                
-                if (!hasQuote)
+
+                // Ensure wizard forms still render even after an error — without this,
+                // the user gets stuck on greeting + error with no way to continue.
+                var msgCountBeforeForms = msgList.Count;
+                EnsureStructuredFormsInChat(msgList);
+                EnsureQuoteReadyCardInMessages(msgList);
+                var formsWereInjected = msgList.Count > msgCountBeforeForms;
+
+                // Only add error message if wizard forms didn't handle the recovery
+                // (i.e., user is past all forms, in the AI chat phase)
+                if (!formsWereInjected)
                 {
-                    // Add an error message to the conversation
-                    var errorMessage = new DisplayMessage
+                    var hasQuote = msgList.Any(m => m.Role == "assistant" && (m.FullText?.Contains("successfully generated your quote") == true || m.Html?.Contains("btn-primary") == true));
+                    if (!hasQuote)
                     {
-                        Role = "assistant",
-                        Timestamp = DateTimeOffset.UtcNow,
-                        Parts = new List<string> { "Could you please try sending your message again?" },
-                        FullText = "Could you please try sending your message again?",
-                        Html = "<p>Could you please try sending your message again?</p>"
-                    };
-                    msgList.Add(errorMessage);
+                        msgList.Add(new DisplayMessage
+                        {
+                            Role = "assistant",
+                            Timestamp = DateTimeOffset.UtcNow,
+                            Parts = new List<string> { "Could you please try sending your message again?" },
+                            FullText = "Could you please try sending your message again?",
+                            Html = "<p>Could you please try sending your message again?</p>"
+                        });
+                    }
                 }
-                else
-                {
-                    _logger.LogInformation("Skipping redundant error message in SendPartial catch because quote was already generated");
-                }
-                
+
+                RedactPricesForUiInPlace(msgList);
                 SetScheduleTimesInViewData();
+                ViewData["ShowQuoteCta"] = "0";
+                ViewData["QuoteAccepted"] = HttpContext.Session.GetString("Draft:QuoteAccepted") ?? "0";
                 ViewData["ProgressStep"] = DetermineProgressStep(msgList);
 
                 // Persist draft state even on error if email exists
@@ -3129,6 +3154,7 @@ public sealed class ChatController : Controller
             if (quoteMessageAlreadyExists)
             {
                 _logger.LogInformation("Quote link already in last message, skipping duplicate");
+                EnsureQuoteReadyCardInMessages(msgList);
                 MarkQuoteReviewPromptPending();
                 return;
             }
@@ -3212,6 +3238,14 @@ public sealed class ChatController : Controller
             try
             {
                 var (quoteSuccess, quoteUrl, quoteError) = await _htmlQuoteGen.GenerateHtmlQuoteForBookingAsync(bookingNo, linkedCts.Token, HttpContext.Session);
+
+                // Retry once on failure — the booking may have just been created and DB propagation can lag.
+                if (!quoteSuccess || string.IsNullOrWhiteSpace(quoteUrl))
+                {
+                    _logger.LogWarning("HTML quote generation failed for booking {BookingNo} (first attempt): {Error}. Retrying after 2s...", bookingNo, quoteError);
+                    await Task.Delay(2000, linkedCts.Token);
+                    (quoteSuccess, quoteUrl, quoteError) = await _htmlQuoteGen.GenerateHtmlQuoteForBookingAsync(bookingNo, linkedCts.Token, HttpContext.Session);
+                }
                 _logger.LogInformation("HTML quote generation completed for booking {BookingNo}, success: {Success}", bookingNo, quoteSuccess);
 
                 if (quoteSuccess && !string.IsNullOrWhiteSpace(quoteUrl))
@@ -3660,6 +3694,7 @@ public sealed class ChatController : Controller
             }
 
             EnsureStructuredFormsInChat(msgList);
+            EnsureQuoteReadyCardInMessages(msgList);
 
             // Redact BEFORE adding the confirmation so the amount isn't stripped
             RedactPricesForUiInPlace(msgList);
@@ -3747,6 +3782,7 @@ public sealed class ChatController : Controller
             }
 
             EnsureStructuredFormsInChat(msgList);
+            EnsureQuoteReadyCardInMessages(msgList);
             RedactPricesForUiInPlace(msgList);
             ViewData["QuoteAccepted"] = HttpContext.Session.GetString("Draft:QuoteAccepted") ?? "0";
             ViewData["ShowQuoteCta"] = "0";
@@ -3999,6 +4035,7 @@ public sealed class ChatController : Controller
             });
 
             EnsureStructuredFormsInChat(msgList);
+            EnsureQuoteReadyCardInMessages(msgList);
             RedactPricesForUiInPlace(msgList);
 
             ViewData["ShowQuoteCta"] = "0";
@@ -4326,6 +4363,63 @@ public sealed class ChatController : Controller
         if (text.Contains("generated your quote") && text.Contains("booking"))
         {
             AppendQuoteReviewPromptImmediately(msgList);
+        }
+    }
+
+    /// <summary>
+    /// When the AI agent tool loop generates a quote, its text response lacks the {"ui":...} JSON
+    /// that _Messages.cshtml needs to render the Quote Ready card. This method finds such messages
+    /// and replaces them with the proper BuildQuoteReadyMessage that includes the UI card JSON.
+    /// </summary>
+    private void EnsureQuoteReadyCardInMessages(List<DisplayMessage> messages)
+    {
+        try
+        {
+            if (messages == null || messages.Count == 0)
+                return;
+
+            var quoteComplete = HttpContext.Session.GetString("Draft:QuoteComplete") == "1";
+            if (!quoteComplete)
+                return;
+
+            var quoteUrl = HttpContext.Session.GetString("Draft:QuoteUrl");
+            var bookingNo = HttpContext.Session.GetString("Draft:BookingNo");
+
+            if (string.IsNullOrWhiteSpace(quoteUrl) || string.IsNullOrWhiteSpace(bookingNo))
+                return;
+
+            for (int i = 0; i < messages.Count; i++)
+            {
+                var m = messages[i];
+                if (m == null || !IsAssistantMessageRole(m.Role))
+                    continue;
+
+                var raw = m.FullText ?? string.Join("\n\n", m.Parts ?? Enumerable.Empty<string>());
+                if (string.IsNullOrWhiteSpace(raw))
+                    continue;
+
+                var rawLower = raw.ToLowerInvariant();
+                var isQuoteSuccessText = rawLower.Contains("successfully generated your quote")
+                    && rawLower.Contains(bookingNo.ToLowerInvariant());
+                var isQuotePendingText = rawLower.Contains("being finali")
+                    && rawLower.Contains(bookingNo.ToLowerInvariant());
+
+                if (!isQuoteSuccessText && !isQuotePendingText)
+                    continue;
+
+                // Already has the UI card JSON — leave it alone
+                var partsRaw = string.Join("\n", m.Parts ?? Enumerable.Empty<string>());
+                if (partsRaw.Contains("\"quoteUrl\"", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                // Replace plain text / pending text with proper card message
+                _logger.LogInformation("[QUOTE CARD] Replacing plain-text quote message with Quote Ready card for booking {BookingNo}", bookingNo);
+                messages[i] = BuildQuoteReadyMessage(bookingNo, quoteUrl);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "[QUOTE CARD] EnsureQuoteReadyCardInMessages failed (non-fatal)");
         }
     }
 

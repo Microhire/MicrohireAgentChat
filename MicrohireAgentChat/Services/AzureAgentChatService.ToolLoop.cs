@@ -594,7 +594,15 @@ namespace MicrohireAgentChat.Services
                                                 // Use HtmlQuoteGenerationService to generate HTML from booking data
                                                 var toolTrace = _http.HttpContext?.TraceIdentifier;
                                                 var (success, htmlUrl, error) = await _htmlQuoteGen.GenerateHtmlQuoteForBookingAsync(bookingNo, ct, session, toolTrace);
-                                                
+
+                                                // Retry once on failure — booking may have just been created and DB propagation can lag.
+                                                if (!success || string.IsNullOrEmpty(htmlUrl))
+                                                {
+                                                    _logger.LogWarning("[QUOTE GEN] First attempt failed for booking {BookingNo}: {Error}. Retrying after 2s...", bookingNo, error);
+                                                    try { await Task.Delay(2000, ct); } catch { /* cancelled */ }
+                                                    (success, htmlUrl, error) = await _htmlQuoteGen.GenerateHtmlQuoteForBookingAsync(bookingNo, ct, session, toolTrace);
+                                                }
+
                                                 if (!success || string.IsNullOrEmpty(htmlUrl))
                                                 {
                                                     _logger.LogError("[QUOTE GEN] HTML quote generation failed for booking {BookingNo}: {Error}", bookingNo, error);

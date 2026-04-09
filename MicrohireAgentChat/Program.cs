@@ -76,6 +76,15 @@ builder.Services.AddDbContext<BookingDbContext>(opt =>
     opt.EnableDetailedErrors();
     opt.EnableSensitiveDataLogging();
 });
+// Factory for services that need a fresh DbContext independent of the request-scoped one
+// (e.g. HtmlQuoteGenerationService after earlier sync operations may have left the shared context broken).
+builder.Services.AddDbContextFactory<BookingDbContext>(opt =>
+{
+    var cs = builder.Configuration.GetConnectionString("BookingsDb");
+    if (string.IsNullOrWhiteSpace(cs))
+        throw new InvalidOperationException("Missing connection string 'BookingsDb'.");
+    opt.UseSqlServer(cs);
+}, ServiceLifetime.Scoped);
 // AppDbContext for thread persistence (separate from client's BookingsDb)
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
