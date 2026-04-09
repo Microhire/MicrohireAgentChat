@@ -6001,6 +6001,7 @@ View Signed Quote
         ViewData["EventFormSubmitted"] = HttpContext.Session.GetString("Draft:EventFormSubmitted") ?? "0";
         ViewData["BaseAvSubmitted"] = HttpContext.Session.GetString("Draft:BaseAvSubmitted") ?? "0";
         ViewData["FollowUpAvSubmitted"] = HttpContext.Session.GetString("Draft:FollowUpAvSubmitted") ?? "0";
+        ViewData["WantsOperator"] = HttpContext.Session.GetString("Draft:WantsOperator") ?? "no";
         ViewData["QuoteUrl"] = HttpContext.Session.GetString("Draft:QuoteUrl") ?? "";
     }
 

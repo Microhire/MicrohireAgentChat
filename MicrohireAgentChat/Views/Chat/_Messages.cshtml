@@ -954,6 +954,8 @@ else
                                             var isThrive = fuRoomName.Contains("Thrive", StringComparison.OrdinalIgnoreCase);
                                             var micTypeRaw = uiEl.TryGetProperty("micType", out var micTypeEl) ? (micTypeEl.GetString() ?? "") : "";
                                             var micIsLapel = string.Equals(micTypeRaw, "lapel", StringComparison.OrdinalIgnoreCase);
+                                            var micOpRaw = uiEl.TryGetProperty("micOperator", out var micOpEl) ? (micOpEl.GetString() ?? "no") : "no";
+                                            var micOpYes = string.Equals(micOpRaw, "yes", StringComparison.OrdinalIgnoreCase);
                                             var lecRaw = uiEl.TryGetProperty("lectern", out var lecEl) ? (lecEl.GetString() ?? "none") : "none";
                                             var lecIsOnly = string.Equals(lecRaw, "lectern-only", StringComparison.OrdinalIgnoreCase);
                                             var lecIsMic = string.Equals(lecRaw, "lectern-mic", StringComparison.OrdinalIgnoreCase);
@@ -971,7 +973,11 @@ else
                                                 ? $"Do you need to seamlessly switch between the {lq} laptops?"
                                                 : "Do you need to seamlessly switch between the laptops?";
                                             var showPresenterBlock = pc > 0 && !isThrive;
-                                            <div class="@followUpCardClass" data-follow-up-av-form data-fu-presenters="@pc" data-fu-laptops="@lq" data-fu-room="@fuRoomName" data-form-submitted="@(followUpSubmitted ? "1" : "0")">
+                                            var eventWantsOp = ViewData["WantsOperator"] as string ?? "no";
+                                            var eventOpNo = !string.Equals(eventWantsOp, "yes", StringComparison.OrdinalIgnoreCase);
+                                            var micQtyInt = int.TryParse(uiEl.TryGetProperty("micQty", out var mqIntEl) ? mqIntEl.GetString() : "0", out var mqParsed) ? mqParsed : 0;
+                                            var showMicOpQuestion = showPresenterBlock && eventOpNo && micQtyInt > 2;
+                                            <div class="@followUpCardClass" data-follow-up-av-form data-fu-presenters="@pc" data-fu-laptops="@lq" data-fu-room="@fuRoomName" data-fu-event-op="@eventWantsOp" data-form-submitted="@(followUpSubmitted ? "1" : "0")">
                                                 @if (followUpSubmitted)
                                                 {
                                                     <div class="isla-form-status">Confirmed</div>
@@ -990,9 +996,19 @@ else
                                                                         <label class="isla-form-checkbox"><input type="radio" name="fu-mic" value="handheld" data-fu-mic @(micIsLapel ? null : "checked") @(followUpSubmitted ? "disabled" : null) /> Handheld</label>
                                                                         <label class="isla-form-checkbox"><input type="radio" name="fu-mic" value="lapel" data-fu-mic @(micIsLapel ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> Lapel</label>
                                                                     </div>
-                                                                    <input type="number" min="0" step="1" value="@(uiEl.TryGetProperty("micQty", out var mqEl) ? mqEl.GetString() : "0")" data-fu-mic-qty aria-label="Microphone quantity" @(followUpSubmitted ? "disabled" : null) />
+                                                                    @{
+                                                                        var micQtyVal = uiEl.TryGetProperty("micQty", out var mqEl) ? mqEl.GetString() : "0";
+                                                                    }
+                                                                    <input type="number" data-fu-mic-qty aria-label="Microphone quantity" min="0" value="@micQtyVal" class="isla-form-input" @(followUpSubmitted ? "disabled" : null) />
                                                                 </div>
                                                             </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="isla-form-field isla-fu-field" data-fu-mic-op-wrap style="display:@(showMicOpQuestion ? "block" : "none")">
+                                                        <label class="isla-base-av-sentence-label isla-fu-question-label">Would you like a microphone operator?</label>
+                                                        <div class="isla-fu-yesno-btns isla-fu-yesno-caps">
+                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-mic-op" value="yes" data-fu-mic-op @(micOpYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> Yes</label>
+                                                            <label class="isla-form-checkbox"><input type="radio" name="fu-mic-op" value="no" data-fu-mic-op @(!micOpYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> No</label>
                                                         </div>
                                                     </div>
                                                     <div class="isla-form-field">
@@ -1025,7 +1041,7 @@ else
                                                         <label class="isla-form-checkbox"><input type="radio" name="fu-st" value="no" data-fu-stage @(!stYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> No</label>
                                                     </div>
                                                 </div>
-                                                <div class="isla-form-field isla-fu-field">
+                                                <div class="isla-form-field isla-fu-field" data-fu-rwp-wrap style="display:@(showPresenterBlock ? "block" : "none")">
                                                     <label class="isla-base-av-sentence-label isla-fu-question-label">Remote wireless presenter</label>
                                                     <div class="isla-fu-yesno-btns isla-fu-yesno-caps">
                                                         <label class="isla-form-checkbox"><input type="radio" name="fu-rw" value="yes" data-fu-rwp @(rwpYes ? "checked" : null) @(followUpSubmitted ? "disabled" : null) /> Yes</label>
@@ -2100,6 +2116,18 @@ else
       const isThrive=fuRoom.indexOf('thrive')>=0;
       const block=form.querySelector('[data-fu-block-presenters]');
       if(block) block.style.display=(pc>0&&!isThrive)?'block':'none';
+      const rwpWrap=form.querySelector('[data-fu-rwp-wrap]');
+      if(rwpWrap) rwpWrap.style.display=(pc>0&&!isThrive)?'block':'none';
+      const eventOp=(form.getAttribute('data-fu-event-op')||'no').toLowerCase();
+      const eventOpNo=eventOp!=='yes';
+      const micOpWrap=form.querySelector('[data-fu-mic-op-wrap]');
+      function syncMicOp(){
+        const mq=parseInt(form.querySelector('[data-fu-mic-qty]')?.value||'0',10)||0;
+        if(micOpWrap) micOpWrap.style.display=(pc>0&&!isThrive&&eventOpNo&&mq>2)?'block':'none';
+      }
+      syncMicOp();
+      const micQtyInput=form.querySelector('[data-fu-mic-qty]');
+      if(micQtyInput) micQtyInput.addEventListener('input',syncMicOp);
       const swWrap=form.querySelector('[data-fu-switcher-wrap]');
       const lbl=form.querySelector('[data-fu-switcher-label]');
       if(lbl&&lq>1) lbl.textContent='Do you need to seamlessly switch between the '+lq+' laptops?';
