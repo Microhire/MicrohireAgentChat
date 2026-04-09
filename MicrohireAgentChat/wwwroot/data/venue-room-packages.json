@@ -15,9 +15,14 @@
         { "id": "D", "label": "Area D — rear centre-left" },
         { "id": "E", "label": "Area E — main stage / front centre" },
         { "id": "F", "label": "Area F — front right zone" },
-        { "id": "B+C", "label": "Dual projection — zones B + C (wide front / centre coverage)" },
-        { "id": "E+F", "label": "Dual projection — zones E + F (full ballroom front span)" },
-        { "id": "E+D", "label": "Dual projection — zones E + D (front stage + mid room)" }
+        {
+          "id": "B+C",
+          "label": "Dual projection — zones B + C (wide front / centre coverage)"
+        },
+        {
+          "id": "E+F",
+          "label": "Dual projection — zones E + F (full ballroom front span)"
+        }
       ]
     },
     "Westin Ballroom 1": {
@@ -67,7 +72,11 @@
   "Four Points Brisbane": {
     "Meeting Room": {
       "aiFolder": "WSB",
-      "baseEquipment": ["Inbuilt projector", "Inbuilt screen", "Inbuilt speakers"],
+      "baseEquipment": [
+        "Inbuilt projector",
+        "Inbuilt screen",
+        "Inbuilt speakers"
+      ],
       "audio": ["WSBFPAUD"],
       "vision": ["WSBFPPRO"],
       "av": ["WSBFPAVP"]
