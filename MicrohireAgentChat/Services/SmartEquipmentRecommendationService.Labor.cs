@@ -525,9 +525,9 @@ public sealed partial class SmartEquipmentRecommendationService
 
         if (hasVideoConf)
         {
-            AddLabor(result, baselineDescription, "Video conference unit requires additional setup.", productCode: baselineCode, task: "Setup", minutes: 15);
-            AddLabor(result, baselineDescription, "Video conference unit requires additional test and connect.", productCode: baselineCode, task: "Test & Connect", minutes: 15);
-            AddLabor(result, baselineDescription, "Video conference unit requires additional pack down.", productCode: baselineCode, task: "Packdown", minutes: 15);
+            AddLabor(result, baselineDescription, "Video conference unit requires additional setup.", productCode: baselineCode, task: "Setup", minutes: 30);
+            AddLabor(result, baselineDescription, "Video conference unit requires additional test and connect.", productCode: baselineCode, task: "Test & Connect", minutes: 30);
+            AddLabor(result, baselineDescription, "Video conference unit requires additional pack down.", productCode: baselineCode, task: "Packdown", minutes: 30);
         }
 
         if (hasLectern)
