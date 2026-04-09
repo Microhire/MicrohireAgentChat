@@ -545,22 +545,6 @@ public sealed partial class SmartEquipmentRecommendationService
 
         if (roomRule.SupportsOperatorEscalation)
         {
-            var threshold = roomRule.MicrophoneOperatorThreshold <= 0 ? 2 : roomRule.MicrophoneOperatorThreshold;
-            if (micCount > threshold)
-            {
-                // >2 mics: AVTECH T&C is replaced by AXTECH Rehearsal 30mins
-                var baselineTcForMics = result.LaborItems.FirstOrDefault(l =>
-                    string.Equals(l.ProductCode, baselineCode, StringComparison.OrdinalIgnoreCase) &&
-                    string.Equals(l.Task, "Test & Connect", StringComparison.OrdinalIgnoreCase));
-                if (baselineTcForMics != null)
-                    result.LaborItems.Remove(baselineTcForMics);
-
-                var audioCode = string.IsNullOrWhiteSpace(roomRule.AudioSpecialistCode) ? "AXTECH" : roomRule.AudioSpecialistCode.Trim().ToUpperInvariant();
-                var audioDesc = ResolveLaborDescription(audioCode);
-                AddLabor(result, audioDesc, "More than 2 microphones: AVTECH T&C replaced by AXTECH rehearsal.", productCode: audioCode, task: "Rehearsal", minutes: 30);
-                AddLabor(result, audioDesc, "More than 2 microphones require audio operator from show start to end.", productCode: audioCode, task: "Operate");
-            }
-
             var hasOperator = result.LaborItems.Any(l =>
                 string.Equals(l.Task, "Operate", StringComparison.OrdinalIgnoreCase));
 

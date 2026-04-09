@@ -342,6 +342,60 @@ public sealed partial class AgentToolHandlerService
                 .ToList();
         }
 
+        // Apply microphone operator preference: when confirmed, add AXTECH Rehearsal (30 min) + AXTECH Operate.
+        var sessionMicOp = (session.GetString("Draft:MicrophoneOperator") ?? "").Trim().ToLowerInvariant();
+        if (sessionMicOp == "yes")
+        {
+            var audioCode = "AXTECH";
+            var audioDesc = "Audio Technician";
+
+            // Remove baseline AVTECH Test & Connect (replaced by AXTECH Rehearsal)
+            var baselineTc = laborItems.FirstOrDefault(l =>
+                string.Equals(l.ProductCode, "AVTECH", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(l.Task, "Test & Connect", StringComparison.OrdinalIgnoreCase));
+            if (baselineTc != null)
+                laborItems.Remove(baselineTc);
+
+            // Add AXTECH Rehearsal 30 mins if not already present
+            if (!laborItems.Any(l =>
+                string.Equals(l.ProductCode, audioCode, StringComparison.OrdinalIgnoreCase) &&
+                IsRehearsalLaborTask(l.Task)))
+            {
+                laborItems.Add(new RecommendedLaborItem
+                {
+                    ProductCode = audioCode,
+                    Description = audioDesc,
+                    Task = "Rehearsal",
+                    Quantity = 1,
+                    Hours = 0,
+                    Minutes = 30,
+                    RecommendationReason = "Customer confirmed they would like a microphone operator."
+                });
+            }
+
+            // Add AXTECH Operate (event duration) if not already present
+            if (!laborItems.Any(l =>
+                string.Equals(l.ProductCode, audioCode, StringComparison.OrdinalIgnoreCase) &&
+                IsOperateLaborTask(l.Task)))
+            {
+                laborItems.Add(new RecommendedLaborItem
+                {
+                    ProductCode = audioCode,
+                    Description = audioDesc,
+                    Task = "Operate",
+                    Quantity = 1,
+                    Hours = 0,
+                    Minutes = 0,
+                    RecommendationReason = "Customer confirmed they would like a microphone operator for the duration of the event."
+                });
+            }
+
+            laborItems = laborItems
+                .OrderBy(GetLaborTaskSortOrder)
+                .ThenBy(l => l.Description, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
         var projectorAreasForSummary = GetNormalizedProjectorAreas(session.GetString("Draft:ProjectorAreas"));
         if (projectorAreasForSummary.Count == 0)
             projectorAreasForSummary = GetNormalizedProjectorAreas(session.GetString("Draft:ProjectorArea"));

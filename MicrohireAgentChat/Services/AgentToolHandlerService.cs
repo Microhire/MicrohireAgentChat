@@ -1454,6 +1454,44 @@ public sealed partial class AgentToolHandlerService
             session?.SetString("Draft:RehearsalOperator", "no");
         }
 
+        // Microphone operator guard: ask whether the customer wants a microphone operator when mics > 2.
+        var micRequestCount = eventContext.EquipmentRequests
+            .Where(r => (r.EquipmentType ?? "").Contains("microphone", StringComparison.OrdinalIgnoreCase))
+            .Sum(r => r.Quantity);
+        if (micRequestCount > 2)
+        {
+            var sessionMicOp = (session?.GetString("Draft:MicrophoneOperator") ?? "").Trim().ToLowerInvariant();
+            bool micOperatorConfirmed;
+            bool micOperatorDeclined;
+            if (sessionMicOp == "yes" || sessionMicOp == "no")
+            {
+                micOperatorConfirmed = sessionMicOp == "yes";
+                micOperatorDeclined = sessionMicOp == "no";
+            }
+            else
+            {
+                micOperatorConfirmed = HasExplicitMicrophoneOperatorConfirmation(conversationMessages);
+                micOperatorDeclined = HasExplicitMicrophoneOperatorDeclined(conversationMessages);
+            }
+            if (!micOperatorConfirmed && !micOperatorDeclined)
+            {
+                return JsonSerializer.Serialize(new
+                {
+                    error = "Cannot show quote summary - microphone operator preference not yet confirmed",
+                    missingFields = new[] { "microphone operator preference" },
+                    instruction = "Do NOT call recommend_equipment_for_event again in this response. Ask exactly one question: 'Would you like a microphone operator?' Wait for the user's explicit yes/no answer, then call recommend_equipment_for_event again."
+                });
+            }
+            if (micOperatorConfirmed)
+            {
+                session?.SetString("Draft:MicrophoneOperator", "yes");
+            }
+            else if (micOperatorDeclined)
+            {
+                session?.SetString("Draft:MicrophoneOperator", "no");
+            }
+        }
+
         var includesVideoConferenceUnit = requestedEquipmentTypes.Contains("video_conference_unit")
                                           || requestedEquipmentTypes.Contains("video conference unit");
         var sessionVc = (session?.GetString("Draft:VideoConference") ?? "").Trim().ToLowerInvariant();
