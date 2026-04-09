@@ -377,7 +377,9 @@ public sealed partial class SmartEquipmentRecommendationService
             (i.Description ?? "").ToLowerInvariant().Contains("video conference"));
         var hasLectern = result.Items.Any(i => (i.Description ?? "").ToLowerInvariant().Contains("lectern"));
 
-        // UAT rule: when both MIXER06 and V1HD are present, use one AV Technician for full event coverage.
+        // TODO: This has the same early-clear bug as the Westin path (fixed in TryApplyWestinLaborRulesAsync).
+        // It clears all accumulated labor and replaces with a single Operate item, losing Setup/T&C/Packdown times.
+        // Fix this for non-Westin venues once the Westin flow is confirmed working.
         if (hasSwitcher && hasMixer06)
         {
             result.LaborItems.Clear();
@@ -470,18 +472,8 @@ public sealed partial class SmartEquipmentRecommendationService
                 string.Equals((i.ProductCode ?? string.Empty).Trim(), code.Trim(), StringComparison.OrdinalIgnoreCase))) ||
             result.Items.Any(i => (i.Description ?? string.Empty).Contains("lectern", StringComparison.OrdinalIgnoreCase));
 
-        // UAT override: MIXER06 + V1HD => one AVTECH for event coverage.
-        if (hasSwitcher && hasMixer06)
-        {
-            result.LaborItems.Clear();
-            AddLabor(
-                result,
-                ResolveLaborDescription("AVTECH"),
-                "MIXER06 with V1HD requires one AV Technician for full event duration.",
-                productCode: "AVTECH",
-                task: "Operate");
-            return true;
-        }
+        // V1HD + MIXER06 combo: use AVTECH for all labour (no specialist escalation).
+        var isV1hdMixerCombo = hasSwitcher && hasMixer06;
 
         var baselineCode = string.IsNullOrWhiteSpace(roomRule.BaselineLaborCode)
             ? "AVTECH"
@@ -508,14 +500,12 @@ public sealed partial class SmartEquipmentRecommendationService
             // V1HD: +1hr AVTECH Setup
             AddLabor(result, baselineDescription, "V1HD switcher requires additional setup.", productCode: baselineCode, task: "Setup", minutes: 60);
 
-            // Remove baseline T&C — replaced by Rehearsal below
-            var baselineTc = result.LaborItems.FirstOrDefault(l =>
-                string.Equals(l.ProductCode, baselineCode, StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(l.Task, "Test & Connect", StringComparison.OrdinalIgnoreCase));
-            if (baselineTc != null)
-                result.LaborItems.Remove(baselineTc);
-
-            if (needsMicOperator)
+            if (isV1hdMixerCombo)
+            {
+                // MIXER06 + V1HD: one AVTECH covers the full event — no specialist escalation.
+                AddLabor(result, baselineDescription, "MIXER06 with V1HD requires one AV Technician for full event duration.", productCode: baselineCode, task: "Operate");
+            }
+            else if (needsMicOperator)
             {
                 // Both mic operator AND switcher → use AVTECH for Rehearsal + Operate
                 AddLabor(result, baselineDescription, "V1HD switcher with microphone operator: AVTECH rehearsal.", productCode: baselineCode, task: "Rehearsal", minutes: 30);
@@ -526,7 +516,7 @@ public sealed partial class SmartEquipmentRecommendationService
                 // V1HD only → VXTECH Rehearsal + Operate
                 var visionCode = string.IsNullOrWhiteSpace(roomRule.VisionSpecialistCode) ? "VXTECH" : roomRule.VisionSpecialistCode.Trim().ToUpperInvariant();
                 var visionDesc = ResolveLaborDescription(visionCode);
-                AddLabor(result, visionDesc, "V1HD switcher: AVTECH T&C replaced by VXTECH rehearsal.", productCode: visionCode, task: "Rehearsal", minutes: 30);
+                AddLabor(result, visionDesc, "V1HD switcher requires VXTECH rehearsal.", productCode: visionCode, task: "Rehearsal", minutes: 30);
                 AddLabor(result, visionDesc, "V1HD switcher requires specialist operation from show start to end.", productCode: visionCode, task: "Operate");
             }
         }

@@ -246,8 +246,8 @@ public sealed class OperatorGuidanceTests
             CancellationToken.None);
 
         Assert.Contains(labor, l => l.ProductCode == "AVTECH" && l.Task == "Setup" && l.Minutes >= 90);
-        // V1HD removes baseline T&C and replaces with VXTECH Rehearsal
-        Assert.DoesNotContain(labor, l => l.ProductCode == "AVTECH" && l.Task == "Test & Connect");
+        // V1HD no longer removes baseline T&C — it is kept alongside VXTECH Rehearsal
+        Assert.Contains(labor, l => l.ProductCode == "AVTECH" && l.Task == "Test & Connect" && l.Minutes >= 30);
         Assert.Contains(labor, l => l.ProductCode == "AVTECH" && l.Task == "Packdown" && l.Minutes >= 30);
         Assert.Contains(labor, l => l.ProductCode == "VXTECH" && l.Task == "Rehearsal" && l.Minutes == 30);
         Assert.Contains(labor, l => l.ProductCode == "VXTECH" && l.Task == "Operate");
