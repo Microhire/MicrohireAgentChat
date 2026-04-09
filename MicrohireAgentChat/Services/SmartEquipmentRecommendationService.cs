@@ -92,6 +92,9 @@ public sealed partial class SmartEquipmentRecommendationService
             // ROOM-SPECIFIC SUGGESTIONS: Add commentary or suggest additional items based on the room
             await ApplyRoomSpecificSuggestionsAsync(result, context, ct);
 
+            // DEDUPLICATION: Merge items with the same product code (e.g. 2× SDICROSS from foldback + 2× from stage laptop → 4× SDICROSS)
+            ConsolidateDuplicateItems(result);
+
             // Calculate totals
             result.TotalDayRate = result.Items.Sum(i => i.UnitPrice * i.Quantity);
 
@@ -105,6 +108,43 @@ public sealed partial class SmartEquipmentRecommendationService
             _recommendationInvBatch = null;
             _recommendationRateBatch = null;
         }
+    }
+
+    /// <summary>
+    /// Merge items with the same product code into a single line (summing quantities).
+    /// Prevents duplicate line items when the same product is added by multiple recommendation paths
+    /// (e.g. SDICROSS from foldback_monitor + laptop_at_stage, or LOGISPOT from clicker + wireless presenter).
+    /// </summary>
+    private static void ConsolidateDuplicateItems(SmartEquipmentRecommendation result)
+    {
+        if (result.Items.Count <= 1) return;
+
+        var consolidated = new List<RecommendedEquipmentItem>();
+        var seen = new Dictionary<string, RecommendedEquipmentItem>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var item in result.Items)
+        {
+            var code = (item.ProductCode ?? "").Trim();
+            if (string.IsNullOrEmpty(code))
+            {
+                consolidated.Add(item);
+                continue;
+            }
+
+            if (seen.TryGetValue(code, out var existing))
+            {
+                // Sum quantities; keep the first item's details (price, description, etc.)
+                existing.Quantity += item.Quantity;
+            }
+            else
+            {
+                seen[code] = item;
+                consolidated.Add(item);
+            }
+        }
+
+        result.Items.Clear();
+        result.Items.AddRange(consolidated);
     }
 
     /// <summary>

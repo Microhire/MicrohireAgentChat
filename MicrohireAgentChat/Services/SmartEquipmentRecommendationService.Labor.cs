@@ -34,6 +34,7 @@ public sealed partial class SmartEquipmentRecommendationService
         var audioPackageCodes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "WSBELSAD", "WSBELAUD", "WBELAUD", "WSBALLAU", "WBFBCSS", "WBSBCSS",
+            "WBAVP", "WBSAVP",  // Combined AV packages already include ceiling speakers
             "ELEVCSS", "ELEVSCSS", "ELEVAVP", "ELEVSAVP", "THRVCSS", "THRVAVP", "WSBFPAUD", "WSBFPAVP"
         };
         var hasSpeakers = result.Items.Any(i =>

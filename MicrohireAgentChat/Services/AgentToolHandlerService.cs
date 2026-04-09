@@ -1394,7 +1394,17 @@ public sealed partial class AgentToolHandlerService
         // If user confirmed clicker in conversation/session but request was omitted, add it.
         var clickerFromSession = string.Equals(session?.GetString("Draft:NeedsClicker"), "yes", StringComparison.OrdinalIgnoreCase);
         var clickerFromConversation = Regex.IsMatch(userConversationTextForEquipmentSignals, @"\b(clicker|wireless presenter|presentation remote)\b", RegexOptions.IgnoreCase);
-        if (!eventContext.EquipmentRequests.Any(r => (r.EquipmentType ?? "").Contains("clicker", StringComparison.OrdinalIgnoreCase))
+        // When the follow-up AV form was submitted with wireless presenter = "no", suppress the
+        // conversation-based signal — the synthetic message itself contains "wireless presenter no"
+        // which the regex above matches, causing a false positive.
+        var wizardDeclinedClicker = string.Equals(session?.GetString("Draft:FollowUpAvSubmitted"), "1", StringComparison.Ordinal)
+            && string.Equals(session?.GetString("Draft:WirelessPresenter"), "no", StringComparison.OrdinalIgnoreCase);
+        if (wizardDeclinedClicker)
+            clickerFromConversation = false;
+        if (!eventContext.EquipmentRequests.Any(r =>
+                (r.EquipmentType ?? "").Contains("clicker", StringComparison.OrdinalIgnoreCase) ||
+                (r.EquipmentType ?? "").Contains("wireless presenter", StringComparison.OrdinalIgnoreCase) ||
+                (r.EquipmentType ?? "").Contains("presentation remote", StringComparison.OrdinalIgnoreCase))
             && (clickerFromSession || clickerFromConversation))
         {
             EnsureEquipmentRequest(eventContext.EquipmentRequests, "clicker", 1);
@@ -2333,7 +2343,10 @@ public sealed partial class AgentToolHandlerService
         if (string.Equals(session.GetString("Draft:FoldbackMonitor") ?? "", "yes", StringComparison.OrdinalIgnoreCase))
             EnsureEquipmentRequest(requests, "foldback_monitor", 1);
 
-        if (string.Equals(session.GetString("Draft:WirelessPresenter") ?? "", "yes", StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(session.GetString("Draft:WirelessPresenter") ?? "", "yes", StringComparison.OrdinalIgnoreCase)
+            && !HasAnyEquipmentType(requests, t => t.Contains("clicker", StringComparison.OrdinalIgnoreCase)
+                || t.Contains("wireless presenter", StringComparison.OrdinalIgnoreCase)
+                || t.Contains("presentation remote", StringComparison.OrdinalIgnoreCase)))
             EnsureEquipmentRequest(requests, "wireless presenter", 1);
 
         if (string.Equals(session.GetString("Draft:LaptopSwitcher") ?? "", "yes", StringComparison.OrdinalIgnoreCase))
