@@ -1938,6 +1938,109 @@ public sealed partial class AgentToolHandlerService
             }));
         }
 
+        // Re-add Operate tasks when mic operator or seamless switch explicitly confirmed,
+        // even if "operator throughout" was not selected.
+        if (!technicianCoverage.NoTechnicianSupport)
+        {
+            var micOpSession = (session?.GetString("Draft:MicrophoneOperator") ?? "").Trim().ToLowerInvariant();
+            var micOpConfirmedForLabor = micOpSession == "yes";
+            var hasSwitcherEquipment = recommendations.Items.Any(i =>
+                string.Equals((i.ProductCode ?? "").Trim(), "V1HD", StringComparison.OrdinalIgnoreCase));
+
+            // Determine if we need to re-insert operator and which tech code to use
+            var shouldReInsertOperator = false;
+            string reInsertCode = "AVTECH", reInsertDesc = "AV Technician";
+            string reInsertReason = "";
+
+            if (micOpConfirmedForLabor && hasSwitcherEquipment)
+            {
+                // Both mic operator AND seamless switch → single AVTECH operator
+                shouldReInsertOperator = true;
+                reInsertCode = "AVTECH";
+                reInsertDesc = "AV Technician";
+                reInsertReason = "Microphone operator and seamless switching confirmed: AV Technician covers both for event duration.";
+            }
+            else if (micOpConfirmedForLabor)
+            {
+                // Mic operator only → AXTECH
+                shouldReInsertOperator = true;
+                reInsertCode = "AXTECH";
+                reInsertDesc = "Audio Technician";
+                reInsertReason = "Customer confirmed microphone operator for event duration.";
+            }
+            else if (hasSwitcherEquipment && !technicianCoverage.Operate)
+            {
+                // Switcher only, and "operator throughout" is NO → VXTECH
+                shouldReInsertOperator = true;
+                reInsertCode = "VXTECH";
+                reInsertDesc = "Vision Technician";
+                reInsertReason = "Seamless laptop switching confirmed: Vision Technician operates for event duration.";
+            }
+
+            if (shouldReInsertOperator)
+            {
+                // Remove conflicting specialist Operate/Rehearsal tasks when combo (both confirmed)
+                if (micOpConfirmedForLabor && hasSwitcherEquipment)
+                {
+                    recommendations.LaborItems.RemoveAll(l =>
+                        (string.Equals(l.ProductCode, "VXTECH", StringComparison.OrdinalIgnoreCase) ||
+                         string.Equals(l.ProductCode, "AXTECH", StringComparison.OrdinalIgnoreCase)) &&
+                        (IsRehearsalLaborTask(l.Task) || IsOperateLaborTask(l.Task)));
+                }
+
+                // Replace AVTECH Test & Connect with Rehearsal when mic operator confirmed
+                if (micOpConfirmedForLabor)
+                {
+                    var baselineTc = recommendations.LaborItems.FirstOrDefault(l =>
+                        string.Equals(l.ProductCode, "AVTECH", StringComparison.OrdinalIgnoreCase) &&
+                        string.Equals(l.Task, "Test & Connect", StringComparison.OrdinalIgnoreCase));
+                    if (baselineTc != null)
+                        recommendations.LaborItems.Remove(baselineTc);
+                }
+
+                // Add Operate if not already present for this tech code
+                if (!recommendations.LaborItems.Any(l =>
+                    string.Equals(l.ProductCode, reInsertCode, StringComparison.OrdinalIgnoreCase) &&
+                    IsOperateLaborTask(l.Task)))
+                {
+                    recommendations.LaborItems.Add(new RecommendedLaborItem
+                    {
+                        ProductCode = reInsertCode,
+                        Description = reInsertDesc,
+                        Task = "Operate",
+                        Quantity = 1,
+                        Hours = 0,
+                        Minutes = 0,
+                        RecommendationReason = reInsertReason
+                    });
+                }
+
+                // Add Rehearsal if not already present
+                if (!recommendations.LaborItems.Any(l =>
+                    string.Equals(l.ProductCode, reInsertCode, StringComparison.OrdinalIgnoreCase) &&
+                    IsRehearsalLaborTask(l.Task)))
+                {
+                    recommendations.LaborItems.Add(new RecommendedLaborItem
+                    {
+                        ProductCode = reInsertCode,
+                        Description = reInsertDesc,
+                        Task = "Rehearsal",
+                        Quantity = 1,
+                        Hours = 0,
+                        Minutes = 30,
+                        RecommendationReason = micOpConfirmedForLabor
+                            ? "Customer confirmed microphone operator."
+                            : "Seamless laptop switching confirmed."
+                    });
+                }
+
+                recommendations.LaborItems = recommendations.LaborItems
+                    .OrderBy(GetLaborTaskSortOrder)
+                    .ThenBy(l => l.Description, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+        }
+
         // Add rehearsal labour (task code 7) when the customer confirmed they want an operator for rehearsal.
         if (rehearsalOperatorConfirmed && !recommendations.LaborItems.Any(l => IsRehearsalLaborTask(l.Task)))
         {

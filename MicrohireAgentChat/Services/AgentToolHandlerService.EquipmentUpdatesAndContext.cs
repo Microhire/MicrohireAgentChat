@@ -407,6 +407,55 @@ public sealed partial class AgentToolHandlerService
                 .ToList();
         }
 
+        // Seamless switch (V1HD) → VXTECH Operate when mic operator is NOT confirmed
+        // and "operator throughout" was not selected (avoid duplication)
+        if (sessionMicOp != "yes")
+        {
+            var hasSwitcherInItems = currentItems.Any(i =>
+                string.Equals((i.ProductCode ?? "").Trim(), "V1HD", StringComparison.OrdinalIgnoreCase));
+            if (hasSwitcherInItems)
+            {
+                var storedCoverage = TryLoadTechnicianCoverageFromSession(session);
+                if (storedCoverage == null || !storedCoverage.Operate)
+                {
+                    if (!laborItems.Any(l =>
+                        string.Equals(l.ProductCode, "VXTECH", StringComparison.OrdinalIgnoreCase) &&
+                        IsOperateLaborTask(l.Task)))
+                    {
+                        laborItems.Add(new RecommendedLaborItem
+                        {
+                            ProductCode = "VXTECH",
+                            Description = "Vision Technician",
+                            Task = "Operate",
+                            Quantity = 1,
+                            Hours = 0,
+                            Minutes = 0,
+                            RecommendationReason = "Seamless laptop switching: Vision Technician operates for event duration."
+                        });
+                    }
+                    if (!laborItems.Any(l =>
+                        string.Equals(l.ProductCode, "VXTECH", StringComparison.OrdinalIgnoreCase) &&
+                        IsRehearsalLaborTask(l.Task)))
+                    {
+                        laborItems.Add(new RecommendedLaborItem
+                        {
+                            ProductCode = "VXTECH",
+                            Description = "Vision Technician",
+                            Task = "Rehearsal",
+                            Quantity = 1,
+                            Hours = 0,
+                            Minutes = 30,
+                            RecommendationReason = "Seamless laptop switching requires rehearsal."
+                        });
+                    }
+                    laborItems = laborItems
+                        .OrderBy(GetLaborTaskSortOrder)
+                        .ThenBy(l => l.Description, StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+                }
+            }
+        }
+
         var projectorAreasForSummary = GetNormalizedProjectorAreas(session.GetString("Draft:ProjectorAreas"));
         if (projectorAreasForSummary.Count == 0)
             projectorAreasForSummary = GetNormalizedProjectorAreas(session.GetString("Draft:ProjectorArea"));
