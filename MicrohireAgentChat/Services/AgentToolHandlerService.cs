@@ -1970,9 +1970,10 @@ public sealed partial class AgentToolHandlerService
                 reInsertDesc = "Audio Technician";
                 reInsertReason = "Customer confirmed microphone operator for event duration.";
             }
-            // Source: "Do you need to seamlessly switch between the laptops?" = YES
-            // Conditional on: "Would you like an operator throughout your event?" = NO
-            // Adds: VXTECH (Vision Technician) for event duration
+            // Source: "Do you need to seamlessly switch between the laptops?" = YES (V1HD only path)
+            // VXTECH Rehearsal is handled separately below (independent of operator throughout).
+            // VXTECH Operate is conditional on "Would you like an operator throughout your event?" = NO
+            // (otherwise the operator-throughout AVTECH covers it).
             else if (hasSwitcherEquipment)
             {
                 var wantsOperator = (session?.GetString("Draft:WantsOperator") ?? "").Trim().ToLowerInvariant();
@@ -1983,6 +1984,27 @@ public sealed partial class AgentToolHandlerService
                     reInsertDesc = "Vision Technician";
                     reInsertReason = "Seamless laptop switching confirmed: Vision Technician operates for event duration.";
                 }
+            }
+
+            // V1HD Rehearsal (independent of operator throughout): add VXTECH Rehearsal
+            // when V1HD is present, mic op is not confirmed, and rehearsal op is not confirmed.
+            if (hasSwitcherEquipment
+                && !micOpConfirmedForLabor
+                && !rehearsalOperatorConfirmed
+                && !recommendations.LaborItems.Any(l =>
+                    string.Equals(l.ProductCode, "VXTECH", StringComparison.OrdinalIgnoreCase) &&
+                    IsRehearsalLaborTask(l.Task)))
+            {
+                recommendations.LaborItems.Add(new RecommendedLaborItem
+                {
+                    ProductCode = "VXTECH",
+                    Description = "Vision Technician",
+                    Task = "Rehearsal",
+                    Quantity = 1,
+                    Hours = 0,
+                    Minutes = 30,
+                    RecommendationReason = "Seamless laptop switching requires VXTECH rehearsal."
+                });
             }
 
             // When mic operator is declined, remove AXTECH Operate/Rehearsal that the initial
