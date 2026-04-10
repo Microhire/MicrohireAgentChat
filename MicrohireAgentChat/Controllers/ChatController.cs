@@ -4788,6 +4788,16 @@ View Signed Quote
         HttpContext.Session.SetString("Draft:RehearsalOperator", submission.WantsRehearsalOperator);
         HttpContext.Session.SetString("Draft:WantsOperator", submission.WantsOperator);
 
+        // When the user (re)submits the event details form with operator-throughout = YES,
+        // clear any persisted "Would you like a microphone operator?" answer. The mic op
+        // question is hidden in the UI in this state, so a stale "yes" from a previous
+        // submission would otherwise be carried forward and cause double-add of an audio
+        // operator in the labor calculation.
+        if (string.Equals(submission.WantsOperator, "yes", StringComparison.OrdinalIgnoreCase))
+        {
+            HttpContext.Session.SetString("Draft:MicrophoneOperator", "no");
+        }
+
         var dateStr = HttpContext.Session.GetString("Draft:EventDate") ?? "";
         if (DateTime.TryParse(dateStr, CultureInfo.InvariantCulture, DateTimeStyles.None, out var eventDate)
             && TimeSpan.TryParse(submission.SetupTime, CultureInfo.InvariantCulture, out var setup)
@@ -4905,7 +4915,15 @@ View Signed Quote
             HttpContext.Session.SetString("Draft:Lectern", s.Lectern);
             HttpContext.Session.SetString("Draft:FoldbackMonitor", s.FoldbackMonitor);
             HttpContext.Session.SetString("Draft:WirelessPresenter", s.WirelessPresenter);
-            HttpContext.Session.SetString("Draft:MicrophoneOperator", s.MicrophoneOperator);
+            // The "Would you like a microphone operator?" question is only applicable when
+            // "Would you like an operator throughout your event?" = NO. When the user answers
+            // YES to operator-throughout, the mic operator question is hidden in the UI but
+            // a stale "yes" value may persist from a previous form state. Force it to "no"
+            // so downstream labor logic does not double-add an audio operator.
+            var wantsOperatorForMicOp = (HttpContext.Session.GetString("Draft:WantsOperator") ?? "").Trim().ToLowerInvariant();
+            var micOperatorValue = wantsOperatorForMicOp == "yes" ? "no" : s.MicrophoneOperator;
+            s.MicrophoneOperator = micOperatorValue;
+            HttpContext.Session.SetString("Draft:MicrophoneOperator", micOperatorValue);
         }
 
         HttpContext.Session.SetString("Draft:LaptopSwitcher", s.LaptopSwitcher);
