@@ -313,7 +313,11 @@ public sealed partial class AgentToolHandlerService
             }
         }
 
-        // Apply rehearsal operator preference (mirrors recommend_equipment_for_event logic).
+        // ─────────────────────────────────────────────────────────────────────
+        // Source: "Would you like an operator for your rehearsal?" (Draft:RehearsalOperator)
+        //   YES → Adds Rehearsal task (30 mins) using current operate template
+        //   NO  → Removes any existing Rehearsal labor items
+        // ─────────────────────────────────────────────────────────────────────
         var sessionRehearsalOp = (session.GetString("Draft:RehearsalOperator") ?? "").Trim().ToLowerInvariant();
         if (sessionRehearsalOp == "yes" && !laborItems.Any(l => IsRehearsalLaborTask(l.Task)))
         {
@@ -342,12 +346,15 @@ public sealed partial class AgentToolHandlerService
                 .ToList();
         }
 
-        // Apply microphone operator preference: when confirmed, add Rehearsal (30 min) + Operate.
-        // If V1HD switcher is also present, use AVTECH instead of AXTECH (combo rule).
+        // ─────────────────────────────────────────────────────────────────────
+        // Source: "Would you like a microphone operator?" (Draft:MicrophoneOperator)
+        //   YES → Adds 30 mins AXTECH Rehearsal (only if rehearsal op = NO)
+        //         Adds AXTECH Operate (event duration, only if operator throughout = NO)
+        //         If V1HD switcher present, uses AVTECH instead of AXTECH (combo rule)
+        //   NO  → Removes any AXTECH Rehearsal/Operate items
+        // ─────────────────────────────────────────────────────────────────────
         var sessionMicOp = (session.GetString("Draft:MicrophoneOperator") ?? "").Trim().ToLowerInvariant();
 
-        // When mic operator is declined, remove AXTECH Operate/Rehearsal that the initial
-        // recommendation may have added based on mic count alone.
         if (sessionMicOp != "yes")
         {
             laborItems.RemoveAll(l =>
@@ -413,9 +420,12 @@ public sealed partial class AgentToolHandlerService
                 .ToList();
         }
 
-        // Seamless switch (V1HD) → VXTECH Operate/Rehearsal when mic operator is NOT confirmed.
-        // Conditional on "Would you like an operator throughout your event?" (Draft:WantsOperator)
-        // and "Would you like an operator for your rehearsal?" (Draft:RehearsalOperator).
+        // ─────────────────────────────────────────────────────────────────────
+        // Source: "Do you need to seamlessly switch between the laptops?" = YES
+        //         (V1HD switcher in equipment) AND mic operator NOT confirmed
+        // Adds: VXTECH Rehearsal (30 mins, only if rehearsal op = NO)
+        //       VXTECH Operate (event duration, only if operator throughout = NO)
+        // ─────────────────────────────────────────────────────────────────────
         if (sessionMicOp != "yes")
         {
             var hasSwitcherInItems = currentItems.Any(i =>
@@ -457,6 +467,58 @@ public sealed partial class AgentToolHandlerService
                         RecommendationReason = "Seamless laptop switching requires rehearsal."
                     });
                 }
+                laborItems = laborItems
+                    .OrderBy(GetLaborTaskSortOrder)
+                    .ThenBy(l => l.Description, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════════
+        // FINAL CLEANUP — Defensive enforcement of session-level operator answers
+        // ═══════════════════════════════════════════════════════════════════════
+        // Catches edge cases where filters/clones may have leaked specialist labor
+        // (matched by either ProductCode OR Description) past prior cleanup steps.
+        {
+            var finalMicOp = (session.GetString("Draft:MicrophoneOperator") ?? "").Trim().ToLowerInvariant();
+            var finalHasSwitcher = currentItems.Any(i =>
+                string.Equals((i.ProductCode ?? "").Trim(), "V1HD", StringComparison.OrdinalIgnoreCase));
+
+            // Source: "Would you like a microphone operator?" = NO (or unanswered)
+            // Removes: any Audio Technician (AXTECH) Rehearsal/Operate items
+            if (finalMicOp != "yes")
+            {
+                laborItems.RemoveAll(l =>
+                    (string.Equals(l.ProductCode, "AXTECH", StringComparison.OrdinalIgnoreCase) ||
+                     (l.Description ?? "").Contains("Audio Technician", StringComparison.OrdinalIgnoreCase)) &&
+                    (IsRehearsalLaborTask(l.Task) || IsOperateLaborTask(l.Task)));
+            }
+
+            // Source: V1HD switcher NOT in equipment (i.e. "Do you need to seamlessly switch?" = NO)
+            // Removes: any Vision Technician (VXTECH) Rehearsal/Operate items
+            if (!finalHasSwitcher)
+            {
+                laborItems.RemoveAll(l =>
+                    (string.Equals(l.ProductCode, "VXTECH", StringComparison.OrdinalIgnoreCase) ||
+                     (l.Description ?? "").Contains("Vision Technician", StringComparison.OrdinalIgnoreCase)) &&
+                    (IsRehearsalLaborTask(l.Task) || IsOperateLaborTask(l.Task)));
+            }
+
+            // Source: "Would you like an operator throughout your event?" = YES
+            // Adds: AVTECH Operate (event duration) if no Operate task remains after cleanup
+            var finalWantsOperator = (session.GetString("Draft:WantsOperator") ?? "").Trim().ToLowerInvariant();
+            if (finalWantsOperator == "yes" && !laborItems.Any(l => IsOperateLaborTask(l.Task)))
+            {
+                laborItems.Add(new RecommendedLaborItem
+                {
+                    ProductCode = "AVTECH",
+                    Description = "AV Technician",
+                    Task = "Operate",
+                    Quantity = 1,
+                    Hours = 0,
+                    Minutes = 0,
+                    RecommendationReason = "Customer requested operator throughout event."
+                });
                 laborItems = laborItems
                     .OrderBy(GetLaborTaskSortOrder)
                     .ThenBy(l => l.Description, StringComparer.OrdinalIgnoreCase)

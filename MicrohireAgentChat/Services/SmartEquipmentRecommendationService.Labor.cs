@@ -485,6 +485,10 @@ public sealed partial class SmartEquipmentRecommendationService
         var baseTc = roomRule.BaselineTcMinutes;
         var basePd = roomRule.BaselinePackdownMinutes;
 
+        // ─────────────────────────────────────────────────────────────────────
+        // Source: Minimum Labor (always added for any Westin room package)
+        // Adds: Setup, Test & Connect, Pack Down (30 mins each)
+        // ─────────────────────────────────────────────────────────────────────
         if (baseSetup > 0)
             AddLabor(result, baselineDescription, "Room package baseline labor: setup.", productCode: baselineCode, task: "Setup", minutes: baseSetup);
         if (baseTc > 0)
@@ -496,6 +500,11 @@ public sealed partial class SmartEquipmentRecommendationService
         var micThreshold = roomRule.MicrophoneOperatorThreshold <= 0 ? 2 : roomRule.MicrophoneOperatorThreshold;
         var needsMicOperator = micCount > micThreshold;
 
+        // ─────────────────────────────────────────────────────────────────────
+        // Source: "Do you need to seamlessly switch between the laptops?" = YES
+        // Triggered by: V1HD switcher present in equipment
+        // Adds: +1 hour Setup, plus VXTECH Rehearsal/Operate (or AVTECH combo)
+        // ─────────────────────────────────────────────────────────────────────
         if (hasSwitcher && roomRule.SupportsOperatorEscalation)
         {
             // V1HD: +1hr AVTECH Setup
@@ -508,13 +517,13 @@ public sealed partial class SmartEquipmentRecommendationService
             }
             else if (needsMicOperator)
             {
-                // Both mic operator AND switcher → use AVTECH for Rehearsal + Operate
+                // Combo: mic count > threshold AND V1HD → use AVTECH for both Rehearsal + Operate
                 AddLabor(result, baselineDescription, "V1HD switcher with microphone operator: AVTECH rehearsal.", productCode: baselineCode, task: "Rehearsal", minutes: 30);
                 AddLabor(result, baselineDescription, "V1HD switcher with microphone operator: AVTECH operates from show start to end.", productCode: baselineCode, task: "Operate");
             }
             else
             {
-                // V1HD only → VXTECH Rehearsal + Operate
+                // V1HD only → VXTECH Rehearsal (30 mins) + VXTECH Operate (event duration)
                 var visionCode = string.IsNullOrWhiteSpace(roomRule.VisionSpecialistCode) ? "VXTECH" : roomRule.VisionSpecialistCode.Trim().ToUpperInvariant();
                 var visionDesc = ResolveLaborDescription(visionCode);
                 AddLabor(result, visionDesc, "V1HD switcher requires VXTECH rehearsal.", productCode: visionCode, task: "Rehearsal", minutes: 30);
@@ -522,11 +531,19 @@ public sealed partial class SmartEquipmentRecommendationService
             }
         }
 
+        // ─────────────────────────────────────────────────────────────────────
+        // Source: "Will you need a Flipchart in the room?" = YES (quantity > 0)
+        // Adds: +15 mins Setup per flipchart unit
+        // ─────────────────────────────────────────────────────────────────────
         if (flipchartCount > 0)
         {
             AddLabor(result, baselineDescription, $"Flipchart setup (+15 mins per unit x {flipchartCount}).", productCode: baselineCode, task: "Setup", minutes: 15 * flipchartCount);
         }
 
+        // ─────────────────────────────────────────────────────────────────────
+        // Source: "Are you hosting a video conference?" = YES
+        // Adds: +30 mins Setup, +30 mins T&C, +30 mins Pack Down
+        // ─────────────────────────────────────────────────────────────────────
         if (hasVideoConf)
         {
             AddLabor(result, baselineDescription, "Video conference unit requires additional setup.", productCode: baselineCode, task: "Setup", minutes: 30);
@@ -534,13 +551,21 @@ public sealed partial class SmartEquipmentRecommendationService
             AddLabor(result, baselineDescription, "Video conference unit requires additional pack down.", productCode: baselineCode, task: "Packdown", minutes: 30);
         }
 
+        // ─────────────────────────────────────────────────────────────────────
+        // Source: "Lectern" form question = lectern-only or lectern-mic
+        // Adds: +15 mins Setup, +15 mins Pack Down
+        // ─────────────────────────────────────────────────────────────────────
         if (hasLectern)
         {
             AddLabor(result, baselineDescription, "Lectern/microphone requires additional setup.", productCode: baselineCode, task: "Setup", minutes: 15);
             AddLabor(result, baselineDescription, "Lectern/microphone requires additional pack down.", productCode: baselineCode, task: "Packdown", minutes: 15);
         }
 
-        // Wireless microphones: +15 mins setup & pack down per spec
+        // ─────────────────────────────────────────────────────────────────────
+        // Source: "Type of microphone" form question with quantity > 0
+        //         (handheld or lapel wireless microphone)
+        // Adds: +15 mins Setup, +15 mins Pack Down
+        // ─────────────────────────────────────────────────────────────────────
         if (micCount > 0)
         {
             AddLabor(result, baselineDescription, "Wireless microphone(s) require additional setup.", productCode: baselineCode, task: "Setup", minutes: 15);
@@ -549,7 +574,12 @@ public sealed partial class SmartEquipmentRecommendationService
 
         if (roomRule.SupportsOperatorEscalation)
         {
-            // Mic operator escalation — only when switcher is NOT also present (combo handled above)
+            // ─────────────────────────────────────────────────────────────────
+            // Source: "Would you like a microphone operator?" = YES
+            // Triggered by: mic count > threshold (default 2), no V1HD combo
+            // Adds: AXTECH Rehearsal (30 mins) + AXTECH Operate (event duration)
+            // Note: Session-level cleanup may remove these if user answered NO.
+            // ─────────────────────────────────────────────────────────────────
             if (needsMicOperator && !hasSwitcher)
             {
                 var audioCode = string.IsNullOrWhiteSpace(roomRule.AudioSpecialistCode) ? "AXTECH" : roomRule.AudioSpecialistCode.Trim().ToUpperInvariant();

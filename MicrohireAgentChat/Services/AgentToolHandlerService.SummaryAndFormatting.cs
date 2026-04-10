@@ -85,7 +85,7 @@ public sealed partial class AgentToolHandlerService
             return "";
 
         if (normalized.Contains("test", StringComparison.OrdinalIgnoreCase))
-            return "Rehearsal / Test & Connect";
+            return "Test & Connect";
         if (normalized.Contains("pack", StringComparison.OrdinalIgnoreCase))
             return "Pack down";
         if (normalized.Contains("setup", StringComparison.OrdinalIgnoreCase))
@@ -105,7 +105,7 @@ public sealed partial class AgentToolHandlerService
         {
             "Setup" => FormatSingleTime(schedule.Setup, "by "),
             "Rehearsal" => FormatSingleTime(schedule.Rehearsal, "at "),
-            "Rehearsal / Test & Connect" => !string.IsNullOrWhiteSpace(schedule.Rehearsal)
+            "Test & Connect" => !string.IsNullOrWhiteSpace(schedule.Rehearsal)
                 ? FormatSingleTime(schedule.Rehearsal, "around ")
                 : FormatSingleTime(schedule.Start, "before "),
             "Operate" => FormatRange(schedule.Start, schedule.End),

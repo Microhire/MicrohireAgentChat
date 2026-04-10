@@ -648,8 +648,10 @@ public sealed partial class AgentToolHandlerService
             // var foundRehearsal = Regex.IsMatch(normalized, @"\b(rehearsal|test\s*&\s*connect|test and connect|soundcheck)\b");
             var foundRehearsal = false;
             // Explicit "operator yes/no" from event-details form submission takes precedence.
-            var explicitOperatorNo  = Regex.IsMatch(normalized, @"\boperator\s+no\b");
-            var explicitOperatorYes = Regex.IsMatch(normalized, @"\boperator\s+yes\b");
+            // Negative lookbehind excludes "rehearsal operator yes/no" from the event-details
+            // synthetic message, which is controlled by a separate confirmation flow.
+            var explicitOperatorNo  = Regex.IsMatch(normalized, @"(?<!rehearsal\s)\boperator\s+no\b");
+            var explicitOperatorYes = Regex.IsMatch(normalized, @"(?<!rehearsal\s)\boperator\s+yes\b");
             var foundOperate = !explicitOperatorNo &&
                 (explicitOperatorYes || Regex.IsMatch(normalized, @"\b(operate|operation|operator|during the event|during event|live support|show support|run the event)\b"));
             var foundPackdown = Regex.IsMatch(normalized, @"\b(pack\s*down|packdown|pack\s*up|packup|bump out)\b");

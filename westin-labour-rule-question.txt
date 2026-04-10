@@ -1,0 +1,49 @@
+Minimum Labor:
+30 mins Setup
+30 mins Test & Connect
+30 mins Pack down
+
+Would you like an operator for your rehearsal?
++ 30 mins Rehearsal
+
+Would you like an operator throughout your event?
++ duration of the event in hours for Operator
+
+Will you need a Flipchart in the room?
++ 15 mins Setup
+
+Type of microphone (when there's quantity provided)
++ 15 mins Setup
++ 15 mins Pack down
+
+Would you like a microphone operator?
++ 30 mins AXTECH Rehearsal (Only add this if the answer on the question "Would you like an operator for your rehearsal?" is NO)
++ duration of the event in hours for AXTECH Operator (Only add this if the answer on the question "Would you like an operator throughout your event?" is NO)
+
+Lectern with microphone
++ 15 mins Setup
++ 15 mins Pack down
+
+Do you need to seamlessly switch between the 2 laptops?
++ 1 hour Setup
++ 30 mins VXTECH Rehearsal (Only add this if the answer on the question "Would you like an operator for your rehearsal?" is NO)
++ duration of the event in hours for VXTECH Operator (Only add this if the answer on the question "Would you like an operator throughout your event?" is NO)
+
+Are you hosting a video conference?
++ 30 mins Setup
++ 30 mins Test & Connect
++ 30 mins Packdown
+
+
+TECHNICIAN LOGIC
+Would you like an operator throughout your event?
+Use AVTECH for the Operator
+
+Would you like a microphone operator?
+Use AXTECH for the Rehearsal and Operator
+
+Do you need to seamlessly switch between the 2 laptops?
+Use VXTECH for the Rehearsal and Operator
+
+If "Would you like a microphone operator?" and "Do you need to seamlessly switch between the 2 laptops?" are both YES
+Use AVTECH for the Rehearsal and Operator
