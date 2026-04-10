@@ -647,7 +647,11 @@ public sealed partial class AgentToolHandlerService
             // "Would you like an operator for your rehearsal?" confirmation flow.
             // var foundRehearsal = Regex.IsMatch(normalized, @"\b(rehearsal|test\s*&\s*connect|test and connect|soundcheck)\b");
             var foundRehearsal = false;
-            var foundOperate = Regex.IsMatch(normalized, @"\b(operate|operation|operator|during the event|during event|live support|show support|run the event)\b");
+            // Explicit "operator yes/no" from event-details form submission takes precedence.
+            var explicitOperatorNo  = Regex.IsMatch(normalized, @"\boperator\s+no\b");
+            var explicitOperatorYes = Regex.IsMatch(normalized, @"\boperator\s+yes\b");
+            var foundOperate = !explicitOperatorNo &&
+                (explicitOperatorYes || Regex.IsMatch(normalized, @"\b(operate|operation|operator|during the event|during event|live support|show support|run the event)\b"));
             var foundPackdown = Regex.IsMatch(normalized, @"\b(pack\s*down|packdown|pack\s*up|packup|bump out)\b");
 
             if (mentionsTechnician || foundSetup || foundRehearsal || foundOperate || foundPackdown)
