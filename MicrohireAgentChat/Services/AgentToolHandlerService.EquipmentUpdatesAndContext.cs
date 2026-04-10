@@ -345,6 +345,16 @@ public sealed partial class AgentToolHandlerService
         // Apply microphone operator preference: when confirmed, add Rehearsal (30 min) + Operate.
         // If V1HD switcher is also present, use AVTECH instead of AXTECH (combo rule).
         var sessionMicOp = (session.GetString("Draft:MicrophoneOperator") ?? "").Trim().ToLowerInvariant();
+
+        // When mic operator is declined, remove AXTECH Operate/Rehearsal that the initial
+        // recommendation may have added based on mic count alone.
+        if (sessionMicOp != "yes")
+        {
+            laborItems.RemoveAll(l =>
+                string.Equals(l.ProductCode, "AXTECH", StringComparison.OrdinalIgnoreCase) &&
+                (IsRehearsalLaborTask(l.Task) || IsOperateLaborTask(l.Task)));
+        }
+
         if (sessionMicOp == "yes")
         {
             var hasSwitcherInEquipment = currentItems.Any(i =>

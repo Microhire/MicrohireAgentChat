@@ -1981,6 +1981,15 @@ public sealed partial class AgentToolHandlerService
                 }
             }
 
+            // When mic operator is declined, remove AXTECH Operate/Rehearsal that the initial
+            // recommendation may have added based on mic count alone.
+            if (!micOpConfirmedForLabor)
+            {
+                recommendations.LaborItems.RemoveAll(l =>
+                    string.Equals(l.ProductCode, "AXTECH", StringComparison.OrdinalIgnoreCase) &&
+                    (IsRehearsalLaborTask(l.Task) || IsOperateLaborTask(l.Task)));
+            }
+
             if (shouldReInsertOperator)
             {
                 // Remove conflicting specialist Operate/Rehearsal tasks when combo (both confirmed)
@@ -1991,13 +2000,12 @@ public sealed partial class AgentToolHandlerService
                          string.Equals(l.ProductCode, "AXTECH", StringComparison.OrdinalIgnoreCase)) &&
                         (IsRehearsalLaborTask(l.Task) || IsOperateLaborTask(l.Task)));
                 }
-                // V1HD only (mic op declined): remove AVTECH/AXTECH Operate/Rehearsal from initial
+                // V1HD only (mic op declined): remove AVTECH Operate/Rehearsal from initial
                 // recommendation's mic+switcher combo path so VXTECH takes over.
                 else if (!micOpConfirmedForLabor && hasSwitcherEquipment)
                 {
                     recommendations.LaborItems.RemoveAll(l =>
-                        (string.Equals(l.ProductCode, "AVTECH", StringComparison.OrdinalIgnoreCase) ||
-                         string.Equals(l.ProductCode, "AXTECH", StringComparison.OrdinalIgnoreCase)) &&
+                        string.Equals(l.ProductCode, "AVTECH", StringComparison.OrdinalIgnoreCase) &&
                         (IsRehearsalLaborTask(l.Task) || IsOperateLaborTask(l.Task)));
                 }
 
