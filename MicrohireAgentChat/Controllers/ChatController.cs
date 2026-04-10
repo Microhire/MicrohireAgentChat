@@ -4476,6 +4476,7 @@ View Signed Quote
         public string LaptopSwitcher { get; set; } = "no";
         public string StageLaptop { get; set; } = "no";
         public string VideoConference { get; set; } = "no";
+        public string MicrophoneOperator { get; set; } = "no";
     }
 
     private static bool TryCaptureEmailFormSubmission(string text, out string normalizedEmail)
@@ -4568,6 +4569,7 @@ View Signed Quote
         submission.LaptopSwitcher = GetDecodedValue(data, "laptopSwitcher");
         submission.StageLaptop = GetDecodedValue(data, "stageLaptop");
         submission.VideoConference = GetDecodedValue(data, "videoConference");
+        submission.MicrophoneOperator = GetDecodedValue(data, "microphoneOperator");
         return true;
     }
 
@@ -4894,6 +4896,7 @@ View Signed Quote
             HttpContext.Session.SetString("Draft:Lectern", "none");
             HttpContext.Session.SetString("Draft:FoldbackMonitor", "no");
             HttpContext.Session.SetString("Draft:WirelessPresenter", "no");
+            HttpContext.Session.SetString("Draft:MicrophoneOperator", "no");
         }
         else
         {
@@ -4902,6 +4905,7 @@ View Signed Quote
             HttpContext.Session.SetString("Draft:Lectern", s.Lectern);
             HttpContext.Session.SetString("Draft:FoldbackMonitor", s.FoldbackMonitor);
             HttpContext.Session.SetString("Draft:WirelessPresenter", s.WirelessPresenter);
+            HttpContext.Session.SetString("Draft:MicrophoneOperator", s.MicrophoneOperator);
         }
 
         HttpContext.Session.SetString("Draft:LaptopSwitcher", s.LaptopSwitcher);
@@ -5156,7 +5160,7 @@ View Signed Quote
             $"technician from {HttpContext.Session.GetString("Draft:TechStartTime")} to {HttpContext.Session.GetString("Draft:TechEndTime")}; " +
             $"whole event coverage yes. " +
             $"Follow-up: mic {s.MicType} qty {s.MicQty}; lectern {s.Lectern}; foldback {s.FoldbackMonitor}; " +
-            $"wireless presenter {s.WirelessPresenter}; laptop switcher {s.LaptopSwitcher}; stage laptop {s.StageLaptop}; " +
+            $"wireless presenter {s.WirelessPresenter}; microphone operator {s.MicrophoneOperator}; laptop switcher {s.LaptopSwitcher}; stage laptop {s.StageLaptop}; " +
             $"video conference {s.VideoConference}.";
     }
 
@@ -5587,7 +5591,8 @@ View Signed Quote
                 wirelessPresenter = HttpContext.Session.GetString("Draft:WirelessPresenter") ?? "no",
                 laptopSwitcher = HttpContext.Session.GetString("Draft:LaptopSwitcher") ?? "no",
                 stageLaptop = HttpContext.Session.GetString("Draft:StageLaptop") ?? "no",
-                videoConference = HttpContext.Session.GetString("Draft:VideoConference") ?? "no"
+                videoConference = HttpContext.Session.GetString("Draft:VideoConference") ?? "no",
+                micOperator = HttpContext.Session.GetString("Draft:MicrophoneOperator") ?? "no"
             }
         };
         return JsonSerializer.Serialize(payload);

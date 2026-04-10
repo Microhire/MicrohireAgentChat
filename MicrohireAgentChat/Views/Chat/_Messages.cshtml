@@ -2197,8 +2197,9 @@ else
     const sw=(form.querySelector('[data-fu-switcher]:checked')?.value||'no').trim();
     const st=(form.querySelector('[data-fu-stage]:checked')?.value||'no').trim();
     const vc=(form.querySelector('[data-fu-vc]:checked')?.value||'no').trim();
+    const micOp=(form.querySelector('[data-fu-mic-op]:checked')?.value||'no').trim();
     showFormError(err,'');
-    postChat(`FollowUpAv: micType=${encodeField(mic)}; micQty=${encodeField(micQty)}; lectern=${encodeField(lectern)}; foldbackMonitor=${encodeField(fb)}; wirelessPresenter=${encodeField(rwp)}; laptopSwitcher=${encodeField(sw)}; stageLaptop=${encodeField(st)}; videoConference=${encodeField(vc)}`,btn);
+    postChat(`FollowUpAv: micType=${encodeField(mic)}; micQty=${encodeField(micQty)}; lectern=${encodeField(lectern)}; foldbackMonitor=${encodeField(fb)}; wirelessPresenter=${encodeField(rwp)}; laptopSwitcher=${encodeField(sw)}; stageLaptop=${encodeField(st)}; videoConference=${encodeField(vc)}; microphoneOperator=${encodeField(micOp)}`,btn);
   },{passive:false});
 
   document.addEventListener('click',(ev)=>{

@@ -352,13 +352,6 @@ public sealed partial class AgentToolHandlerService
             var techCode = hasSwitcherInEquipment ? "AVTECH" : "AXTECH";
             var techDesc = hasSwitcherInEquipment ? "AV Technician" : "Audio Technician";
 
-            // Remove baseline AVTECH Test & Connect (replaced by Rehearsal)
-            var baselineTc = laborItems.FirstOrDefault(l =>
-                string.Equals(l.ProductCode, "AVTECH", StringComparison.OrdinalIgnoreCase) &&
-                string.Equals(l.Task, "Test & Connect", StringComparison.OrdinalIgnoreCase));
-            if (baselineTc != null)
-                laborItems.Remove(baselineTc);
-
             // When combo (mic + switcher), also remove any VXTECH Rehearsal/Operate that was added by V1HD alone
             if (hasSwitcherInEquipment)
             {
@@ -367,10 +360,11 @@ public sealed partial class AgentToolHandlerService
                     (IsRehearsalLaborTask(l.Task) || IsOperateLaborTask(l.Task)));
             }
 
-            // Add Rehearsal 30 mins if not already present
-            if (!laborItems.Any(l =>
-                string.Equals(l.ProductCode, techCode, StringComparison.OrdinalIgnoreCase) &&
-                IsRehearsalLaborTask(l.Task)))
+            // Add Rehearsal 30 mins if not already present AND rehearsal operator was not already confirmed
+            if (sessionRehearsalOp != "yes"
+                && !laborItems.Any(l =>
+                    string.Equals(l.ProductCode, techCode, StringComparison.OrdinalIgnoreCase) &&
+                    IsRehearsalLaborTask(l.Task)))
             {
                 laborItems.Add(new RecommendedLaborItem
                 {
@@ -384,10 +378,12 @@ public sealed partial class AgentToolHandlerService
                 });
             }
 
-            // Add Operate (event duration) if not already present
-            if (!laborItems.Any(l =>
-                string.Equals(l.ProductCode, techCode, StringComparison.OrdinalIgnoreCase) &&
-                IsOperateLaborTask(l.Task)))
+            // Add Operate (event duration) if not already present AND "operator throughout" was not already selected
+            var storedCoverageForMicOp = TryLoadTechnicianCoverageFromSession(session);
+            if ((storedCoverageForMicOp == null || !storedCoverageForMicOp.Operate)
+                && !laborItems.Any(l =>
+                    string.Equals(l.ProductCode, techCode, StringComparison.OrdinalIgnoreCase) &&
+                    IsOperateLaborTask(l.Task)))
             {
                 laborItems.Add(new RecommendedLaborItem
                 {
@@ -407,16 +403,17 @@ public sealed partial class AgentToolHandlerService
                 .ToList();
         }
 
-        // Seamless switch (V1HD) → VXTECH Operate when mic operator is NOT confirmed
-        // and "operator throughout" was not selected (avoid duplication)
+        // Seamless switch (V1HD) → VXTECH Operate/Rehearsal when mic operator is NOT confirmed.
+        // Conditional on "Would you like an operator throughout your event?" (Draft:WantsOperator)
+        // and "Would you like an operator for your rehearsal?" (Draft:RehearsalOperator).
         if (sessionMicOp != "yes")
         {
             var hasSwitcherInItems = currentItems.Any(i =>
                 string.Equals((i.ProductCode ?? "").Trim(), "V1HD", StringComparison.OrdinalIgnoreCase));
             if (hasSwitcherInItems)
             {
-                var storedCoverage = TryLoadTechnicianCoverageFromSession(session);
-                if (storedCoverage == null || !storedCoverage.Operate)
+                var wantsOperator = (session.GetString("Draft:WantsOperator") ?? "").Trim().ToLowerInvariant();
+                if (wantsOperator != "yes")
                 {
                     if (!laborItems.Any(l =>
                         string.Equals(l.ProductCode, "VXTECH", StringComparison.OrdinalIgnoreCase) &&
@@ -433,26 +430,27 @@ public sealed partial class AgentToolHandlerService
                             RecommendationReason = "Seamless laptop switching: Vision Technician operates for event duration."
                         });
                     }
-                    if (!laborItems.Any(l =>
+                }
+                if (sessionRehearsalOp != "yes"
+                    && !laborItems.Any(l =>
                         string.Equals(l.ProductCode, "VXTECH", StringComparison.OrdinalIgnoreCase) &&
                         IsRehearsalLaborTask(l.Task)))
+                {
+                    laborItems.Add(new RecommendedLaborItem
                     {
-                        laborItems.Add(new RecommendedLaborItem
-                        {
-                            ProductCode = "VXTECH",
-                            Description = "Vision Technician",
-                            Task = "Rehearsal",
-                            Quantity = 1,
-                            Hours = 0,
-                            Minutes = 30,
-                            RecommendationReason = "Seamless laptop switching requires rehearsal."
-                        });
-                    }
-                    laborItems = laborItems
-                        .OrderBy(GetLaborTaskSortOrder)
-                        .ThenBy(l => l.Description, StringComparer.OrdinalIgnoreCase)
-                        .ToList();
+                        ProductCode = "VXTECH",
+                        Description = "Vision Technician",
+                        Task = "Rehearsal",
+                        Quantity = 1,
+                        Hours = 0,
+                        Minutes = 30,
+                        RecommendationReason = "Seamless laptop switching requires rehearsal."
+                    });
                 }
+                laborItems = laborItems
+                    .OrderBy(GetLaborTaskSortOrder)
+                    .ThenBy(l => l.Description, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
             }
         }
 

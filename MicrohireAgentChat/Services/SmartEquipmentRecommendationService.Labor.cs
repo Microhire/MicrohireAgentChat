@@ -552,15 +552,9 @@ public sealed partial class SmartEquipmentRecommendationService
             // Mic operator escalation — only when switcher is NOT also present (combo handled above)
             if (needsMicOperator && !hasSwitcher)
             {
-                var baselineTcForMics = result.LaborItems.FirstOrDefault(l =>
-                    string.Equals(l.ProductCode, baselineCode, StringComparison.OrdinalIgnoreCase) &&
-                    string.Equals(l.Task, "Test & Connect", StringComparison.OrdinalIgnoreCase));
-                if (baselineTcForMics != null)
-                    result.LaborItems.Remove(baselineTcForMics);
-
                 var audioCode = string.IsNullOrWhiteSpace(roomRule.AudioSpecialistCode) ? "AXTECH" : roomRule.AudioSpecialistCode.Trim().ToUpperInvariant();
                 var audioDesc = ResolveLaborDescription(audioCode);
-                AddLabor(result, audioDesc, "More than 2 microphones: AVTECH T&C replaced by AXTECH rehearsal.", productCode: audioCode, task: "Rehearsal", minutes: 30);
+                AddLabor(result, audioDesc, "More than 2 microphones require AXTECH rehearsal.", productCode: audioCode, task: "Rehearsal", minutes: 30);
                 AddLabor(result, audioDesc, "More than 2 microphones require audio operator from show start to end.", productCode: audioCode, task: "Operate");
             }
 
