@@ -2169,6 +2169,34 @@ public sealed partial class AgentToolHandlerService
                     .ThenBy(l => l.Description, StringComparer.OrdinalIgnoreCase)
                     .ToList();
             }
+
+            // Source: >2 microphones in equipment (independent of mic operator answer)
+            // Adds: AXTECH Rehearsal (30 mins) when there are more than 2 microphones,
+            //       no V1HD switcher, and no Rehearsal labor item already present.
+            // Placed AFTER the earlier AXTECH/Rehearsal removals so this survives cleanup.
+            var micCountInItems = recommendations.Items
+                .Where(i => (i.Description ?? "").Contains("microphone", StringComparison.OrdinalIgnoreCase)
+                            || (i.Description ?? "").Contains("mic ", StringComparison.OrdinalIgnoreCase))
+                .Sum(i => i.Quantity);
+            if (micCountInItems > 2
+                && !finalHasSwitcher
+                && !recommendations.LaborItems.Any(l => IsRehearsalLaborTask(l.Task)))
+            {
+                recommendations.LaborItems.Add(new RecommendedLaborItem
+                {
+                    ProductCode = "AXTECH",
+                    Description = "Audio Technician",
+                    Task = "Rehearsal",
+                    Quantity = 1,
+                    Hours = 0,
+                    Minutes = 30,
+                    RecommendationReason = $"Audio Technician required for rehearsal ({micCountInItems} microphones)."
+                });
+                recommendations.LaborItems = recommendations.LaborItems
+                    .OrderBy(GetLaborTaskSortOrder)
+                    .ThenBy(l => l.Description, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
         }
 
         // IMPORTANT: If no recommendations returned but equipment was requested, log and handle gracefully

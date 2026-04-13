@@ -17,7 +17,7 @@ Type of microphone (when there's quantity provided)
 + 15 mins Pack down
 
 Would you like a microphone operator?
-+ 30 mins AXTECH Rehearsal (Only add this if the answer on the question "Would you like an operator for your rehearsal?" is NO)
++ 30 mins AXTECH Rehearsal (Only add this if the answer on the question "Would you like an operator for your rehearsal?" is NO). when microphone is more than 2, apply this rehearsal addition. no duplicate with seamlessly switch
 + duration of the event in hours for AXTECH Operator (Only add this if the answer on the question "Would you like an operator throughout your event?" is NO)
 
 Lectern with microphone

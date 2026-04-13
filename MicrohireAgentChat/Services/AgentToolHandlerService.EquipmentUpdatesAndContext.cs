@@ -355,6 +355,11 @@ public sealed partial class AgentToolHandlerService
         // ─────────────────────────────────────────────────────────────────────
         var sessionMicOp = (session.GetString("Draft:MicrophoneOperator") ?? "").Trim().ToLowerInvariant();
 
+        var hasSwitcherInEquipment = currentItems.Any(i =>
+            string.Equals((i.ProductCode ?? "").Trim(), "V1HD", StringComparison.OrdinalIgnoreCase));
+        var techCode = hasSwitcherInEquipment ? "AVTECH" : "AXTECH";
+        var techDesc = hasSwitcherInEquipment ? "AV Technician" : "Audio Technician";
+
         if (sessionMicOp != "yes")
         {
             laborItems.RemoveAll(l =>
@@ -364,35 +369,12 @@ public sealed partial class AgentToolHandlerService
 
         if (sessionMicOp == "yes")
         {
-            var hasSwitcherInEquipment = currentItems.Any(i =>
-                string.Equals((i.ProductCode ?? "").Trim(), "V1HD", StringComparison.OrdinalIgnoreCase));
-            var techCode = hasSwitcherInEquipment ? "AVTECH" : "AXTECH";
-            var techDesc = hasSwitcherInEquipment ? "AV Technician" : "Audio Technician";
-
             // When combo (mic + switcher), also remove any VXTECH Rehearsal/Operate that was added by V1HD alone
             if (hasSwitcherInEquipment)
             {
                 laborItems.RemoveAll(l =>
                     string.Equals(l.ProductCode, "VXTECH", StringComparison.OrdinalIgnoreCase) &&
                     (IsRehearsalLaborTask(l.Task) || IsOperateLaborTask(l.Task)));
-            }
-
-            // Add Rehearsal 30 mins if not already present AND rehearsal operator was not already confirmed
-            if (sessionRehearsalOp != "yes"
-                && !laborItems.Any(l =>
-                    string.Equals(l.ProductCode, techCode, StringComparison.OrdinalIgnoreCase) &&
-                    IsRehearsalLaborTask(l.Task)))
-            {
-                laborItems.Add(new RecommendedLaborItem
-                {
-                    ProductCode = techCode,
-                    Description = techDesc,
-                    Task = "Rehearsal",
-                    Quantity = 1,
-                    Hours = 0,
-                    Minutes = 30,
-                    RecommendationReason = "Customer confirmed they would like a microphone operator."
-                });
             }
 
             // Add Operate (event duration) if not already present AND "operator throughout" was not already selected
@@ -420,6 +402,33 @@ public sealed partial class AgentToolHandlerService
                 .ToList();
         }
 
+
+        // Add Rehearsal 30 mins under the explicit condition:
+        //   ((MicOp = YES OR microphones > 2) AND seamless switch = NO AND rehearsal op = NO)
+        // Avoids duplicating the rehearsal item that's added by the seamless-switch branch
+        // or the rehearsal-operator = YES branch.
+        var micCountInItems = currentItems
+            .Where(i => (i.Description ?? "").Contains("microphone", StringComparison.OrdinalIgnoreCase)
+                        || (i.Description ?? "").Contains("mic ", StringComparison.OrdinalIgnoreCase))
+            .Sum(i => i.Quantity);
+        if ((sessionMicOp == "yes" || micCountInItems > 2)
+            && !hasSwitcherInEquipment
+            && sessionRehearsalOp == "no"
+            && !laborItems.Any(l =>
+                string.Equals(l.ProductCode, techCode, StringComparison.OrdinalIgnoreCase) &&
+                IsRehearsalLaborTask(l.Task)))
+        {
+            laborItems.Add(new RecommendedLaborItem
+            {
+                ProductCode = techCode,
+                Description = techDesc,
+                Task = "Rehearsal",
+                Quantity = 1,
+                Hours = 0,
+                Minutes = 30,
+                RecommendationReason = "Customer confirmed they would like a microphone operator."
+            });
+        }
         // ─────────────────────────────────────────────────────────────────────
         // Source: "Do you need to seamlessly switch between the laptops?" = YES
         //         (V1HD switcher in equipment) AND mic operator NOT confirmed
@@ -485,13 +494,21 @@ public sealed partial class AgentToolHandlerService
                 string.Equals((i.ProductCode ?? "").Trim(), "V1HD", StringComparison.OrdinalIgnoreCase));
 
             // Source: "Would you like a microphone operator?" = NO (or unanswered)
-            // Removes: any Audio Technician (AXTECH) Rehearsal/Operate items
+            // Removes: any Audio Technician (AXTECH) Rehearsal/Operate items — EXCEPT
+            // a Rehearsal item that was legitimately added by the >2 microphones rule
+            // (micCountInItems > 2 AND no switcher AND rehearsal op = NO).
             if (finalMicOp != "yes")
             {
+                var preserveMicCountRehearsal =
+                    micCountInItems > 2
+                    && !finalHasSwitcher
+                    && sessionRehearsalOp == "no";
+
                 laborItems.RemoveAll(l =>
                     (string.Equals(l.ProductCode, "AXTECH", StringComparison.OrdinalIgnoreCase) ||
                      (l.Description ?? "").Contains("Audio Technician", StringComparison.OrdinalIgnoreCase)) &&
-                    (IsRehearsalLaborTask(l.Task) || IsOperateLaborTask(l.Task)));
+                    (IsOperateLaborTask(l.Task) ||
+                     (IsRehearsalLaborTask(l.Task) && !preserveMicCountRehearsal)));
             }
 
             // Source: V1HD switcher NOT in equipment (i.e. "Do you need to seamlessly switch?" = NO)
