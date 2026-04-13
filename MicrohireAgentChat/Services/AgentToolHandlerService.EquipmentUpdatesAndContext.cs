@@ -404,14 +404,16 @@ public sealed partial class AgentToolHandlerService
 
 
         // Add Rehearsal 30 mins under the explicit condition:
-        //   ((MicOp = YES OR microphones > 2) AND seamless switch = NO AND rehearsal op = NO)
+        //   ((MicOp = YES OR (microphones > 2 AND operator throughout = YES))
+        //    AND seamless switch = NO AND rehearsal op = NO)
         // Avoids duplicating the rehearsal item that's added by the seamless-switch branch
         // or the rehearsal-operator = YES branch.
+        var sessionWantsOperator = (session.GetString("Draft:WantsOperator") ?? "").Trim().ToLowerInvariant();
         var micCountInItems = currentItems
             .Where(i => (i.Description ?? "").Contains("microphone", StringComparison.OrdinalIgnoreCase)
                         || (i.Description ?? "").Contains("mic ", StringComparison.OrdinalIgnoreCase))
             .Sum(i => i.Quantity);
-        if ((sessionMicOp == "yes" || micCountInItems > 2)
+        if ((sessionMicOp == "yes" || (micCountInItems > 2 && sessionWantsOperator == "yes"))
             && !hasSwitcherInEquipment
             && sessionRehearsalOp == "no"
             && !laborItems.Any(l =>
@@ -501,6 +503,7 @@ public sealed partial class AgentToolHandlerService
             {
                 var preserveMicCountRehearsal =
                     micCountInItems > 2
+                    && sessionWantsOperator == "yes"
                     && !finalHasSwitcher
                     && sessionRehearsalOp == "no";
 
