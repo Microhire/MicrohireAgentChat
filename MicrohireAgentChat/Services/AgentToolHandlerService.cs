@@ -2170,16 +2170,18 @@ public sealed partial class AgentToolHandlerService
                     .ToList();
             }
 
-            // Source: >2 microphones in equipment (independent of mic operator answer)
-            // Adds: AXTECH Rehearsal (30 mins) when there are more than 2 microphones,
-            //       no V1HD switcher, and no Rehearsal labor item already present.
-            // Placed AFTER the earlier AXTECH/Rehearsal removals so this survives cleanup.
+            // Source: >2 microphones in equipment, customer wants operator throughout,
+            // and rehearsal operator was explicitly declined.
+            // Adds: AXTECH Rehearsal (30 mins) so the on-site operator has setup time
+            // for the additional microphones. Mirrors the update_equipment cleanup rule.
             var micCountInItems = recommendations.Items
                 .Where(i => (i.Description ?? "").Contains("microphone", StringComparison.OrdinalIgnoreCase)
                             || (i.Description ?? "").Contains("mic ", StringComparison.OrdinalIgnoreCase))
                 .Sum(i => i.Quantity);
             if (micCountInItems > 2
                 && !finalHasSwitcher
+                && finalWantsOperator == "yes"
+                && rehearsalOperatorDeclined
                 && !recommendations.LaborItems.Any(l => IsRehearsalLaborTask(l.Task)))
             {
                 recommendations.LaborItems.Add(new RecommendedLaborItem
