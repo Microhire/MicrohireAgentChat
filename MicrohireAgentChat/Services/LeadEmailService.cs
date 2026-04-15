@@ -11,6 +11,8 @@ namespace MicrohireAgentChat.Services;
 public interface ILeadEmailService
 {
     Task SendLeadNotificationAsync(WestinLead lead, string chatLink, CancellationToken ct = default);
+
+    Task SendPublicOtpAsync(string toEmail, string firstName, string otpCode, CancellationToken ct = default);
 }
 
 public sealed class LeadEmailService : ILeadEmailService
@@ -60,6 +62,65 @@ public sealed class LeadEmailService : ILeadEmailService
             _logger.LogError(ex, "Failed to send lead notification email to {Email}.", lead.Email);
             throw;
         }
+    }
+
+    public async Task SendPublicOtpAsync(string toEmail, string firstName, string otpCode, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(_options.SmtpHost) || string.IsNullOrWhiteSpace(_options.FromAddress))
+        {
+            _logger.LogWarning("LeadEmail not configured (SmtpHost or FromAddress missing). Skipping OTP email for {Email}.", toEmail);
+            return;
+        }
+
+        try
+        {
+            var message = new MimeMessage();
+            message.From.Add(new MailboxAddress(_options.FromName ?? "Microhire", _options.FromAddress));
+            message.To.Add(MailboxAddress.Parse(toEmail));
+            message.Subject = "Your Microhire verification code";
+
+            var builder = new BodyBuilder { HtmlBody = BuildOtpHtmlBody(firstName, otpCode) };
+            message.Body = builder.ToMessageBody();
+
+            using var client = new SmtpClient();
+            await client.ConnectAsync(_options.SmtpHost, _options.SmtpPort, SecureSocketOptions.StartTls, ct);
+
+            if (!string.IsNullOrWhiteSpace(_options.SmtpUsername) && !string.IsNullOrWhiteSpace(_options.SmtpPassword))
+            {
+                await client.AuthenticateAsync(_options.SmtpUsername, _options.SmtpPassword, ct);
+            }
+
+            await client.SendAsync(message, ct);
+            await client.DisconnectAsync(true, ct);
+
+            _logger.LogInformation("Public OTP email sent to {Email}.", toEmail);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send public OTP email to {Email}.", toEmail);
+            throw;
+        }
+    }
+
+    private static string BuildOtpHtmlBody(string firstName, string otpCode)
+    {
+        var safeName = System.Net.WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(firstName) ? "there" : firstName);
+        var safeCode = System.Net.WebUtility.HtmlEncode(otpCode ?? "");
+
+        return $@"
+<!DOCTYPE html>
+<html>
+<head><meta charset=""utf-8""><title>Your Microhire verification code</title></head>
+<body style=""font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;"">
+  <p>Hi {safeName},</p>
+  <p>Thanks for starting an AV quote with Microhire. Use the verification code below to continue your booking with Isla, our online assistant.</p>
+  <p style=""margin: 30px 0; text-align: center;"">
+    <span style=""display: inline-block; padding: 16px 28px; background-color: #fff; border: 2px solid #ca1a20; border-radius: 10px; color: #ca1a20; font-size: 28px; font-weight: 700; letter-spacing: 6px;"">{safeCode}</span>
+  </p>
+  <p>This code expires in 10 minutes. If you didn't request it, you can ignore this email.</p>
+  <p>Regards,<br>Microhire</p>
+</body>
+</html>";
     }
 
     private static string BuildHtmlBody(WestinLead lead, string chatLink)

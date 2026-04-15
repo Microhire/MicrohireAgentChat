@@ -92,7 +92,8 @@ public sealed class OrganizationPersistenceService
 
             if (leadAuthoritative && contactId.HasValue && contactId.Value > 0)
                 existing.ILink_ContactID = contactId;
-            else if (contactId.HasValue && !existing.ILink_ContactID.HasValue)
+            else if (contactId.HasValue && contactId.Value > 0 &&
+                     (!existing.ILink_ContactID.HasValue || existing.ILink_ContactID.Value <= 0))
                 existing.ILink_ContactID = contactId;
 
             await _db.SaveChangesAsync(ct);

@@ -52,6 +52,7 @@ public sealed class ChatController : Controller
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IWestinRoomCatalog _westinRoomCatalog;
     private readonly IHostApplicationLifetime _hostLifetime;
+    private readonly ILeadEmailService _leadEmail;
 
     // Detect: "Choose time: 09:00–10:30" (supports hyphen or en dash)
     private static readonly Regex ChooseTimeRe =
@@ -86,6 +87,12 @@ public sealed class ChatController : Controller
 
     private static readonly Regex FollowUpAvFormRe =
         new(@"^\s*FollowUpAv\s*:\s*(.+)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex PublicContactFormRe =
+        new(@"^\s*PublicContact\s*:\s*(.+)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+    private static readonly Regex OtpFormRe =
+        new(@"^\s*Otp\s*:\s*(.+)$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     /// <summary>True if the name is the assistant's (Isla, Microhire, or both). Used to avoid saving assistant name as contact.</summary>
     private static bool LooksLikeAssistantName(string? s)
@@ -126,7 +133,8 @@ public sealed class ChatController : Controller
         ChatSessionPersistenceService sessionPersistence,
         IServiceScopeFactory scopeFactory,
         IWestinRoomCatalog westinRoomCatalog,
-        IHostApplicationLifetime hostLifetime)
+        IHostApplicationLifetime hostLifetime,
+        ILeadEmailService leadEmail)
     {
         _chat = chat;
         _appDb = appDb;
@@ -149,6 +157,7 @@ public sealed class ChatController : Controller
         _scopeFactory = scopeFactory;
         _westinRoomCatalog = westinRoomCatalog;
         _hostLifetime = hostLifetime;
+        _leadEmail = leadEmail;
     }
 
     // Small helper to pick a stable user key for persistence.
@@ -1635,6 +1644,111 @@ public sealed class ChatController : Controller
             text = text.Trim();
             var rawUserTextForContact = text;   // keep original text for contact parsing
 
+            // Public general-flow: collect contact + send OTP (lead flow is untouched — lead still uses emailForm).
+            if (TryCapturePublicContactFormSubmission(text, out var publicContact))
+            {
+                if (!TryValidateEmailFormat(publicContact.Email, out var publicEmailNorm))
+                {
+                    return Json(new { success = false, error = "Please enter a valid email address." });
+                }
+
+                var fullName = $"{publicContact.FirstName} {publicContact.LastName}".Trim();
+                HttpContext.Session.SetString("Draft:ContactName", fullName);
+                HttpContext.Session.SetString("Draft:ContactFirstName", publicContact.FirstName);
+                HttpContext.Session.SetString("Draft:ContactLastName", publicContact.LastName);
+                HttpContext.Session.SetString("Draft:Organisation", publicContact.Organisation);
+                HttpContext.Session.SetString("Draft:OrganisationAddress", publicContact.OrganisationAddress);
+                HttpContext.Session.SetString("Draft:ContactEmail", publicEmailNorm);
+                HttpContext.Session.SetString("Draft:ContactPhone", publicContact.Phone);
+                HttpContext.Session.SetString("Draft:PublicContactSubmitted", "1");
+
+                var otpCode = GeneratePublicOtpCode();
+                HttpContext.Session.SetString("Draft:PendingOtpCode", otpCode);
+                HttpContext.Session.SetString("Draft:PendingOtpEmail", publicEmailNorm);
+                HttpContext.Session.SetString("Draft:PendingOtpExpiryUtc",
+                    DateTime.UtcNow.AddMinutes(10).ToString("o", CultureInfo.InvariantCulture));
+                HttpContext.Session.SetString("Draft:PendingOtpAttempts", "0");
+
+                try
+                {
+                    await _leadEmail.SendPublicOtpAsync(publicEmailNorm, publicContact.FirstName, otpCode, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send OTP email to {Email}", publicEmailNorm);
+                    return Json(new { success = false, error = "We couldn't send the verification email. Please check the address and try again." });
+                }
+
+                return await BuildFreshTranscriptJsonAsync(threadId);
+            }
+
+            if (TryCaptureOtpFormSubmission(text, out var submittedOtp, out var isOtpResend))
+            {
+                var pendingEmail = HttpContext.Session.GetString("Draft:PendingOtpEmail");
+                if (string.IsNullOrWhiteSpace(pendingEmail))
+                {
+                    return Json(new { success = false, error = "No verification in progress. Please re-enter your details." });
+                }
+
+                if (isOtpResend)
+                {
+                    var newCode = GeneratePublicOtpCode();
+                    HttpContext.Session.SetString("Draft:PendingOtpCode", newCode);
+                    HttpContext.Session.SetString("Draft:PendingOtpExpiryUtc",
+                        DateTime.UtcNow.AddMinutes(10).ToString("o", CultureInfo.InvariantCulture));
+                    HttpContext.Session.SetString("Draft:PendingOtpAttempts", "0");
+                    try
+                    {
+                        var firstName = HttpContext.Session.GetString("Draft:ContactFirstName") ?? "";
+                        await _leadEmail.SendPublicOtpAsync(pendingEmail, firstName, newCode, ct);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Failed to resend OTP to {Email}", pendingEmail);
+                        return Json(new { success = false, error = "We couldn't resend the verification email. Please try again." });
+                    }
+                    return Json(new { success = true, info = "A new verification code has been sent." });
+                }
+
+                var expected = HttpContext.Session.GetString("Draft:PendingOtpCode") ?? "";
+                var expiryStr = HttpContext.Session.GetString("Draft:PendingOtpExpiryUtc") ?? "";
+                var attemptsRaw = HttpContext.Session.GetString("Draft:PendingOtpAttempts") ?? "0";
+                _ = int.TryParse(attemptsRaw, out var attempts);
+
+                if (!DateTime.TryParse(expiryStr, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind, out var expiryUtc)
+                    || expiryUtc < DateTime.UtcNow)
+                {
+                    return Json(new { success = false, error = "Your verification code has expired. Please request a new one." });
+                }
+                if (attempts >= 5)
+                {
+                    return Json(new { success = false, error = "Too many attempts. Please request a new verification code." });
+                }
+                if (!string.Equals(submittedOtp.Trim(), expected, StringComparison.Ordinal))
+                {
+                    HttpContext.Session.SetString("Draft:PendingOtpAttempts",
+                        (attempts + 1).ToString(CultureInfo.InvariantCulture));
+                    return Json(new { success = false, error = "That code isn't right. Please try again." });
+                }
+
+                HttpContext.Session.Remove("Draft:PendingOtpCode");
+                HttpContext.Session.Remove("Draft:PendingOtpEmail");
+                HttpContext.Session.Remove("Draft:PendingOtpExpiryUtc");
+                HttpContext.Session.Remove("Draft:PendingOtpAttempts");
+                HttpContext.Session.SetString("Draft:EmailGateCompleted", "1");
+                HttpContext.Session.SetString("Draft:ContactFormSubmitted", "1");
+                HttpContext.Session.Remove("Draft:NeedManualContact");
+                HttpContext.Session.SetString("ContactSaveCompleted", "1");
+
+                // Public flow: skip the agent round-trip after verification. Forwarding a synthetic
+                // "continue with venue and event details" message used to trigger the build_event_form
+                // tool, which emitted a combined venue+event form that duplicated the server-injected
+                // venueConfirmForm/eventDetailsForm chain and halted on !venueConfirmSubmitted.
+                // Lead entry continues to use the emailForm path below unchanged.
+                _logger.LogInformation("Public OTP verified for {Email}; advancing to venue confirmation form.", pendingEmail);
+                return await BuildFreshTranscriptJsonAsync(threadId);
+            }
+
             var emailFormThisRequest = false;
             if (TryCaptureEmailFormSubmission(text, out var emailNorm))
             {
@@ -2060,7 +2174,7 @@ public sealed class ChatController : Controller
             var isConsentToSummary = (looksLikeConsent && wasQuoteGenerationPrompt) || isExplicitCreateQuote;
 
             // Detect quote acceptance.
-            // IMPORTANT: "yes create quote" should generate the quote, not auto-accept it to Heavy Pencil.
+            // IMPORTANT: "yes create quote" should generate the quote, not auto-accept it to Confirmed.
             var isQuoteAccepted = looksLikeConsent
                 && !LooksLikeExplicitCreateQuoteConsent(text)
                 && WasLastAssistantAQuoteAcceptanceAsk(msgList)
@@ -2115,14 +2229,16 @@ public sealed class ChatController : Controller
                     var booking = await _bookingDb.TblBookings.FirstOrDefaultAsync(b => b.booking_no == bookingNo, ct);
                     if (booking != null)
                     {
-                        booking.BookingProgressStatus = 2; // Heavy Pencil
+                        booking.booking_type_v32 = 0; // Quote (2) → regular booking; RentalPoint Modify dialog's Status tab reads this field and shows "Quote" while it is 2.
+                        booking.status = 0;
+                        booking.BookingProgressStatus = 3; // Confirmed
                         await _bookingDb.SaveChangesAsync(ct);
-                        _logger.LogInformation("Updated booking {BookingNo} status to Heavy Pencil (text fallback)", bookingNo);
+                        _logger.LogInformation("Updated booking {BookingNo} status to Confirmed (text fallback)", bookingNo);
                     }
 
                     try
                     {
-                        await _chat.SendInternalFollowupAsync(bookingNo, "Quote accepted by user (text consent) - status updated to Heavy Pencil.", ct);
+                        await _chat.SendInternalFollowupAsync(bookingNo, "Quote accepted by user (text consent) - status updated to Confirmed.", ct);
                     }
                     catch (Exception ex)
                     {
@@ -2560,11 +2676,11 @@ public sealed class ChatController : Controller
 
             try
             {
-                await EnsureAcceptedQuoteStaysHeavyPencilAsync(ct);
+                await EnsureAcceptedQuoteStaysConfirmedAsync(ct);
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Failed ensuring Heavy Pencil status after message processing");
+                _logger.LogWarning(ex, "Failed ensuring Confirmed status after message processing");
             }
 
             RedactPricesForUiInPlace(msgList);
@@ -3559,9 +3675,11 @@ public sealed class ChatController : Controller
                     ct);
             }
 
-            booking.BookingProgressStatus = 2; // Heavy Pencil
+            booking.booking_type_v32 = 0; // Quote (2) → regular booking; RentalPoint Modify dialog's Status tab reads this field and shows "Quote" while it is 2.
+            booking.status = 0;
+            booking.BookingProgressStatus = 3; // Confirmed
             await _bookingDb.SaveChangesAsync(ct);
-            _logger.LogInformation("[SIGNING] Updated booking {BookingNo} status to Heavy Pencil via digital signature", bookingNo);
+            _logger.LogInformation("[SIGNING] Updated booking {BookingNo} status to Confirmed via digital signature", bookingNo);
 
             // ---- Resolve quote HTML file path ----
             var quoteUrl = HttpContext.Session.GetString("Draft:QuoteUrl");
@@ -3638,7 +3756,7 @@ public sealed class ChatController : Controller
 
             try
             {
-                await _chat.SendInternalFollowupAsync(bookingNo, $"Quote digitally signed and accepted by {fullName ?? "customer"} - status updated to Heavy Pencil.", ct);
+                await _chat.SendInternalFollowupAsync(bookingNo, $"Quote digitally signed and accepted by {fullName ?? "customer"} - status updated to Confirmed.", ct);
                 _logger.LogInformation("[SIGNING] Internal followup triggered for booking {BookingNo}", bookingNo);
             }
             catch (Exception ex)
@@ -4405,6 +4523,16 @@ View Signed Quote
         public string Phone { get; set; } = "";
     }
 
+    private sealed class PublicContactFormSubmission
+    {
+        public string FirstName { get; set; } = "";
+        public string LastName { get; set; } = "";
+        public string Organisation { get; set; } = "";
+        public string OrganisationAddress { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string Phone { get; set; } = "";
+    }
+
     private sealed class EventFormSubmission
     {
         public string Venue { get; set; } = "";
@@ -4487,6 +4615,43 @@ View Signed Quote
         var data = ParseKeyValueBlob(m.Groups[1].Value);
         var raw = GetDecodedValue(data, "email");
         return TryValidateEmailFormat(raw, out normalizedEmail);
+    }
+
+    private static bool TryCapturePublicContactFormSubmission(string text, out PublicContactFormSubmission submission)
+    {
+        submission = new PublicContactFormSubmission();
+        var m = PublicContactFormRe.Match(text ?? "");
+        if (!m.Success) return false;
+        var data = ParseKeyValueBlob(m.Groups[1].Value);
+        submission.FirstName = GetDecodedValue(data, "firstName");
+        submission.LastName = GetDecodedValue(data, "lastName");
+        submission.Organisation = GetDecodedValue(data, "organisation");
+        submission.OrganisationAddress = GetDecodedValue(data, "organisationAddress");
+        submission.Email = GetDecodedValue(data, "email");
+        submission.Phone = GetDecodedValue(data, "phone");
+        return !string.IsNullOrWhiteSpace(submission.FirstName)
+               && !string.IsNullOrWhiteSpace(submission.LastName)
+               && !string.IsNullOrWhiteSpace(submission.Organisation)
+               && !string.IsNullOrWhiteSpace(submission.OrganisationAddress)
+               && !string.IsNullOrWhiteSpace(submission.Email)
+               && !string.IsNullOrWhiteSpace(submission.Phone);
+    }
+
+    private static bool TryCaptureOtpFormSubmission(string text, out string code, out bool isResend)
+    {
+        code = "";
+        isResend = false;
+        var m = OtpFormRe.Match(text ?? "");
+        if (!m.Success) return false;
+        var data = ParseKeyValueBlob(m.Groups[1].Value);
+        var resendRaw = GetDecodedValue(data, "resend");
+        if (!string.IsNullOrWhiteSpace(resendRaw) && resendRaw == "1")
+        {
+            isResend = true;
+            return true;
+        }
+        code = GetDecodedValue(data, "code");
+        return !string.IsNullOrWhiteSpace(code);
     }
 
     private static bool TryCaptureVenueConfirmFormSubmission(string text, out VenueConfirmFormSubmission submission, out string userMessage)
@@ -4926,6 +5091,15 @@ View Signed Quote
             HttpContext.Session.SetString("Draft:MicrophoneOperator", micOperatorValue);
         }
 
+        // Auto-resolve microphone operator preference when mic count > 2:
+        // if the user already confirmed they want an event operator, assume mic operator = yes.
+        if (s.MicQty > 2)
+        {
+            var wantsOp = HttpContext.Session.GetString("Draft:WantsOperator") ?? "no";
+            HttpContext.Session.SetString("Draft:MicrophoneOperator",
+                string.Equals(wantsOp, "yes", StringComparison.OrdinalIgnoreCase) ? "yes" : "no");
+        }
+
         HttpContext.Session.SetString("Draft:LaptopSwitcher", s.LaptopSwitcher);
 
         var lecternForStage = presenterCount <= 0 ? "none" : (s.Lectern ?? "").Trim();
@@ -4946,6 +5120,27 @@ View Signed Quote
             HttpContext.Session.SetString("Draft:NeedsSdiCross", "2");
         else
             HttpContext.Session.Remove("Draft:NeedsSdiCross");
+    }
+
+    private static string GeneratePublicOtpCode()
+    {
+        return System.Security.Cryptography.RandomNumberGenerator.GetInt32(0, 1_000_000)
+            .ToString("D6", CultureInfo.InvariantCulture);
+    }
+
+    private async Task<IActionResult> BuildFreshTranscriptJsonAsync(string threadId)
+    {
+        var (_, transcript) = _chat.GetTranscript(threadId);
+        var list = transcript.ToList();
+        EnsureStructuredFormsInChat(list);
+        RedactPricesForUiInPlace(list);
+        ViewData["QuoteAccepted"] = HttpContext.Session.GetString("Draft:QuoteAccepted") ?? "0";
+        ViewData["VenueConfirmSubmitted"] = HttpContext.Session.GetString("Draft:VenueConfirmSubmitted") ?? "0";
+        ViewData["EventFormSubmitted"] = HttpContext.Session.GetString("Draft:EventFormSubmitted") ?? "0";
+        SetScheduleTimesInViewData();
+        ViewData["ProgressStep"] = DetermineProgressStep(list);
+        var html = await RenderPartialViewToStringAsync("_Messages", list);
+        return Json(new { success = true, html });
     }
 
     private static Dictionary<string, string> ParseKeyValueBlob(string blob)
@@ -5107,6 +5302,20 @@ View Signed Quote
         if (!string.IsNullOrWhiteSpace(b.booking_no))
             HttpContext.Session.SetString("Draft:BookingNo", b.booking_no);
 
+        // Seed the sales-portal lead address so the chat's contact form (and any fallback flows)
+        // see the admin-entered value rather than the stale tblcust row.
+        if (!string.IsNullOrWhiteSpace(b.booking_no))
+        {
+            var leadAddr = _appDb.WestinLeads
+                .AsNoTracking()
+                .Where(l => l.BookingNo == b.booking_no)
+                .OrderByDescending(l => l.Id)
+                .Select(l => l.OrganisationAddress)
+                .FirstOrDefault();
+            if (!string.IsNullOrWhiteSpace(leadAddr))
+                HttpContext.Session.SetString("Draft:OrganisationAddress", leadAddr);
+        }
+
         var venueName = (lookup.VenueDisplayName ?? "").Trim();
         if (string.IsNullOrWhiteSpace(venueName))
             venueName = "The Westin Brisbane";
@@ -5246,18 +5455,48 @@ View Signed Quote
             !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:StartTime")) &&
             !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:EndTime"));
 
-        // 1) Email gate (direct visitors and sales-portal lead links — confirm email before continuing)
-        if ((string.Equals(entrySource, "general", StringComparison.OrdinalIgnoreCase)
-             || string.Equals(entrySource, "lead", StringComparison.OrdinalIgnoreCase))
-            && !emailGateComplete)
+        // 1a) General-public flow: collect full contact details, then verify via OTP.
+        // Lead links still use the legacy emailForm (see 1b below).
+        if (string.Equals(entrySource, "general", StringComparison.OrdinalIgnoreCase) && !emailGateComplete)
+        {
+            messages.RemoveAll(IsLegacyContactPromptMessage);
+            messages.RemoveAll(m => MessageContainsUiType(m, "emailForm"));
+
+            var publicContactSubmitted = HttpContext.Session.GetString("Draft:PublicContactSubmitted") == "1";
+            var awaitingOtp = !string.IsNullOrWhiteSpace(HttpContext.Session.GetString("Draft:PendingOtpEmail"));
+
+            if (!publicContactSubmitted || !awaitingOtp)
+            {
+                messages.RemoveAll(m => MessageContainsUiType(m, "otpForm"));
+                if (!messages.Any(m => MessageContainsUiType(m, "publicContactForm")))
+                {
+                    messages.Insert(index++, BuildUiAssistantMessage(
+                        "Please share your details so I can start your quote.",
+                        BuildPublicContactFormUiJson()));
+                }
+                return;
+            }
+
+            messages.RemoveAll(m => MessageContainsUiType(m, "publicContactForm"));
+            if (!messages.Any(m => MessageContainsUiType(m, "otpForm")))
+            {
+                var otpEmail = HttpContext.Session.GetString("Draft:PendingOtpEmail") ?? "your email";
+                messages.Insert(index++, BuildUiAssistantMessage(
+                    $"I've emailed a 6-digit verification code to {otpEmail}. Please enter it below to continue.",
+                    BuildOtpFormUiJson()));
+            }
+            return;
+        }
+
+        // 1b) Lead links: legacy email confirmation form (confirm the email the sales team sent it to).
+        if (string.Equals(entrySource, "lead", StringComparison.OrdinalIgnoreCase) && !emailGateComplete)
         {
             messages.RemoveAll(IsLegacyContactPromptMessage);
             if (!messages.Any(m => MessageContainsUiType(m, "emailForm")))
             {
-                var emailIntro = string.Equals(entrySource, "lead", StringComparison.OrdinalIgnoreCase)
-                    ? "Please confirm the email address you used for your enquiry so we can verify it’s you."
-                    : "Please enter your email address so I can verify your booking request.";
-                messages.Insert(index++, BuildUiAssistantMessage(emailIntro, BuildEmailFormUiJson()));
+                messages.Insert(index++, BuildUiAssistantMessage(
+                    "Please confirm the email address you used for your enquiry so we can verify it’s you.",
+                    BuildEmailFormUiJson()));
             }
             return;
         }
@@ -5304,9 +5543,19 @@ View Signed Quote
 
         if (!messages.Any(m => MessageContainsUiType(m, "venueConfirmForm")))
         {
-            var intro = HttpContext.Session.GetString("Draft:BookingLookupApplied") == "1"
-                ? "I've found your booking details. Please review and confirm."
-                : "Review your venue, room, and event dates in the form below.";
+            string intro;
+            if (HttpContext.Session.GetString("Draft:BookingLookupApplied") == "1")
+            {
+                intro = "I've found your booking details. Please review and confirm.";
+            }
+            else if (string.Equals(entrySource, "general", StringComparison.OrdinalIgnoreCase))
+            {
+                intro = "Thanks — your email is verified. Let's start with the venue, room and event dates.";
+            }
+            else
+            {
+                intro = "Review your venue, room, and event dates in the form below.";
+            }
             messages.Insert(index++, BuildUiAssistantMessage(intro, BuildVenueConfirmFormUiJson()));
         }
         else index++;
@@ -5457,6 +5706,41 @@ View Signed Quote
             ? ""
             : (HttpContext.Session.GetString("Draft:ContactEmail") ?? "");
         var payload = new { ui = new { type = "emailForm", title = "Email", submitLabel = "Continue", defaultEmail } };
+        return JsonSerializer.Serialize(payload);
+    }
+
+    private string BuildPublicContactFormUiJson()
+    {
+        var payload = new
+        {
+            ui = new
+            {
+                type = "publicContactForm",
+                title = "Before we begin, please share your details",
+                submitLabel = "Send verification code",
+                defaultFirstName = HttpContext.Session.GetString("Draft:ContactFirstName") ?? "",
+                defaultLastName = HttpContext.Session.GetString("Draft:ContactLastName") ?? "",
+                defaultOrganisation = HttpContext.Session.GetString("Draft:Organisation") ?? "",
+                defaultOrganisationAddress = HttpContext.Session.GetString("Draft:OrganisationAddress") ?? "",
+                defaultEmail = HttpContext.Session.GetString("Draft:ContactEmail") ?? "",
+                defaultPhone = HttpContext.Session.GetString("Draft:ContactPhone") ?? ""
+            }
+        };
+        return JsonSerializer.Serialize(payload);
+    }
+
+    private string BuildOtpFormUiJson()
+    {
+        var payload = new
+        {
+            ui = new
+            {
+                type = "otpForm",
+                title = "Verify your email",
+                submitLabel = "Verify",
+                email = HttpContext.Session.GetString("Draft:PendingOtpEmail") ?? ""
+            }
+        };
         return JsonSerializer.Serialize(payload);
     }
 
@@ -6305,7 +6589,7 @@ View Signed Quote
     private static string JoinParts(DisplayMessage m) =>
     string.Join("\n", m.Parts ?? Enumerable.Empty<string>()).Trim();
 
-    private async Task EnsureAcceptedQuoteStaysHeavyPencilAsync(CancellationToken ct)
+    private async Task EnsureAcceptedQuoteStaysConfirmedAsync(CancellationToken ct)
     {
         if (!string.Equals(HttpContext.Session.GetString("Draft:QuoteAccepted"), "1", StringComparison.Ordinal))
             return;
@@ -6319,13 +6603,15 @@ View Signed Quote
             return;
 
         var current = booking.BookingProgressStatus ?? 0;
-        if (current >= 2)
+        if (current >= 3)
             return;
 
-        booking.BookingProgressStatus = 2; // Heavy Pencil
+        booking.booking_type_v32 = 0; // Quote (2) → regular booking; RentalPoint Modify dialog's Status tab reads this field and shows "Quote" while it is 2.
+        booking.status = 0;
+        booking.BookingProgressStatus = 3; // Confirmed
         await _bookingDb.SaveChangesAsync(ct);
         _logger.LogWarning(
-            "Auto-corrected BookingProgressStatus to Heavy Pencil for accepted quote {BookingNo}. Previous={Previous}",
+            "Auto-corrected booking to Confirmed (booking_type_v32 → 0, BookingProgressStatus → 3) for accepted quote {BookingNo}. Previous BookingProgressStatus={Previous}",
             bookingNo, current);
     }
 

@@ -285,6 +285,7 @@ public sealed partial class BookingPersistenceService
                 booking_no = bookingNo,
                 EntryDate = DateTime.Now,
                 booking_type_v32 = 2,
+                status = 0, // must be non-null or RentalPoint's Status tab shows "Quote" regardless of BookingProgressStatus
                 BookingProgressStatus = 1,
                 From_locn = 20,
                 return_to_locn = 20,

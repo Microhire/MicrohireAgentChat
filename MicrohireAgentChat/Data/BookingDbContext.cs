@@ -80,6 +80,7 @@ public class BookingDbContext : DbContext
 
         // Contact FK link (no FK constraint here unless you add it)
         e.Property(x => x.ContactID).HasColumnName("ContactID").HasColumnType("decimal(10,0)");
+        e.Property(x => x.PaymentContactID).HasColumnName("PaymentContactID").HasColumnType("int");
 
         // helpful composite index for range queries
         e.HasIndex(x => new { x.VenueID, x.SDate, x.rDate });

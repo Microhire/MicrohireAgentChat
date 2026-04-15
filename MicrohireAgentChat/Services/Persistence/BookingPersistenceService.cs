@@ -208,6 +208,7 @@ public sealed partial class BookingPersistenceService
                     CustID = finalCustId,
                     CustCode = finalCustCode,
                     ContactID = contactId,
+                    PaymentContactID = ToPaymentContactId(contactId),
                     contact_nameV6 = Trunc(contactName, 35),
                     OrganizationV6 = finalCustId.HasValue
                         ? Trunc(await GetOrganizationNameAsync(finalCustId.Value, ct), 50)
@@ -265,8 +266,8 @@ public sealed partial class BookingPersistenceService
                     var parsedStatus = (byte)TryParseStatus(statusFact);
                     var currentStatus = existing.BookingProgressStatus ?? 0;
 
-                    // Once quote is accepted/signed (heavy pencil or above), avoid accidental downgrades.
-                    if (currentStatus >= 2 && parsedStatus < 2)
+                    // Never let automated extraction downgrade a booking (e.g. Confirmed → Heavy Pencil → Light Pencil).
+                    if (currentStatus >= 2 && parsedStatus < currentStatus)
                     {
                         _logger.LogInformation(
                             "Skipped BookingProgressStatus downgrade for {BookingNo}: current={Current}, incoming={Incoming}",
@@ -275,6 +276,19 @@ public sealed partial class BookingPersistenceService
                     else
                     {
                         existing.BookingProgressStatus = parsedStatus;
+                    }
+
+                    if (existing.status == null)
+                    {
+                        existing.status = 0;
+                    }
+
+                    // When the booking reaches Confirmed, transition booking_type_v32 from Quote (2) → regular (0).
+                    // RentalPoint's Modify dialog Status tab reads booking_type_v32 and renders "Quote" while it is 2,
+                    // which makes the dialog disagree with the list view's Progress Status.
+                    if (parsedStatus >= 3 && existing.booking_type_v32 == 2)
+                    {
+                        existing.booking_type_v32 = 0;
                     }
                 }
                 if (attendees.HasValue) existing.expAttendees = attendees;
@@ -289,7 +303,11 @@ public sealed partial class BookingPersistenceService
                 }
                 if (tax2.HasValue) existing.Tax2 = (double?)tax2;
 
-                if (contactId.HasValue) existing.ContactID = contactId;
+                if (contactId.HasValue)
+                {
+                    existing.ContactID = contactId;
+                    existing.PaymentContactID = ToPaymentContactId(contactId);
+                }
                 if (!string.IsNullOrWhiteSpace(contactName)) existing.contact_nameV6 = Trunc(contactName, 35);
                 if (!string.IsNullOrWhiteSpace(finalCustCode)) existing.CustCode = Trunc(finalCustCode, CustomerCodeMaxLength);
                 if (finalCustId.HasValue)
@@ -299,6 +317,9 @@ public sealed partial class BookingPersistenceService
                 }
                 if (venueId.HasValue) existing.VenueID = venueId.Value;
             }
+
+            if (finalCustId.HasValue && contactId.HasValue)
+                await SyncCustomerPrimaryContactAsync(finalCustId.Value, contactId.Value, ct);
 
             await _db.SaveChangesAsync(ct);
             return bookingNo;
@@ -437,6 +458,7 @@ public sealed partial class BookingPersistenceService
                     CustID = finalCustId,
                     CustCode = finalCustCode,
                     ContactID = contactId,
+                    PaymentContactID = ToPaymentContactId(contactId),
                     contact_nameV6 = Trunc(contactName, 35),
                     OrganizationV6 = finalCustId.HasValue
                         ? Trunc(await GetOrganizationNameAsync(finalCustId.Value, ct), 50)
@@ -499,7 +521,11 @@ public sealed partial class BookingPersistenceService
                 }
                 if (dayTax2.HasValue) existing.Tax2 = (double?)dayTax2;
 
-                if (contactId.HasValue) existing.ContactID = contactId;
+                if (contactId.HasValue)
+                {
+                    existing.ContactID = contactId;
+                    existing.PaymentContactID = ToPaymentContactId(contactId);
+                }
                 if (!string.IsNullOrWhiteSpace(contactName)) existing.contact_nameV6 = Trunc(contactName, 35);
                 if (!string.IsNullOrWhiteSpace(finalCustCode)) existing.CustCode = Trunc(finalCustCode, CustomerCodeMaxLength);
                 if (finalCustId.HasValue)
@@ -512,6 +538,9 @@ public sealed partial class BookingPersistenceService
                 _logger.LogInformation("Updated multi-day booking for day {Day}: {BookingNo}", dayNumber, dayBookingNo);
             }
         }
+
+        if (finalCustId.HasValue && contactId.HasValue)
+            await SyncCustomerPrimaryContactAsync(finalCustId.Value, contactId.Value, ct);
 
         await _db.SaveChangesAsync(ct);
         _logger.LogInformation("Saved multi-day booking with {Days} days: {BaseBookingNo}", multiDayDetails.DurationDays, baseBookingNo);

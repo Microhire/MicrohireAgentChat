@@ -15,15 +15,18 @@ namespace MicrohireAgentChat.Services;
 public partial class HtmlQuoteGenerationService
 {
     private readonly BookingDbContext _db;
+    private readonly AppDbContext _appDb;
     private readonly IWebHostEnvironment _env;
     private readonly ILogger<HtmlQuoteGenerationService> _logger;
 
     public HtmlQuoteGenerationService(
         BookingDbContext db,
+        AppDbContext appDb,
         IWebHostEnvironment env,
         ILogger<HtmlQuoteGenerationService> logger)
     {
         _db = db;
+        _appDb = appDb;
         _env = env;
         _logger = logger;
     }
@@ -181,16 +184,38 @@ public partial class HtmlQuoteGenerationService
             string? sessionVenueName = session?.GetString("Draft:VenueName");
             string? sessionContactName = session?.GetString("Draft:ContactName");
             string? sessionOrganisation = session?.GetString("Draft:Organisation");
+            // Per-booking address override: sales-portal lead seeds this, so a changed address
+            // on a reused org shows on the quote without mutating tblcust.
+            string? sessionOrganisationAddress = session?.GetString("Draft:OrganisationAddress");
+
+            // Sales-portal authoritative fallback: when the chat session is absent or was entered
+            // via email-intake (not ?leadId=), still honour the address captured on the lead form.
+            // Jenny's no-update rule keeps tblcust.Address_l1V6 stale on reused orgs, so without this
+            // lookup the quote silently falls back to the old DB value.
+            string? leadOrganisationAddress = null;
+            if (!string.IsNullOrWhiteSpace(bookingNo))
+            {
+                leadOrganisationAddress = await _appDb.WestinLeads
+                    .AsNoTracking()
+                    .Where(l => l.BookingNo == bookingNo)
+                    .OrderByDescending(l => l.Id)
+                    .Select(l => l.OrganisationAddress)
+                    .FirstOrDefaultAsync(ct);
+            }
+
             _logger.LogInformation(
-                "[QUOTE GEN] trace={Trace} phase=build_quote_data booking={BookingNo} sessionVenueOverride={HasVenue} sessionContactOverride={HasContact} sessionOrgOverride={HasOrg}",
+                "[QUOTE GEN] trace={Trace} phase=build_quote_data booking={BookingNo} sessionVenueOverride={HasVenue} sessionContactOverride={HasContact} sessionOrgOverride={HasOrg} sessionOrgAddressOverride={HasOrgAddress} leadOrgAddressOverride={HasLeadOrgAddress}",
                 trace,
                 bookingNo,
                 !string.IsNullOrWhiteSpace(sessionVenueName),
                 !string.IsNullOrWhiteSpace(sessionContactName),
-                !string.IsNullOrWhiteSpace(sessionOrganisation));
+                !string.IsNullOrWhiteSpace(sessionOrganisation),
+                !string.IsNullOrWhiteSpace(sessionOrganisationAddress),
+                !string.IsNullOrWhiteSpace(leadOrganisationAddress));
 
             var quoteData = BuildQuoteData(booking, venue, contact, organization, items, inventoryItems, rateItems,
-                crewRows, sessionVenueName, sessionContactName, sessionOrganisation);
+                crewRows, sessionVenueName, sessionContactName, sessionOrganisation, sessionOrganisationAddress,
+                leadOrganisationAddress);
 
             // 7b. Sync calculated financials back to the booking so RentalPoint shows correct values
             await SyncFinancialsToBookingAsync(bookingNo, quoteData, ct);
@@ -306,7 +331,9 @@ public partial class HtmlQuoteGenerationService
         List<TblCrew> crewRows,
         string? sessionVenueName = null,
         string? sessionContactName = null,
-        string? sessionOrganisation = null)
+        string? sessionOrganisation = null,
+        string? sessionOrganisationAddress = null,
+        string? leadOrganisationAddress = null)
     {
         // Format dates - try multiple booking date fields, avoid using current date
         var eventDate = booking.dDate ?? booking.ShowSDate ?? booking.SetDate ?? booking.SDate ?? booking.ShowEdate ?? booking.RehDate;
@@ -408,6 +435,13 @@ public partial class HtmlQuoteGenerationService
         if (!string.IsNullOrWhiteSpace(sessionOrganisation))
             resolvedOrgName = sessionOrganisation;
 
+        // Priority: live chat edit > sales-portal lead form > stale tblcust fallback.
+        var resolvedOrgAddress = !string.IsNullOrWhiteSpace(sessionOrganisationAddress)
+            ? sessionOrganisationAddress!
+            : !string.IsNullOrWhiteSpace(leadOrganisationAddress)
+                ? leadOrganisationAddress!
+                : organization?.Address_l1V6 ?? "";
+
         var venueCity = "Brisbane";
 
         return new QuoteHtmlData
@@ -420,7 +454,7 @@ public partial class HtmlQuoteGenerationService
             // Contact info
             ContactName = resolvedContactName ?? "Contact",
             OrganizationName = resolvedOrgName ?? "Organization",
-            ContactAddress = organization?.Address_l1V6 ?? "",
+            ContactAddress = resolvedOrgAddress,
             ContactPhone = contact?.Phone1 ?? contact?.Cell ?? "",
             ContactEmail = contact?.Email ?? "",
             

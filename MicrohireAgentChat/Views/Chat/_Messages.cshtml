@@ -622,6 +622,73 @@ else
                                                 <div class="isla-form-error" data-email-error style="display:none"></div>
                                             </div>
                                         }
+                                        else if (typeLower == "publiccontactform")
+                                        {
+                                            var pcTitle = uiEl.TryGetProperty("title", out var pct) ? pct.GetString() : "Please share your details";
+                                            var pcSubmit = uiEl.TryGetProperty("submitLabel", out var pcs) ? pcs.GetString() : "Send verification code";
+                                            var pcFirst = uiEl.TryGetProperty("defaultFirstName", out var pcfn) ? pcfn.GetString() : "";
+                                            var pcLast = uiEl.TryGetProperty("defaultLastName", out var pcln) ? pcln.GetString() : "";
+                                            var pcOrg = uiEl.TryGetProperty("defaultOrganisation", out var pco) ? pco.GetString() : "";
+                                            var pcOrgAddr = uiEl.TryGetProperty("defaultOrganisationAddress", out var pcoa) ? pcoa.GetString() : "";
+                                            var pcEmail = uiEl.TryGetProperty("defaultEmail", out var pce) ? pce.GetString() : "";
+                                            var pcPhone = uiEl.TryGetProperty("defaultPhone", out var pcp) ? pcp.GetString() : "";
+                                            <div class="isla-form-card isla-public-contact-form" data-public-contact-form>
+                                                <div class="isla-form-title">@pcTitle</div>
+                                                <div class="isla-form-grid two-col">
+                                                    <div class="isla-form-field">
+                                                        <label>First name</label>
+                                                        <input type="text" data-pcf-first-name autocomplete="given-name" value="@pcFirst" />
+                                                    </div>
+                                                    <div class="isla-form-field">
+                                                        <label>Last name</label>
+                                                        <input type="text" data-pcf-last-name autocomplete="family-name" value="@pcLast" />
+                                                    </div>
+                                                    <div class="isla-form-field">
+                                                        <label>Organisation</label>
+                                                        <input type="text" data-pcf-organisation autocomplete="organization" value="@pcOrg" />
+                                                    </div>
+                                                    <div class="isla-form-field">
+                                                        <label>Organisation address</label>
+                                                        <input type="text" data-pcf-organisation-address autocomplete="street-address" value="@pcOrgAddr" />
+                                                    </div>
+                                                    <div class="isla-form-field">
+                                                        <label>Email</label>
+                                                        <input type="email" data-pcf-email autocomplete="email" value="@pcEmail" placeholder="you@example.com" />
+                                                    </div>
+                                                    <div class="isla-form-field">
+                                                        <label>Phone</label>
+                                                        <input type="tel" data-pcf-phone autocomplete="tel" value="@pcPhone" />
+                                                    </div>
+                                                </div>
+                                                <div class="isla-form-actions">
+                                                    <button type="button" class="isla-form-submit" data-public-contact-submit>@pcSubmit</button>
+                                                </div>
+                                                <div class="isla-form-error" data-public-contact-error style="display:none"></div>
+                                            </div>
+                                        }
+                                        else if (typeLower == "otpform")
+                                        {
+                                            var otpTitle = uiEl.TryGetProperty("title", out var ott) ? ott.GetString() : "Verify your email";
+                                            var otpSubmit = uiEl.TryGetProperty("submitLabel", out var ots) ? ots.GetString() : "Verify";
+                                            var otpEmailVal = uiEl.TryGetProperty("email", out var ote) ? ote.GetString() : "";
+                                            <div class="isla-form-card isla-otp-form" data-otp-form>
+                                                <div class="isla-form-title">@otpTitle</div>
+                                                @if (!string.IsNullOrWhiteSpace(otpEmailVal))
+                                                {
+                                                    <p class="isla-form-instruction" style="margin-top:0">We sent a 6-digit code to <strong>@otpEmailVal</strong>.</p>
+                                                }
+                                                <div class="isla-form-field">
+                                                    <label>Verification code</label>
+                                                    <input type="text" inputmode="numeric" pattern="\d{6}" maxlength="6" autocomplete="one-time-code" placeholder="123456" data-otp-input />
+                                                </div>
+                                                <div class="isla-form-actions">
+                                                    <button type="button" class="isla-form-submit" data-otp-submit>@otpSubmit</button>
+                                                    <button type="button" class="isla-form-secondary" data-otp-resend>Resend code</button>
+                                                </div>
+                                                <div class="isla-form-error" data-otp-error style="display:none"></div>
+                                                <div class="isla-form-instruction" data-otp-info style="display:none;color:#166534"></div>
+                                            </div>
+                                        }
                                         else if (typeLower == "venueconfirmform")
                                         {
                                             var title = uiEl.TryGetProperty("title", out var vt) ? vt.GetString() : "Confirm venue";
@@ -1577,7 +1644,10 @@ else
                || trimmed.StartsWith("FollowUpAv:", StringComparison.OrdinalIgnoreCase)
                || trimmed.StartsWith("Contact details provided:", StringComparison.OrdinalIgnoreCase)
                || trimmed.StartsWith("Contact:", StringComparison.OrdinalIgnoreCase)
-               || trimmed.StartsWith("Email confirmed for enquiry:", StringComparison.OrdinalIgnoreCase);
+               || trimmed.StartsWith("PublicContact:", StringComparison.OrdinalIgnoreCase)
+               || trimmed.StartsWith("Otp:", StringComparison.OrdinalIgnoreCase)
+               || trimmed.StartsWith("Email confirmed for enquiry:", StringComparison.OrdinalIgnoreCase)
+               || trimmed.StartsWith("Email verified for", StringComparison.OrdinalIgnoreCase);
     }
 
     // Detect if a user message is a structured form submission
@@ -1777,8 +1847,16 @@ else
         clearBusy(busyEl);
         clearThinkingNear(busyEl);
         const emailForm=busyEl&&busyEl.closest&&busyEl.closest('[data-email-form]');
+        const publicContactForm=busyEl&&busyEl.closest&&busyEl.closest('[data-public-contact-form]');
+        const otpForm=busyEl&&busyEl.closest&&busyEl.closest('[data-otp-form]');
         if(emailForm){
           const errNode=emailForm.querySelector('[data-email-error]');
+          showFormError(errNode, parsed.error);
+        }else if(publicContactForm){
+          const errNode=publicContactForm.querySelector('[data-public-contact-error]');
+          showFormError(errNode, parsed.error);
+        }else if(otpForm){
+          const errNode=otpForm.querySelector('[data-otp-error]');
           showFormError(errNode, parsed.error);
         }else{
           alert(parsed.error);
@@ -1789,7 +1867,8 @@ else
       let continueNeeded=false;
       if(parsed){
         var fragment=parsed.html!=null?parsed.html:parsed.Html;
-        if(parsed.continueNeeded && fragment){ html=fragment; continueNeeded=true; }
+        if(fragment){ html=fragment; }
+        if(parsed.continueNeeded && fragment){ continueNeeded=true; }
       }
       const host=document.getElementById('messagesWrap')||
                   document.querySelector('#messages, .messages, .chat-transcript')||null;
@@ -2165,6 +2244,91 @@ else
     if(!email || !/^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/.test(email)){ showFormError(err,'Please enter a valid email address.'); return; }
     showFormError(err,'');
     postChat(`Email: email=${encodeField(email)}`,btn);
+  },{passive:false});
+
+  document.addEventListener('click',(ev)=>{
+    const btn=ev.target.closest('[data-public-contact-submit]'); if(!btn) return;
+    ev.preventDefault(); ev.stopPropagation();
+    const form=btn.closest('[data-public-contact-form]'); if(!form) return;
+    const err=form.querySelector('[data-public-contact-error]');
+    const first=(form.querySelector('[data-pcf-first-name]')?.value||'').trim();
+    const last=(form.querySelector('[data-pcf-last-name]')?.value||'').trim();
+    const org=(form.querySelector('[data-pcf-organisation]')?.value||'').trim();
+    const orgAddr=(form.querySelector('[data-pcf-organisation-address]')?.value||'').trim();
+    const email=(form.querySelector('[data-pcf-email]')?.value||'').trim();
+    const phone=(form.querySelector('[data-pcf-phone]')?.value||'').trim();
+    if(!first || !last || !org || !orgAddr || !email || !phone){
+      showFormError(err,'Please complete all fields.');
+      return;
+    }
+    if(!/^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/.test(email)){
+      showFormError(err,'Please enter a valid email address.');
+      return;
+    }
+    showFormError(err,'');
+    const parts=[
+      `firstName=${encodeField(first)}`,
+      `lastName=${encodeField(last)}`,
+      `organisation=${encodeField(org)}`,
+      `organisationAddress=${encodeField(orgAddr)}`,
+      `email=${encodeField(email)}`,
+      `phone=${encodeField(phone)}`
+    ];
+    postChat(`PublicContact: ${parts.join('; ')}`,btn);
+  },{passive:false});
+
+  document.addEventListener('click',(ev)=>{
+    const btn=ev.target.closest('[data-otp-submit]'); if(!btn) return;
+    ev.preventDefault(); ev.stopPropagation();
+    const form=btn.closest('[data-otp-form]'); if(!form) return;
+    const err=form.querySelector('[data-otp-error]');
+    const info=form.querySelector('[data-otp-info]');
+    if(info){ info.textContent=''; info.style.display='none'; }
+    const code=(form.querySelector('[data-otp-input]')?.value||'').trim();
+    if(!/^\d{6}$/.test(code)){
+      showFormError(err,'Please enter the 6-digit code from your email.');
+      return;
+    }
+    showFormError(err,'');
+    postChat(`Otp: code=${encodeField(code)}`,btn);
+  },{passive:false});
+
+  document.addEventListener('click',(ev)=>{
+    const btn=ev.target.closest('[data-otp-resend]'); if(!btn) return;
+    ev.preventDefault(); ev.stopPropagation();
+    const form=btn.closest('[data-otp-form]'); if(!form) return;
+    const err=form.querySelector('[data-otp-error]');
+    const info=form.querySelector('[data-otp-info]');
+    showFormError(err,'');
+    (async()=>{
+      try{
+        btn.disabled=true;
+        const token=getCsrf();
+        const resp=await fetch('/Chat/SendPartial',{
+          method:'POST',
+          headers:{
+            'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8',
+            'RequestVerificationToken': token
+          },
+          body:new URLSearchParams({ text:'Otp: resend=1' })
+        });
+        const body=await resp.text();
+        let parsed=null; try{ parsed=JSON.parse(body); }catch(_){}
+        if(parsed && parsed.success===false && parsed.error){
+          showFormError(err, parsed.error);
+          return;
+        }
+        if(info){
+          info.textContent=(parsed && parsed.info) || 'A new code has been sent.';
+          info.style.display='block';
+        }
+      }catch(e){
+        console.error('resend failed',e);
+        showFormError(err,'Could not resend. Please try again.');
+      }finally{
+        btn.disabled=false;
+      }
+    })();
   },{passive:false});
 
   document.addEventListener('click',(ev)=>{

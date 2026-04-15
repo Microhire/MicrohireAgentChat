@@ -488,6 +488,21 @@ public sealed partial class BookingPersistenceService
         return org;
     }
 
+    private static int? ToPaymentContactId(decimal? contactId)
+        => contactId.HasValue ? (int)contactId.Value : null;
+
+    // Fills the customer's primary contact (shown as "Customer Contact" on the RentalPoint booking form)
+    // only when it's unset. Historical bookings keep iLink_ContactID stable across bookings, so we never
+    // overwrite an established primary contact. The column is NOT NULL and defaults to 0, so treat 0 as unset.
+    private async Task SyncCustomerPrimaryContactAsync(decimal custId, decimal contactId, CancellationToken ct)
+    {
+        if (contactId <= 0) return;
+        var cust = await _db.TblCusts.FirstOrDefaultAsync(c => c.ID == custId, ct);
+        if (cust == null) return;
+        if (cust.ILink_ContactID.HasValue && cust.ILink_ContactID.Value > 0) return;
+        cust.ILink_ContactID = contactId;
+    }
+
     public async Task<int?> ResolveVenueIdAsync(string? venueName, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(venueName))

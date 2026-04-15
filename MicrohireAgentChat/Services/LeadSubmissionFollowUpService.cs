@@ -169,6 +169,7 @@ public sealed class LeadSubmissionFollowUpService : ILeadSubmissionFollowUp
             EntryDate = DateTime.Now,
             order_date = DateTime.Now,
             booking_type_v32 = 2,       // Quote
+            status = 0,                 // must be non-null or RentalPoint's Status tab shows "Quote" regardless of BookingProgressStatus
             BookingProgressStatus = 1,  // Light pencil
             From_locn = 20,
             Trans_to_locn = 20,
@@ -176,6 +177,7 @@ public sealed class LeadSubmissionFollowUpService : ILeadSubmissionFollowUp
             CustCode = Trunc(customerCode, 30),
             CustID = orgId,
             ContactID = contactId,
+            PaymentContactID = contactId.HasValue ? (int?)(int)contactId.Value : null,
             contact_nameV6 = Trunc(contactName, 35),
             OrganizationV6 = Trunc(request.Organisation?.Trim(), 50),
             Salesperson = Trunc(_rpDefaults.Salesperson, 30),

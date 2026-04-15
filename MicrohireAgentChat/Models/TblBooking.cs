@@ -55,6 +55,7 @@ namespace MicrohireAgentChat.Models
         public string? CustCode { get; set; }
         // Linking to saved contact
         public decimal? ContactID { get; set; }         // FK to tblContact (added)
+        public int? PaymentContactID { get; set; }      // FK to tblContact for "Payment Contact" slot
 
         // ——— Existing properties you already had (left as-is) ———
 
