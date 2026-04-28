@@ -2382,7 +2382,7 @@ public sealed partial class AgentToolHandlerService
             {
                 success = false,
                 error = "Failed to generate equipment recommendations",
-                message = "I wasn't able to finalize equipment just now. Could you please try sending your message again?",
+                message = "I wasn't able to finalise equipment just now. Could you please try sending your message again?",
                 instruction = "Do NOT call recommend_equipment_for_event again in this response. Reply once briefly and ask the user to try again. Then stop."
             });
         }

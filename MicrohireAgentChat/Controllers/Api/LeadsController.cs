@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -59,6 +60,7 @@ public sealed class LeadsController : ControllerBase
             PhoneNumber = request.PhoneNumber!.Trim(),
             EventStartDate = request.EventStartDate!,
             EventEndDate = request.EventEndDate!,
+            EventScheduleJson = SerializeSchedule(request.EventDays),
             Venue = request.Venue!.Trim(),
             Room = request.Room!.Trim(),
             Attendees = request.Attendees!.Trim(),
@@ -146,17 +148,98 @@ public sealed class LeadsController : ControllerBase
         if (string.IsNullOrWhiteSpace(r.Email)) errors.Add("Email is required.");
         else if (!IsValidEmail(r.Email)) errors.Add("Invalid email format.");
         if (string.IsNullOrWhiteSpace(r.PhoneNumber)) errors.Add("Phone number is required.");
+
+        DateOnly? startDateParsed = null;
+        DateOnly? endDateParsed = null;
         if (string.IsNullOrWhiteSpace(r.EventStartDate)) errors.Add("Event start date is required.");
-        else if (!DateOnly.TryParseExact(r.EventStartDate.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+        else if (!DateOnly.TryParseExact(r.EventStartDate.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var sd))
             errors.Add("Event start date must be YYYY-MM-DD.");
+        else startDateParsed = sd;
+
         if (string.IsNullOrWhiteSpace(r.EventEndDate)) errors.Add("Event end date is required.");
-        else if (!DateOnly.TryParseExact(r.EventEndDate.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _))
+        else if (!DateOnly.TryParseExact(r.EventEndDate.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var ed))
             errors.Add("Event end date must be YYYY-MM-DD.");
+        else endDateParsed = ed;
+
+        if (startDateParsed.HasValue && endDateParsed.HasValue)
+            ValidateEventDays(r.EventDays, startDateParsed.Value, endDateParsed.Value, errors);
+
         if (string.IsNullOrWhiteSpace(r.Venue)) errors.Add("Venue is required.");
         if (string.IsNullOrWhiteSpace(r.Room)) errors.Add("Room is required.");
         if (string.IsNullOrWhiteSpace(r.Attendees)) errors.Add("Attendees is required.");
         else if (!int.TryParse(r.Attendees, out var a) || a < 1) errors.Add("Attendees must be a positive number.");
         return errors;
+    }
+
+    private static void ValidateEventDays(
+        List<EventDayInput>? days,
+        DateOnly expectedStart,
+        DateOnly expectedEnd,
+        List<string> errors)
+    {
+        if (days == null || days.Count == 0)
+        {
+            errors.Add("Event schedule is required.");
+            return;
+        }
+
+        var expectedDates = new List<DateOnly>();
+        for (var d = expectedStart; d <= expectedEnd; d = d.AddDays(1))
+            expectedDates.Add(d);
+
+        if (days.Count != expectedDates.Count)
+        {
+            errors.Add($"Event schedule must include {expectedDates.Count} day(s) between start and end date.");
+            return;
+        }
+
+        for (var i = 0; i < days.Count; i++)
+        {
+            var day = days[i];
+            if (!DateOnly.TryParseExact(day.Date?.Trim(), "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsedDate))
+            {
+                errors.Add($"Event day #{i + 1} has an invalid date.");
+                continue;
+            }
+            if (parsedDate != expectedDates[i])
+            {
+                errors.Add($"Event day #{i + 1} must be {expectedDates[i]:yyyy-MM-dd}.");
+                continue;
+            }
+            if (!IsValidHhMm(day.StartTime))
+            {
+                errors.Add($"Event day #{i + 1} start time must be HH:mm.");
+                continue;
+            }
+            if (!IsValidHhMm(day.EndTime))
+            {
+                errors.Add($"Event day #{i + 1} end time must be HH:mm.");
+                continue;
+            }
+            if (string.CompareOrdinal(day.EndTime!.Trim(), day.StartTime!.Trim()) <= 0)
+            {
+                errors.Add($"Event day #{i + 1} end time must be after start time.");
+            }
+        }
+    }
+
+    private static bool IsValidHhMm(string? s)
+        => !string.IsNullOrWhiteSpace(s)
+           && System.Text.RegularExpressions.Regex.IsMatch(s.Trim(), @"^([01]\d|2[0-3]):[0-5]\d$");
+
+    private static string? SerializeSchedule(List<EventDayInput>? days)
+    {
+        if (days == null || days.Count == 0) return null;
+        var normalized = days
+            .Where(d => !string.IsNullOrWhiteSpace(d.Date))
+            .Select(d => new
+            {
+                date = d.Date!.Trim(),
+                startTime = d.StartTime?.Trim() ?? "",
+                endTime = d.EndTime?.Trim() ?? "",
+            })
+            .ToList();
+        return JsonSerializer.Serialize(normalized);
     }
 
     private static bool IsValidEmail(string email) =>

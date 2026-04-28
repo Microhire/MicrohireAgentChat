@@ -157,6 +157,19 @@ public sealed class LeadSubmissionFollowUpService : ILeadSubmissionFollowUp
             endDate = startDate;
         }
 
+        // Apply day-1 start time and last-day end time if the lead provided a schedule,
+        // so the pencil booking mirrors the customer-specified window instead of a pure date.
+        var firstDay = request.EventDays?.FirstOrDefault();
+        var lastDay = request.EventDays?.LastOrDefault();
+        if (firstDay != null && TryParseHhMm(firstDay.StartTime, out var firstStart))
+        {
+            startDate = startDate.Date.Add(firstStart);
+        }
+        if (lastDay != null && TryParseHhMm(lastDay.EndTime, out var lastEnd))
+        {
+            endDate = endDate.Date.Add(lastEnd);
+        }
+
         var venueId = await _bookingService.ResolveVenueIdAsync(request.Venue, ct) ?? 20;
 
         var contactName = $"{request.FirstName?.Trim()} {request.LastName?.Trim()}".Trim();
@@ -226,4 +239,11 @@ public sealed class LeadSubmissionFollowUpService : ILeadSubmissionFollowUp
 
     private static string? Trunc(string? s, int len)
         => string.IsNullOrWhiteSpace(s) ? s : (s!.Length <= len ? s : s[..len]);
+
+    private static bool TryParseHhMm(string? value, out TimeSpan result)
+    {
+        result = default;
+        return !string.IsNullOrWhiteSpace(value)
+               && TimeSpan.TryParseExact(value.Trim(), @"hh\:mm", CultureInfo.InvariantCulture, out result);
+    }
 }

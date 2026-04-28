@@ -658,6 +658,21 @@ public sealed class ChatController : Controller
                     if (!string.IsNullOrWhiteSpace(lead.Room)) HttpContext.Session.SetString("Draft:RoomName", lead.Room);
                     if (!string.IsNullOrWhiteSpace(lead.EventStartDate)) HttpContext.Session.SetString("Draft:EventDate", NormalizeToIsoDateOrEmpty(lead.EventStartDate));
                     if (!string.IsNullOrWhiteSpace(lead.EventEndDate)) HttpContext.Session.SetString("Draft:EventEndDate", NormalizeToIsoDateOrEmpty(lead.EventEndDate));
+
+                    // Seed time drafts from the lead schedule. Single-day leads skip the chat time picker
+                    // entirely. Multi-day leads keep the picker (so the user can review per-day times) but
+                    // store the full schedule in session so downstream consumers can read it.
+                    var leadSchedule = ParseLeadEventSchedule(lead.EventScheduleJson);
+                    if (leadSchedule.Count > 0)
+                    {
+                        HttpContext.Session.SetString("Draft:LeadEventSchedule", lead.EventScheduleJson!);
+                        if (leadSchedule.Count == 1)
+                        {
+                            var firstDay = leadSchedule[0];
+                            if (IsHhMm(firstDay.startTime)) HttpContext.Session.SetString("Draft:StartTime", firstDay.startTime);
+                            if (IsHhMm(firstDay.endTime)) HttpContext.Session.SetString("Draft:EndTime", firstDay.endTime);
+                        }
+                    }
                     if (!string.IsNullOrWhiteSpace(lead.Attendees))
                     {
                         HttpContext.Session.SetString("Draft:ExpectedAttendees", lead.Attendees);
@@ -1776,8 +1791,34 @@ public sealed class ChatController : Controller
                 {
                     if (IsLeadEntry())
                     {
-                        // Lead entries: if they are returning to the same thread, restore it
-                        shouldRestore = true;
+                        // Lead entries: only restore if the saved session's booking matches
+                        // the current lead's booking. Otherwise the user is on a NEW lead
+                        // and must get a fresh chat, not the old completed one.
+                        var currentBookingNo = HttpContext.Session.GetString("Draft:BookingNo");
+                        try
+                        {
+                            var state = JsonSerializer.Deserialize<Dictionary<string, string>>(existingSession.DraftStateJson);
+                            if (state != null
+                                && state.TryGetValue("Draft:BookingNo", out var savedBookingNo)
+                                && !string.IsNullOrWhiteSpace(currentBookingNo)
+                                && string.Equals(savedBookingNo, currentBookingNo, StringComparison.OrdinalIgnoreCase))
+                            {
+                                shouldRestore = true;
+                            }
+                            else
+                            {
+                                _logger.LogInformation(
+                                    "Lead entry: saved session booking {OldBooking} differs from current lead booking {NewBooking} for {Email}; starting fresh.",
+                                    (state != null && state.TryGetValue("Draft:BookingNo", out var sbn)) ? sbn : "none",
+                                    currentBookingNo ?? "none",
+                                    emailNorm);
+                                shouldRestore = false;
+                            }
+                        }
+                        catch
+                        {
+                            shouldRestore = false;
+                        }
                     }
                     else if (lookup?.Booking == null)
                     {
@@ -3403,10 +3444,10 @@ public sealed class ChatController : Controller
                                 Role = "assistant",
                                 Timestamp = DateTimeOffset.UtcNow,
                                 Parts = new List<string> {
-                                    $"Your quote for booking {bookingNo} is being finalized now. Please wait a moment and refresh, and I will share the live quote link as soon as it is ready."
+                                    $"Your quote for booking {bookingNo} is being finalised now. Please wait a moment and refresh, and I will share the live quote link as soon as it is ready."
                                 },
-                                FullText = $"Your quote for booking {bookingNo} is being finalized now. Please wait a moment and refresh, and I will share the live quote link as soon as it is ready.",
-                                Html = $"<p>Your quote for booking <strong>{bookingNo}</strong> is being finalized now. Please wait a moment and refresh, and I will share the live quote link as soon as it is ready.</p>"
+                                FullText = $"Your quote for booking {bookingNo} is being finalised now. Please wait a moment and refresh, and I will share the live quote link as soon as it is ready.",
+                                Html = $"<p>Your quote for booking <strong>{bookingNo}</strong> is being finalised now. Please wait a moment and refresh, and I will share the live quote link as soon as it is ready.</p>"
                             };
                             await AddAssistantMessageAndPersistAsync(msgList, failureMessage, ct);
                         }
@@ -3584,6 +3625,7 @@ public sealed class ChatController : Controller
                text.Contains("would you like me to confirm this quote") ||
                text.Contains("would you like to proceed and accept this quote") ||
                text.Contains("selecting yes will notify microhire") ||
+               text.Contains("notify microhire to finalise") ||
                text.Contains("notify microhire to finalize");
     }
 
@@ -4449,7 +4491,7 @@ public sealed class ChatController : Controller
 
     private static DisplayMessage BuildPostQuoteReviewPromptMessage()
     {
-        const string promptText = "Would you like to proceed and accept this quote?\n\nSelecting \"Accept Quote\" will notify Microhire to finalize the details.";
+        const string promptText = "Would you like to proceed and accept this quote?\n\nSelecting \"Accept Quote\" will notify Microhire to finalise the details.";
         return new DisplayMessage
         {
             Role = "assistant",
@@ -5260,6 +5302,33 @@ View Signed Quote
         if (DateTime.TryParse(t, CultureInfo.InvariantCulture, DateTimeStyles.None, out var dt))
             return dt.ToString("yyyy-MM-dd");
         return raw.Trim();
+    }
+
+    private static bool IsHhMm(string? s)
+        => !string.IsNullOrWhiteSpace(s)
+           && System.Text.RegularExpressions.Regex.IsMatch(s.Trim(), @"^([01]\d|2[0-3]):[0-5]\d$");
+
+    private static List<(string date, string startTime, string endTime)> ParseLeadEventSchedule(string? json)
+    {
+        var result = new List<(string, string, string)>();
+        if (string.IsNullOrWhiteSpace(json)) return result;
+        try
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            if (doc.RootElement.ValueKind != System.Text.Json.JsonValueKind.Array) return result;
+            foreach (var item in doc.RootElement.EnumerateArray())
+            {
+                var date = item.TryGetProperty("date", out var dEl) ? (dEl.GetString() ?? "") : "";
+                var start = item.TryGetProperty("startTime", out var sEl) ? (sEl.GetString() ?? "") : "";
+                var end = item.TryGetProperty("endTime", out var eEl) ? (eEl.GetString() ?? "") : "";
+                result.Add((date, start, end));
+            }
+        }
+        catch
+        {
+            return new List<(string, string, string)>();
+        }
+        return result;
     }
 
     private bool IsLeadEntry() =>

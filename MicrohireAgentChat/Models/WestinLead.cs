@@ -12,6 +12,8 @@ public sealed class WestinLead
     public string PhoneNumber { get; set; } = null!;
     public string EventStartDate { get; set; } = null!;
     public string EventEndDate { get; set; } = null!;
+    /// <summary>JSON array of per-day schedule: [{"date":"YYYY-MM-DD","startTime":"HH:mm","endTime":"HH:mm"}, ...]. Null for leads captured before the time-fields feature.</summary>
+    public string? EventScheduleJson { get; set; }
     public string Venue { get; set; } = null!;
     public string Room { get; set; } = null!;
     /// <summary>Expected attendee count from the sales portal; chat prefill uses this verbatim — wrong DB values need ingestion/CRM mapping fixes.</summary>

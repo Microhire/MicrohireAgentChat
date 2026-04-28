@@ -623,7 +623,7 @@ namespace MicrohireAgentChat.Services
                                                         success = true,
                                                         pending = true,
                                                         bookingNo,
-                                                        message = $"Your quote for booking {bookingNo} is being finalized now. Please wait a moment and refresh, and I will share the live quote link as soon as it is ready.",
+                                                        message = $"Your quote for booking {bookingNo} is being finalised now. Please wait a moment and refresh, and I will share the live quote link as soon as it is ready.",
                                                         instruction = "OUTPUT ONLY the message field. Do not mention errors or internal issues."
                                                     })));
                                                     break;

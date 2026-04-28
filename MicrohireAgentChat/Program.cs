@@ -169,6 +169,10 @@ using (var scope = app.Services.CreateScope())
             IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.WestinLeads') AND name = 'BookingNo')
                 ALTER TABLE dbo.WestinLeads ADD BookingNo NVARCHAR(35) NULL;
             """);
+        context.Database.ExecuteSqlRaw("""
+            IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID('dbo.WestinLeads') AND name = 'EventScheduleJson')
+                ALTER TABLE dbo.WestinLeads ADD EventScheduleJson NVARCHAR(MAX) NULL;
+            """);
         logger.LogInformation("Ensured AgentThreads schema is up to date.");
     }
     catch (Exception ex)

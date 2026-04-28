@@ -49,6 +49,7 @@ namespace MicrohireAgentChat.Data
                 e.Property(x => x.PhoneNumber).HasMaxLength(50).IsRequired();
                 e.Property(x => x.EventStartDate).HasMaxLength(20).IsRequired();
                 e.Property(x => x.EventEndDate).HasMaxLength(20).IsRequired();
+                e.Property(x => x.EventScheduleJson);
                 e.Property(x => x.Venue).HasMaxLength(100).IsRequired();
                 e.Property(x => x.Room).HasMaxLength(100).IsRequired();
                 e.Property(x => x.Attendees).HasMaxLength(20).IsRequired();

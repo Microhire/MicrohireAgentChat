@@ -302,6 +302,7 @@ else
             || raw.Contains("selecting yes will notify microhire")
             || raw.Contains("selecting \"accept quote\" will notify microhire")
             || raw.Contains("once you're done reviewing the quote")
+            || raw.Contains("notify microhire to finalise")
             || raw.Contains("notify microhire to finalize");
     });
 
@@ -332,6 +333,7 @@ else
                                            || _rawAllLower.Contains("selecting yes will notify microhire")
                                            || _rawAllLower.Contains("selecting \"accept quote\" will notify microhire")
                                            || _rawAllLower.Contains("once you're done reviewing the quote")
+                                           || _rawAllLower.Contains("notify microhire to finalise")
                                            || _rawAllLower.Contains("notify microhire to finalize");
         bool _looksLikePicker = _rawAllLower.Contains("timepicker")
                                 || _rawAllLower.Contains("multitime");
@@ -1445,7 +1447,7 @@ else
                         {
                             <div class="isla-cta isla-cta-acceptance" data-quote-acceptance-controls>
                                 <div class="isla-cta-label">Would you like to proceed and accept this quote?</div>
-                                <div class="isla-cta-sublabel">Selecting "Accept Quote" will notify Microhire to finalize the details.</div>
+                                <div class="isla-cta-sublabel">Selecting "Accept Quote" will notify Microhire to finalise the details.</div>
                                 <div class="isla-cta-buttons" data-acceptance-buttons>
                                     <button type="button" class="isla-quote-accept-yes">Accept Quote</button>
                                 </div>
@@ -1579,7 +1581,7 @@ else
     }
 
     static readonly Regex QuoteAcceptancePhrasesRegex = new Regex(
-        @"(?:<p>)?\s*(?:would you like (?:to confirm|me to confirm|to proceed (?:with|and accept)) this quote\??|selecting(?:\s+yes|\s+""accept quote"")\s+will notify microhire[^.]*\.?|once you're done reviewing the quote[^.]*\.?|notify microhire to finalize[^.]*\.?)\s*(?:</p>)?",
+        @"(?:<p>)?\s*(?:would you like (?:to confirm|me to confirm|to proceed (?:with|and accept)) this quote\??|selecting(?:\s+yes|\s+""accept quote"")\s+will notify microhire[^.]*\.?|once you're done reviewing the quote[^.]*\.?|notify microhire to finali[sz]e[^.]*\.?)\s*(?:</p>)?",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     string StripQuoteAcceptancePhrases(string text){
